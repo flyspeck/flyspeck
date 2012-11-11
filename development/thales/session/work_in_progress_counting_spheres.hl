@@ -13,6 +13,10 @@ let XULJEPR_concl = `!V. packing V /\ V SUBSET ball_annulus /\ pack_ineq_def_a /
 ==> (lmfun_ineq_center V)`;;
 
 
+(* ========================================================================== *)
+(* WORK IN PROGRESS *)
+(* ========================================================================== *)
+
 
 (* ========================================================================== *)
 (* COMPLETED LEMMAS  *)
@@ -110,7 +114,7 @@ let SATURATE_BALL_ANNULUS = prove_by_refinement(
   ]);;
   (* }}} *)
 
-let POLYHEDRON_FACET_SUM_2Pi = prove_by_refinement(
+let POLYHEDRON_FACET_SUM_4Pi = prove_by_refinement(
   `!(P:real^3->bool). polyhedron P /\ bounded P /\
     (vec 0) IN interior P ==>
     (sum {c | c facet_of P } (\c. sol (vec 0) (fchanged c)) = &4 * pi)`,
@@ -405,10 +409,28 @@ let YSSKQOY_VECTOR = prove_by_refinement(
   ]);;
   (* }}} *)
 
-(* ========================================================================== *)
-(* WORK IN PROGRESS *)
-(* ========================================================================== *)
 
+let ACS_ROOT32 = prove_by_refinement(
+  `acs (sqrt(&3) / &2) = pi / &6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[GSYM COS_PI6];
+  MATCH_MP_TAC ACS_COS;
+  MP_TAC PI_POS;
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let ASN_HALF = prove_by_refinement(
+  `asn (&1 / &2) = pi/ &6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[GSYM SIN_PI6];
+  MATCH_MP_TAC ASN_SIN;
+  MP_TAC PI_POS;
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
 
 let THETA_BOUNDS = prove_by_refinement(
   `!v theta. (v IN ball_annulus) /\ (\v. acs(norm v / &4) - pi/ &6) = theta
@@ -418,11 +440,382 @@ let THETA_BOUNDS = prove_by_refinement(
   REPEAT WEAK_STRIP_TAC;
   EXPAND_TAC "theta";
   REWRITE_TAC[arith `x - y < u <=> -- y < u -x `;arith `&0 < x - y <=> y < x`];
-  BY(GMATCH_SIMP_TAC (GSYM ASN_ACS))
- (* to here *)
+  SUBGOAL_THEN `!x y. y <= x ==> -- (pi/ &6) < x - y` GMATCH_SIMP_TAC;
+    REPEAT GEN_TAC;
+    MP_TAC PI_POS;
+    BY(REAL_ARITH_TAC);
+  REWRITE_TAC[ GSYM ACS_0 ];
+  REWRITE_TAC[ GSYM ACS_ROOT32];
+  GMATCH_SIMP_TAC ACS_MONO_LT;
+  GMATCH_SIMP_TAC ACS_MONO_LE;
+  FIRST_X_ASSUM_ST `IN` MP_TAC;
+  REWRITE_TAC[ Ckqowsa_3_points.in_ball_annulus ];
+  MP_TAC Sphere.h0;
+  MP_TAC Flyspeck_constants.bounds;
+  REWRITE_TAC[Sphere.sqrt3];
+  BY(REAL_ARITH_TAC)
   ]);;
   (* }}} *)
 
+let INJ_FINITE_EXISTS = prove_by_refinement(
+  `!n (A:A->bool) (B:B->bool).
+    A HAS_SIZE n /\ FINITE B /\ n <= CARD B  ==>
+    (?j. INJ j A B)
+    `,
+  (* {{{ proof *)
+  [
+  INDUCT_TAC;
+    REWRITE_TAC[HAS_SIZE];
+    REPEAT WEAK_STRIP_TAC;
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `A = {}`) (fun t -> REWRITE_TAC[t])));
+      BY(ASM_MESON_TAC[ CARD_EQ_0; SUBSET_EMPTY]);
+    BY(REWRITE_TAC[INJ;NOT_IN_EMPTY]);
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `~(A = {}) /\ ~(B = {})`) (fun t -> ASSUME_TAC t THEN MP_TAC t)));
+    REWRITE_TAC[ GSYM HAS_SIZE_0];
+    REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC);
+    REWRITE_TAC[HAS_SIZE];
+    BY(MESON_TAC[ arith `~(0 = SUC n) /\ ~(SUC n <= 0)`]);
+  REWRITE_TAC[ Misc_defs_and_lemmas.EMPTY_EXISTS ];
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM (fun t -> INTRO_TAC t [`A DELETE u`;`B DELETE u'`]);
+  ANTS_TAC;
+    ASM_REWRITE_TAC[ FINITE_DELETE ];
+    CONJ_TAC;
+      FIRST_X_ASSUM_ST `HAS_SIZE` MP_TAC;
+      REWRITE_TAC[ HAS_SIZE_SUC ];
+      BY(ASM_MESON_TAC[]);
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `?m. (n <= m) /\  B HAS_SIZE (SUC m)`) MP_TAC));
+      ASM_REWRITE_TAC[HAS_SIZE];
+      GOAL_TERM (fun w -> (EXISTS_TAC ( env w `PRE (CARD B)`)));
+      FIRST_X_ASSUM_ST `SUC` MP_TAC;
+      BY(ARITH_TAC);
+    REPEAT WEAK_STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[ HAS_SIZE_SUC ];
+    BY(ASM_MESON_TAC[HAS_SIZE]);
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `\ a. if (a = u) then u' else j a`)));
+  REWRITE_TAC[INJ];
+  SUBCONJ_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    COND_CASES_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    FIRST_X_ASSUM_ST `INJ` MP_TAC;
+    REWRITE_TAC[INJ;IN_DELETE];
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  REPEAT GEN_TAC;
+  FIRST_X_ASSUM_ST `INJ` MP_TAC;
+  REWRITE_TAC[INJ;IN_DELETE];
+  BY(REPEAT COND_CASES_TAC THEN ASM_REWRITE_TAC[] THEN TRY (ASM_MESON_TAC[]))
+  ]);;
+  (* }}} *)
+
+let INJ_EXTENSION = prove_by_refinement(
+  `!(A:A->bool) (B:B->bool) A' j'.
+    INJ j' A' B /\ A' SUBSET A /\ FINITE A /\ FINITE B /\ CARD A <= CARD B ==>
+     (?j. INJ j A B /\ (!a. a IN A' ==> j a = j' a))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `?k. INJ k (A DIFF A') (B DIFF (IMAGE j' A'))`) MP_TAC));
+    MATCH_MP_TAC INJ_FINITE_EXISTS;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `CARD (A DIFF A')`)));
+    SUBCONJ_TAC;
+      BY(ASM_MESON_TAC[HAS_SIZE;FINITE_DIFF]);
+    DISCH_TAC;
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[FINITE_DIFF]);
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `IMAGE j' A' SUBSET B`) MP_TAC));
+      FIRST_X_ASSUM_ST `INJ` MP_TAC;
+      REWRITE_TAC[INJ;SUBSET;IN_IMAGE];
+      BY(MESON_TAC[]);
+    DISCH_TAC;
+    ASM_SIMP_TAC[ CARD_DIFF ];
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `CARD (IMAGE j' A') <= CARD (A')`) MP_TAC));
+      MATCH_MP_TAC CARD_IMAGE_LE;
+      BY(ASM_MESON_TAC[FINITE_SUBSET]);
+    FIRST_X_ASSUM_ST `(<=):(num->num->bool)` MP_TAC;
+    BY(ARITH_TAC);
+  REPEAT WEAK_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM MP_TAC);
+  REWRITE_TAC[SUBSET;INJ;IN_DIFF;IN_IMAGE];
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `\v. if (v IN A') then j' v else k v`)));
+  BY(REPEAT (COND_CASES_TAC) THEN TRY (ASM_MESON_TAC[]))
+  ]);;
+  (* }}} *)
+
+let BIJ_EXTENDS_INJ = prove_by_refinement(
+  `! (A:A->bool) (B:B->bool) A' j'.
+     FINITE A /\ FINITE B /\ A' SUBSET A /\ (INJ j' A' B) /\
+    (CARD A = CARD B)  ==> 
+    (?j. BIJ j A B /\ (!a. a IN A' ==> j' a = j a))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC INJ_EXTENSION [`A`;`B`;`A'`;`j'`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    BY(ARITH_TAC);
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `j`)));
+  ASM_REWRITE_TAC[BIJ];
+  BY(ASM_MESON_TAC[Ysskqoy.INJ_IFF_SURJ])
+  ]);;
+  (* }}} *)
+
+let DLWCHEM_VECTOR_sum = prove_by_refinement(
+  `!k (V:real^3->bool) n theta. pack_ineq_def_a /\
+    (\v. acs (norm v / &4) - pi / &6) = theta /\
+    (!v. v IN V ==> (3 <= k v)) /\
+    (12 < n) /\ 
+    (V HAS_SIZE n) /\
+    (V SUBSET ball_annulus) /\
+    (sum V (\v. &(k v)) <= (&6 * &n - &12)) /\
+    (sum V (\v. max (&0) (regular_spherical_polygon_area (cos(theta v)) (&(k v)))) <= &4 * pi) /\ 
+    ~(lmfun_ineq_center V)
+ ==> (n < 16)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC DLWCHEM_sum;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `?b. BIJ b (0..(n-1)) V`) MP_TAC));
+    INTRO_TAC BIJ_EXTENDS_INJ [`(0..(n-1))`;`V`;`{}:num->bool`];
+    REWRITE_TAC[EMPTY_SUBSET;INJ;NOT_IN_EMPTY];
+    DISCH_THEN MATCH_MP_TAC;
+    INTRO_TAC HAS_SIZE_NUMSEG [`0`;`n-1`];
+    FIRST_X_ASSUM_ST `HAS_SIZE` MP_TAC;
+    REWRITE_TAC[HAS_SIZE];
+    FIRST_X_ASSUM_ST `12 < n` MP_TAC;
+    BY(MESON_TAC[arith `12 < n ==> (n - 1 + 1) - 0 =  n`]);
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `(\v. (norm v) / &2) o b`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `k o b`)));
+  ASM_REWRITE_TAC[];
+  SUBCONJ_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    REWRITE_TAC[o_DEF];
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `b i IN V`) ASSUME_TAC));
+      FIRST_X_ASSUM_ST `BIJ` MP_TAC;
+      REWRITE_TAC[BIJ;INJ;IN_NUMSEG];
+      BY(ASM_MESON_TAC[arith `i < n ==> 0 <= i /\ i <= n-1`]);
+    ASM_SIMP_TAC[];
+    FIRST_X_ASSUM_ST `ball_annulus` MP_TAC;
+    REWRITE_TAC[Ckqowsa_3_points.in_ball_annulus; SUBSET];
+    DISCH_THEN (fun t -> INTRO_TAC t [`b i`]);
+    ASM_REWRITE_TAC[];
+    MP_TAC Sphere.h0;
+    BY(REAL_ARITH_TAC);
+  DISCH_TAC;
+  COMMENT "1";
+  CONJ_TAC;
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(\i. &((k o b) i)) = (\v. &(k v)) o b`) SUBST1_TAC));
+      BY(REWRITE_TAC[FUN_EQ_THM;o_DEF]);
+    GMATCH_SIMP_TAC BIJ_SUM;
+    BY(ASM_MESON_TAC[]);
+  CONJ_TAC;
+    INTRO_TAC SUM_EQ [`(\i. max (&0)       (regular_spherical_polygon_area       (((\v. norm v / &2) o b) i * sqrt3 /  #4.0 +        sqrt (&1 - (((\v. norm v / &2) o b) i / &2) pow 2) / &2)      (&((k o b) i))))`;`(\v. max (&0) (regular_spherical_polygon_area (cos (theta v)) (&(k v)))) o b`;`(0..(n-1))`];
+    DISCH_THEN GMATCH_SIMP_TAC;
+    CONJ_TAC;
+      GEN_TAC;
+      REWRITE_TAC[FUN_EQ_THM;o_DEF;IN_NUMSEG];
+      REPEAT WEAK_STRIP_TAC;
+      REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+      GMATCH_SIMP_TAC COSG;
+      GOAL_TERM (fun w -> (EXISTS_TAC ( env w `norm (b x) / &2`)));
+      EXPAND_TAC "theta";
+      REWRITE_TAC[arith `x / &2 / &2 = x / &4`;arith `#4.0 = &4`;Sphere.sqrt3];
+      FIRST_X_ASSUM (MP_TAC o (ISPEC `x:num`));
+      ANTS_TAC;
+        REPEAT (FIRST_X_ASSUM MP_TAC);
+        BY(ARITH_TAC);
+      REWRITE_TAC[o_DEF];
+      MP_TAC Sphere.h0;
+      BY(REAL_ARITH_TAC);
+    GMATCH_SIMP_TAC BIJ_SUM;
+    BY(ASM_MESON_TAC[]);
+  FIRST_X_ASSUM_ST `lmfun_ineq_center` MP_TAC;
+  REWRITE_TAC[ Pack_defs.lmfun_ineq_center ; arith `~(x <= &12) <=> (&12 < x)`];
+  INTRO_TAC SUM_EQ [`(\i. lfun (((\v. norm v / &2) o b) i))`;`(\v. lmfun (hl [vec 0; v])) o b`;`(0..(n-1))`];
+  DISCH_THEN GMATCH_SIMP_TAC;
+  CONJ_TAC;
+    REWRITE_TAC[FUN_EQ_THM;IN_NUMSEG;o_DEF];
+    REPEAT WEAK_STRIP_TAC;
+    REWRITE_TAC[ Marchal_cells_3.HL_2 ; DIST_0; arith `inv (&2) *x = x/ &2`];
+    GMATCH_SIMP_TAC Nonlinear_lemma.lmfun_lfun;
+    FIRST_X_ASSUM (MP_TAC o (ISPEC `x:num`));
+    ANTS_TAC;
+      REPEAT (FIRST_X_ASSUM MP_TAC);
+      BY(ARITH_TAC);
+    REWRITE_TAC[o_DEF];
+    MP_TAC Sphere.h0;
+    BY(REAL_ARITH_TAC);
+  GMATCH_SIMP_TAC BIJ_SUM;
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let XULJEPR_VECTOR_sum = prove_by_refinement(
+  `!k V n theta v0. ( pack_ineq_def_a /\
+    (v0 IN V) /\
+    (\v. (if (v = v0) then (#0.797) else acs (norm v / &4) - pi / &6)) = theta /\
+    (12 < n) /\ 
+    (norm v0 = &2) /\
+    (!v. (v IN V ==> 3 <= k v)) /\
+    V HAS_SIZE n /\
+    V SUBSET ball_annulus /\
+    sum V (\v. &(k v)) <= &6 * &n - &12 /\
+    sum V (\v. max (&0)  (regular_spherical_polygon_area (cos (theta v)) (&(k v)))) <=  &4 * pi /\
+    ~lmfun_ineq_center V ==> F)`,
+  (* {{{ proof *)
+  [
+
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC XULJEPR_sum;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `?b. BIJ b (0..(n-1)) V /\ b 0 = v0`) MP_TAC));
+    INTRO_TAC BIJ_EXTENDS_INJ [`(0..(n-1))`;`V`;`{0}`;`\ (i:num). v0`];
+    REWRITE_TAC[IN_SING];
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(!(j:num->real^3). (!a. a = 0 ==> (v0 = j a)) <=> (j 0 = v0))`) (fun t -> REWRITE_TAC[t])));
+      BY(MESON_TAC[]);
+    DISCH_THEN MATCH_MP_TAC;
+    INTRO_TAC HAS_SIZE_NUMSEG [`0`;`n-1`];
+    FIRST_X_ASSUM_ST `HAS_SIZE` MP_TAC;
+    REWRITE_TAC[HAS_SIZE];
+    FIRST_X_ASSUM_ST `12 < n` MP_TAC;
+    REWRITE_TAC[INJ;SUBSET;IN_SING;IN_NUMSEG];
+    BY(BY(ASM_MESON_TAC[arith `12 < n ==> (n - 1 + 1) - 0 =  n`;arith `0 <= 0 /\ (12 < n==> 0 <= n-1)`]));
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `(\v. (norm v) / &2) o b`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `k o b`)));
+  EXISTS_TAC `n:num`;
+  ASM_REWRITE_TAC[];
+  COMMENT "1";
+  CONJ_TAC;
+    ASM_REWRITE_TAC[o_DEF];
+    BY(REAL_ARITH_TAC);
+  SUBCONJ_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    REWRITE_TAC[o_DEF];
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `b i IN V`) ASSUME_TAC));
+      FIRST_X_ASSUM_ST `BIJ` MP_TAC;
+      REWRITE_TAC[BIJ;INJ;IN_NUMSEG];
+      BY(BY(ASM_MESON_TAC[arith `i < n ==> 0 <= i /\ i <= n-1`]));
+    ASM_SIMP_TAC[];
+    FIRST_X_ASSUM_ST `ball_annulus` MP_TAC;
+    REWRITE_TAC[Ckqowsa_3_points.in_ball_annulus; SUBSET];
+    DISCH_THEN (fun t -> INTRO_TAC t [`b i`]);
+    ASM_REWRITE_TAC[];
+    MP_TAC Sphere.h0;
+    BY(BY(REAL_ARITH_TAC));
+  DISCH_TAC;
+  COMMENT "1a 6n-12";
+  CONJ_TAC;
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(\i. &((k o b) i)) = (\v. &(k v)) o b`) SUBST1_TAC));
+      BY(BY(REWRITE_TAC[FUN_EQ_THM;o_DEF]));
+    GMATCH_SIMP_TAC BIJ_SUM;
+    BY(BY(ASM_MESON_TAC[]));
+  CONJ2_TAC;
+    FIRST_X_ASSUM_ST `lmfun_ineq_center` MP_TAC;
+    REWRITE_TAC[ Pack_defs.lmfun_ineq_center ; arith `~(x <= &12) <=> (&12 < x)`];
+    INTRO_TAC SUM_EQ [`(\i. lfun (((\v. norm v / &2) o b) i))`;`(\v. lmfun (hl [vec 0; v])) o b`;`(0..(n-1))`];
+    DISCH_THEN GMATCH_SIMP_TAC;
+    CONJ_TAC;
+      REWRITE_TAC[FUN_EQ_THM;IN_NUMSEG;o_DEF];
+      REPEAT WEAK_STRIP_TAC;
+      REWRITE_TAC[ Marchal_cells_3.HL_2 ; DIST_0; arith `inv (&2) *x = x/ &2`];
+      GMATCH_SIMP_TAC Nonlinear_lemma.lmfun_lfun;
+      FIRST_X_ASSUM (MP_TAC o (ISPEC `x:num`));
+      ANTS_TAC;
+        REPEAT (FIRST_X_ASSUM MP_TAC);
+        BY(BY(ARITH_TAC));
+      REWRITE_TAC[o_DEF];
+      MP_TAC Sphere.h0;
+      BY(BY(REAL_ARITH_TAC));
+    GMATCH_SIMP_TAC BIJ_SUM;
+    BY(BY(ASM_MESON_TAC[]));
+  COMMENT "1b last conjunct";
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `max (&0) (regular_spherical_polygon_area (cos  #0.797) (&((k o b) 0))) + sum (1..n - 1) (\i. max (&0)      (regular_spherical_polygon_area       (((\v. norm v / &2) o b) i * sqrt3 /  #4.0 +        sqrt (&1 - (((\v. norm v / &2) o b) i / &2) pow 2) / &2)      (&((k o b) i)))) = sum (0.. n-1) ( (\v. max (&0) (regular_spherical_polygon_area (cos (theta v)) (&(k v)))) o b)`) SUBST1_TAC));
+    INTRO_TAC (GSYM SUM_COMBINE_R) [` ((\v. max (&0) (regular_spherical_polygon_area (cos (theta v)) (&(k v)))) o  b)`;`0`;`0`;`n - 1`];
+    ANTS_TAC;
+      BY(ARITH_TAC);
+    DISCH_THEN SUBST1_TAC;
+    REWRITE_TAC[arith `0+1 = 1`;SUM_SING_NUMSEG];
+    MATCH_MP_TAC (arith `a = a' /\ b = b' ==> (a + b = a'+b')`);
+    CONJ_TAC;
+      REWRITE_TAC[o_DEF];
+      ASM_REWRITE_TAC[];
+      REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+      EXPAND_TAC "theta";
+      BY(REWRITE_TAC[]);
+    MATCH_MP_TAC SUM_EQ;
+    GEN_TAC;
+    REWRITE_TAC[FUN_EQ_THM;o_DEF;IN_NUMSEG];
+    REPEAT WEAK_STRIP_TAC;
+    REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+    GMATCH_SIMP_TAC COSG;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `norm (b x) / &2`)));
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `theta (b x) = acs(norm (b x) / &4) - pi / &6`) SUBST1_TAC));
+      EXPAND_TAC "theta";
+      COND_CASES_TAC;
+        SUBGOAL_THEN `x = 0` MP_TAC;
+          FIRST_X_ASSUM_ST `BIJ` MP_TAC;
+          REWRITE_TAC[BIJ;INJ;IN_NUMSEG];
+          BY(ASM_MESON_TAC[arith `0 <= 0 /\ (12 < n ==> 0 <= n-1) /\ (1 <= x ==> 0 <= x)`]);
+        REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `1` MP_TAC);
+        BY(ARITH_TAC);
+      BY(REWRITE_TAC[]);
+    REWRITE_TAC[arith `x / &2 / &2 = x / &4`;arith `#4.0 = &4`;Sphere.sqrt3];
+    FIRST_X_ASSUM (MP_TAC o (ISPEC `x:num`));
+    ANTS_TAC;
+      REPEAT (FIRST_X_ASSUM MP_TAC);
+      BY(BY(ARITH_TAC));
+    REWRITE_TAC[o_DEF];
+    MP_TAC Sphere.h0;
+    BY(BY(REAL_ARITH_TAC));
+  GMATCH_SIMP_TAC BIJ_SUM;
+  BY(BY(ASM_MESON_TAC[]))
+  ]);;
+  (* }}} *)
+
+let SOL_NN = prove_by_refinement(
+  `!x U. (?r. &0 < r /\ measurable (U INTER normball x r) /\
+      radial_norm r x (U INTER normball x r)) ==> &0 <= sol x U`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  GMATCH_SIMP_TAC Vol1.sol;
+  EXISTS_TAC `r:real`;
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  MATCH_MP_TAC Real_ext.REAL_PROP_NN_MUL2;
+  CONJ_TAC;
+    BY(BY(REAL_ARITH_TAC));
+  MATCH_MP_TAC REAL_LE_DIV;
+  CONJ_TAC;
+    MATCH_MP_TAC MEASURE_POS_LE;
+    BY(BY(ASM_MESON_TAC[]));
+  MATCH_MP_TAC REAL_POW_LE;
+  BY(BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC))
+  ]);;
+  (* }}} *)
+
+let FACET_SOL_NN = prove_by_refinement(
+  `!p c. polyhedron p /\ bounded p /\ (vec 0) IN interior p /\
+    c facet_of p ==>
+    &0 <= sol (vec 0) (fchanged c)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC SOL_NN;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `&1`)));
+  ASM_SIMP_TAC[FCHANGED_RADIAL;FCHANGED_MEASURABLE];
+  BY(ASM_MESON_TAC[Marchal_cells_2.RADIAL_VS_RADIAL_NORM;FCHANGED_RADIAL;FCHANGED_MEASURABLE;arith `&0 < &1`])
+  ]);;
+  (* }}} *)
 
 let DLWCHEM = prove_by_refinement(
 `!V. packing V /\ pack_ineq_def_a /\
@@ -435,20 +828,20 @@ let DLWCHEM = prove_by_refinement(
   INTRO_TAC LMFUN_INEQ_CENTER_IMP_13 [`W`];
   ASM_SIMP_TAC[Fatugpd.lemma1];
   GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `CARD W < 16`)));
-    BY(ARITH_TAC);
+    BY((ARITH_TAC));
   INTRO_TAC SATURATE_BALL_ANNULUS [`W`;`{}:real^3->bool`;`&2`];
   ASM_REWRITE_TAC[arith `&2 <= &2`;EMPTY_SUBSET];
   ANTS_TAC;
     CONJ_TAC;
       MP_TAC Sphere.h0;
-      BY(REAL_ARITH_TAC);
-    BY(REWRITE_TAC[X_IN NOT_IN_EMPTY]);
+      BY((REAL_ARITH_TAC));
+    BY((REWRITE_TAC[X_IN NOT_IN_EMPTY]));
   REWRITE_TAC[X_IN NOT_IN_EMPTY];
   REPEAT WEAK_STRIP_TAC;
   GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `CARD V < 16`)));
     MATCH_MP_TAC (arith `y <= x ==> x < z ==> y < (z:num)`);
     MATCH_MP_TAC CARD_SUBSET;
-    BY(ASM_REWRITE_TAC[]);
+    BY((ASM_REWRITE_TAC[]));
   FIRST_X_ASSUM_ST `SUBSET` kill;
   REPLICATE_TAC 6 (FIRST_X_ASSUM MP_TAC);
   FIRST_X_ASSUM_ST `pack_ineq_def_a` MP_TAC;
@@ -460,9 +853,9 @@ let DLWCHEM = prove_by_refinement(
   INTRO_TAC EXISTS_M_POLYHEDRON [`V`;`theta`;`&2`;`n`];
   ASM_REWRITE_TAC[];
   GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `V HAS_SIZE n`) ASSUME_TAC));
-    BY(ASM_MESON_TAC[HAS_SIZE]);
+    BY((ASM_MESON_TAC[HAS_SIZE]));
   GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `~(V = {})`) ASSUME_TAC));
-    BY(ASM_MESON_TAC[CARD_CLAUSES;arith `~(13 <= 0)`]);
+    BY((ASM_MESON_TAC[CARD_CLAUSES;arith `~(13 <= 0)`]));
   GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w ` (!v w. v IN V /\ w IN V /\ ~(v = w) ==> theta v + theta w <= arcV (vec 0) v w)`) ASSUME_TAC));
     REPEAT WEAK_STRIP_TAC;
     MATCH_MP_TAC YSSKQOY_VECTOR;
@@ -471,60 +864,212 @@ let DLWCHEM = prove_by_refinement(
       FIRST_X_ASSUM_ST `packing` MP_TAC;
       REWRITE_TAC[Sphere.packing];
       DISCH_THEN MATCH_MP_TAC;
-      BY(ASM_MESON_TAC[IN]);
+      BY((ASM_MESON_TAC[IN]));
+    BY((ASM_MESON_TAC[SUBSET]));
+  ASM_REWRITE_TAC[];
+  (COMMENT "1a");
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w ` (!v. v IN V ==> &0 < theta v /\ theta v < pi / &2)`) ASSUME_TAC));
+    REPEAT WEAK_STRIP_TAC;
+    MATCH_MP_TAC THETA_BOUNDS;
+    ASM_REWRITE_TAC[];
     BY(ASM_MESON_TAC[SUBSET]);
   ASM_REWRITE_TAC[];
-  BY(COMMENT "1a")
+  ANTS_TAC;
+    MP_TAC Sphere.h0;
+    BY(REAL_ARITH_TAC);
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC DLWCHEM_VECTOR_sum;
+  ABBREV_TAC `k = \ (v:real^3). CARD { (e:real^3->bool) | e facet_of (f v) }`;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `k`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `V`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `theta`)));
+  ASM_REWRITE_TAC[];
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `!v. v IN V ==> f v facet_of P`) ASSUME_TAC));
+    FIRST_X_ASSUM_ST `BIJ` MP_TAC;
+    REWRITE_TAC[BIJ;INJ;IN_ELIM_THM];
+    BY(MESON_TAC[]);
+  SUBCONJ_TAC;
+    EXPAND_TAC "k";
+    BY(ASM_MESON_TAC[facet_3_facets]);
+  DISCH_TAC;
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `13` MP_TAC;
+    BY(ARITH_TAC);
+  CONJ_TAC;
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `(\v. &(k v)) = (\ c. &(CARD {e | e facet_of c })) o f`) SUBST1_TAC));
+      EXPAND_TAC "k";
+      BY(REWRITE_TAC[FUN_EQ_THM;o_DEF]);
+    GMATCH_SIMP_TAC BIJ_SUM;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `{ c | c facet_of P }`)));
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC polyhedron_edge_sum;
+    ASM_SIMP_TAC[arith `13 <= n ==> 2 <= n`];
+    REWRITE_TAC[HAS_SIZE];
+    BY(ASM_MESON_TAC[ Misc_defs_and_lemmas.BIJ_CARD; Misc_defs_and_lemmas.FINITE_BIJ]);
+  COMMENT "last conjunct: 4 pi";
+  ASM_SIMP_TAC[GSYM POLYHEDRON_FACET_SUM_4Pi];
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `sum {c | c facet_of P} (\c. sol (vec 0) (fchanged c)) = sum V ((\c. sol (vec 0) (fchanged c)) o f)`) SUBST1_TAC));
+    GMATCH_SIMP_TAC BIJ_SUM;
+    BY(ASM_MESON_TAC[]);
+  MATCH_MP_TAC SUM_LE;
+  ASM_REWRITE_TAC[];
+  X_GENv_TAC "v";
+  DISCH_TAC;
+  REWRITE_TAC[o_DEF];
+  MATCH_MP_TAC (arith `a <= x /\ b <= x==>    (max a b <= x)`);
+  SUBCONJ_TAC;
+    MATCH_MP_TAC FACET_SOL_NN;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  REWRITE_TAC[ Sphere.regular_spherical_polygon_area ];
+  MATCH_MP_TAC GOTCJAH;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `f v`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `v`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `b v`)));
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `P`)));
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `{u | u facet_of f v} HAS_SIZE k v`) (fun t -> REWRITE_TAC[t])));
+    EXPAND_TAC "k";
+    REWRITE_TAC[HAS_SIZE];
+    MATCH_MP_TAC FACET_FINITE;
+    BY(ASM_MESON_TAC[]);
+  ASM_SIMP_TAC[];
+  AP_TERM_TAC;
+  REWRITE_TAC[FUN_EQ_THM;IN_ELIM_THM];
+  GEN_TAC;
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  BY(MESON_TAC[DOT_SYM]) 
 (*
-    gv "W"
+  X_GENv_TAC "W";
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC LMFUN_INEQ_CENTER_IMP_13 [`W`];
+  ASM_SIMP_TAC[Fatugpd.lemma1];
+  GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `CARD W < 16`)));
+    (ARITH_TAC);
+  INTRO_TAC SATURATE_BALL_ANNULUS [`W`;`{}:real^3->bool`;`&2`];
+  ASM_REWRITE_TAC[arith `&2 <= &2`;EMPTY_SUBSET];
+  ANTS_TAC;
+    CONJ_TAC;
+      MP_TAC Sphere.h0;
+      (REAL_ARITH_TAC);
+    (REWRITE_TAC[X_IN NOT_IN_EMPTY]);
+  REWRITE_TAC[X_IN NOT_IN_EMPTY];
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `CARD V < 16`)));
+    MATCH_MP_TAC (arith `y <= x ==> x < z ==> y < (z:num)`);
+    MATCH_MP_TAC CARD_SUBSET;
+    (ASM_REWRITE_TAC[]);
+  FIRST_X_ASSUM_ST `SUBSET` kill;
+  REPLICATE_TAC 6 (FIRST_X_ASSUM MP_TAC);
+  FIRST_X_ASSUM_ST `pack_ineq_def_a` MP_TAC;
+  REPEAT (FIRST_X_ASSUM kill);
+  REPEAT WEAK_STRIP_TAC;
+  COMMENT "1 saturated";
+  ABBREV_TAC (`n = CARD (V:real^3 ->bool)`);
+  ABBREV_TAC (`theta = \ (v:real^3). acs(norm v / &4) - pi / &6`);
+  INTRO_TAC EXISTS_M_POLYHEDRON [`V`;`theta`;`&2`;`n`];
+  ASM_REWRITE_TAC[];
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `V HAS_SIZE n`) ASSUME_TAC));
+    (ASM_MESON_TAC[HAS_SIZE]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `~(V = {})`) ASSUME_TAC));
+    (ASM_MESON_TAC[CARD_CLAUSES;arith `~(13 <= 0)`]);
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w ` (!v w. v IN V /\ w IN V /\ ~(v = w) ==> theta v + theta w <= arcV (vec 0) v w)`) ASSUME_TAC));
+    REPEAT WEAK_STRIP_TAC;
+    MATCH_MP_TAC YSSKQOY_VECTOR;
+    ASM_REWRITE_TAC[];
+    GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `&2 <= dist(v,w)`) (fun t -> REWRITE_TAC[t])));
+      FIRST_X_ASSUM_ST `packing` MP_TAC;
+      REWRITE_TAC[Sphere.packing];
+      DISCH_THEN MATCH_MP_TAC;
+      (ASM_MESON_TAC[IN]);
+    (ASM_MESON_TAC[SUBSET]);
+  ASM_REWRITE_TAC[];
+  (COMMENT "1a")
+    sgth (% ` (!v. v IN V ==> &0 < theta v /\ theta v < pi / &2)`) assume
     st/r
-  intro LMFUN_INEQ_CENTER_IMP_13 [`W`]
-      asimp[Fatugpd.lemma1]
-      ets (% `CARD W < 16`)
-      ARITH_TAC
-    intro SATURATE_BALL_ANNULUS [`W`;`{}:real^3->bool`;`&2`]
-    art[arith `&2 <= &2`;EMPTY_SUBSET] 
-      ants
+    mmp THETA_BOUNDS
+    art[]
+    amt[SUBSET]
+    art[]
+    ants
+    mp Sphere.h0
+    rat
+    st/r
+    mmp DLWCHEM_VECTOR_sum
+    abbrev `k = \ (v:real^3). CARD { (e:real^3->bool) | e facet_of (f v) }`
+      ex (% `k`)
+      ex (% `V`)
+      ex (% `theta`)
+      art[]
+      sgth (% `!v. v IN V ==> f v facet_of P`) assume
+      fxast `BIJ` mp
+      rt[BIJ;INJ;IN_ELIM_THM]
+      mt[]
+      subconj
+      expand "k"
+      amt[facet_3_facets]
+      dt
       conj
-      mp Sphere.h0
-      rat
-      rt[X_IN NOT_IN_EMPTY]
-      rt[X_IN NOT_IN_EMPTY]
-      st/r
-      ets (% `CARD V < 16`)
-      mmp (arith `y <= x ==> x < z ==> y < (z:num)`)
-      mmp CARD_SUBSET
+      fxast `13` mp
+      ARITH_TAC
+      conj
+      sgth (% `(\v. &(k v)) = (\ c. &(CARD {e | e facet_of c })) o f`) subst1
+      expand "k"
+      rt[FUN_EQ_THM;o_DEF]
+      gm BIJ_SUM
+      ex (% `{ c | c facet_of P }`)
       art[]
-      fxast `SUBSET` kill
-      rep 6 (fxa mp)
-      fxast `pack_ineq_def_a` mp
-      repeat (fxa kill)
-      st/r
-      comment "1 saturated"
-      abbrev (`n = CARD (V:real^3 ->bool)`)
-      abbrev (`theta = \ (v:real^3). acs(norm v / &4) - pi / &6`)
-      intro EXISTS_M_POLYHEDRON [`V`;`theta`;`&2`;`n`]
+      mmp polyhedron_edge_sum
+      asimp[arith `13 <= n ==> 2 <= n`]
+      rt[HAS_SIZE]
+      amt[ ?q; ?r]
+      comment "last conjunct: 4 pi"
+      asimp[GSYM POLYHEDRON_FACET_SUM_4Pi]
+      sgth (% `sum {c | c facet_of P} (\c. sol (vec 0) (fchanged c)) = sum V ((\c. sol (vec 0) (fchanged c)) o f)`) subst1
+      gm BIJ_SUM
+      amt[]
+      mmp SUM_LE
       art[]
-      sgth (% `V HAS_SIZE n`) assume
-      amt[HAS_SIZE]
-      sgth (% `~(V = {})`) assume
-      amt[CARD_CLAUSES;arith `~(13 <= 0)`]
-      sgth (% ` (!v w. v IN V /\ w IN V /\ ~(v = w) ==> theta v + theta w <= arcV (vec 0) v w)`) assume
-      st/r
-      mmp YSSKQOY_VECTOR
-      art[]
-      sgth (% `&2 <= dist(v,w)`) (fun t -> rt[t])
-      fxast `packing` mp
-      rt[Sphere.packing]
-      dthen mmp
-      amt[IN]
-      amt[SUBSET]
-      art[]
-      comment "1a"
-      (* to here *)
-*)
-
+      gv "v"
+      dt
+      rt[o_DEF]
+     mmp (arith `a <= x /\ b <= x==>    (max a b <= x)`)
+      subconj
+      mmp FACET_SOL_NN
+      amt[]
+      dt
+      comment "down to sol angle bound"
+      rt[ ?t ]
+      mmp GOTCJAH
+      ex (% `f v`)
+      ex (% `v`)
+      ex (% `b v`)
+      ex (% `P`)
+      sgth (% `{u | u facet_of f v} HAS_SIZE k v`) (fun t -> rt[t])
+      expand "k"
+      rt[HAS_SIZE]
+      mmp ?u
+      amt[]
+      asimp[]
+      apterm
+      rt[FUN_EQ_THM;IN_ELIM_THM]
+      g
+      repeat (apterm ORELSE apthm)
+      mt[DOT_SYM]
+      *)      
   ]);;
   (* }}} *)
 
+let XULJEPR_concl = `!V. packing V /\ V SUBSET ball_annulus /\ pack_ineq_def_a /\
+ (?v.  v IN V /\ norm (v) = &2 /\ (!u.  (u IN V) /\ ~(u = v) ==> &2 * h0 <= dist(u,v) ))
+==> (lmfun_ineq_center V)`;;
+
+let XULJEPR = prove_by_refinement(
+`!V. packing V /\ V SUBSET ball_annulus /\ pack_ineq_def_a /\
+ (?v.  v IN V /\ norm (v) = &2 /\ (!u.  (u IN V) /\ ~(u = v) ==> &2 * h0 <= dist(u,v) ))
+==> (lmfun_ineq_center V)`,
+  (* {{{ proof *)
+  [
+  #
+  ]);;
+  (* }}} *)
 

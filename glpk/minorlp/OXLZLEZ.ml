@@ -38,7 +38,7 @@ let sprintf = Printf.sprintf;;
 let glpk_dir = flyspeck_dir ^ "/../glpk";;
 
 (* external files *)
-let model = glpk_dir^ "/minorlp/OXLZLEZ.mod";;
+let model = glpk_dir^ "/minorlp/OXLZ_test.mod";;
 let tmpfile = "/tmp/OXLZLEZ_informal.dat";;
 let dumpfile = "/tmp/OXLZLEZ_informal.out";;
 

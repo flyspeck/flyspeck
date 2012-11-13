@@ -18,6 +18,8 @@ QU index set for quarters.
 QX non quarter 4-cells.
 QY 2&3 cell combinations.
 
+Removed y vars on Nov 13, 2012.  svn 2877 has the old version.
+
 */
 
 # data provides the following.
@@ -32,8 +34,6 @@ param hminL:= 1.2317;
 param hminU:= 1.2318;
 param h0:= 1.26;
 param hmax:= 1.3254;
-#param sqrt2:= 1.4142135623730951;
-param sqrt2U:= 1.4143;
 param lb := -0.00569;  # quarter lower bound.
 
 # sets.
@@ -77,7 +77,6 @@ set ONESMALLb := setof {(i1,i2,i3) in EFACE : (i1,i2) in NONSBLADE and (i2,i3) i
 set I10 := {(i,j) in BLADE : i in (QX inter HASSMALL) and j in QY};
 set I11 := {(i,j) in BLADE : j in (QX inter HASSMALL) and i in QY};
 
-
 # basic variables
 # (betabump and weights included in gamma variable)
 # gamma = gamma4Lbwt on 4-cell, = gamma23Lwtb on 2&3-cell. 
@@ -86,14 +85,6 @@ var azim{FACE} >= 0, <= 2*piU;
 var gamma{FACE} >= lb, <= 0.1; #lower 9455898160;  
 var gamma3a{QY} >= 0, <= 0.1;  #lower bound in GLFVCVK.
 var gamma3b{QY} >= 0, <= 0.1;
-#var gamma2{QY} >= 0, <= 0.1;
-
-var y1 >= 2 * hminL, <= 2*hmax ; #critical edge
-var y2{FACE} >=2, <= 2*sqrt2U;
-var y3{FACE} >=2, <=2*sqrt2U;
-var y4{i in QU union QX} >=2, <= 2*sqrt2U; 
-var y5{FACE} >=2, <=2*sqrt2U;
-var y6{FACE} >=2, <=2*sqrt2U;
 
 #report variables
 var gammasum;
@@ -105,52 +96,56 @@ minimize objective:  gammasum;
 gamma_sum: sum {i in FACE} gamma[i] <= gammasum;
 azim_sumU:  sum {i in FACE} azim[i] <= 2.0*piU;
 azim_sumL:  sum {i in FACE} azim[i] >= 2.0*piL;
-y2y3{(i1,i2) in BLADE}: y3[i1] = y2[i2];
-y5y6{(i1,i2) in BLADE}: y5[i1]=  y6[i2];
-#gamma23{i in QY}: gamma2[i]+gamma3a[i]+gamma3b[i]=gamma[i];
 gamma2{i in QY}: gamma3a[i]+gamma3b[i]<=gamma[i];
 
-
 ##inequalities by definition of branch.
-y3small {(i,j) in SBLADE}: y3[i] <= 2*hminU;
-y5small {(i,j) in SBLADE}: y5[i] <= 2*hminU;
-y35big {(i,j) in NONSBLADE} : y3[i]+y5[i] >= 2*hminL + 2;
-y4qu {i in QU} : y4[i] <= 2*hminU;
 azim_qxd{i in QXD}: azim[i] >= 2.3;
 azim_nqxd{i in NONQXD}: azim[i] <= 2.3;
-g_negqu {i in NEGQU} : gamma[i] <= 0;
+#g_negqu {i in NEGQU} : gamma[i] <= 0;   # useless in determining lower bounds.
 g_posqu{i in POSQU} : gamma[i] >=0;
-y4_hlfwt{i in HALFWT}:  y4[i] >= 2*hminL;
-y4_hlfwtup{i in HALFWT}: y4[i] <= 2*hmax;
-y4_fullwt{i in FULLWT}: y4[i] >= 2*hmax;
-
 
 ## computer generated inequality constraints
-#1,2,3 leaves
-gamma_qu 'ID[9455898160]' {i in QU}: gamma[i] >= -0.00569;  # redundant: see var bound.
-gamma_qx{i in QX}: gamma[i] >= 0; #ID[2477215213], ID[8328676778], 
+
+## QU
+
+# 4-cells QU 
+#gamma_qu 'ID[9455898160]' {i in QU}: gamma[i] >= -0.00569;  # redundant: see var bound.
+gaz4 '6206775865' {i in QU}: gamma[i] + 0.0142852 - 0.00609451 * azim[i] >= 0;
+gaz5 '5814748276' {i in QU}: gamma[i] - 0.00127562 + 0.00522841 * azim[i] >= 0;
+gaz6 '3848804089' {i in QU}: gamma[i] - 0.161517 + 0.119482* azim[i] >= 0;
+azim1 '5653753305' {i in QU}: gamma[i] + 0.0659 - azim[i]*0.042 >= 0; 
+#azim_nqu{i in NEGQU}: azim[i] <= 1.65;  #ID[2300537674] # removed 11/2012, consequence of azim1.
+
+# 3/4-cells combined QU/QY
 g_quqya{(i,j) in BLADE : i in QU and j in QY} : gamma[i] + gamma3a[j] >= 0; #ID[FHBVYXZ]
 g_quqyb{(i,j) in BLADE : j in QU and i in QY} : gamma[j] + gamma3b[i] >= 0; #ID[FHBVYXZ]
-azim_nqu{i in NEGQU}: azim[i] <= 1.65;  #ID[2300537674]
-azim_c4{i in QU union QX}: azim[i] <= 2.8; #ID[6652007036]
+
+## QX:
+
+# 4-cells QX
+gamma_qx{i in QX}: gamma[i] >= 0; #ID[2477215213], ID[8328676778], 
 g_qxd{i in QXD}:  gamma[i] >= 0.0057;  #ID[7274157868] (wt1)  cf.  ID[7080972881], ID[1738910218] (reduce to wt1)
-
-#4leaves
-azim1 '5653753305' {i in QU}: gamma[i] + 0.0659 - azim[i]*0.042 >= 0; 
+gaz7 'ID[3803737830]' {i in QX}: gamma[i] - 0.0105256 + 0.00522841*azim[i] >= 0;
+gamma8 'ID[9063653052]' {i in (ONESMALLa union ONESMALLb) inter QX}: gamma[i] >= 0.0057; 
+gaz9 'ID[2134082733]' {i in HASSMALL inter QX}: gamma[i] - 0.213849 + 0.119482*azim[i] >= 0;
 azim2 '9939613598' {i in FULLWT}: gamma[i] - 0.00457511 - 0.00609451*azim[i] >= 0;
+azim_c4{i in QU union QX}: azim[i] <= 2.8; #ID[6652007036]
 
+# 3/4-cells combined QX/QY
+gamma10 'ID[5400790175a]' {(i,j) in I10}: gamma[i]+gamma3a[j] >= 0.0057;
+gamma11 'ID[5400790175b]' {(i,j) in I11}:  gamma[j]+gamma3b[i] >= 0.0057;
+
+
+## QY:
+
+#2/3-cells QY
 # corrected June 3, 2010. svn 1761 has the old version.  
 gaz3a '4003532128' {i in QY inter HASSMALL inter LONGY4} : gamma[i] - 0.00457511 - 0.00609451 * azim[i] >= 0;
 azim3b '3725403817'  {i in QY inter HASSMALL inter SHORTY4}: azim[i] <= 1.56;
 
-gaz4 '6206775865' {i in QU}: gamma[i] + 0.0142852 - 0.00609451 * azim[i] >= 0;
-gaz5 '5814748276' {i in QU}: gamma[i] - 0.00127562 + 0.00522841 * azim[i] >= 0;
-gaz6 '3848804089' {i in QU}: gamma[i] - 0.161517 + 0.119482* azim[i] >= 0;
-gaz7 'ID[3803737830]' {i in QX}: gamma[i] - 0.0105256 + 0.00522841*azim[i] >= 0;
-gamma8 'ID[9063653052]' {i in (ONESMALLa union ONESMALLb) inter QX}: gamma[i] >= 0.0057; 
-gaz9 'ID[2134082733]' {i in HASSMALL inter QX}: gamma[i] - 0.213849 + 0.119482*azim[i] >= 0;
-gamma10 'ID[5400790175a]' {(i,j) in I10}: gamma[i]+gamma3a[j] >= 0.0057;
-gamma11 'ID[5400790175b]' {(i,j) in I11}:  gamma[j]+gamma3b[i] >= 0.0057;
+
+
+
 
 solve;
 display gammasum;

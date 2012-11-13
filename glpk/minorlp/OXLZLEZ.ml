@@ -38,7 +38,7 @@ let sprintf = Printf.sprintf;;
 let glpk_dir = flyspeck_dir ^ "/../glpk";;
 
 (* external files *)
-let model = glpk_dir^ "/minorlp/OXLZ_test.mod";;
+let model = glpk_dir^ "/minorlp/OXLZLEZ.mod";;
 let tmpfile = "/tmp/OXLZLEZ_informal.dat";;
 let dumpfile = "/tmp/OXLZLEZ_informal.out";;
 
@@ -240,8 +240,13 @@ branch_wt 1 br2;;
 
 (* Link in glpsol linear programming package *) 
 
+let strip_id s =
+  let ss = Str.split (Str.regexp "[],[]") s in
+    (hd ss,map int_of_string (tl ss));;
+
+
 let load_dual() =
-  let outputf = Flyspeck_lib.load_file "/tmp/output.out" in
+  let outputf = Flyspeck_lib.load_file "/tmp/output.out" in 
   let output_split = map (Str.split (Str.regexp " +")) outputf in
   let output_active = filter 
     (fun xs ->

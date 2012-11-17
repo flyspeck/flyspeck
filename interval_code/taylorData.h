@@ -279,6 +279,7 @@ lineInterval tangentAtEstimate(const domain&) const;
         // we put it here rather than in the library. It is needed early.
 	//
  static const Function unit;
+ static const Function nullF; // identically 0.
 
  static void selfTest();
 

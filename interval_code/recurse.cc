@@ -297,6 +297,7 @@ static cellOption::cellStatus verifyCell(double x[DIM6],double z[DIM6],
 		   {
 		     if (T[i]->lowerBound() > 0.0)
 		       {
+			 cout << "deleting " << T[i]->lowerBound() << endl << flush; // DEBUG
 			 resetBoundary(x0,z0,x,z);
 			 deleteFunction(T,I,count,i); //it decrements count; 
 		       }

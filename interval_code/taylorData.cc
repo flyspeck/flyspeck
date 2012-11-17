@@ -797,6 +797,15 @@ static primitiveA scalr(unitI,setZero);
 
 const Function Function::unit(&scalr);
 
+static lineInterval unit0(const domain& )
+{
+  static const interval zero("0");
+  return lineInterval(zero);
+}
+static primitiveA scalr0(unit0,setZero);
+
+const Function Function::nullF(&scalr0);
+
 
 Function Function::uni_compose // minor memory leak
 (const univariate& f,const Function& g) {
@@ -938,6 +947,11 @@ Function::~Function()
 }
 
 Function Function::operator*(const interval& x) const  {
+  // skip function eval if the coefficient is 0:
+  if (x.hi == 0.0 && x.lo == 0.0) {  
+    //cout << "0 construct" << endl << flush; // debug.
+    return Function::nullF;
+  }
   Function a(*this);
   for (mapPrim::const_iterator ia = a.data.begin();ia!=a.data.end();++ia) {
     a.data[ia->first] = ia->second * x;

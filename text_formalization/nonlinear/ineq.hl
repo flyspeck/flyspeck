@@ -15,44 +15,6 @@ flyspeck_needs "nonlinear/ineqdata3q1h.hl" ;;
 
 (* XX some Flypaper[] tags exist, without text attribution *)
 
-type tag =
-  (* Application and organization tags *)
-
- | Flypaper of string list
- | Clusterlp   | Marchal
- | Tablelp | Main_estimate
- | Fejestoth | Strongdodec | Further
- | Tex | Derived of string list   | Deprecated  
-
-  (* Numerical testing tags *)
-
-  | Cfsqp | Cfsqp_branch of int | Eps of float 
-  | Penalty of float*float
-
-  (* Linear programming tags *)
-  |  Lp | Lp_aux of string | Lpsymmetry
-
-  (* Interval arithmetic verification tags *)
-
-  | Xconvert 
-  | Split of int list 
-  | Branching | Sharp  | Disallow_derivatives | Onlycheckderiv1negative 
-  | Dim_red | Dim_red_backsym 
-  | Quad_cluster of float
-  | Set_rad2 | Delta126min of float | Delta126max of float | Widthcutoff of float
-  | Delta135min of float | Delta135max of float 
-  | Set298 (* deprecated *)
-  ;;
-
-type ineq_datum = 
-  { 
-    ineq : term;
-    idv : string; (* name changed 2/16/2011 because of conflict with type_expr *)
-    doc : string;
-    tags : tag list;
-  };;
-
-type texmarker = Section | Ineqdoc | Comment;;
 
 
 module Ineq = struct
@@ -68,116 +30,9 @@ open Sphere;;
    software_guide.tex (svn 1760)
 *)
 
-
 let ineqdoc = ref [];;
 
 let addtex (a,b,c) = (ineqdoc := (a,b,c)::!ineqdoc);;
-
-(* 
-   Clusterlp means they enter the GLPK calcs for the cluster
-   inequality.
-
-   Marchal means they enter the non-negativity estimate for clusters
-   of Marchal cells.
-
-   Tablelp means they enter the LP calcs for the A and B tables in
-   the definition of Tame h.
-
-   Flypaper means an inequality cited directly in the flypaper
-   text. The tags are the citation names in the book.  
-
-   Further means that it is not part of the Flyspeck project, but
-   part of one of the extension theorems: StrongDodec, Fejes
-   Toth's contact conjecture, or Musin-Tarasov.
-
-   Fejestoth means that it is part of the proof of the Fejes Toth's contact conjecture,
-   but not part of the proof of the Kepler conjecture
-
-   Strongdodec means that it is part of the proof of the strong dodec conjecture,
-   but not part of the proof of the Kepler conjecture
-
-   The TeX flag means that the doc field is Tex'able code (with
-   software_guide.tex context).
-
-   CFSQP TAGS:
-   Cfsqp means that there is cfsqp nonlinear optimization code to
-   test it by gradient descent.
-
-   Cfsqp_branch uses this disjunct as the objective function, 
-   the others as constraints.
-   The default is disjunct 0.
-
-   Eps is a small epsilon that is added to numerical testing to
-   avoid answers neg. by machine eps.
-
-   Penalty implements a penalty method in cfsqp.
-
-   The floats (ub,wt) give the upper bound on the penalty term and its
-   weight.
-
-   LINEAR PROGRAMMING TAGS:
-   Lp gives an instruction to generate a MathProg inequality for the
-   GLPK program to eliminate tame hypermaps.
-
-   Lp_aux are use to prove the Lp inequalities, but are not themselves Lp.
-
-   Lpsymmetry gives an instruction to generate a second MathProg
-   inequality by symmetry.  y2 <-> y3, y5 <-> y6.  The domain must
-   already be symmetrical, otherwise an error results.
-
-   INTERVAL ARITHMETIC TAGS:
-   Derived means that it is not a primitive inequality, but rather a
-   logical consequence of others.
-
-   Main_estimate  inequalities for TameTableD and related AD HOC
-   linear programming inequalities.  These appear in the Local Fan
-   chapter of flypaper.
-
-   Xconvert means to use the squared variables "x1...x6" rather than
-   "y1..y6" when doing the nonlinear verification.
-
-   Split is an instruction to the nonlinear ineq verification to split
-   the indicated variables (at 2 h0).  This is needed on piecewise differentiable
-   functions (namely, lmfun) to restrict to differentiable domains.
-
-   Sharp means that equality is attained.
-
-   Disallow_derivatives means that verification should not use first derivative
-   sign to slide to an edge of the domain.
-
-   Onlycheckderiv1negative means that it is not the function itself that should be
-   verified, but only the first derivative of the first conjunct should be checked to 
-   be negative.  This is useful in monotonicity results.
-
-   Dim_red means that dimension reduction can be used on a quad cluster.
-
-   Dim_red_backsym means that dimension reduction can be used on a
-   quad cluster.  It is assumed that the function on the back simplex is taum.
-   It takes the following form x8,x9 are both extremal, if both
-   are as long as possible, then x7 is as short as possible.  Also x1
-   is minimal or x5 is minimal (eliminating x6 minimal by a symmetry
-   5-6,2-3,8-9 ).  The reductions also use ineq 4828966562 to assume
-   that the diagonal y4 is at most 3.01 when both x5 and x6 are extremal.
-
-   Quad_cluster is an ineq on a coupled pair of simplices. The float
-   is the margin value for "breaksapart".
-
-   Set_rad2 means the circumradius can be assumed to be exactly sqrt2.
-
-   Delta126min is a lower bound on delta_x x1 x2 (&2) (&2) (&2) x6
-
-   Delta126max is an upper bound on delta_x x1 x2 (&2) (&2) (&2) x6
-
-   Delta135min is a lower bound on delta_x x1 (&2) x3 (&2) x5 (&2).
-
-   Delta135max is an upper bound on delta_x x1 (&2) x3 (&2) x5 (&2).
-
-(*   Set298 is a special tag for the inequality 2986512815. *)
-
-*)
-
-
-
 
 let ineqs = ref ([]:ineq_datum list);;
 
@@ -1859,13 +1714,13 @@ add
 
 add
 {
-  idv = "QZECFIC wt2"; (* was "test ratio" *)
+  idv = "QZECFIC wt2"; (* was "test ratio" , y4 y5 swapped, nov 2012 *)
   ineq = all_forall `ineq
    [(sqrt2,y1,sqrt2);
     (sqrt2,y2,sqrt2);
     (sqrt2,y3,sqrt2);
-    (&2 * hminus, y4, &2 * hplus);
-    (&2 * hminus ,y5, sqrt8);
+    (&2 * hminus ,y4, sqrt8);
+    (&2 * hminus, y5, &2 * hplus);
     (&2 ,y6, &2 * hminus)
    ]
    ( y_of_x (gamma3f_x_div_sqrtdelta (h0cut y4) (h0cut y5) (&1)) y1 y2 y3 y4 y5 y6 / &2 >  #0.008 * y_of_x dih4_x_div_sqrtdelta_posbranch y1 y2 y3 y4 y5 y6 \/
@@ -1895,15 +1750,15 @@ add
 
 add
 {
-  idv = "CJFZZDW";
+  idv = "CJFZZDW";  (* y4 y6 swapped, nov 2012 *)
   ineq = all_forall `ineq
    [
      (&1,y1,&1);
      (&1,y2,&1);
      (&1,y3,&1);
-    (&2,y4, sqrt8);
-    (&2 * hplus ,y5, sqrt8);
-    (&2 * hplus,y6, sqrt8)
+   (&2 * hplus ,y4, sqrt8);
+    (&2 * hplus,y5, sqrt8);
+    (&2,y6, sqrt8)
    ]
    (eta_y y4 y5 y6 pow 2 > &2 )`;
   doc =   "no 3-cell has two supercritical edges";

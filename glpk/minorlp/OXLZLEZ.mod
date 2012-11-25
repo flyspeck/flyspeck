@@ -29,12 +29,15 @@ param CBLADE 'number of leaves' >= 2, <= 4;
 #param pi := 3.1415926535897932;
 param piL := 3.14159;
 param piU := 3.1416;
-#param hmin:= 1.2317544220903185;
-param hminL:= 1.2317;
-param hminU:= 1.2318;
-param h0:= 1.26;
-param hmax:= 1.3254;
 param lb := -0.00569;  # quarter lower bound.
+
+
+#param hmin:= 1.2317544220903185;
+#param hminL:= 1.2317;
+#param hminU:= 1.2318;
+#param h0:= 1.26;
+#param hmax:= 1.3254;
+
 
 # sets.
 set FACE := 0..(CBLADE -1);
@@ -140,6 +143,7 @@ gamma11 'ID[5400790175b]' {(i,j) in I11}:  gamma[j]+gamma3b[i] >= 0.0057;
 
 #2/3-cells QY
 # corrected June 3, 2010. svn 1761 has the old version.  
+# Nov 2012. ineq.hl:4003532128 changed. LONGY4 not needed. Subcases not needed?
 gaz3a '4003532128' {i in QY inter HASSMALL inter LONGY4} : gamma[i] - 0.00457511 - 0.00609451 * azim[i] >= 0;
 azim3b '3725403817'  {i in QY inter HASSMALL inter SHORTY4}: azim[i] <= 1.56;
 

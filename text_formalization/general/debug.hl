@@ -29,7 +29,7 @@ module Debug = struct
 
   let verbose_thm p r s = 
     try p r s with Failure msg ->
-    print_m print_thm "Error while processing_1 " s; failwith msg;;
+    print_m print_thm "Error while processing_1_thm " s; failwith msg;;
 
   let verbose p (s,t) =
     try p (s,t) with Failure msg -> 
@@ -45,6 +45,13 @@ module Debug = struct
 Type and Term parsing 
 *)
 
+ let conflicts s1 s2 = 
+   let v1 = map dest_var (frees s1) in
+   let v2 = map dest_var (frees s2) in
+   let ss = intersect (map fst v1) (map fst v2) in
+   let f s = mk_type ("prod", [assoc s v1;assoc s v2]) in
+     map (fun s -> ("clash",mk_var (s,aty),f s)) ss;;
+
 let rec find_subterms ptm =
   let r = term_of_preterm o (retypecheck[]) in
    let m s p = (s,r p,type_of (r p)) in 
@@ -54,7 +61,7 @@ let rec find_subterms ptm =
     | Constp (s,pty) -> (try let _ = r ptm in []
 	with Failure _ -> failwith ("constant typing error: "^s))
     | Combp (s,t) -> (try let _ = r ptm in [] with Failure _ ->
-			if (can r s) && (can r t) then [m "function head" s; m "function arg" t] 
+			if (can r s) && (can r t) then ([m "function head" s; m "function arg" t] @ conflicts (r s) (r t))
 			  else  if (can r s) then find_subterms t else find_subterms s)
     | Absp (s,t) -> (try let _ = r ptm in [] with Failure _ ->
              if (can r s) && (can r t) then [m "absvar" s; m "absbody" t] 

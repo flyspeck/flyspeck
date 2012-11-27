@@ -1627,6 +1627,126 @@ solve_branch_f model dumpfile "optival" ampl_of_bb (mk_bb bb);;
   let svar = mk_var (s,snd(dest_var t));;
 
 
+
+let leaf_def = `leaf V u0 u1 = { u |  u IN V /\ ~collinear {u0,u1,u} /\
+				     radV {u0, u1, u2} < sqrt2 }`;;
+
+let leaf_ordering_def = `leaf_ordering V u0 u1 v f n = 
+  leaf V u0 u1 HAS_SIZE n /\
+  (! i j. i < n /\ j < n /\ (f i = f j) ==> (i = j)) /\
+    (f n = f 0) /\
+    (!i. i < n ==> (f i IN leaf V u0 u1)) /\
+    u0 IN V /\ u1 IN V /\
+    (!i j. i < j ==> azim u0 u1 v (f i) < azim u0 u1 v (f (i+1)))`;;
+    
+let mcell_group_def = `mcell_group V u0 u1 f i = 
+      {X |   X SUBSET wedge u0 u1 (f i) (f (i+1)) /\
+	   {u0,u1} IN edgeX V X /\
+         X IN mcell_set V /\
+	 ~(NULLSET X) }`;;
+
+let mcell_group_sum = `!V u0 u1 v f n i.
+  packing V /\ saturated V /\
+  leaf_ordering V u0 u1 v f n /\
+  1 < n /\ i < n   ==>
+  sum (mcell_group V u0 u1 f) (\X. dihX V X (u0,u1)) = azim u0 u1 (f i) (f (i+1))`;;
+
+let mcell_group_4_type = `!V u0 u1 v f n X.
+  packing V /\ saturated V /\
+  leaf_ordering V u0 u1 v f n /\
+  1 < n /\
+  X IN mcell_set V /\
+  ~(NULLSET X) /\
+  {u0,u1} IN edgeX V X /\
+  FST(cell_params V X) = 4 ==>
+  (?i. i < n /\
+     azim u0 u1 (f i) (f (i+1)) < pi /\
+     radV {u0,u1,(f i),(f (i+1))} < sqrt2  /\
+     X IN mcell_group V u0 u1 f i)`;;
+
+let mcell_group_23_type = `!V u0 u1 v f n X.
+  packing V /\ saturated V /\
+  leaf_ordering V u0 u1 v f n /\
+  1 < n /\
+  X IN mcell_set V /\
+  ~(NULLSET X) /\
+  {u0,u1} IN edgeX V X /\
+  FST(cell_params V X) IN {2,3} ==>
+  (?i. i < n /\
+     ~(azim u0 u1 (f i) (f (i+1)) < pi /\
+     radV {u0,u1,(f i),(f (i+1))} < sqrt2)  /\
+     X IN mcell_group V u0 u1 f i)`;;
+
+(* consequence of previous 2 *)
+let mcell_group_type = `!V u0 u1 v f n X.
+  packing V /\ saturated V /\
+  leaf_ordering V u0 u1 v f n /\
+  1 < n /\ 
+  u0 IN V /\ u1 IN V  
+  X IN mcell_set V /\
+  ~(NULLSET X) /\
+  {u0,u1} IN edgeX V X ==>
+  (?i. i < n /\ X IN mcell_group V u0 u1 f i)`;;
+
+let mcell_group_4_singleton = `!V u0 u1 v f n i.
+  packing V /\ saturated V /\
+  leaf_ordering V u0 u1 v f n /\
+  1 < n /\ i < n /\
+  azim u0 u1 (f i) (f (i+1)) < pi /\
+  radV {u0,u1,(f i),(f (i+1))} < sqrt2  ==>
+  mcell_group V u0 u1 f i = {  mcell 4 V [u0;u1;(f i);(f (i+1))] }`;;
+
+(* needed: ? *)
+
+let mcell_sqrt2_barV = `!V u0 u1 w1 w2.
+  packing V /\ saturated V /\
+  {u0,u1,w1,w2} SUBSET V /\
+  ~coplanar {u0,u1,w1,w2} /\
+  radV {u0,u1,w1,w2} < sqrt2 ==>
+  [u0;u1;w1;w2] IN barV V 3`;;
+
+let mcell_group_3_a = `!V u0 u1 f v n i.
+  packing V /\ saturated V /\
+  leaf_ordering V u0 u1 v f n /\
+  1 < n /\ i < n /\
+  (azim u0 u1 (f i) (f (i+1)) >= pi \/
+  radV {u0,u1,(f i),(f (i+1))} >= sqrt2)  ==>
+  (?X w. X IN mcell_group V u0 u1 f i /\
+     [u0;u1;(f i);w] IN barV V 3 /\
+     X = mcell3 V [u0;u1;(f i);w])`;;
+
+let mcell_group_3_b = `!V u0 u1 v f n i.
+  packing V /\ saturated V /\
+  leaf_ordering V u0 u1 v f n /\
+  1 < n /\ i < n /\
+  (azim u0 u1 (f i) (f (i+1)) >= pi \/
+  radV {u0,u1,(f i),(f (i+1))} >= sqrt2)  ==>
+  (?X w. X IN mcell_group V u0 u1 f i /\
+     [u0;u1;(f i);w] IN barV V 3 /\
+     X = mcell3 V [u0;u1;(f i);w])`;;
+
+(*
+need if mcell3 V ul = mcell3 V vl , ul, vl IN barV, NONNULL, and both start with [u0;u1]
+the ul = vl.  In particular, the two mcells in 3_a and 3_b are distinct, and
+the w is uniquely determined by X.
+*)
+
+let mcell_group_3_exhaust = 
+  `!V u0 u1 v f n i X.
+    packing V /\ saturated V /\
+    leaf_ordering V u0 u1 v f n /\
+    1 < n /\ i < n /\
+    X IN mcell_group V u0 u1 f i /\  
+    FST(cell_params V X) = 3 /\
+  (?w u.
+     u IN {(f i),(f (i+1))} /\
+     X = mcell3 V [u0;u1;u;w] /\ [u0;u1;u;w] IN barV V 3)`;;
+
+(* also need formula for 4-cell gamma, 3-cell gamma, 2-cell gamma (as a function of angle)
+   in terms of the functions that appear in ineq.hl.
+*)
+
+
   module More = struct
     open Sphere;;
     open Ineq;;

@@ -29,6 +29,131 @@ let stem = `stem ul = set_of_list (truncate_simplex 1 ul)`;;
 (* ========================================================================== *)
 open Merge_ineq;;
 
+let WEDGE_GE_NULL = prove_by_refinement(
+  `!u0 u1 v1 v2. ~collinear {u0,u1,v1} /\ ~collinear {u0,u1,v2} /\ azim u0 u1 v1 v2 = &0 ==>
+     wedge_ge u0 u1 v1 v2 = aff_ge {u0,u1} {v1}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[EXTENSION];
+  GEN_TAC;
+  GMATCH_SIMP_TAC (GSYM Local_lemmas.AZIM_EQ_0_GE_ALT2);
+  REWRITE_TAC[Local_lemmas.WEDGE_GE_AZIM_LE];
+  ASM_REWRITE_TAC[];
+  INTRO_TAC Local_lemmas.AZIM_RANGE [`u0`;`u1`;`v1`;`x`];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let X_IN_AFF_GE_LEFT = prove_by_refinement(
+  `!(x:real^A) S U. (x IN S DIFF U) ==> (x IN aff_ge S U)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `aff_ge S U = aff_ge (S DIFF U) U`) SUBST1_TAC));
+    REWRITE_TAC[Sphere.aff_ge_def];
+    BY(MESON_TAC[ AFFSIGN_DISJOINT_DIFF]);
+  MATCH_MP_TAC Packing3.IN_TRANS;
+  GOAL_TERM (fun w -> (EXISTS_TAC ( env w`aff_ge (S DIFF U) {}`)));
+  CONJ2_TAC;
+    MATCH_MP_TAC AFF_GE_MONO_RIGHT;
+    BY(SET_TAC[]);
+  REWRITE_TAC[AFF_GE_EQ_AFFINE_HULL];
+  MATCH_MP_TAC Marchal_cells_2.IN_AFFINE_KY_LEMMA1;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let WEDGE_WEDGE_GE = prove_by_refinement(
+  `!u0 u1 v1 v2. ~collinear {u0,u1,v1} /\ ~collinear {u0,u1,v2}  ==>
+    wedge_ge u0 u1 v1 v2 SUBSET wedge u0 u1 v1 v2 UNION aff_ge {u0,u1} {v1} UNION aff_ge {u0,u1} {v2}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[SUBSET];
+  REWRITE_TAC[IN_UNION];
+  REWRITE_TAC[Local_lemmas.WEDGE_GE_AZIM_LE];
+  REPEAT WEAK_STRIP_TAC;
+  GOAL_TERM (fun w -> (ASM_CASES_TAC ( env w `x IN affine hull {u0,u1}`)));
+    INTRO_TAC AFFINE_HULL_SUBSET_AFF_GE [`{u0,u1}`;`{v1}`];
+    REWRITE_TAC[SUBSET];
+    ANTS_TAC;
+      REWRITE_TAC[DISJOINT];
+      REWRITE_TAC[Collect_geom2.INTER_DISJONT_EX];
+      REWRITE_TAC[IN_INSERT;NOT_IN_EMPTY];
+      GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `{u0,u1,v1}  = {v1,u0,u1}`) ASSUME_TAC));
+        BY(SET_TAC[]);
+      BY(ASM_MESON_TAC[Collect_geom.NOT_COLLINEAR_IMP_2_UNEQUAL]);
+    BY(ASM_MESON_TAC[]);
+  GMATCH_SIMP_TAC WEDGE_ALT;
+  REWRITE_TAC[IN_ELIM_THM];
+  ASM_REWRITE_TAC[];
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[Collect_geom.NOT_COLLINEAR_IMP_2_UNEQUAL]);
+  DISCH_TAC;
+  GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `(azim u0 u1 v1 x = &0 ==> x IN aff_ge {u0,u1} {v1}) /\ (azim u0 u1 v1 x = azim u0 u1 v1 v2 ==> x IN aff_ge {u0,u1} {v2})`)));
+    INTRO_TAC Local_lemmas.AZIM_RANGE [`u0`;`u1`;`v1`;`x`];
+    FIRST_X_ASSUM_ST `azim` MP_TAC;
+    BY(MESON_TAC[arith `x <= y ==> x = y \/ x < y`]);
+  GMATCH_SIMP_TAC (Local_lemmas.AZIM_EQ_0_GE_ALT2);
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC (GSYM Local_lemmas.AZIM_EQ_0_GE_ALT2);
+  ASM_REWRITE_TAC[];
+  ONCE_REWRITE_TAC[arith `x = azim a b c d <=> azim a b c d = x`];
+  GMATCH_SIMP_TAC AZIM_EQ;
+  GMATCH_SIMP_TAC Local_lemmas.AZIM_EQ_0_GE_ALT2;
+  ASM_REWRITE_TAC[];
+  INTRO_TAC AFF_GT_SUBSET_AFF_GE [`{u0,u1}`;`{v2}`];
+  REWRITE_TAC[SUBSET];
+  DISCH_THEN (unlist REWRITE_TAC);
+  GMATCH_SIMP_TAC COLLINEAR_3_AFFINE_HULL;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let WEDGE_GE_ALMOST_DISJOINT = prove_by_refinement(
+  `!u0 u1 v1 v2.  ~collinear {u0,u1,v1} /\ ~collinear {u0,u1,v2}  ==>
+    wedge_ge u0 u1 v1 v2 INTER wedge_ge u0 u1 v2 v1 SUBSET aff_ge {u0,u1} {v1} UNION aff_ge {u0,u1} {v2}
+     `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  ASM_CASES_TAC `azim u0 u1 v1 v2 = &0`;
+    MATCH_MP_TAC SUBSET_TRANS;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `wedge_ge u0 u1 v1 v2`)));
+    CONJ_TAC;
+      BY(SET_TAC[]);
+    GMATCH_SIMP_TAC WEDGE_GE_NULL;
+    ASM_REWRITE_TAC[];
+    BY(SET_TAC[]);
+  SUBGOAL_THEN `&0 < azim u0 u1 v1 v2` ASSUME_TAC;
+    MATCH_MP_TAC (arith `~(x = &0) /\ (&0 <= x) ==> (&0 < x)`);
+    BY(ASM_REWRITE_TAC[Local_lemmas.AZIM_RANGE;]);
+  INTRO_TAC WEDGE_WEDGE_GE [`u0`;`u1`;`v1`;`v2`];
+  INTRO_TAC WEDGE_WEDGE_GE [`u0`;`u1`;`v2`;`v1`];
+  ASM_REWRITE_TAC[];
+  GOAL_TERM (fun w -> (ENOUGH_TO_SHOW_TAC ( env w `wedge u0 u1 v1 v2 INTER wedge u0 u1 v2 v1 = {}`)));
+    BY(SET_TAC[]);
+  INTRO_TAC Counting_spheres.WEDGE_ORDER_DISJOINT [`u0`;`u1`;`v1`;`2`;`\ i. if (i=2) then v2 else v1`];
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[arith `~(2 + 1 = 2) /\ ~(1 = 2)`];
+  REWRITE_TAC[IN_NUMSEG];
+  REWRITE_TAC[arith `!i. (1 <= i /\ i <= 2) <=> (i = 1 \/ i = 2)`];
+  ANTS_TAC;
+    CONJ_TAC;
+      REPEAT WEAK_STRIP_TAC;
+        FIRST_X_ASSUM MP_TAC;
+        BY(ASM_REWRITE_TAC[arith `~(1=2)`]);
+      FIRST_X_ASSUM MP_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    REWRITE_TAC[arith `! j k. ((j = 1 \/ j = 2) /\ (k = 1 \/ k = 2) /\ j < k) <=> (j=1 /\ k=2)`];
+    REPEAT WEAK_STRIP_TAC;
+    ASM_REWRITE_TAC[arith `~(1=2)`];
+    BY(ASM_REWRITE_TAC[AZIM_REFL]);
+  DISCH_THEN (C INTRO_TAC [`1`;`2`]);
+  BY(REWRITE_TAC[arith `~(1=2) /\ (1 + 1 = 2) /\ ~(2 + 1 = 2)`])
+  ]);;
+  (* }}} *)
 
 
 (* ========================================================================== *)
@@ -84,188 +209,65 @@ let QITNPEA4_3803737830 = prove_by_refinement(
   QITNPEA4_3803737830_full,
   (* {{{ proof *)
   [
-    dt/r
-      comment "WLOG. y2 <= y6"
-    sgth `!(p:real->real->real->real->real->real->bool). ((!y1 y2 y3 y4 y5 y6. (p y1 y2 y3 y4 y5 y6 ==> p y1 y6 y5 y4 y3 y2)) /\ (!y1 y2 y3 y4 y5 y6. (y2 <= y6) ==> p y1 y2 y3 y4 y5 y6)) ==> (!y1 y2 y3 y4 y5 y6. p y1 y2 y3 y4 y5 y6)` mmp
-      mt[arith `y <= x \/ x <= y`]
-      conj
-      g/r
-      rt[Sphere.ineq]
-      st/r
-      rep 2 (fxast `gamma4fgcy` mp)
-      art[]
-          gthen `gamma4fgcy y1 y6 y5 y4 y3 y2 lmfun = gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun` subst1
-	mt[gamma4fgcy_sym23;gamma4fgcy_sym12;gamma4fgcy_sym03]
-      gthen `wtcount6_y y1 y6 y5 y4 y3 y2 = wtcount6_y y1 y2 y3 y4 y5 y6` subst1
-	rt[Sphere.wtcount6_y;Sphere.wtcount3_y] then ARITH_TAC
-	  gthen `beta_bump_y y1 y6 y5 y4 y3 y2 = beta_bump_y y1 y2 y3 y4 y5 y6` subst1
-    rt[Sphere.beta_bump_y] 
-    rat
-    gthen `dih_y y1 y6 y5 y4 y3 y2 = dih_y y1 y2 y3 y4 y5 y6` subst1
-    mt[Nonlinear_lemma.dih_y_sym;Nonlinear_lemma.dih_y_sym2]
-    gthen `rad2_y y1 y2 y3 y4 y5 y6 = rad2_y y1 y6 y5 y4 y3 y2` subst1
-    mt[Merge_ineq.rad2_y_sym]
-    rep 2 (fxa mp)
-    mt[]
-    comment "WLOG y2 < &2 * hmin"
-    rt[Sphere.ineq]
-    st/r
-    fxast `delta_x` mp
-    st/r
-    fxast `delta_x` (C intro [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`])
-    rt[Sphere.ineq;arith `x > &0 <=> &0 < x`;Sphere.y_of_x]
-    asimp[y_bounds]
-    dt
-    fxast `eta_y` (C intro [`&1`;`&1`;`&1`;`y1`;`y2`;`y6`])
-    rt[Sphere.ineq;arith `&1 <= &1`]
-    asimp[y_bounds]
-    gthen `y1 <= sqrt8` assume
-    rt[?a]
-asimp[y_bounds;Sphere.sqrt2]
-    art[]
-    dt
-    intro rad2_eta2 [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`]
-    asimp[y_bounds;Sphere.delta_y]
-    dt
-    asmcases `&2 * hminus <= y2`
-    fxast `>` mp
-    art[]
-ants
-    repeat (fxa mp) then rat
-      fxast `eta_y` mp
-      rat
-      comment "remove rad2"
-      fxast `rad2_y` mp
-      rt[Sphere.rad2_y]
-      dthen (fun t -> assume (mm (arith `x < &2 ==> ~(x > &2)`) t))
-      repeat (fxast `ineq` (C intro [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`]))
-      art[]
-      comment "fix up weight"
-
-  ]);;
-  (* }}} *)
-
-let WEDGE_GE_NULL = prove_by_refinement(
-  `!u0 u1 v1 v2. ~collinear {u0,u1,v1} /\ ~collinear {u0,u1,v2} /\ azim u0 u1 v1 v2 = &0 ==>
-     wedge_ge u0 u1 v1 v2 = aff_ge {u0,u1} {v1}`,
-  (* {{{ proof *)
-  [
+  REPEAT DISCH_TAC;
+  COMMENT "WLOG. y2 <= y6";
+  SUBGOAL_THEN `!(p:real->real->real->real->real->real->bool). ((!y1 y2 y3 y4 y5 y6. (p y1 y2 y3 y4 y5 y6 ==> p y1 y6 y5 y4 y3 y2)) /\ (!y1 y2 y3 y4 y5 y6. (y2 <= y6) ==> p y1 y2 y3 y4 y5 y6)) ==> (!y1 y2 y3 y4 y5 y6. p y1 y2 y3 y4 y5 y6)` MATCH_MP_TAC;
+    BY(MESON_TAC[arith `y <= x \/ x <= y`]);
+  CONJ_TAC;
+    REPEAT GEN_TAC;
+    REWRITE_TAC[Sphere.ineq];
+    REPEAT WEAK_STRIP_TAC;
+    REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `gamma4fgcy` MP_TAC);
+    ASM_REWRITE_TAC[];
+    SUBGOAL_THEN `gamma4fgcy y1 y6 y5 y4 y3 y2 lmfun = gamma4fgcy y1 y2 y3 y4 y5 y6 lmfun` SUBST1_TAC;
+      BY(MESON_TAC[gamma4fgcy_sym23;gamma4fgcy_sym12;gamma4fgcy_sym03]);
+    SUBGOAL_THEN `wtcount6_y y1 y6 y5 y4 y3 y2 = wtcount6_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+      BY(REWRITE_TAC[Sphere.wtcount6_y;Sphere.wtcount3_y] THEN ARITH_TAC);
+    SUBGOAL_THEN `beta_bump_y y1 y6 y5 y4 y3 y2 = beta_bump_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+      REWRITE_TAC[Sphere.beta_bump_y];
+      BY(REAL_ARITH_TAC);
+    SUBGOAL_THEN `dih_y y1 y6 y5 y4 y3 y2 = dih_y y1 y2 y3 y4 y5 y6` SUBST1_TAC;
+      BY(MESON_TAC[Nonlinear_lemma.dih_y_sym;Nonlinear_lemma.dih_y_sym2]);
+    SUBGOAL_THEN `rad2_y y1 y2 y3 y4 y5 y6 = rad2_y y1 y6 y5 y4 y3 y2` SUBST1_TAC;
+      BY(MESON_TAC[Merge_ineq.rad2_y_sym]);
+    REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC);
+    BY(MESON_TAC[]);
+  COMMENT "WLOG y2 < &2 * hmin";
+  REWRITE_TAC[Sphere.ineq];
   REPEAT WEAK_STRIP_TAC;
-  REWRITE_TAC[EXTENSION];
-  GEN_TAC;
-  GMATCH_SIMP_TAC (GSYM Local_lemmas.AZIM_EQ_0_GE_ALT2);
-  REWRITE_TAC[Local_lemmas.WEDGE_GE_AZIM_LE];
+  FIRST_X_ASSUM_ST `delta_x` MP_TAC;
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM_ST `delta_x` (C INTRO_TAC [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`]);
+  REWRITE_TAC[Sphere.ineq;arith `x > &0 <=> &0 < x`;Sphere.y_of_x];
+  ASM_SIMP_TAC[y_bounds];
+  DISCH_TAC;
+  FIRST_X_ASSUM_ST `eta_y` (C INTRO_TAC [`&1`;`&1`;`&1`;`y1`;`y2`;`y6`]);
+  REWRITE_TAC[Sphere.ineq;arith `&1 <= &1`];
+  ASM_SIMP_TAC[y_bounds];
+  SUBGOAL_THEN `y1 <= sqrt8` ASSUME_TAC;
+    REWRITE_TAC[Nonlinear_lemma.sqrt8_sqrt2];
+    BY(ASM_SIMP_TAC[y_bounds;Sphere.sqrt2]);
   ASM_REWRITE_TAC[];
-  INTRO_TAC Local_lemmas.AZIM_RANGE [`u0`;`u1`;`v1`;`x`];
-  BY(REAL_ARITH_TAC)
+  DISCH_TAC;
+  INTRO_TAC rad2_eta2 [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+  ASM_SIMP_TAC[y_bounds;Sphere.delta_y];
+  DISCH_TAC;
+  ASM_CASES_TAC `&2 * hminus <= y2`;
+    FIRST_X_ASSUM_ST `>` MP_TAC;
+    ASM_REWRITE_TAC[];
+    ANTS_TAC;
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    FIRST_X_ASSUM_ST `eta_y` MP_TAC;
+    BY(REAL_ARITH_TAC);
+  COMMENT "remove rad2";
+  FIRST_X_ASSUM_ST `rad2_y` MP_TAC;
+  REWRITE_TAC[Sphere.rad2_y];
+  DISCH_THEN (fun t -> ASSUME_TAC (MATCH_MP (arith `x < &2 ==> ~(x > &2)`) t));
+  REPEAT (FIRST_X_ASSUM_ST `ineq` (C INTRO_TAC [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`]));
+  ASM_REWRITE_TAC[];
+  (COMMENT "fix up weight")
+  (* to here *)
+    rt[arith `&0 * x = &0 `]
   ]);;
   (* }}} *)
 
-let X_IN_AFF_GE_LEFT = prove_by_refinement(
-  `!(x:real^A) S U. (x IN S DIFF U) ==> (x IN aff_ge S U)`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAK_STRIP_TAC;
-  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `aff_ge S U = aff_ge (S DIFF U) U`) SUBST1_TAC));
-    REWRITE_TAC[Sphere.aff_ge_def];
-    BY(MESON_TAC[ AFFSIGN_DISJOINT_DIFF]);
-  MATCH_MP_TAC Packing3.IN_TRANS;
-  GOAL_TERM (fun w -> (EXISTS_TAC ( env w`aff_ge (S DIFF U) {}`)));
-  CONJ2_TAC;
-    MATCH_MP_TAC AFF_GE_MONO_RIGHT;
-    BY(SET_TAC[]);
-  REWRITE_TAC[AFF_GE_EQ_AFFINE_HULL];
-  MATCH_MP_TAC Marchal_cells_2.IN_AFFINE_KY_LEMMA1;
-  BY(ASM_REWRITE_TAC[])
-  ]);;
-  (* }}} *)
-
-let WEDGE_GE_ALMOST_DISJOINT = prove_by_refinement(
-  `!u0 u1 v1 v2.  ~collinear {u0,u1,v1} /\ ~collinear {u0,u1,v2}  ==>
-    wedge_ge u0 u1 v1 v2 INTER wedge_ge u0 u1 v2 v1 SUBSET aff_ge {u0,u1} {v1} UNION aff_ge {u0,u1} {v2}
-     `,
-  (* {{{ proof *)
-  [
-  st/r
-    asmcase `azim u0 u1 v1 v2 = &0`
-      mmp SUBSET_TRANS
-      ex (% `wedge_ge u0 u1 v1 v2`)
-      conj
-      set[]
-      gm WEDGE_GE_NULL
-      art[]
-      set[]
-      ets (% `!x. ~(x IN aff_ge {u0,u1} {v1}) /\ ~(x IN aff_ge {u0,u1} {v2}) /\ x IN wedge_ge u0 u1 v1 v2 /\ x IN wedge_ge u0 u1 v2 v1 ==> F`)
-      set[]
-      st/r
-      gthen (% `~(azim u0 u1 v1 x = &0) /\ ~(azim u0 u1 v2 x = &0)`) mp
-      amt[Local_lemmas.AZIM_EQ_0_GE_ALT2]
-      st/r
-      gthen (% `~(azim u0 u1 x v1 = &0) /\ ~(azim u0 u1 x v2 = &0)`) mp
-      amt[Local_lemmas.AZIM_EQ_0_SYM2]
-      st/r
-      gthen (% `~collinear {u0, u1,x}`) assume
-      dt
-	gthen (% `~(x = v1) /\ ~(x = v2)`) mp
-	amt[]
-	st/r
-      fxast `collinear` mp
-      copy
-      rt[Local_lemmas.collinear_fan22;DE_MORGAN_THM]
-      conj2
-      
-      st/r
-      
-      
-  ]);;
-  (* }}} *)
-
-let WEDGE_WEDGE_GE = prove_by_refinement(
-  `!u0 u1 v1 v2. ~collinear {u0,u1,v1} /\ ~collinear {u0,u1,v2}  ==>
-    wedge_ge u0 u1 v1 v2 = wedge u0 u1 v1 v2 UNION aff_ge {u0,u1} {v1} UNION aff_ge {u0,u1} {v2}`,
-  (* {{{ proof *)
-  [
-  #
-  ]);;
-  (* }}} *)
-
-
-let WEDGE_GE_ALMOST_DISJOINT2 = prove_by_refinement(
-  `!u0 u1 v1 v2.  ~collinear {u0,u1,v1} /\ ~collinear {u0,u1,v2}  ==>
-    wedge_ge u0 u1 v1 v2 INTER wedge_ge u0 u1 v2 v1 SUBSET aff_ge {u0,u1} {v1} UNION aff_ge {u0,u1} {v2}
-     `,
-  (* {{{ proof *)
-  [
-  st/r
-    asmcase `azim u0 u1 v1 v2 = &0`
-      mmp SUBSET_TRANS
-      ex (% `wedge_ge u0 u1 v1 v2`)
-      conj
-      set[]
-      gm WEDGE_GE_NULL
-      art[]
-      set[]
-      ets (% `!x. ~(x IN aff_ge {u0,u1} {v1}) /\ ~(x IN aff_ge {u0,u1} {v2}) /\ x IN wedge_ge u0 u1 v1 v2 /\ x IN wedge_ge u0 u1 v2 v1 ==> F`)
-      set[]
-      st/r
-      gthen (% `~(azim u0 u1 v1 x = &0) /\ ~(azim u0 u1 v2 x = &0)`) mp
-      amt[Local_lemmas.AZIM_EQ_0_GE_ALT2]
-      st/r
-      gthen (% `~(azim u0 u1 x v1 = &0) /\ ~(azim u0 u1 x v2 = &0)`) mp
-      amt[Local_lemmas.AZIM_EQ_0_SYM2]
-      st/r
-      gthen (% `~collinear {u0, u1,x}`) assume
-      dt
-	gthen (% `~(x = v1) /\ ~(x = v2)`) mp
-	amt[]
-	st/r
-      fxast `collinear` mp
-      copy
-      rt[Local_lemmas.collinear_fan22;DE_MORGAN_THM]
-      conj2
-      
-      st/r
-      
-      
-  ]);;
-  (* }}} *)

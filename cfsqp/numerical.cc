@@ -384,6 +384,11 @@ int critical_edge_y(double t) {
   return ((t >= 2.0*hminus()) && (t <= 2.0*hplus));
 }
 
+int subcritical_edge_y(double t) {
+  return ((t <= 2.0*hminus()));
+}
+
+
 int wtcount6_y(double y1,double y2,double y3,double y4,double y5,double y6) {
   int count =0;
   if (critical_edge_y(y1)) { count++; }
@@ -415,6 +420,8 @@ double bmp2(double y1,double y4) {
 
 double beta_bump_y(double y1,double y2,double y3,double y4,double y5,double y6) {
   if (2!=wtcount6_y(y1,y2,y3,y4,y5,y6))  { return 0.0; }
+  if (!(subcritical_edge_y(y2) && subcritical_edge_y(y3) && subcritical_edge_y(y5) && 
+	subcritical_edge_y (y6))) { return 0.0; }
   if (!critical_edge_y(y1))  { return 0.0; }
   if (!critical_edge_y(y4))  { return 0.0; }
   return bmp2(y1,y4);

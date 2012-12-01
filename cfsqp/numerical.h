@@ -127,11 +127,12 @@ this is bug-free!
 //double mdtau2uf_y(double y1,double y2,double y3,double y4,double y5,double y6);
 
 // cluster functions
-int critical_edge_y(double h) ;
+int critical_edge_y(double y) ;
+int subcritical_edge_y(double y) ;
 int wtcount6_y(double y1,double y2,double y3,double y4,double y5,double y6);
 int wtcount3_y(double y1,double y2,double y3) ;
 double bump(double r);
-double beta_bump_y(double y1,double y2,double y3,double y4,double y5,double y6);
+double beta_bumpA_y(double y1,double y2,double y3,double y4,double y5,double y6);
 double machine_eps();
 
 

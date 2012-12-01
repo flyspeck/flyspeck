@@ -88,11 +88,11 @@ double gamma4L (double y1,double y2,double y3,double y4,double y5,double y6) {
 
 double gamma4Lbwt(double y1,double y2,double y3,double y4,double y5,double y6) {
   return gamma4L(y1,y2,y3,y4,y5,y6)/wtcount6_y(y1,y2,y3,y4,y5,y6) 
-    + beta_bump_y(y1,y2,y3,y4,y5,y6);
+    + beta_bumpA_y(y1,y2,y3,y4,y5,y6);
 }
 double gamma4Lbump(double y1,double y2,double y3,double y4,double y5,double y6) {
   return gamma4L(y1,y2,y3,y4,y5,y6)/2.0
-    + beta_bump_y(y1,y2,y3,y4,y5,y6);
+    + beta_bumpA_y(y1,y2,y3,y4,y5,y6);
 }
 
 

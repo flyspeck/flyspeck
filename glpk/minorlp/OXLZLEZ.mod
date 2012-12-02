@@ -126,7 +126,7 @@ g_quqyb{(i,j) in BLADE : j in QU and i in QY} : gamma[j] + gamma3b[i] >= 0; #ID[
 ## QX:
 
 # 4-cells QX
-gamma_qx{i in QX}: gamma[i] >= 0; #ID[2477215213], ID[8328676778], 
+gamma_qx{i in QX}: gamma[i] >= 0; #ID[2477216213], ID[8328676778], 
 g_qxd{i in QXD}:  gamma[i] >= 0.0057;  #ID[7274157868] (wt1)  cf.  ID[7080972881], ID[1738910218] (reduce to wt1)
 gaz7 'ID[3803737830]' {i in QX}: gamma[i] - 0.0105256 + 0.00522841*azim[i] >= 0;
 gamma8 'ID[9063653052]' {i in (ONESMALLa union ONESMALLb) inter QX}: gamma[i] >= 0.0057; 

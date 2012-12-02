@@ -418,7 +418,7 @@ double bmp2(double y1,double y4) {
   return (bump(y1/2.0) - bump(y4/2.0));
 } 
 
-double beta_bump_y(double y1,double y2,double y3,double y4,double y5,double y6) {
+double beta_bumpA_y(double y1,double y2,double y3,double y4,double y5,double y6) {
   if (2!=wtcount6_y(y1,y2,y3,y4,y5,y6))  { return 0.0; }
   if (!(subcritical_edge_y(y2) && subcritical_edge_y(y3) && subcritical_edge_y(y5) && 
 	subcritical_edge_y (y6))) { return 0.0; }

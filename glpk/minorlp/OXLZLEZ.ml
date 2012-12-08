@@ -275,7 +275,7 @@ let set_lpvalue nt (dualdata,(f,r)) = (* side effects *)
 let solve_and_set_lp br = 
   let _ = match br.lpvalue with
     | Lp_unset -> (* generate dual data as soon as lp is solved *)
-      let fr =  (Glpk_link.solve_dual_f model dumpfile "gammasum" ampl_of_br br) in
+      let fr =  (Glpk_link.solve_dual_f model dumpfile "ggsum" ampl_of_br br) in
       let dualdata = load_dual() in
       (set_lpvalue br (dualdata,fr))
     |  _ -> br in

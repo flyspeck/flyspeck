@@ -1,0 +1,612 @@
+--"needs \"/mnt/HOL Light/update_database.ml\"".
+"needs \"Examples/ssrbool-compiled.hl\"".
+
+"open Fan".
+"open Hypermap".
+
+"let inE = CONJUNCT2 IN_ELIM_THM".
+
+Lemma bij_disjoint_union f g s t s' t': 
+	`DISJOINT s t /\ DISJOINT s' t' /\ BIJ (f:A->B) s s' /\ BIJ (g:A->B) t t'
+		==> BIJ (\x. if x IN s then f x else g x) (s UNION t) (s' UNION t')`.
+Proof.
+rewrite !DISJOINT !BIJ !INJ !SURJ.
+move => [d_st] [d_s't'] [] [] [fx f_inj] [_ f_surj] [] [gx g_inj] [_ g_surj].
+have x_in_t x: `x IN t ==> ~(x IN s)`.
+  move => xt; apply: contraL d_st => xs.
+  by rewrite -MEMBER_NOT_EMPTY IN_INTER; exists x.
+rewrite !IN_UNION; do !split.
+  (* 1 *)
+  move => x [x_in]; first by rewrite x_in /= fx.
+  by rewrite (x_in_t x_in) /= gx.
+  (* 2 *)
+  move => x y [] [x_in] [] [y_in]; rewrite ?x_in ?y_in ?x_in_t //= => eq.
+    (* a *)
+    by rewrite (f_inj eq).
+    (* b *)
+    apply: contraLR d_s't' => _; rewrite -MEMBER_NOT_EMPTY.
+    by exists `f x`; rewrite IN_INTER fx // eq gx.
+    (* c *)
+    apply: contraLR d_s't' => _; rewrite -MEMBER_NOT_EMPTY.
+    by exists `g x`; rewrite IN_INTER gx // eq fx.
+  (* d *)
+  by rewrite (g_inj eq).
+  (* 3 *)
+  move => x [x_in]; first by rewrite x_in /= fx.
+  by rewrite (x_in_t x_in) /= gx.
+(* 4 *)
+move => x [x_in].
+  move: (f_surj x_in) => [y] [ys fy_eq].
+  by exists y; rewrite ys.
+move: (g_surj x_in) => [y] [yt gy_eq].
+by exists y; rewrite yt (x_in_t yt).
+Qed.
+
+Lemma image_lemma f P: `IMAGE f {x | P x} = {f x | P x}`.
+Proof. by rewrite EXTENSION IN_IMAGE inE !IN_ELIM_THM /= andbC. Qed.
+
+(* PowerOrbit *)
+Section PowerOrbit.
+
+Variable f : `:A -> B`.
+Variable g1 : `:A -> A`.
+Variable g2 : `:B -> B`.
+Variable s : `:A -> bool`.
+
+Hypothesis g1s: `!x. x IN s ==> g1 x IN s`.
+
+Lemma power_in x n: `x IN s ==> (g1 POWER n) x IN s`.
+Proof.
+move => xs; elim: n => [| n Ih]; first by rewrite POWER_0 I_THM.
+by rewrite COM_POWER o_THM g1s.
+Qed.
+
+Hypothesis fg: `!x. x IN s ==> f (g1 x) = g2 (f x)`.
+
+Lemma power_comm x n: `x IN s ==> f ((g1 POWER n) x) = (g2 POWER n) (f x)`.
+Proof.
+move => xs; elim: n => [|n Ih]; first by rewrite !POWER_0 !I_THM.
+by rewrite !COM_POWER !o_THM fg ?power_in.
+Qed.
+
+Lemma orbit_comm x: `x IN s ==> orbit_map g2 (f x) = IMAGE f (orbit_map g1 x)`.
+Proof.
+rewrite !orbit_map EXTENSION IN_IMAGE !IN_ELIM_THM /= => xs x.
+split => [[n] h | [y] [x_eq] [n] h].
+  exists `(g1 POWER n) x`.
+  by rewrite power_comm // h /=; exists n.
+by exists n; rewrite h x_eq h power_comm.
+Qed.
+
+
+End PowerOrbit.
+
+Lemma image_ext_eq f g s: `(!x. x IN s ==> f x = g x) ==> IMAGE f s = IMAGE g s`.
+Proof.
+move => eq; rewrite EXTENSION !IN_IMAGE => y.
+by split => [] [x] [y_eq] xs; exists x; rewrite y_eq eq.
+Qed.
+
+
+Lemma image_res f s u: `s SUBSET u ==> IMAGE f s = IMAGE (res f u) s`.
+Proof.
+rewrite SUBSET => su; apply image_ext_eq => x xs.
+by rewrite res su.
+Qed.
+
+Lemma im_in_image f s x: `f x IN IMAGE f s <=> x IN s \/ ?y. y IN s /\ ~(x = y) /\ f x = f y`.
+Proof.
+rewrite IN_IMAGE; split => [[y] h | ].
+  case x_in: `x IN s` => /=.
+  exists y; rewrite !h /=.
+  by apply: contra x_in => ->.
+by move => [x_in | [y] h]; [exists x | exists y].
+Qed.
+
+
+(* InjProps *)
+Section InjProps.
+
+Variable u : `:A -> bool`.
+Variable f : `:A -> B`.
+
+Hypothesis inj: `!x y. x IN u /\ y IN u /\ f x = f y ==> x = y`.
+
+Lemma image_inter_inj_gen s t: 
+	`s SUBSET u /\ t SUBSET u
+	==> IMAGE f (s INTER t) = IMAGE f s INTER IMAGE f t`.
+Proof.
+rewrite !SUBSET => [] [su tu].
+rewrite EXTENSION IN_INTER !IN_IMAGE IN_INTER => y.
+split => [[x] [y_eq] [xs xt] | [] [x] [y_eq xs] [x'] [y_eq' x't]].
+  by split; exists x.
+exists x; do !split => //.
+by rewrite (inj (su xs) (tu x't)) // -y_eq -y_eq'.
+Qed.
+
+Lemma image_inj_gen s t:
+	`s SUBSET u /\ t SUBSET u /\ IMAGE f s = IMAGE f t
+	==> s = t`.
+Proof.
+rewrite !SUBSET !EXTENSION !IN_IMAGE => [] [su] [tu] eq y; split => y_in.
+  move: (iffLR (eq `f y`)); "ANTS_TAC"; first by exists y.
+  move => [x] [f_eq] xt.
+  by rewrite (inj (su y_in) (tu xt)).
+move: (iffRL (eq `f y`)); "ANTS_TAC"; first by exists y.
+move => [x] [f_eq] xs.
+by rewrite (inj (tu y_in) (su xs)).
+Qed.
+
+Lemma image_set_inj_gen s t: `s SUBSET u /\ t SUBSET u /\ IMAGE f s = IMAGE f t ==> s = t`.
+Proof.
+rewrite !SUBSET !EXTENSION => [] [su] [tu] i_eq x; split => x_in.
+  have: `f x IN IMAGE f s` by rewrite IN_IMAGE; exists x.
+  rewrite i_eq im_in_image => [] [] // [y] [y_in] [neq] f_eq.
+  apply: contraR neq => _; apply: inj.
+  by rewrite (su x_in) (tu y_in) f_eq.
+have: `f x IN IMAGE f t` by rewrite IN_IMAGE; exists x.
+rewrite -i_eq im_in_image => [] [] // [y] [y_in] [neq] f_eq.
+apply: contraR neq => _; apply: inj.
+by rewrite (su y_in) (tu x_in) f_eq.
+Qed.
+
+End InjProps.
+
+
+
+(* Restricted inverse *)
+Section ResInverse.
+
+"let res_inv = new_definition `res_inv f s = (\y. @x. f x = y /\ x IN s)`".
+
+Lemma bij_alt f s t: `BIJ f s t <=> 
+	(!x. x IN s ==> f x IN t) /\
+	(!x y. x IN s /\ y IN s /\ f x = f y ==> x = y) /\
+	(!y. y IN t ==> ?x. x IN s /\ f x = y)`.
+Proof.
+by rewrite BIJ INJ SURJ andbAC !andbA andbb andbAC.
+Qed.
+
+
+Lemma res_inv_left f s x:
+	`(!x y. x IN s /\ y IN s /\ f x = f y ==> x = y) /\ x IN s
+	==> res_inv f s (f x) = x`.
+Proof.
+rewrite res_inv /= => [] [inj xs].
+apply SELECT_UNIQUE => /= y; split => [[f_eq ys] | -> //].
+by rewrite (inj f_eq).
+Qed.
+
+Lemma res_inv_right f s t y: `(!y. y IN t ==> ?x. x IN s /\ f x = y) /\ y IN t
+	==> f (res_inv f s y) = y /\ res_inv f s y IN s`.
+Proof.
+rewrite res_inv /= => [] [surj] /surj [x] h.
+have /= := SELECT_AX `\x. f x = y /\ x IN s`.
+by apply; exists x.
+Qed.
+
+Lemma res_inv_bij f s t: `BIJ f s t ==>
+	(!x. x IN s ==> res_inv f s (f x) = x) /\
+	(!y. y IN t ==> f (res_inv f s y) = y) /\
+	(!y. y IN t ==> res_inv f s y IN s)`.
+Proof.
+rewrite BIJ INJ SURJ => h.
+by do !split; move => a a_in; first apply res_inv_left; rewrite ?(res_inv_right f s t).
+Qed.
+
+Lemma bij_res_inv f s t: `BIJ f s t ==> BIJ (res_inv f s) t s`.
+Proof.
+rewrite !bij_alt => [] [f_in] [inj surj].
+split => [x xt | ]; first by rewrite (res_inv_right surj).
+split => [x y [xt] [yt] inv_eq | x xs]; last first.
+  by exists `f x`; rewrite f_in // res_inv_left.
+move: (congr1 f inv_eq).
+by rewrite !(res_inv_right surj).
+Qed.
+
+End ResInverse.
+
+
+(* Iso *)
+Section Iso.
+
+(* An explicit isomorphism between hypermaps *)
+"let hyp_iso = new_definition `hyp_iso f (H, G) <=> 
+ 	                  BIJ f (dart H) (dart G) /\
+			(!x. x IN dart H ==>
+			edge_map G (f x) = f (edge_map H x) /\
+                       	node_map G (f x) = f (node_map H x) /\
+                           face_map G (f x) = f (face_map H x))`".
+
+
+Lemma hyp_iso_imp_iso H G f: `hyp_iso f (H, G) ==> H iso G`.
+Proof. by rewrite hyp_iso iso => h; exists f. Qed.
+
+Lemma iso_imp_hyp_iso H G: `H iso G ==> ?f. hyp_iso f (H, G)`.
+Proof. by rewrite iso hyp_iso. Qed.
+
+
+Lemma h_map_outside H x: `~(x:A IN dart H) ==>
+	edge_map H x = x /\
+	node_map H x = x /\
+	face_map H x = x`.
+Proof.
+move => x_n_dart.
+have h := hypermap_lemma H.
+by rewrite !permutes in h; rewrite !h //.
+Qed.
+
+
+Lemma hyp_path_subset H p n: `p 0 IN dart H /\ is_path H p n
+	==> (!i. i <= n ==> p i IN dart H)`.
+Proof.
+rewrite lemma_def_path go_one_step => [] [p0_in] h.
+elim => [|i Ih] // i_le; rewrite LE_SUC_LT in i_le.
+by move: (h i_le); do !case; move => ->; rewrite lemma_dart_invariant Ih LT_IMP_LE.
+Qed.
+
+
+Section Iso1.
+
+Variable H : `:(A)hypermap`.
+Variable G : `:(B)hypermap`.
+Variable f : `:A->B`.
+
+Hypothesis isoHG: `hyp_iso f (H, G)`.
+
+Lemma hyp_iso_bij: `BIJ f (dart H) (dart G)`.
+Proof. by rewrite hyp_iso in isoHG. Qed.
+
+Lemma hyp_iso_inj x y: `x IN dart H /\ y IN dart H /\ f x = f y ==> x = y`.
+Proof. by move: isoHG; rewrite hyp_iso bij_alt => [] [] [_] [inj] _ _ h; exact: inj. Qed.
+
+Lemma hyp_iso_surj y: `y IN dart G ==> ?x. x IN dart H /\ f x = y`.
+Proof. by move: isoHG; rewrite hyp_iso bij_alt => [] [] [_] [_] surj _ y; exact: surj. Qed.
+
+Lemma hyp_iso_dart x: `x IN dart H ==> f x IN dart G`.
+Proof. by move: isoHG; rewrite hyp_iso bij_alt => [] [] [h] _ _; exact: h. Qed.
+
+Lemma hyp_iso_comm x: `x IN dart H ==> 
+	edge_map G (f x) = f (edge_map H x) /\
+	node_map G (f x) = f (node_map H x) /\
+	face_map G (f x) = f (face_map H x)`.
+Proof. by move: isoHG; rewrite hyp_iso => [] [] _ h x_in; rewrite !h. Qed.
+
+Lemma hyp_iso_inv: `hyp_iso (res_inv f (dart H)) (G, H)`.
+Proof.
+rewrite hyp_iso (bij_res_inv hyp_iso_bij) andTb => d d_in.
+have [t [t_in d_eq]] := hyp_iso_surj d_in.
+by rewrite -d_eq !hyp_iso_comm // !(res_inv_bij hyp_iso_bij) // lemma_dart_invariant.
+Qed.
+
+Lemma iso_components d: `d IN dart H ==>
+	node G (f d) = IMAGE f (node H d) /\
+	face G (f d) = IMAGE f (face H d) /\
+	edge G (f d) = IMAGE f (edge H d)`.
+Proof.
+move: isoHG; rewrite hyp_iso => [] [bij] f_eq d_in.
+rewrite !node !face !edge.
+by do !split; apply: (orbit_comm d_in); split => x x_in; rewrite ?lemma_dart_invariant ?f_eq.
+Qed.
+
+Lemma iso_node_set: `node_set G = IMAGE (IMAGE f) (node_set H)`.
+Proof.
+rewrite !node_set !set_of_orbits -!node EXTENSION IN_IMAGE !IN_ELIM_THM /= => y.
+split => [[d] [d_in] y_eq | [n] [y_eq] [d] [d_in] n_eq]; last first.
+  exists `f d`.
+  by rewrite y_eq n_eq -iso_components //= hyp_iso_dart.
+have [t [t_in f_eq]] := hyp_iso_surj d_in.
+exists `node H t`; rewrite y_eq -f_eq iso_components //=.
+by exists t.
+Qed.
+
+Lemma iso_edge_set: `edge_set G = IMAGE (IMAGE f) (edge_set H)`.
+Proof.
+rewrite !edge_set !set_of_orbits -!edge EXTENSION IN_IMAGE !IN_ELIM_THM /= => y.
+split => [[d] [d_in] y_eq | [n] [y_eq] [d] [d_in] n_eq]; last first.
+  exists `f d`.
+  by rewrite y_eq n_eq -iso_components //= hyp_iso_dart.
+have [t [t_in f_eq]] := hyp_iso_surj d_in.
+exists `edge H t`; rewrite y_eq -f_eq iso_components //=.
+by exists t.
+Qed.
+
+Lemma iso_face_set: `face_set G = IMAGE (IMAGE f) (face_set H)`.
+Proof.
+rewrite !face_set !set_of_orbits -!face EXTENSION IN_IMAGE !IN_ELIM_THM /= => y.
+split => [[d] [d_in] y_eq | [n] [y_eq] [d] [d_in] n_eq]; last first.
+  exists `f d`.
+  by rewrite y_eq n_eq -iso_components //= hyp_iso_dart.
+have [t [t_in f_eq]] := hyp_iso_surj d_in.
+exists `face H t`; rewrite y_eq -f_eq iso_components //=.
+by exists t.
+Qed.
+
+Lemma iso_number_of_nodes: `number_of_nodes G = number_of_nodes H`.
+Proof.
+rewrite !number_of_nodes iso_node_set CARD_IMAGE_INJ // FINITE_HYPERMAP_ORBITS andbT => n1 n2.
+rewrite !node_set !set_of_orbits -node !IN_ELIM_THM /= => [] [[] d1 n1_eq] [[] d2 n2_eq] i_eq.
+apply: (image_set_inj_gen hyp_iso_inj).
+by rewrite {1}n1_eq {1}n2_eq !lemma_node_subset.
+Qed.
+
+Lemma iso_number_of_edges: `number_of_edges G = number_of_edges H`.
+Proof.
+rewrite !number_of_edges iso_edge_set CARD_IMAGE_INJ // FINITE_HYPERMAP_ORBITS andbT => n1 n2.
+rewrite !edge_set !set_of_orbits -edge !IN_ELIM_THM /= => [] [[] d1 n1_eq] [[] d2 n2_eq] i_eq.
+apply: (image_set_inj_gen hyp_iso_inj).
+by rewrite {1}n1_eq {1}n2_eq !lemma_edge_subset.
+Qed.
+
+Lemma iso_number_of_faces: `number_of_faces G = number_of_faces H`.
+Proof.
+rewrite !number_of_faces iso_face_set CARD_IMAGE_INJ // FINITE_HYPERMAP_ORBITS andbT => n1 n2.
+rewrite !face_set !set_of_orbits -face !IN_ELIM_THM /= => [] [[] d1 n1_eq] [[] d2 n2_eq] i_eq.
+apply: (image_set_inj_gen hyp_iso_inj).
+by rewrite {1}n1_eq {1}n2_eq !lemma_face_subset.
+Qed.
+
+
+Lemma iso_plain_imp: `plain_hypermap G ==> plain_hypermap H`.
+Proof.
+rewrite !plain_hypermap !FUN_EQ_THM !I_THM !o_THM => g_eq x.
+case x_in: `x IN dart H` => /=; last by rewrite !h_map_outside.
+by apply: hyp_iso_inj; rewrite -!hyp_iso_comm ?lemma_dart_invariant.
+Qed.
+
+Lemma iso_simple_imp: `simple_hypermap G ==> simple_hypermap H`.
+Proof.
+rewrite !simple_hypermap => h d d_in.
+move: (h (hyp_iso_dart d_in)).
+rewrite !iso_components // -(image_inter_inj_gen hyp_iso_inj) ?lemma_node_subset ?lemma_face_subset //.
+have ->: `{f d} = IMAGE f {d}`.
+  rewrite EXTENSION IN_IMAGE !IN_SING => y.
+  by split => [-> | [x] [->] ->] //; exists d.
+move => eq; apply: (image_inj_gen eq hyp_iso_inj).
+rewrite SING_SUBSET d_in andbT SUBSET IN_INTER => x [_].
+by move: x; rewrite -SUBSET lemma_face_subset.
+Qed.
+
+Lemma iso_path_imp p n: `p 0 IN dart H /\ is_path H p n ==> is_path G (f o p) n`.
+Proof.
+move => [p0_in p_path].
+move: (p_path); rewrite !lemma_def_path !o_THM !go_one_step => h i i_lt.
+by move: (h i_lt); do !case; move => ->; 
+	rewrite -!hyp_iso_comm // (hyp_path_subset p_path) p0_in LT_IMP_LE.
+Qed.
+
+Lemma iso_path_inv q n: `q 0 IN dart G /\ is_path G q n ==> 
+	?p. (!i. i <= n ==> q i = f (p i)) /\ p 0 IN dart H /\ is_path H p n`.
+Proof.
+move => [q0 q_path]; move: (q_path).
+rewrite !lemma_def_path => q_path2.
+exists `res_inv f (dart H) o q`; rewrite !o_THM.
+split => [i i_le | ].
+  by rewrite (res_inv_right hyp_iso_surj) // (hyp_path_subset q_path).
+rewrite (res_inv_right hyp_iso_surj) // andTb => i i_lt.
+have/hyp_iso_surj [t [t_in] qi_eq] := hyp_path_subset q_path q0 (LT_IMP_LE i_lt).
+rewrite -qi_eq (res_inv_left hyp_iso_inj) //.
+by move: (q_path2 i_lt) ; rewrite !go_one_step; do !case; move => ->;
+  rewrite -qi_eq !hyp_iso_comm // (res_inv_bij hyp_iso_bij) // lemma_dart_invariant.
+Qed.
+
+
+Lemma iso_comb_component d: `d IN dart H ==>
+	comb_component G (f d) = IMAGE f (comb_component H d)`.
+Proof.
+rewrite !comb_component image_lemma !is_in_component EXTENSION inE IN_ELIM_THM /=.
+move => d_in z; split => [[p] [n] [p0_eq] [pn_eq] pathG | ]; last first.
+  move => [t] [] [p] [n] [p0_eq] [pn_eq] path_p ->.
+  by exists `f o p` n; rewrite !o_THM iso_path_imp p0_eq.
+have := iso_path_inv pathG; "ANTS_TAC"; first by rewrite p0_eq hyp_iso_dart.
+move => [q] [p_eq] [q0] path_q.
+exists `q n`; rewrite -p_eq ?LE_REFL // pn_eq /=.
+exists q n; do !split => //.
+by apply: hyp_iso_inj; rewrite -p_eq // LE_0.
+Qed.
+
+
+Lemma iso_set_part_components: `set_of_components G = IMAGE (IMAGE f) (set_of_components H)`.
+Proof.
+rewrite !set_of_components !set_part_components EXTENSION IN_IMAGE !IN_ELIM_THM /= => c.
+split => [[d] [d_in] c_eq | [c2] [c_eq] [t] [t_in] c2_eq].
+  have [t [t_in d_eq]] := hyp_iso_surj d_in.
+  exists `comb_component H t`; split; last by exists t.
+  by rewrite -iso_comb_component // d_eq -c_eq /=.
+exists `f t`.
+by rewrite (hyp_iso_dart) // c_eq c2_eq -iso_comb_component.
+Qed.
+
+Lemma iso_number_of_components: `number_of_components G = number_of_components H`.
+Proof.
+rewrite !number_of_components iso_set_part_components CARD_IMAGE_INJ //.
+rewrite FINITE_HYPERMAP_COMPONENTS andbT => n1 n2.
+rewrite !set_of_components !set_part_components !IN_ELIM_THM /=.
+move => [[d1] n1_eq] [[d2] n2_eq] i_eq.
+apply: (image_set_inj_gen hyp_iso_inj).
+by rewrite i_eq /= n1_eq n2_eq !lemma_component_subset.
+Qed.
+
+Lemma iso_dart: `dart G = IMAGE f (dart H)`.
+Proof.
+rewrite EXTENSION IN_IMAGE => d; split => [d_in | [t] [d_eq t_in]].
+  have [t h] := (hyp_iso_surj d_in).
+  by exists t.
+by rewrite d_eq hyp_iso_dart.
+Qed.
+
+Lemma iso_card_dart: `CARD (dart G) = CARD (dart H)`.
+Proof. by rewrite iso_dart CARD_IMAGE_INJ // hypermap_lemma; exact: hyp_iso_inj. Qed.
+
+Lemma iso_planar_imp: `planar_hypermap G ==> planar_hypermap H`.
+Proof.
+rewrite !planar_hypermap iso_card_dart.
+by rewrite iso_number_of_edges iso_number_of_nodes iso_number_of_faces iso_number_of_components.
+Qed.
+
+Lemma iso_connected_imp: `connected_hypermap G ==> connected_hypermap H`.
+Proof. by rewrite !connected_hypermap iso_number_of_components. Qed.
+
+End Iso1.
+
+Implicit Type H : `:(C)hypermap`.
+Implicit Type G : `:(D)hypermap`.
+
+Lemma iso_plain H G: `H iso G ==> (plain_hypermap H <=> plain_hypermap G)`.
+Proof.
+by move => iso; split => h; apply (iso_plain_imp h); rewrite iso_imp_hyp_iso // iso_sym.
+Qed.
+
+Lemma iso_simple H G: `H iso G ==> (simple_hypermap H <=> simple_hypermap G)`.
+Proof.
+by move => iso; split => h; apply (iso_simple_imp h); rewrite iso_imp_hyp_iso // iso_sym.
+Qed.
+
+Lemma iso_planar H G: `H iso G ==> (planar_hypermap H <=> planar_hypermap G)`.
+Proof.
+by move => iso; split => h; apply (iso_planar_imp h); rewrite iso_imp_hyp_iso // iso_sym.
+Qed.
+
+Lemma iso_connected H G: `H iso G ==> (connected_hypermap H <=> connected_hypermap G)`.
+Proof.
+by move => iso; split => h; apply (iso_connected_imp h); rewrite iso_imp_hyp_iso // iso_sym.
+Qed.
+
+End Iso.
+
+
+(* fan_hypermaps_iso *)
+Section FanHypermapsIso.
+
+Lemma fan_in_e_imp_neq V E v w: `FAN (vec 0,V,E) /\ {v, w} IN E ==> ~(v = w)`.
+Proof.
+rewrite FAN graph IN HAS_SIZE => [] [] [_] [size2] _ /size2.
+by rewrite Geomdetail.CARD2 => ->.
+Qed.
+
+Lemma in_set_of_edge_neq V E v w: `FAN (vec 0,V,E) /\ w IN set_of_edge v V E ==> ~(v = w)`.
+Proof.
+rewrite set_of_edge inE /= => [] [fan] [vwE] _.
+exact: (fan_in_e_imp_neq fan).
+Qed.
+
+
+Lemma dart_of_fan_eq V E: 
+	`dart_of_fan (V,E) = dart1_of_fan (V,E) UNION {(v,v) | v IN V /\ set_of_edge v V E = {}}`.
+Proof. by rewrite dart_of_fan dart1_of_fan "GEN_ALL UNION_ACI". Qed.
+
+
+Lemma darts_of_fan_disj V E: `FAN (vec 0,V,E) ==>
+	DISJOINT (dart1_of_fan (V,E)) {(v,v) | v IN V /\ set_of_edge v V E = {}}`.
+Proof.
+rewrite DISJOINT EXTENSION !NOT_IN_EMPTY /= IN_INTER => fan x.
+case x_in: `x IN _` => /=.
+move: x_in; rewrite dart1_of_fan !IN_ELIM_THM /= => [] [v] [w] [vw_in] x_eq.
+apply: contraL vw_in => [] [u] [_] x_eq2.
+apply: contraL (fan_in_e_imp_neq fan) => in_e.
+rewrite !NOT_FORALL_THM negb_imply negbK; exists v w.
+by rewrite in_e andTb; move: x_eq2; rewrite x_eq PAIR_EQ => [] [-> ->].
+Qed.
+
+
+Lemma dart1_of_fan_eq_image V E: `dart1_of_fan (V,E) = IMAGE contracted_dart (d1_fan (vec 0,V,E))`.
+Proof.
+rewrite dart1_of_fan d1_fan EXTENSION IN_IMAGE !IN_ELIM_THM /= => d.
+split => [[v] [w] [in_e] d_eq | [x] [d_eq] [x'] [v] [w] [w1] [] [->] [in_e] -> x_eq].
+  exists `vec 0, v, w, sigma_fan (vec 0) V E v w`.
+  rewrite contracted_dart d_eq /=.
+  by exists `vec 0` v w `sigma_fan (vec 0) V E v w`.
+by exists v w; rewrite in_e andTb d_eq x_eq contracted_dart.
+Qed.
+
+Lemma dart2_of_fan_eq_image V E: 
+	`{(v,v) | v IN V /\ set_of_edge v V E = {}} = IMAGE contracted_dart (d20_fan (vec 0,V,E))`.
+Proof.
+rewrite d20_fan EXTENSION IN_IMAGE !IN_ELIM_THM IN /= => d.
+split => [[v] [h] d_eq | [x] [d_eq] [x'] [v] [h] x_eq].
+  exists `vec 0, v, v, v`.
+  rewrite contracted_dart d_eq /=.
+  by exists `vec 0` v.
+by exists v; rewrite d_eq x_eq contracted_dart.
+Qed.
+
+Lemma disjoint_preimage f s t: `DISJOINT (IMAGE f s) (IMAGE f t) ==> DISJOINT s t`.
+Proof.
+rewrite !DISJOINT -CONTRAPOS_THM -!MEMBER_NOT_EMPTY !IN_INTER !IN_IMAGE.
+move => [x] [xs xt].
+by exists `f x`; split; exists x.
+Qed.
+
+Lemma darts_of_fan_disj1 V E: `FAN (vec 0,V,E) ==>
+	DISJOINT (d1_fan (vec 0,V,E)) (d20_fan (vec 0,V,E))`.
+Proof.
+move => fan; rewrite (disjoint_preimage `contracted_dart`).
+by rewrite -dart1_of_fan_eq_image -dart2_of_fan_eq_image darts_of_fan_disj.
+Qed.
+
+Lemma bij_contracted_dart1 V E: `BIJ contracted_dart (d1_fan (vec 0,V,E)) (dart1_of_fan (V,E))`.
+Proof.
+rewrite bij_alt d1_fan dart1_of_fan !IN_ELIM_THM /=.
+do !split.
+(* 1 *)
+move => x [x'] [v] [w] [w1] [] [->] [in_e] -> x_eq.
+by exists v w; rewrite x_eq contracted_dart.
+(* 2 *)
+move => x y [] [x'] [v] [w] [w1] [h] x_eq [] [y'] [v'] [w'] [w1'] [h'] y_eq.
+rewrite x_eq y_eq !contracted_dart PAIR_EQ => [] [v_eq w_eq].
+by rewrite !h !h' v_eq w_eq.
+(* 3 *)
+move => y [v] [w] [in_e] ->.
+exists `vec 0, v, w, sigma_fan (vec 0) V E v w`.
+rewrite contracted_dart /=.
+by exists `vec 0` v w `sigma_fan (vec 0) V E v w`.
+Qed.
+
+Lemma bij_contracted_dart2 V E: 
+	`BIJ contracted_dart (d20_fan (vec 0,V,E)) {(v,v) | v IN V /\ set_of_edge v V E = {}}`.
+Proof.
+rewrite bij_alt d20_fan !IN_ELIM_THM IN /=.
+do !split.
+(* 1 *)
+move => x [x'] [v] [h] x_eq.
+by exists v; rewrite x_eq contracted_dart.
+(* 2 *)
+move => x y [] [x'] [v] [h] x_eq [] [y'] [v'] [h'] y_eq.
+by rewrite x_eq y_eq !contracted_dart PAIR_EQ h h' => ->.
+(* 3 *)
+move => y [v] [h] ->; exists `vec 0, v, v, v`.
+rewrite contracted_dart /=.
+by exists `vec 0` v.
+Qed.
+
+
+Lemma fan_hypermaps_iso V E: `FAN (vec 0,V,E)
+	==> (hypermap1_of_fanx (vec 0,V,E)) iso (hypermap_of_fan (V,E))`.
+Proof.
+move => fan; rewrite iso !(COMPONENTS_HYPERMAP_OF_FAN fan).
+have := hypermap_of_fan_rep fan.
+set p := `\t. _ t`; move/(_ p); "ANTS_TAC" => // h1_eq.
+rewrite !h1_eq; move: h1_eq => _.
+exists `contracted_dart`.
+rewrite !d_fan dart_of_fan_eq; split.
+  have ->: `contracted_dart = \t. if t IN d1_fan (vec 0,V,E) then contracted_dart t else contracted_dart t`.
+    by rewrite if_same ETA_AX.
+  rewrite bij_disjoint_union darts_of_fan_disj // darts_of_fan_disj1 //.
+  by rewrite bij_contracted_dart1 bij_contracted_dart2.
+have x_in_d2 x: `x IN d20_fan (vec 0,V,E) ==> ~(x IN d1_fan (vec 0,V,E))`.
+  move => x2; apply: contraL (darts_of_fan_disj1 fan) => x1.
+  by rewrite DISJOINT -MEMBER_NOT_EMPTY IN_INTER; exists x.
+rewrite IN_UNION => x [x_in]; rewrite -p_def /= !res ?x_in ?x_in_d2 //=; last first.
+  move: x_in; rewrite d20_fan IN_ELIM_THM /= => [] [x'] [v] [h] ->.
+  rewrite contracted_dart e_fan_pair_ext n_fan_pair_ext f_fan_pair_ext.
+  by rewrite !(NOT_IN_DART1_OF_FAN fan).
+move: x_in; rewrite d1_fan IN_ELIM_THM /= => [] [x'] [v] [w] [w1] [h] ->.
+rewrite e_fan n_fan f1_fan /= !contracted_dart.
+rewrite e_fan_pair_ext n_fan_pair_ext f_fan_pair_ext.
+have -> /=: `v,w IN dart1_of_fan (V,E)`.
+  by rewrite dart1_of_fan IN_ELIM_THM /=; exists v w.
+rewrite e_fan_pair n_fan_pair f_fan_pair h /= PAIR_EQ /=.
+by rewrite Fan_misc.INVERSE_SIGMA_FAN_EQ_INVERSE1_SIGMA_FAN // "GEN_ALL Collect_geom.PER_SET2".
+Qed.
+
+End FanHypermapsIso.

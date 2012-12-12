@@ -31,11 +31,10 @@ let cc_gg3b_v4 = new_definition `cc_gg3b_v4 cc i = EL 3 (cc_real_v4 cc) i`;;
 let cc_subcrit_v4 = new_definition `cc_subcrit_v4 cc i = EL 0 (cc_bool_v4 cc) i`;;
 let cc_crit_v4 = new_definition `cc_crit_v4 cc i = EL 1 (cc_bool_v4 cc) i`;;
 let cc_supercrit_v4 = new_definition `cc_supercrit_v4 cc i = EL 2 (cc_bool_v4 cc) i`;;
-
 let cc_small_v4 = new_definition `cc_small_v4 cc i = EL 3 (cc_bool_v4 cc) i`;;
 let cc_small_eta_v4 = new_definition `cc_small_eta_v4 cc i = EL 4 (cc_bool_v4 cc) i`;;
-
 let cc_4cell_v4 = new_definition `cc_4cell_v4 cc i = EL 5 (cc_bool_v4 cc) i`;;
+
 
 let cc_hassmall_v4 = new_definition 
   `cc_hassmall_v4 cc i = (cc_small_v4 cc i /\ cc_small_v4 cc (i+1))`;;
@@ -46,6 +45,9 @@ let cc_qy_v4 = new_definition `cc_qy_v4 cc i = ~cc_4cell_v4 cc i`;;
 
 let cc_negqu_v4 = new_definition `cc_negqu_v4 cc i <=> cc_qu_v4 cc i /\ cc_gg_v4 cc i < &0`;;
 let cc_posqu_v4 = new_definition `cc_posqu_v4 cc i <=> cc_qu_v4 cc i /\ &0 <= cc_gg_v4 cc i`;;
+
+let cc_size_v4 = new_definition `cc_size_v4 cc p = 
+  CARD {i | i IN 0..(cc_card_v4 cc -1) /\ p i }`;;
 
 (* derived.
 let cc_qx10_v4 = new_definition `cc_qx10_v4 cc i = EL 8 (cc_bool_v4 cc) i`;;
@@ -77,6 +79,7 @@ let cc_bool_model_v4 = new_definition `cc_bool_model_v4 cc <=>
 `;;
 
 let cc_bool_prep_v4 = new_definition `cc_bool_prep_v4 cc = (!i. cc_qy_v4 cc i ==> ~cc_qy_v4 cc (i+1))`;;
+
 
 let cc_real_model_v4 = new_definition `cc_real_model_v4 cc <=> 
   periodic (cc_azim_v4 cc) (cc_card_v4 cc) /\
@@ -213,62 +216,80 @@ let MOD_SURJ = prove_by_refinement(
   `!n r a. ~(n=0) /\ a IN (0..(n-1)) ==> (?b. b IN (r..((n-1)+r)) /\ b MOD n = a)`,
   (* {{{ proof *)
   [
-    rt[IN_NUMSEG]
-  st/r
-    asmcases `r MOD n <= a`
-    ex (`(r DIV n) * n + a`)
-    intro DIVISION [`r`;`n`]
-    art[]
-    st/r
-    conj
-    repeat (fxa mp) then ARITH_TAC
-   (* to here *)
+  REWRITE_TAC[IN_NUMSEG];
+  REPEAT WEAK_STRIP_TAC;
+  ASM_CASES_TAC `r MOD n <= a`;
+    EXISTS_TAC (`(r DIV n) * n + a`);
+    INTRO_TAC DIVISION [`r`;`n`];
+    ASM_REWRITE_TAC[];
+    REPEAT WEAK_STRIP_TAC;
+    CONJ_TAC;
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+    REWRITE_TAC[ MOD_MULT_ADD];
+    MATCH_MP_TAC MOD_LT;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  EXISTS_TAC (`((r DIV n) + 1) * n + a`);
+  REWRITE_TAC[ MOD_MULT_ADD ];
+  CONJ2_TAC;
+    MATCH_MP_TAC MOD_LT;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  INTRO_TAC DIVISION [`r`;`n`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  CONJ_TAC;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC)
   ]);;
   (* }}} *)
-
 
 let periodic_sum = prove_by_refinement(
   `!f n. periodic f n /\ ~( n=0) ==> (!i. sum (i..((n-1) +i)) f = sum (0..(n-1)) f)`,
   (* {{{ proof *)
   [
-  st/r
-intro Counting_spheres.BIJ_SUM [`i..((n-1)+i)`;`0..(n-1)`;`f`;`(\j. (j MOD n))`];
-ants
-rt[BIJ;INJ]
-subconj
-
-rt[IN_NUMSEG]
-ARITH_TAC
-st/r
-  art[SURJ]
-  rt[IN_NUMSEG]
-  st/r
-ex (`x - (i:num)`)
-rep 2 (fxa mp)
-ARITH_TAC
-dthen (subst1 o GSYM)
-
-(*
-  st/r
-intro Counting_spheres.BIJ_SUM [`0..(n-1)`;`i..((n-1)+i)`;`f`;`(\j. (j+(i:num)))`];
-ants
-rt[BIJ;INJ]
-subconj
-rt[IN_NUMSEG]
-ARITH_TAC
-st/r
-  art[SURJ]
-  rt[IN_NUMSEG]
-  st/r
-ex (`x - (i:num)`)
-rep 2 (fxa mp)
-ARITH_TAC
-dthen (subst1 o GSYM)
-*)
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC Counting_spheres.BIJ_SUM [`i..((n-1)+i)`;`0..(n-1)`;`f`;`(\j. (j MOD n))`];
+  ANTS_TAC;
+    REWRITE_TAC[BIJ;INJ];
+    SUBCONJ_TAC;
+      CONJ_TAC;
+        REPEAT WEAK_STRIP_TAC;
+        BY(ASM_SIMP_TAC[ MOD_IN_NUMSEG]);
+      REPEAT WEAK_STRIP_TAC;
+      MATCH_MP_TAC MOD_INJ;
+      BY(ASM_MESON_TAC[]);
+    REPEAT WEAK_STRIP_TAC;
+    REWRITE_TAC[SURJ];
+    ASM_REWRITE_TAC[];
+    REPEAT WEAK_STRIP_TAC;
+    BY(ASM_MESON_TAC[MOD_SURJ]);
+  DISCH_THEN (SUBST1_TAC o GSYM);
+  AP_TERM_TAC;
+  REWRITE_TAC[FUN_EQ_THM];
+  GEN_TAC;
+  REWRITE_TAC[o_THM];
+  BY(ASM_MESON_TAC[periodic_mod])
   ]);;
   (* }}} *)
 
+let XSBYGIQ_concl = ` (!cc. cc_bool_model_v4 cc /\ cc_bool_prep_v4 cc /\ cc_real_model_v4 cc  ==> (&0 <= sum (0..cc_card_v4 cc -1) (cc_gg_v4 cc))) ==> (!cc. cc_bool_model_v4 cc /\ cc_real_model_v4 cc ==> (&0 <= sum (0..cc_card_v4 cc -1) (cc_gg_v4 cc)))`;;
 
+let CHQSQEY_concl = `!cc. cc_bool_model_v4 cc /\ cc_bool_prep_v4 cc /\ cc_real_model_v4 cc /\ 
+   (sum (0..cc_card_v4 cc -1) (cc_gg_v4 cc) < &0) ==> (3 <= cc_size_v4 cc (cc_4cell_v4 cc))`;;
+
+let MTMLSRF_concl = `!cc. cc_bool_model_v4 cc /\ cc_bool_prep_v4 cc /\ cc_real_model_v4 cc /\ 
+   (sum (0..cc_card_v4 cc -1) (cc_gg_v4 cc) < &0) ==> (?i. 0 < i /\ cc_gg_v4 cc i < &0 /\ cc_qu_v4 cc i /\
+						      cc_4cell_v4 cc (i+1) /\ cc_4cell_v4 cc (i-1))`;;
+
+let LXDEYBO_concl = `!cc. cc_bool_model_v4 cc /\ cc_bool_prep_v4 cc /\ cc_real_model_v4 cc /\ 
+   (sum (0..cc_card_v4 cc -1) (cc_gg_v4 cc) < &0) ==> (cc_size_v4 cc (cc_4cell_v4 cc) <= 4)`;;
+
+let UNPNFVW_concl = `!cc. cc_bool_model_v4 cc /\ cc_bool_prep_v4 cc /\ cc_real_model_v4 cc /\ 
+   (sum (0..cc_card_v4 cc -1) (cc_gg_v4 cc) < &0) ==> (cc_size_v4 cc (cc_qy_v4 cc) <= 1)`;;
+
+let DHCVTVE_concl = `T`;; (* This is just a repeat of CHQSQEY, LXDEYBO, UNPNFVW *)
+
+let PMZTATI_concl = `!cc i. cc_bool_model_v4 cc /\ cc_real_model_v4 cc 
+  cc_qx_v4 cc i /\ 
 
 
 Print_types.print_goal_types();;

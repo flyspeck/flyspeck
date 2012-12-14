@@ -494,9 +494,78 @@ let CC_CARD2 = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let CASE_3Q1H = prove_by_refinement(
+  `!cc.  cc_bool_model_v8 cc /\
+((cc_card_v8 cc = 4) /\ (?i. cc_4cell_v8 cc i /\ cc_crit_v8 cc i /\ 
+			   cc_qu_v8 cc (i+1) /\ cc_qu_v8 cc (i+2) /\ cc_qu_v8 cc (i+3))) ==>
+   ~(?i. cc_qy_v8 cc i)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[cc_qu_v8;cc_qy_v8];
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `periodic (cc_4cell_v8 cc) (cc_card_v8 cc) /\ ~(0 = cc_card_v8 cc)` ASSUME_TAC;
+    BY(ASM_MESON_TAC[cc_bool_model_v8]);
+  SUBGOAL_THEN `cc_4cell_v8 cc (i MOD 4) /\ cc_4cell_v8 cc ((i+1) MOD 4) /\ cc_4cell_v8 cc ((i+2) MOD 4) /\ cc_4cell_v8 cc ((i+3) MOD 4)` MP_TAC;
+    FIRST_X_ASSUM_ST `4` (SUBST1_TAC o GSYM);
+    REPEAT (GMATCH_SIMP_TAC (GSYM periodic_mod));
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `~(cc_4cell_v8 cc (i' MOD 4))` MP_TAC;
+    FIRST_X_ASSUM_ST `4` (SUBST1_TAC o GSYM);
+    REPEAT (GMATCH_SIMP_TAC (GSYM periodic_mod));
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[TAUT `(~a ==> F) <=> a`];
+  SUBGOAL_THEN `(i' MOD 4 = i MOD 4) \/ (i' MOD 4 = (i+1) MOD 4) \/ (i' MOD 4 = (i+2) MOD 4) \/ (i' MOD 4 =  (i+3) MOD 4)` ASSUME_TAC;
+    INTRO_TAC MOD_SURJ [`4`;`i`;`i' MOD 4`];
+    ASM_SIMP_TAC[MOD_IN_NUMSEG;arith `~(4 = 0)`];
+    REWRITE_TAC[IN_NUMSEG;arith `4 - 1 +i = i + 3`];
+    REWRITE_TAC[arith `(i <= b /\ b <= i + 3) <=> (b = i \/ b = i+1 \/ b = i+2 \/ b = i+3)`];
+    BY(MESON_TAC[]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
 g XSBYGIQ_concl;;
 
-(*
+let XSBYGIQ = prove_by_refinement(
+  XSBYGIQ_concl,
+  (* {{{ proof *)
+  [
+abbrev (% `bad_set  = \cc. {i | i IN 0..(cc_card_v8 cc - 1) /\ cc_qy_v8 cc i /\ cc_qy_v8 cc (i+1) }`)
+gthen (% `!cc. FINITE (bad_set cc)`) assume
+g
+expand "bad_set"
+mmp FINITE_SUBSET
+ex (% `0.. cc_card_v8 cc - 1`)
+rt[FINITE_NUMSEG;SUBSET]
+rt[IN_ELIM_THM]
+mt[]
+st/r
+contr
+ets (% `(!k. (!cc. (bad_set cc) HAS_SIZE k ==> ~( cc_bool_model_v8 cc /\        cc_real_model_v8 cc /\       sum (0..cc_card_v8 cc - 1) (cc_gg_v8 cc) < &0)))`)
+dthen (C intro [`CARD(bad_set cc)`;`cc`])
+art[]
+amt[HAS_SIZE]
+INDUCT_TAC
+g
+  rt[HAS_SIZE_0]
+expand "bad_set"
+ort[EXTENSION]
+rt[IN_ELIM_THM;NOT_IN_EMPTY]
+st/r
+fxast `?` mp
+rt[]
+ex (% `cc'`)
+art[]
+rt[cc_bool_prep_v8]
+g
+abbrev `x = i MOD cc_card_v8 cc`
+fxast `cc_qy_v8` (C intro [`x`])
+st/r
+  ]);;
+  (* }}} *)
+    
+
 let XSBYGIQ = prove_by_refinement(
   XSBYGIQ_concl,
   (* {{{ proof *)
@@ -608,7 +677,7 @@ amt[]
 fxa mp
   ]);;
   (* }}} *)
-*)
+
 
 
 

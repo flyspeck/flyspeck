@@ -1,0 +1,175 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Packing                                                           *)
+(* Lemma: OXLZLEZ                                                             *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2012-11-23                                                           *)
+(* ========================================================================== *)
+
+(*
+Basic definitions (and type) used for proof 
+OXLZLEZ
+*)
+
+module Oxl_def = struct
+
+  open Hales_tactic;;
+
+let cc_eps = new_definition `cc_eps = #0.0057`;;
+
+let cc_v9_exists = MESON[]   `?(x:((num->real) list) # ((num->bool)list) # num ). T`;;
+
+let cc_v9 = REWRITE_RULE[] (new_type_definition "cc_v9" ("cc_v9", "pair_of_cc_v9")cc_v9_exists);;
+
+(* discarded ccx1, cc_bool *)
+
+let cc_real_v9 = new_definition `cc_real_v9 cc = FST (pair_of_cc_v9 cc)`;;
+let cc_bool_v9 = new_definition `cc_bool_v9 (cc) = FST(SND (pair_of_cc_v9 cc))`;;
+let cc_card_v9 = new_definition `cc_card_v9 (cc) = SND(SND (pair_of_cc_v9 cc))`;;
+
+let cc_azim_v9 = new_definition `cc_azim_v9 cc i = EL 0 (cc_real_v9 cc) i`;;
+let cc_gg_v9 = new_definition `cc_gg_v9 cc i = EL 1 (cc_real_v9 cc) i`;;
+let cc_gg3a_v9 = new_definition `cc_gg3a_v9 cc i = EL 2 (cc_real_v9 cc) i`;;
+let cc_gg3b_v9 = new_definition `cc_gg3b_v9 cc i = EL 3 (cc_real_v9 cc) i`;;
+
+
+let cc_subcrit_v9 = new_definition `cc_subcrit_v9 cc i = EL 0 (cc_bool_v9 cc) i`;;
+let cc_crit_v9 = new_definition `cc_crit_v9 cc i = EL 1 (cc_bool_v9 cc) i`;;
+let cc_supercrit_v9 = new_definition `cc_supercrit_v9 cc i = EL 2 (cc_bool_v9 cc) i`;;
+let cc_small_v9 = new_definition `cc_small_v9 cc i = EL 3 (cc_bool_v9 cc) i`;;
+let cc_small_eta_v9 = new_definition `cc_small_eta_v9 cc i = EL 4 (cc_bool_v9 cc) i`;;
+let cc_4cell_v9 = new_definition `cc_4cell_v9 cc i = EL 5 (cc_bool_v9 cc) i`;;
+
+
+let cc_hassmall_v9 = new_definition 
+  `cc_hassmall_v9 cc i = (cc_small_v9 cc i /\ cc_small_v9 cc (i+1))`;;
+
+let cc_qu_v9 = new_definition `cc_qu_v9 cc i = (cc_hassmall_v9 cc i /\ cc_4cell_v9 cc i /\ cc_subcrit_v9 cc i)`;;
+let cc_qx_v9 = new_definition `cc_qx_v9 cc i = (cc_4cell_v9 cc i /\ ~(cc_qu_v9 cc i))`;;
+let cc_qy_v9 = new_definition `cc_qy_v9 cc i = ~cc_4cell_v9 cc i`;;
+
+let cc_size_v9 = new_definition `cc_size_v9 cc p = 
+  CARD {i | i IN 0..(cc_card_v9 cc -1) /\ p i }`;;
+
+let periodic = new_definition `periodic (f:num->A) n = (!i. (f (i+n) = f (i:num)))`;;
+
+let cc_bool_model_v9 = new_definition `cc_bool_model_v9 cc <=> 
+  ~(cc_card_v9 cc = 0) /\
+  periodic (cc_subcrit_v9 cc) (cc_card_v9 cc) /\
+  periodic (cc_crit_v9 cc) (cc_card_v9 cc) /\
+  periodic (cc_supercrit_v9 cc) (cc_card_v9 cc) /\
+  periodic (cc_small_v9 cc) (cc_card_v9 cc) /\
+  periodic (cc_small_eta_v9 cc) (cc_card_v9 cc) /\
+  periodic (cc_4cell_v9 cc) (cc_card_v9 cc) /\
+(!i. ~(cc_crit_v9 cc i /\ cc_supercrit_v9 cc i)) /\
+(!i. ~(cc_crit_v9 cc i /\ cc_subcrit_v9 cc i)) /\
+(!i. ~(cc_supercrit_v9 cc i /\ cc_subcrit_v9 cc i)) /\
+(!i. (cc_4cell_v9 cc i ==> cc_crit_v9 cc i \/ cc_subcrit_v9 cc i \/ cc_supercrit_v9 cc i)) /\
+(!i. (cc_small_eta_v9 cc i ==> cc_small_v9 cc i)) // jsp
+`;;
+
+let cc_bool_prep_v9 = new_definition `cc_bool_prep_v9 cc = (!i. cc_qy_v9 cc i ==> ~cc_qy_v9 cc (i+1))`;;
+
+
+let cc_real_model_v9 = new_definition `cc_real_model_v9 cc <=> 
+  periodic (cc_azim_v9 cc) (cc_card_v9 cc) /\
+  periodic (cc_gg_v9 cc) (cc_card_v9 cc) /\
+  periodic (cc_gg3a_v9 cc) (cc_card_v9 cc) /\
+  periodic (cc_gg3b_v9 cc) (cc_card_v9 cc) /\
+//
+// general bounds.
+//
+(!i. #0.606 <= cc_azim_v9 cc i) /\ // gckb
+(!i. cc_4cell_v9 cc i ==> cc_azim_v9 cc i < #2.8) /\ // azim_c4
+(sum (0.. (cc_card_v9 cc - 1)) (cc_azim_v9 cc) = &2 * pi) /\
+((cc_card_v9 cc = 4) /\ (?i. cc_4cell_v9 cc i /\ cc_crit_v9 cc i /\ 
+			   cc_qu_v9 cc (i+1) /\ cc_qu_v9 cc (i+2) /\ cc_qu_v9 cc (i+3)) ==>
+   (&0 <= sum (0.. (cc_card_v9 cc -1)) (cc_gg_v9 cc))) /\  // ox3q1h
+//
+// quarters
+//
+(!i. cc_qu_v9 cc i ==> -- cc_eps <= cc_gg_v9 cc i) /\ // gamma_qu
+(!i. cc_qu_v9 cc i /\ ~(cc_small_eta_v9 cc i) ==> cc_eps <= cc_gg_v9 cc i ) /\ // fhbv2
+(!i. cc_qu_v9 cc i /\ ~(cc_small_eta_v9 cc (i+1)) ==> cc_eps <= cc_gg_v9 cc i ) /\ // fhbv2
+(!i. cc_qu_v9 cc i /\ cc_qy_v9 cc (i+1) ==> cc_eps <= cc_gg_v9 cc i + cc_gg3a_v9 cc (i+1)) /\ // quqy
+(!i. cc_qu_v9 cc (i+1) /\ cc_qy_v9 cc i ==> cc_eps <= cc_gg3b_v9 cc i + cc_gg_v9 cc (i+1)) /\ // quqy
+(!i. cc_4cell_v9 cc  i ==> a_spine5 + b_spine5 * cc_azim_v9 cc i <= cc_gg_v9 cc i) /\ // ztg4
+(!i. cc_qu_v9 cc  i ==>  -- #0.0659 + #0.042 * cc_azim_v9 cc i <= cc_gg_v9 cc i) /\ // azim1
+(!i. cc_qu_v9 cc  i ==> -- #0.0142852 + #0.00609451 * cc_azim_v9 cc i <= cc_gg_v9 cc i) /\ // gaz4
+(!i. cc_qu_v9 cc  i ==>  #0.161517 - #0.119482 * cc_azim_v9 cc i <= cc_gg_v9 cc i) /\ // gaz6
+//
+// nonquarter 4-cells
+//
+(!i. cc_qx_v9 cc i ==> #0.0 <= cc_gg_v9 cc i) /\ // gamma_qx
+(!i. cc_qx_v9 cc i /\ #2.3 < cc_azim_v9 cc i ==> cc_eps <= cc_gg_v9 cc i) /\ // gamma_qxd
+(!i. cc_qx_v9 cc i /\ cc_hassmall_v9 cc i /\ cc_qy_v9 cc (i+1) ==> &0 <= cc_gg_v9 cc i + cc_gg3a_v9 cc (i+1)) /\ // gamma10
+(!i. cc_qx_v9 cc (i+1) /\ cc_hassmall_v9 cc (i+1) /\ cc_qy_v9 cc i ==> &0 <= cc_gg3b_v9 cc i + cc_gg_v9 cc (i+1)) /\ // gamma11
+(!i. cc_qx_v9 cc i /\ cc_small_v9 cc i /\ ~cc_small_v9 cc (i+1)  ==> cc_eps <= cc_gg_v9 cc i) /\ // gamma8
+(!i. cc_qx_v9 cc i /\ cc_small_v9 cc (i+1) /\ ~cc_small_v9 cc i  ==> cc_eps <= cc_gg_v9 cc i) /\ // gamma8
+(!i. cc_qx_v9 cc i /\ cc_hassmall_v9 cc i ==>  #0.213849 - #0.119482* cc_azim_v9 cc i <= cc_gg_v9 cc i) /\ // gaz9
+(!i. cc_qx_v9 cc i /\ cc_hassmall_v9 cc i /\ cc_supercrit_v9 cc i ==>  #0.00457511 + #0.00609451*cc_azim_v9 cc i <= cc_gg_v9 cc i) /\ // azim2
+//
+// 23-cells
+//
+  (!i. cc_qy_v9 cc i ==> cc_gg3a_v9 cc i + cc_gg3b_v9 cc i <= cc_gg_v9 cc i) /\
+  (!i. cc_qy_v9 cc i ==> &0 <= cc_gg3a_v9 cc i) /\
+  (!i. cc_qy_v9 cc i ==> &0 <= cc_gg3b_v9 cc i) /\
+(!i. cc_qy_v9 cc i ==> #0.008 * cc_azim_v9 cc i <= cc_gg_v9 cc i) /\ // cell3, grki
+(!i. cc_qy_v9 cc i /\ cc_small_eta_v9 cc i /\ ~cc_small_eta_v9 cc (i+1) /\ cc_azim_v9 cc i < #1.074 ==>
+   a_spine5 + b_spine5 * cc_azim_v9 cc i <= cc_gg_v9 cc i) /\ // pem
+(!i. cc_qy_v9 cc i /\ ~cc_small_eta_v9 cc i /\ cc_small_eta_v9 cc (i+1) /\ cc_azim_v9 cc i < #1.074 ==>
+   a_spine5 + b_spine5 * cc_azim_v9 cc i <= cc_gg_v9 cc i) /\ // pem
+(!i. cc_qy_v9 cc i /\ cc_small_eta_v9 cc i /\ cc_small_eta_v9 cc (i+1) ==> 
+   a_spine5 + b_spine5 * cc_azim_v9 cc i <= cc_gg_v9 cc i) /\ // tew
+(!i. cc_qy_v9 cc i /\ cc_small_eta_v9 cc i /\ cc_small_eta_v9 cc (i+1) /\ #1.946 <= cc_azim_v9 cc i /\ 
+ cc_azim_v9 cc i <= #2.089 ==> 
+ #3.0 * cc_eps <= cc_gg_v9 cc i) // txq
+`;;
+
+let CHQSQEY_concl = `!cc. cc_bool_model_v9 cc /\ cc_bool_prep_v9 cc /\ cc_real_model_v9 cc /\ 
+   (sum (0..cc_card_v9 cc -1) (cc_gg_v9 cc) < &0) ==> (3 <= cc_size_v9 cc (cc_4cell_v9 cc))`;;
+
+let MTMLSRF_concl = `!cc. cc_bool_model_v9 cc /\ cc_bool_prep_v9 cc /\ cc_real_model_v9 cc /\ 
+   (sum (0..cc_card_v9 cc -1) (cc_gg_v9 cc) < &0) ==> (?i. 0 < i /\ cc_gg_v9 cc i < &0 /\ cc_qu_v9 cc i /\
+						      cc_4cell_v9 cc (i+1) /\ cc_4cell_v9 cc (i-1))`;;
+
+let LXDEYBO_concl = `!cc. cc_bool_model_v9 cc /\ cc_bool_prep_v9 cc /\ cc_real_model_v9 cc /\ 
+   (sum (0..cc_card_v9 cc -1) (cc_gg_v9 cc) < &0) ==> (cc_size_v9 cc (cc_4cell_v9 cc) <= 4)`;;
+
+let UNPNFVW_concl = `!cc. cc_bool_model_v9 cc /\ cc_bool_prep_v9 cc /\ cc_real_model_v9 cc /\ 
+   (sum (0..cc_card_v9 cc -1) (cc_gg_v9 cc) < &0) ==> (cc_size_v9 cc (cc_qy_v9 cc) <= 1)`;;
+
+let DHCVTVE_concl = `T`;; (* This is just a repeat of CHQSQEY, LXDEYBO, UNPNFVW *)
+
+let PMZTATI_concl = `T`;; (* This is a restatement of gamma8 *)
+
+let RJSZKQX_concl = `T`;; (* This is a restatement of fhvb2 *)
+
+let IXPFBKA_concl = `T`;; (* This is a restatement of jsp *)
+
+let IPVICGW_concl = `!cc. cc_bool_model_v9 cc /\ cc_bool_prep_v9 cc /\ cc_real_model_v9 cc /\ 
+   (sum (0..cc_card_v9 cc -1) (cc_gg_v9 cc) < &0) ==> (!i. cc_small_v9 cc i)`;;
+
+let RSIWAMP_concl = `!cc. cc_bool_model_v9 cc /\ cc_bool_prep_v9 cc /\ cc_real_model_v9 cc /\ 
+   (sum (0..cc_card_v9 cc -1) (cc_gg_v9 cc) < &0) ==> (cc_card_v9 cc <= 4)`;;
+
+let RSIWAMP_concl = `!cc. cc_bool_model_v9 cc /\ cc_bool_prep_v9 cc /\ cc_real_model_v9 cc /\ 
+   (sum (0..cc_card_v9 cc -1) (cc_gg_v9 cc) < &0) ==> (cc_card_v9 cc <= 4)`;;
+	
+let BKLETJQ_concl = `T`;; (* This is a restatement of gamma10_gamma11 *)
+
+let UTEOITF_concl = `!cc. cc_bool_model_v9 cc /\ cc_bool_prep_v9 cc /\ cc_real_model_v9 cc /\ 
+   (sum (0..cc_card_v9 cc -1) (cc_gg_v9 cc) < &0) ==> (!i. cc_4cell_v9 cc i)`;;
+
+let LUIKGMH_concl = `!cc. cc_bool_model_v9 cc /\ cc_bool_prep_v9 cc /\ cc_real_model_v9 cc /\ 
+   (sum (0..cc_card_v9 cc -1) (cc_gg_v9 cc) < &0) ==> (4 <= cc_card_v9 cc)`;;
+
+let GRHIDFA_concl = `!cc. cc_bool_model_v9 cc /\ cc_bool_prep_v9 cc /\ cc_real_model_v9 cc /\ 
+   (sum (0..cc_card_v9 cc -1) (cc_gg_v9 cc) < &0) ==> (F)`;;  (* main conclusion *)
+
+let XSBYGIQ_concl = 
+  `(?cc. cc_bool_model_v9 cc /\ cc_real_model_v9 cc /\ (sum (0..cc_card_v9 cc -1) (cc_gg_v9 cc) < &0))
+  ==> (?cc. cc_bool_model_v9 cc /\ cc_real_model_v9 cc /\ cc_bool_prep_v9 cc /\  (sum (0..cc_card_v9 cc -1) (cc_gg_v9 cc) < &0))`;;
+
+end;;

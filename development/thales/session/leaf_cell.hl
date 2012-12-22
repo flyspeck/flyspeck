@@ -217,3 +217,263 @@ let ZASUVOR = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let NORM_FLATTEN = prove_by_refinement(
+  `!u w (p:real^A). norm (u - p) pow 2 - norm (w - p) pow 2 = (u dot u) - (w dot w) + &2 % (w - u) dot p`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[NORM_POW_2];
+  BY(VECTOR_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let truncate_set_of_list = prove_by_refinement(
+  `!(vl:(A)list) k. 0 < k /\ LENGTH vl = (k+1) ==>
+    set_of_list vl SUBSET set_of_list(truncate_simplex (k-1) vl) UNION {EL k vl}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[SUBSET];
+  REWRITE_TAC[IN_SET_OF_LIST;IN_UNION;IN_SING];
+  REWRITE_TAC[MEM_EXISTS_EL];
+  REPEAT WEAK_STRIP_TAC;
+  GMATCH_SIMP_TAC Packing3.LENGTH_TRUNCATE_SIMPLEX;
+  TYPIFY `k - 1 + 1 = k` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  CONJ_TAC;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  ASM_CASES_TAC `i = (k:num)`;
+    BY(ASM_REWRITE_TAC[]);
+  DISJ1_TAC;
+  EXISTS_TAC `i:num`;
+  GMATCH_SIMP_TAC Packing3.EL_TRUNCATE_SIMPLEX;
+  ASM_REWRITE_TAC[];
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let DIST_LE_HALF_PLANE = prove_by_refinement(
+  `!x:real^A a:real^A b:real^A.
+    dist(x,a) <= dist(x,b) <=> &0 <= (a - b) dot (&2 % x - (a + b))`,
+[
+  ABBREV_TAC ` an a b x = ((a:real^A) - b) dot (&2 % x - (a + b))`;
+  REWRITE_TAC[dist; vector_norm];
+  REWRITE_TAC[MESON[DOT_POS_LE; SQRT_MONO_LE_EQ]` sqrt ( x dot x) <= sqrt (y dot y) <=>   x dot x <= y dot y `];
+  REWRITE_TAC[DOT_LSUB; DOT_RSUB];
+  SIMP_TAC[DOT_SYM];
+  ONCE_REWRITE_TAC[ GSYM REAL_SUB_LE];
+  REWRITE_TAC[ REAL_ARITH ` x dot x -     b dot x -     (b dot x - b dot b) -     (x dot x - a dot x - (a dot x - a dot a)) =     &2 * (a dot x - b dot x) + b dot b - a dot a`];
+  REWRITE_TAC[GSYM DOT_LSUB; GSYM DOT_RMUL];
+  REPEAT GEN_TAC;
+  TYPIFY `(a - b) dot &2 % x + b dot b - a dot a = (a - b) dot (&2 % x - (a + b))` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(VECTOR_ARITH_TAC);
+  REWRITE_TAC[arith `x - &0 = x`];
+  BY(ASM_MESON_TAC[])
+]);;
+
+let DIST_EQ_HALF_PLANE = prove_by_refinement(
+  `!x:real^A a:real^A b:real^A.
+    dist(x,a) = dist(x,b) <=> &0 = (a - b) dot (&2 % x - (a + b))`,
+[
+  ABBREV_TAC ` an a b x = ((a:real^A) - b) dot (&2 % x - (a + b))`;
+  REWRITE_TAC[dist; vector_norm];
+  REWRITE_TAC[MESON[DOT_POS_LE; SQRT_INJ]` sqrt ( x dot x) = sqrt (y dot y) <=>   x dot x = y dot y `];
+  REPEAT GEN_TAC;
+  ONCE_REWRITE_TAC[arith `x = y <=> y - x = &0`];
+  TYPIFY `(x - b) dot (x - b) - (x - a) dot (x - a) =  ((a - b) dot (&2 % x - (a + b)))` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(VECTOR_ARITH_TAC);
+  BY(ASM_MESON_TAC[arith `x - &0 = x`])
+]);;
+
+let FUZBZGI_0 = prove_by_refinement(
+`!V ul p1 p2 t1 t2.  packing V /\ saturated V /\ leaf V ul /\
+    (voronoi_list V ul = convex hull {p1, p2}) /\
+   ~(p1 = p2) /\
+      (circumcenter (set_of_list ul) = t1 % p1 + t2 % p2) /\
+    (t1 + t2 = &1) /\
+  (!f. f facet_of voronoi_list V ul <=> f IN {{p1}, {p2}}) ==>
+    (&0 < t2)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  COMMENT "insert";
+  TYPIFY `barV V 2 ul` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[leaf;IN]);
+  COMMENT "end insert";
+  COMMENT "borrowed_from   _1 lemma";
+  INTRO_TAC NWVRFMF [`V`;`ul`;`p1`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    BY(SET_TAC[]);
+  WEAK_STRIP_TAC;
+  ABBREV_TAC `q = t1 % p1 + t2 % (p2:real^3)`;
+  INTRO_TAC Rogers.XYOFCGX [`V`;`set_of_list ul`;`q`];
+  ASM_REWRITE_TAC[];
+  TYPIFY `set_of_list ul SUBSET V` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Packing3.BARV_SUBSET;leaf;IN]);
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    CONJ2_TAC;
+      FIRST_X_ASSUM_ST `leaf` MP_TAC;
+      REWRITE_TAC[leaf;Sphere.sqrt2;Pack_defs.HL];
+      BY(MESON_TAC[]);
+    MATCH_MP_TAC Rogers.BARV_AFFINE_INDEPENDENT;
+    BY(ASM_MESON_TAC[leaf;IN]);
+  ONCE_REWRITE_TAC[DIST_SYM];
+  REWRITE_TAC[arith `x > y <=> y < x`];
+  REWRITE_TAC[Collect_geom.DIST_LT_HALF_PLANE];
+  DISCH_THEN (C INTRO_TAC [`HD ul`;`EL 3 vl`]);
+  REWRITE_TAC[IN_DIFF];
+  TYPIFY `HD ul IN set_of_list ul` (C SUBGOAL_THEN (ASSUME_TAC));
+    REWRITE_TAC[IN_SET_OF_LIST];
+    REWRITE_TAC[MEM_EXISTS_EL];
+    EXISTS_TAC `0`;
+    REWRITE_TAC[EL];
+    FIRST_X_ASSUM_ST `leaf` MP_TAC;
+    REWRITE_TAC[leaf;Sphere.BARV;IN];
+    BY(ARITH_TAC);
+  TYPIFY `barV V 3 vl` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[IN]);
+  TYPIFY `EL 3 vl IN V` (C SUBGOAL_THEN (ASSUME_TAC));
+    INTRO_TAC Packing3.BARV_SUBSET [`V`;`3`;`vl`];
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[ IN_SET_OF_LIST ; SUBSET; MEM_EXISTS_EL];
+    (FIRST_X_ASSUM_ST `barV V 3` MP_TAC);
+    REWRITE_TAC[Sphere.BARV;IN];
+    BY(MESON_TAC[arith `3 < 3 + 1`]);
+  ASM_REWRITE_TAC[];
+  COMMENT "back to 1";
+  TYPIFY `LENGTH vl = 4` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Sphere.BARV;arith `4 = 3 + 1`]);
+  INTRO_TAC Rogers.MHFTTZN1 [`V`;`vl`;`3`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  ANTS_TAC;
+    DISCH_TAC;
+    INTRO_TAC truncate_set_of_list [`vl`;`3`];
+    ASM_SIMP_TAC[arith `0 < 3 /\ 3 + 1 = 4 /\ 3 - 1 = 2`];
+    DISCH_TAC;
+    INTRO_TAC AFF_DIM_SUBSET [`set_of_list vl`;`set_of_list ul`];
+    ANTS_TAC;
+      REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC);
+      BY(SET_TAC[]);
+    ASM_REWRITE_TAC[];
+    TYPIFY `aff_dim (set_of_list ul) = &2` (C SUBGOAL_THEN SUBST1_TAC);
+      MATCH_MP_TAC Rogers.MHFTTZN1;
+      BY(ASM_MESON_TAC[leaf;IN]);
+    BY(INT_ARITH_TAC);
+  DISCH_TAC;
+  COMMENT "back to 1'  do <=.";
+  TYPIFY `voronoi_list V ul SUBSET voronoi_closed V (HD ul)` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Packing3.VORONOI_LIST_SUBSET_VORONOI_CLOSED;
+    FIRST_X_ASSUM_ST `leaf` MP_TAC;
+    REWRITE_TAC[IN;leaf;Sphere.BARV];
+    BY(ARITH_TAC);
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[Pack2.VORONOI_CLOSED;SUBSET];
+  REWRITE_TAC[IN_ELIM_THM];
+  REWRITE_TAC[DIST_LE_HALF_PLANE];
+  DISCH_THEN (C INTRO_TAC [`p2`]);
+  ASM_REWRITE_TAC[];
+  (GMATCH_SIMP_TAC Marchal_cells_2_new.IN_SET_IMP_IN_CONVEX_HULL_SET);
+  CONJ_TAC;
+    BY(SET_TAC[]);
+  GOAL_TERM (fun w -> (DISCH_THEN (MP_TAC o (ISPEC ( env w `EL 3 vl`)))));
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  COMMENT "back to 1a, do =.";
+  INTRO_TAC Marchal_cells_2_new.VORONOI_LIST_3_SINGLETON_EXPLICIT [`V`;`vl`];
+  ASM_REWRITE_TAC[];
+  WEAK_STRIP_TAC;
+  INTRO_TAC Packing3.OMEGA_LIST_IN_VORONOI_LIST [`V`;`vl`;`3`];
+  ASM_REWRITE_TAC[IN_SING];
+  DISCH_TAC;
+  COMMENT "back to 1b";
+  INTRO_TAC Rogers.HL_PROPERTIES [`V`;`vl`;`3`];
+  ASM_REWRITE_TAC[];
+  GOAL_TERM (fun w -> (DISCH_THEN (MP_TAC o (ISPEC ( env w `EL 3 vl`)))));
+  REWRITE_TAC[IN_SET_OF_LIST];
+  REWRITE_TAC[MEM_EXISTS_EL];
+  ANTS_TAC;
+    EXISTS_TAC `3`;
+    BY(ASM_REWRITE_TAC[arith `3 < 4`]);
+  TYPIFY `dist (HD vl,circumcenter (set_of_list vl)) = dist (circumcenter (set_of_list vl), HD vl)` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(MESON_TAC[DIST_SYM]);
+  REWRITE_TAC[DIST_EQ_HALF_PLANE];
+  COMMENT "1c";
+  TYPIFY `HD vl = HD ul` (C SUBGOAL_THEN SUBST1_TAC);
+    EXPAND_TAC "ul";
+    MATCH_MP_TAC (GSYM Packing3.HD_TRUNCATE_SIMPLEX);
+    BY(ASM_REWRITE_TAC[arith `2 + 1 <= 4`]);
+  ONCE_REWRITE_TAC[arith `&0 = x <=> &0 = -- x`];
+  TYPIFY ` --((EL 3 vl - HD ul) dot (&2 % circumcenter (set_of_list vl) - (EL 3 vl + HD ul))) =  (( HD ul - EL 3 vl) dot     (&2 % p1 - (HD ul + EL 3 vl)))` (C SUBGOAL_THEN SUBST1_TAC);
+    ASM_REWRITE_TAC[];
+    BY(VECTOR_ARITH_TAC);
+  DISCH_TAC;
+  FIRST_X_ASSUM_ST `&0 < x` MP_TAC;
+  EXPAND_TAC "q";
+  ABBREV_TAC `(w:real^3) = HD ul - EL 3 vl`;
+  TYPIFY `w dot (&2 % (t1 % p1 + t2 % p2) - (HD ul + EL 3 vl)) = t1 * (w dot (&2 % p1 - (HD ul + EL 3 vl))) + t2 * ( w dot (&2 % p2 - (HD ul + EL 3 vl)))` (C SUBGOAL_THEN SUBST1_TAC);
+    FIRST_X_ASSUM_ST `x = &1` MP_TAC;
+    REWRITE_TAC[arith `t1 + t2 = &1 <=> t2 = &1 - t1`];
+    DISCH_THEN SUBST1_TAC;
+    BY(VECTOR_ARITH_TAC);
+  FIRST_X_ASSUM_ST `circumcenter` kill;
+  FIRST_X_ASSUM_ST `&0` (SUBST1_TAC o GSYM);
+  REWRITE_TAC[arith `t1 * &0 + x = x`];
+  ASM_CASES_TAC `((w:real^3) dot (&2 % p2 - (HD ul + EL 3 vl))) = &0`;
+    BY(ASM_MESON_TAC[arith `~(&0 < t * &0)`]);
+  REWRITE_TAC[REAL_MUL_POS_LT];
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let FUZBZGI_1 = prove_by_refinement(
+  `!V ul.  packing V /\ saturated V /\ leaf V ul ==>
+    ?p1 p2 t1 t2.
+    (voronoi_list V ul = convex hull {p1, p2}) /\
+      (circumcenter (set_of_list ul) = t1 % p1 + t2 % p2) /\
+    (t1 + t2 = &1) /\
+    (&0 < t1 /\ &0 < t2)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC YBZFUPO [`V`;`ul`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `p1` EXISTS_TAC;
+  TYPIFY `p2` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  TYPIFY `circumcenter (set_of_list ul) IN affine hull voronoi_list V ul` (C SUBGOAL_THEN MP_TAC);
+    INTRO_TAC Rogers.MHFTTZN3 [`V`;`ul`;`2`];
+    ASM_REWRITE_TAC[];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[leaf;IN]);
+    BY(SET_TAC[]);
+  ASM_REWRITE_TAC[AFFINE_HULL_CONVEX_HULL;AFFINE_HULL_2];
+  ABBREV_TAC `(q:real^3) = circumcenter (set_of_list ul)`;
+  REWRITE_TAC[IN_ELIM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `u` EXISTS_TAC;
+  TYPIFY `v` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    MATCH_MP_TAC FUZBZGI_0;
+    GOAL_TERM (fun w -> (GEXISTL_TAC ( envl w [`V`;`ul`;`p2`;`p1`;`v`])));
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      AP_TERM_TAC;
+      BY(SET_TAC[]);
+    CONJ_TAC;
+      BY(VECTOR_ARITH_TAC);
+    CONJ_TAC;
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    TYPIFY `{{p1},{p2}} = {{p2},{p1}}` (C SUBGOAL_THEN SUBST1_TAC);
+      BY(SET_TAC[]);
+    BY(REWRITE_TAC[]);
+  MATCH_MP_TAC FUZBZGI_0;
+  GOAL_TERM (fun w -> (GEXISTL_TAC ( envl w [`V`;`ul`;`p1`;`p2`;`u`])));
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+

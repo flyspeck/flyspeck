@@ -11,7 +11,7 @@
 (setq hol-light-interactive-buffer-name "*nov25*")
 
 (setq hol-light-interactive-buffer-name "*may30hol*")
-(setq hol-light-interactive-buffer-name "*nov12*")
+(setq hol-light-interactive-buffer-name "*dec24*")
 
 (system-name)
 ; thackmac

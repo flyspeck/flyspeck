@@ -790,6 +790,16 @@ let CHI_MSB_IMP_COPLANAR = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let CHI_MSB_COPLANAR = prove_by_refinement(
+  `!a b c d. coplanar {a,b,c,d} <=> chi_msb [a;b;c] d = &0`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Local_lemmas.COPLANAR_IFF_CROSS_DOT];
+  REWRITE_TAC[chi_msb];
+  BY(REWRITE_TAC[EL;HD;TL;arith `1 = SUC 0 /\ 2 = SUC 1`])
+  ]);;
+  (* }}} *)
+
 let COPLANAR_IMP_AFF_DIM = prove_by_refinement(
   `!(s:real^A->bool). coplanar s ==> aff_dim s <= &2`,
   (* {{{ proof *)
@@ -879,7 +889,6 @@ let JDHAWAY_1 = prove_by_refinement(
   BY(ASM_MESON_TAC[leaf;IN])
   ]);;
   (* }}} *)
-
 
 let JDWAWAY = prove_by_refinement(
   `!V ul p1 p2 t1 t2.
@@ -1634,6 +1643,49 @@ let MXI_IN_VORONOI_LIST = prove_by_refinement(
   ]);;
   (* }}} *)
 
+(*
+
+let MXI_IN_VORONOI_LIST_GENERAL = prove_by_refinement(
+  `!V vl p. packing V /\ saturated V /\ barV V 3 vl /\ 
+    hl (truncate_simplex 1 vl) < sqrt2 /\
+   p IN convex hull {mxi V vl,omega_list_n V vl 3} ==>
+    p IN voronoi_list V (truncate_simplex 2 vl) /\
+    sqrt2 <= dist (EL 0 vl,p)`,
+  (* {{{ proof *)
+  [
+  st/r
+  INTRO_TAC Rogers.OMEGA_LIST_N_IN_VORONOI_LIST_GEN [`V`;`vl`;`3`;`2`;`2`];
+  INTRO_TAC Rogers.OMEGA_LIST_N_IN_VORONOI_LIST_GEN [`V`;`vl`;`3`;`2`;`3`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    BY(ARITH_TAC);
+  DISCH_TAC;
+  ANTS_TAC;
+    BY(ARITH_TAC);
+  DISCH_TAC;
+  INTRO_TAC Packing3.CONVEX_VORONOI_LIST [`V`;`truncate_simplex 2 vl`];
+  DISCH_TAC;
+
+  INTRO_TAC Marchal_cells_2_new.MXI_EXPLICIT [`V`;`vl`;`EL 0 vl`;`EL 1 vl`;`EL 2 vl`;`EL 3 vl`];
+  REWRITE_TAC[BETWEEN_IN_CONVEX_HULL];
+  comment "start s"
+  ANTS_TAC;
+    ASM_REWRITE_TAC[GSYM Sphere.sqrt2];
+    GMATCH_SIMP_TAC LENGTH4;
+    REWRITE_TAC[EL;HD;TL;arith `3 = SUC 2 /\ 2 = SUC 1 /\ 1 = SUC 0`];
+    BY(ASM_MESON_TAC[Sphere.BARV;IN;arith `3+1=4`]);
+  REPEAT WEAK_STRIP_TAC;
+  ASM_REWRITE_TAC[Sphere.sqrt2];
+  TYPIFY `(a:real^3->bool) = voronoi_list V (truncate_simplex 2 vl)` ABBREV_TAC;
+  TYPIFY `{omega_list_n V vl 2,omega_list_n V vl 3} SUBSET a` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN SET_TAC[]);
+  FIRST_X_ASSUM (ASSUME_TAC o (MATCH_MP Marchal_cells.CONVEX_HULL_SUBSET));
+  BY(ASM_MESON_TAC[CONVEX_HULL_EQ;Packing3.IN_TRANS])
+  ]);;
+  (* }}} *)
+
+*)
+
 let VORONOI_LIST_EQ = prove_by_refinement(
   `!V ul p k.  p IN voronoi_list V ul /\ barV V k ul==>
     (?r. !q. q IN set_of_list ul ==> dist(p,q) = r)`,
@@ -2026,28 +2078,312 @@ let AFFINE_DEPENDENT_EXPLICIT_4 = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
-let COPLANAR_HULL_C = prove_by_refinement(
-  `!S (a:real^A) b c d. coplanar S /\ S SUBSET aff_ge {a,b} {c,d} /\  ~(a = b) /\
-  (aff{a,b} INTER conv {c,d} = {}) ==>
-    (?p. S SUBSET aff_ge {a,b} {p})`,
+let  COPLANAR_AFF_GE_REDUCE2 = prove_by_refinement(
+  `!S (a:real^3) b c d.  ~coplanar {a,b,c,d} /\ coplanar S /\ {a,b} SUBSET S /\ S SUBSET aff_ge {a,b} {c,d} ==>
+   (?p. S SUBSET aff_ge {a,b} {p})`,
   (* {{{ proof *)
   [
-  st/r
-    asmcase `~collinear {a,b,c}
-fxast `rogers` mp
-    asimp[Marchal_cells_2.ROGERS_EXPLICIT]
-dt;;
-
-Pack_defs.mcell2;;
-
-
- intro Marchal_cells_2_new.CONVEX_HULL_4_SUBSET_AFF_GE_2_2 [`HD vl`;` omega_list_n V vl 1`;` omega_list_n V vl 2`;`omega_list_n V vl 3`]
-dt
-mmp SUBSET_TRANS
-ex (% ` aff_ge {HD vl, omega_list_n V vl 1}      {omega_list_n V vl 2, omega_list_n V vl 3}`)
-art[]
-
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `~(a = b)` (C SUBGOAL_THEN ASSUME_TAC);
+    DISCH_TAC;
+    FIRST_X_ASSUM_ST `~` MP_TAC;
+    ASM_REWRITE_TAC[];
+    TYPIFY `{b,b,c,d} = {b,c,d}` (C SUBGOAL_THEN SUBST1_TAC);
+      BY(SET_TAC[]);
+    BY(REWRITE_TAC[COPLANAR_3]);
+  TYPIFY `S SUBSET affine hull {a,b}` ASM_CASES_TAC;
+    TYPIFY `?p. DISJOINT {a,b} {p}` (C SUBGOAL_THEN MP_TAC);
+      BY(ASM_MESON_TAC[Fan.th3a;Trigonometry2.TOW_DISTINCT_POINTS_EXISTS_RD_NOT_COLLINEAR]);
+    REPEAT WEAK_STRIP_TAC;
+    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `p`)));
+    BY(ASM_MESON_TAC[AFF_GE_MONO_RIGHT;SUBSET_TRANS;EMPTY_SUBSET;AFF_GE_EQ_AFFINE_HULL;Trigonometry2.aff]);
+  TYPIFY `?p. p IN S DIFF affine hull {a,b}` (C SUBGOAL_THEN MP_TAC);
+    FIRST_X_ASSUM MP_TAC;
+    BY(SET_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `p` EXISTS_TAC;
+  TYPIFY `p IN aff_ge {a,b} {c,d}` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN SET_TAC[]);
+  REWRITE_TAC[SUBSET];
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `x IN aff_ge {a,b} {c,d}` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN SET_TAC[]);
+  TYPIFY `~(collinear {a,b,p})` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM (MP_TAC o (MATCH_MP COLLINEAR_3_IN_AFFINE_HULL) o GSYM);
+    DISCH_THEN (C INTRO_TAC [`p`]);
+    DISCH_THEN SUBST1_TAC;
+    FIRST_X_ASSUM_ST `DIFF` MP_TAC;
+    BY(SET_TAC[]);
+  TYPIFY `aff_dim {a,b,p} = &2` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[COLLINEAR_AFF_DIM];
+    INTRO_TAC AFF_DIM_2 [`a`;`b`];
+    ASM_REWRITE_TAC[];
+    INTRO_TAC AFF_DIM_INSERT [`p`;`{a,b}`];
+    ASM_REWRITE_TAC[GSYM Sphere.aff];
+    TYPIFY `{p,a,b} = {a,b,p}` (C SUBGOAL_THEN SUBST1_TAC);
+      BY(SET_TAC[]);
+    BY(INT_ARITH_TAC);
+  INTRO_TAC AFF_DIM_EQ_AFFINE_HULL [`{a,b,p}`;`affine hull S`];
+  ANTS_TAC;
+    CONJ_TAC;
+      MATCH_MP_TAC SUBSET_TRANS;
+      TYPIFY `S` EXISTS_TAC;
+      CONJ2_TAC;
+        BY(REWRITE_TAC[HULL_SUBSET]);
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN SET_TAC[]);
+    INTRO_TAC COPLANAR_IMP_AFF_DIM [`S`];
+    ASM_REWRITE_TAC[];
+    BY(REWRITE_TAC[AFF_DIM_AFFINE_HULL]);
+  REWRITE_TAC[Planarity.AFFINE_HULL_AFFINE_EQ];
+  DISCH_TAC;
+  TYPIFY `x IN affine hull {a,b,p}` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[HULL_SUBSET;SUBSET;IN]);
+  REPEAT (FIRST_X_ASSUM_ST `p IN aff_ge {a,b} {c,d}` MP_TAC);
+  REPEAT (GMATCH_SIMP_TAC Marchal_cells_2_new.AFF_GE_2_2);
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `~coplanar U` MP_TAC;
+    TYPIFY `{a,b,c,d} = {a,c,b,d}` ((C SUBGOAL_THEN SUBST1_TAC));
+      BY(SET_TAC[]);
+    BY(MESON_TAC[Planarity.notcoplanar_disjoints]);
+  GMATCH_SIMP_TAC AFF_GE_2_1;
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[Fan.th3a]);
+  REWRITE_TAC[IN_ELIM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM_ST `affine` MP_TAC;
+  REWRITE_TAC[AFFINE_HULL_3];
+  REWRITE_TAC[IN_ELIM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  GEXISTL_TAC [`u`;`v`;`w`];
+  CONJ2_TAC;
+    BY(ASM_MESON_TAC[]);
+  FIRST_X_ASSUM MP_TAC;
+  ASM_REWRITE_TAC[];
+  TYPIFY `(t1' % a + t2' % b + t3' % c + t4' % d =  u % a + v % b + w % (t1 % a + t2 % b + t3 % c + t4 % d)) <=> (t1' - w * t1 - u) % a + (t2' - w * t2 - v) % b + (t3' - w * t3) % c + (t4' - w * t4) % d = vec 0` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    BY(VECTOR_ARITH_TAC);
+  DISCH_TAC;
+  TYPIFY `CARD {a,b,c,d} = 4` ((C SUBGOAL_THEN ASSUME_TAC));
+    MATCH_MP_TAC Collect_geom2.NOT_COPLANAR_IMP_CARD4;
+    GMATCH_SIMP_TAC (GSYM Ckqowsa_3_points.coplanar_eq_coplanar_alt);
+    REWRITE_TAC[DIMINDEX_3];
+    ASM_REWRITE_TAC[];
+    BY(ARITH_TAC);
+  TYPIFY `~affine_dependent {a,b,c,d}` ((C SUBGOAL_THEN ASSUME_TAC));
+    DISCH_TAC;
+    FIRST_X_ASSUM (MP_TAC o (MATCH_MP Njiutiu.AFF_DEPENDENT_AFF_DIM_4));
+    BY(ASM_MESON_TAC[Rogers.AFF_DIM_LE_2_IMP_COPLANAR]);
+  INTRO_TAC AFFINE_DEPENDENT_EXPLICIT_4 [`a`;`b`;`c`;`d`;`t1' - w * t1 - u`;`t2' - w * t2 - v`;`t3' - w * t3`;`t4' - w * t4`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN CONV_TAC REAL_RING);
+  REWRITE_TAC[arith `a - b = &0 <=> a = b`];
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `&0 <= w * t3 /\ &0 <= w * t4` ((C SUBGOAL_THEN MP_TAC));
+    BY(ASM_MESON_TAC[]);
+  REWRITE_TAC[Misc_defs_and_lemmas.REAL_MUL_NN];
+  ASM_SIMP_TAC[arith `&0 <= t ==> (t <= &0 <=> t = &0)`];
+  ENOUGH_TO_SHOW_TAC `t3 = &0 /\ t4 = &0 ==> F`;
+    BY(REAL_ARITH_TAC);
+  REPEAT WEAK_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `%` MP_TAC);
+  ASM_REWRITE_TAC[];
+  TYPIFY `t1 % a + t2 % b + &0 % c + &0 % d = t1 % a + t2 % b` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(VECTOR_ARITH_TAC);
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM_ST `DIFF` MP_TAC;
+  REWRITE_TAC[DIFF;AFFINE_HULL_2;IN_ELIM_THM;NOT_EXISTS_THM];
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`t1`;`t2`]);
+  REWRITE_TAC[];
+  CONJ_TAC;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  BY(ASM_REWRITE_TAC[])
   ]);;
   (* }}} *)
+
+(* RIJRIED: USE:
+    COPLANAR_AFF_GE_REDUCE
+    COPLANAR_AFF_GE_REDUCE2
+   MCELL2_SUBSET_AFF_GE
+*)
+
+(*
+
+let COPLANAR_HULL_C = prove_by_refinement
+  `!S (a:real^A) b c d. coplanar S /\ S SUBSET aff_ge {a,b} {c,d} /\  ~(a = b) /\ {a,b} SUBSET S /\
+  (aff{a,b} INTER conv {c,d} = {}) ==>
+    (?p. S SUBSET aff_ge {a,b} {p})`,
+  st/r
+    asmcase `~collinear {a,b,c}`
+fxast `rogers` mp
+    asimp[Marchal_cells_2.ROGERS_EXPLICIT]
+
+*)
+
+
+
+let CONVEX_PLANE_INTER = prove_by_refinement(
+  `!(a:real^A) b p q.  ~(a = b) /\ DISJOINT {a,b} {p} /\ q IN aff_gt {a,b} {p} ==>
+    (?c. c IN aff_gt {a,b} {p} /\
+      c IN convex hull {a,b,p} INTER convex hull {a,b,q})`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM_ST `IN` MP_TAC;
+  (GMATCH_SIMP_TAC AFF_GT_2_1);
+  ASM_REWRITE_TAC[IN_ELIM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  ABBREV_TAC `(r:real->real^A) t = (&1 - t) % ((&1/ &2) % a + (&1/ &2) % b) + t % p`;
+  TYPIFY `!t. &0 <= t /\ t <= &1 ==> r t IN convex hull {a,b,p}` ((C SUBGOAL_THEN ASSUME_TAC));
+    REPEAT WEAK_STRIP_TAC;
+    REWRITE_TAC[CONVEX_HULL_3;IN_ELIM_THM];
+    GEXISTL_TAC [`(&1 -t) / &2`;`(&1- t)/ &2`;`t`];
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    GOAL_TERM (fun w -> (FIRST_X_ASSUM (SUBST1_TAC o GSYM o (ISPEC ( env w `t`)))));
+    BY(VECTOR_ARITH_TAC);
+  TYPIFY `?t. &0 < t /\ t <= &1 /\ r t IN convex hull {a,b,q}` ENOUGH_TO_SHOW_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    TYPIFY `r t` EXISTS_TAC;
+    CONJ_TAC;
+      GEXISTL_TAC [`(&1 - t) / &2 `;`(&1 - t)/ &2`;`t`];
+      ASM_REWRITE_TAC[];
+      CONJ_TAC;
+        BY(REAL_ARITH_TAC);
+      GOAL_TERM (fun w -> (FIRST_X_ASSUM (SUBST1_TAC o GSYM o (ISPEC ( env w `t`)))));
+      BY(VECTOR_ARITH_TAC);
+    REWRITE_TAC[IN_INTER];
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[CONVEX_HULL_3];
+    REWRITE_TAC[IN_ELIM_THM];
+    GEXISTL_TAC [`(&1 - t) / &2 `;`(&1 - t)/ &2`;`t`];
+    CONJ_TAC;
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    GOAL_TERM (fun w -> (FIRST_X_ASSUM (SUBST1_TAC o GSYM o (ISPEC ( env w `t`)))));
+    BY(VECTOR_ARITH_TAC);
+  REWRITE_TAC[CONVEX_HULL_3;IN_ELIM_THM];
+  ASM_REWRITE_TAC[];
+  ABBREV_TAC `eps = inv (abs t1 + abs t2 + &2 * abs t3 + &2 * abs (t1 - t2 - &1) + &2 * abs(t2 - t1 - &1) + &10)`;
+  EXISTS_TAC `&2 * eps * t3`;
+  CONJ_TAC;
+    GMATCH_SIMP_TAC REAL_LT_MUL_EQ;
+    REWRITE_TAC[ REAL_OF_NUM_LT];
+    GMATCH_SIMP_TAC REAL_LT_MUL_EQ;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      EXPAND_TAC "eps";
+      GMATCH_SIMP_TAC REAL_LT_INV;
+      BY(REAL_ARITH_TAC);
+    BY(ARITH_TAC);
+  CONJ_TAC;
+    EXPAND_TAC "eps";
+    REWRITE_TAC[arith `a * inv b * c = (a * c)/ b`];
+    GMATCH_SIMP_TAC REAL_LE_LDIV_EQ;
+    CONJ_TAC;
+      BY(REAL_ARITH_TAC);
+    BY(REAL_ARITH_TAC);
+  TYPIFY `&0 <= eps` (C SUBGOAL_THEN ASSUME_TAC);
+    EXPAND_TAC "eps";
+    REWRITE_TAC[REAL_LE_INV_EQ];
+    BY(REAL_ARITH_TAC);
+  GEXISTL_TAC [`&1/ &2 + eps * ( (t2 - t1) - &1 )`;`&1/ &2 + eps * ( (t1 - t2) - &1 )`;`&2 * eps`];
+  TYPIFY `(&1 / &2 + eps * (t2 - t1 - &1)) +  (&1 / &2 + eps * (t1 - t2 - &1)) +  &2 * eps =  &1` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    BY(REAL_ARITH_TAC);
+  TYPIFY `r (&2 * eps * t3) = (&1 / &2 + eps * (t2 - t1 - &1)) % a + (&1 / &2 + eps * (t1 - t2 - &1)) % b + (&2 * eps) % (t1 % a + t2 % b + t3 % p)` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    GOAL_TERM (fun w -> (FIRST_X_ASSUM (SUBST1_TAC o GSYM o (ISPEC ( env w `&2 * eps * t3`)))));
+    FIRST_X_ASSUM_ST `t1 + t2 + t3 = &1` ((unlist REWRITE_TAC) o (REWRITE_RULE[arith `t1 + t2 + t3 = &1 <=> t3 = &1 - t2 - t1`]));
+    BY(VECTOR_ARITH_TAC);
+  TYPIFY `&0 <= &2 * eps` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    GMATCH_SIMP_TAC REAL_LE_MUL;
+    BY(ASM_REWRITE_TAC[arith `&0 <= &2`]);
+  REPEAT (GMATCH_SIMP_TAC (arith `abs(a * b) <= &1 / &2 ==> &0 <= &1/ &2 + a * b`));
+  REWRITE_TAC[REAL_ABS_MUL];
+  ASM_SIMP_TAC[arith `&0 <= eps ==> abs (eps) = eps`];
+  GMATCH_SIMP_TAC REAL_LE_RDIV_EQ;
+  REWRITE_TAC[ REAL_OF_NUM_LT];
+  EXPAND_TAC "eps";
+  GMATCH_SIMP_TAC REAL_LE_RDIV_EQ;
+  REWRITE_TAC[ REAL_OF_NUM_LT];
+  REWRITE_TAC[arith `0 < 2`];
+  REWRITE_TAC[arith `(inv a * b) * d <= c <=> (b * d) / a <= c`];
+  GMATCH_SIMP_TAC REAL_LE_LDIV_EQ;
+  GMATCH_SIMP_TAC REAL_LE_LDIV_EQ;
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
+let CONVEX_R3_INTER = prove_by_refinement(
+  `!(a:real^3) b c p q. ~coplanar {a,b,c,p} /\ q IN aff_gt {a,b,c} {p} ==>
+    (?d. ~coplanar {a,b,c,d} /\ d IN convex hull {a,b,c,p} INTER convex hull {a,b,c,q})`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `DISJOINT {a,b,c} {p}` ((C SUBGOAL_THEN ASSUME_TAC));
+    BY(ASM_MESON_TAC[Planarity.notcoplanar_disjoints]);
+  FIRST_X_ASSUM_ST `IN` MP_TAC;
+  GMATCH_SIMP_TAC AFF_GT_3_1;
+  ASM_REWRITE_TAC[IN_ELIM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  ABBREV_TAC `(r:real^3)  = (&1 / &3) % a + (&1/ &3 ) % b + (&1 / &3) % c`;
+  TYPIFY `?t. ~coplanar {a,b,c, (&1 - t) % r + t % q} /\ (&1 - t) % r + t % q IN convex hull{a,b,c,p} INTER convex hull {a,b,c,q}` ENOUGH_TO_SHOW_TAC;
+    BY(MESON_TAC[]);
+  REWRITE_TAC[IN_INTER];
+  REWRITE_TAC[Marchal_cells_2_new.CONVEX_HULL_4];
+  ASM_REWRITE_TAC[IN_ELIM_THM];
+  EXPAND_TAC "r";
+  TYPIFY `?s. s <  &1 /\ &0 < s /\ &0 < (&1 - s)/ &3 + s * t1 /\ &0 < (&1 -s)/ &3 + s * t2 /\ &0 < (&1 - s)/ &3 + s * t3 ` (C SUBGOAL_THEN MP_TAC);
+    EXISTS_TAC (`inv (&4 + &3 * abs t1 + &3 * abs t2 + &3 * abs t3)`);
+    TYPIFY `&0 < &4 + &3 * abs t1 + &3 * abs t2 + &3 * abs t3` ((C SUBGOAL_THEN ASSUME_TAC));
+      BY(REAL_ARITH_TAC);
+    CONJ_TAC;
+      REWRITE_TAC[arith `inv x = &1 / x`];
+      ASM_SIMP_TAC[REAL_LT_LDIV_EQ];
+      BY(REAL_ARITH_TAC);
+    CONJ_TAC;
+      GMATCH_SIMP_TAC REAL_LT_INV;
+      BY(ASM_REWRITE_TAC[]);
+    REWRITE_TAC[arith `&0 < (&1 - inv x)/ &3 + inv x * t <=> (&1 - &3 * t)/x < &1`];
+    (ASM_SIMP_TAC[REAL_LT_LDIV_EQ]);
+    BY(REAL_ARITH_TAC);
+  REPEAT WEAK_STRIP_TAC;
+  EXISTS_TAC `s:real`;
+  CONJ2_TAC;
+    CONJ_TAC;
+      GEXISTL_TAC [`(&1 - s)/ &3 + s * t1`;`(&1- s)/ &3 + s * t2`;`(&1- s)/ &3 + s * t3`;`s * t4`];
+      ASM_SIMP_TAC[arith `&0 < x ==> &0 <= x`];
+      GMATCH_SIMP_TAC REAL_LE_MUL;
+      ASM_SIMP_TAC[arith `&0 < x ==> &0 <= x`];
+      FIRST_X_ASSUM_ST `t1 + t2 + t3 + t4 = &1` (SUBST1_TAC o (REWRITE_RULE[arith `t1 + t2 + t3 + t4 = &1 <=> t4 = &1 - t1 - t2 - t3`]));
+      CONJ_TAC;
+        BY(REAL_ARITH_TAC);
+      EXPAND_TAC "r";
+      BY(VECTOR_ARITH_TAC);
+    GEXISTL_TAC [`(&1 - s)/ &3 `;`(&1- s)/ &3 `;`(&1- s)/ &3`;`s `];
+    ASM_SIMP_TAC[arith `s < &1 ==> &0 <= (&1 - s) / &3`];
+    ASM_SIMP_TAC[arith `&0 < x ==> &0 <= x`];
+    CONJ_TAC;
+      BY(REAL_ARITH_TAC);
+    FIRST_X_ASSUM_ST `t1 + t2 + t3 + t4 = &1` (SUBST1_TAC o (REWRITE_RULE[arith `t1 + t2 + t3 + t4 = &1 <=> t4 = &1 - t1 - t2 - t3`]));
+    EXPAND_TAC "r";
+    BY(VECTOR_ARITH_TAC);
+  (COMMENT "last goal, coplanarity");
+  FIRST_X_ASSUM_ST `coplanar` MP_TAC;
+  REWRITE_TAC[CHI_MSB_COPLANAR];
+  TYPIFY `((&1 - s) % (&1 / &3 % a + &1 / &3 % b + &1 / &3 % c) +         s % (t1 % a + t2 % b + t3 % c + t4 % p)) = ((&1 - s)/ &3 + s * t1) % a + ((&1 - s)/ &3  + s * t2) % b + ((&1 - s) / &3 + s * t3) % c + (s * t4) % p` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(VECTOR_ARITH_TAC);
+  DISCH_TAC;
+  GMATCH_SIMP_TAC chi_msb_additive_d;
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `x = &1` MP_TAC;
+    BY(CONV_TAC REAL_RING);
+  REWRITE_TAC[REAL_ENTIRE];
+  ASM_REWRITE_TAC[];
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
 

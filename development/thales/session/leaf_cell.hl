@@ -124,6 +124,19 @@ let LENGTH4 = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let set_of_list2 = prove_by_refinement(
+  `!(ul:(A) list). LENGTH ul = 2 ==> set_of_list ul = {EL 0 ul, EL 1 ul}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM (MP_TAC o (MATCH_MP LENGTH2));
+  ABBREV_TAC `a:A = EL 0 ul`;
+  ABBREV_TAC `b:A = EL 1 ul`;
+  DISCH_THEN SUBST1_TAC;
+  BY(REWRITE_TAC[set_of_list])
+  ]);;
+  (* }}} *)
+
 let set_of_list3 = prove_by_refinement(
   `!(ul:(A) list). LENGTH ul = 3 ==> set_of_list ul = {EL 0 ul, EL 1 ul, EL 2 ul}`,
   (* {{{ proof *)
@@ -1074,7 +1087,6 @@ let CC_KE_34 = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
 let CC_CELL34 = prove_by_refinement(
   `!V ul pp. packing V /\ saturated V /\ leaf V ul /\
   ((if (cc_ke V ul = 3) then mxi V (cc_uh V ul) else (EL 3 (cc_uh V ul))) = pp) ==> 
@@ -1309,7 +1321,6 @@ let K4_CHI_MSB_POS = prove_by_refinement(
     (cc_ke V ul = 4) 
   ==>
    ( &0 < chi_msb ul (EL 3 (cc_uh V ul )))`,
-
   (* {{{ proof *)
   [
   REPEAT WEAK_STRIP_TAC;
@@ -1511,56 +1522,14 @@ let CELL_NN = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
-(* unfinished 
-let chi_msb_aff_ge = prove_by_refinement(
-  `!V ul p.  packing V /\ saturated V /\ leaf V ul ==>
-    aff_ge (set_of_list ul) {p} = { x | re_eqvl (chi_msb ul x) (chi_msb ul p) } `,
-  (* {{{ proof *)
-  [
-  st/r
-    rt[EXTENSION;IN_ELIM_THM]
-rt[chi_msb]
-gm set_of_list3
-gm Cfyxfty.AFF_GE_3_1
-rt[IN_ELIM_THM]
-  ]);;
-  (* }}} *)
-*)
-
-(* unfinished
-let aff_ge_3_1_eq = prove_by_refinement(
-  `!(a:real^3) b c d d'.  ~coplanar {a,b,c,d} /\ ~coplanar {a,b,c,d'} /\
-    d' IN aff_gt {a,b,c} {d} ==> (aff_ge {a,b,c} {d} = aff_ge {a,b,c} {d'})`,
-  (* {{{ proof *)
-  [
-  st/r
-repeat (gm Cfyxfty.AFF_GE_3_1)
-conj
-amt[?k]
-conj
-amt[?k]
-(* rt[EXTENSION;IN_ELIM_THM] *)
-typ `aff_dim {a,b,c,d} = &3 /\ aff_dim {a,b,c,d'} = &3` (C gthen mp)
-amt[Rogers.AFF_DIM_LE_2_IMP_COPLANAR;AFF_DIM_LE_UNIV;DIMINDEX_3;arith `~(x <= &2) /\ x <= int_of_num 3 ==> x = &3`]
-st/r
-intro AFF_DIM_EQ_FULL [`{a,b,c,d}`]
-intro AFF_DIM_EQ_FULL [`{a,b,c,d'}`]
-asimp[DIMINDEX_3]
-rt[Collect_geom2.AFFINE_HULL_4]
-  ]);;
-  (* }}} *)
-*)
-
 let delta_delta_x = prove_by_refinement(
-  `delta x1 x2 x3 x6 x5 x4 = delta_x x1 x2 x3 x4 x5 x6 `,
+  `!x1 x2 x3 x4 x5 x6. delta x1 x2 x3 x6 x5 x4 = delta_x x1 x2 x3 x4 x5 x6 `,
   (* {{{ proof *)
   [
   REWRITE_TAC[Collect_geom.delta;Sphere.delta_x];
   BY(REAL_ARITH_TAC)
   ]);;
   (* }}} *)
-
 
 let ZWVCBMN = prove_by_refinement(
   `!a b c d.  ~coplanar {a,b,c,d} ==> &0 < vol (convex hull {a,b,c,d})`,
@@ -2203,9 +2172,6 @@ let  COPLANAR_AFF_GE_REDUCE2 = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
-
-
 let CONVEX_PLANE_INTER = prove_by_refinement(
   `!(a:real^A) b p q.  ~(a = b) /\ DISJOINT {a,b} {p} /\ q IN aff_gt {a,b} {p} ==>
     (?c. c IN aff_gt {a,b} {p} /\
@@ -2296,7 +2262,6 @@ let CONVEX_PLANE_INTER = prove_by_refinement(
   BY(REAL_ARITH_TAC)
   ]);;
   (* }}} *)
-
 
 let CONVEX_R3_INTER = prove_by_refinement(
   `!(a:real^3) b c p q. ~coplanar {a,b,c,p} /\ q IN aff_gt {a,b,c} {p} ==>
@@ -2423,7 +2388,6 @@ let VORONOI_V = prove_by_refinement(
   BY(ASM_MESON_TAC[DIST_EQ_0;arith `x <= &0 /\ &0 <= x ==> x = &0`;DIST_POS_LE])
   ]);;
   (* }}} *)
-
 
 let VX_EMPTY = prove_by_refinement(
   `!V vl k. (NULLSET (mcell k V vl)) ==> (VX V (mcell k V vl) = {})`,
@@ -3025,6 +2989,617 @@ let CFFONNL = prove_by_refinement(
   COND_CASES_TAC;
     BY(ASM_MESON_TAC[]);
   BY(REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let CC_CELL_IN_MCELL_SET = prove_by_refinement(
+  `!V ul. saturated V /\ packing V /\ leaf V ul ==>
+    cc_cell V ul IN mcell_set V`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[Pack_defs.mcell_set;IN_ELIM_THM];
+  REWRITE_TAC[cc_cell];
+  GEXISTL_TAC [`cc_ke V ul`;`cc_uh V ul`];
+  REWRITE_TAC[];
+  BY(ASM_MESON_TAC[cc_uh])
+  ]);;
+  (* }}} *)
+
+(*
+let FUEIMOV_CONVERSE = prove_by_refinement(
+  `!V ul vl.  saturated V /\ packing V /\ (cc_ke V ul = 4) /\
+   {EL 0 ul,EL 1 ul} = {EL 0 vl,EL 1 vl} /\ set_of_list (cc_uh V ul) = set_of_list (cc_uh V vl) ==>
+   cc_cell V ul = cc_cell V vl`,
+  (* {{{ proof *)
+  [
+  st/r
+rt[cc_cell]
+  ]);;
+  (* }}} *)
+*)
+
+let CARD4_ALL_DISTINCT = prove_by_refinement(
+  `!(a:A) b c d. CARD {a,b,c,d}= 4 ==>
+   ~(a = b) /\ ~(a = c) /\ ~(a = d) /\ ~(b = c) /\ ~(b = d) /\ ~(c = d)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY ` {a,b,c,d} = {a,c,b,d} /\ {a,b,c,d}= {a,d,b,c} /\ {a,b,c,d} = {b,c,a,d} /\ {a,b,c,d} = {b,d,a,c} /\ {a,b,c,d} = {c,d,a,b}` (C SUBGOAL_THEN MP_TAC);
+    BY(SET_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  BY(REPEAT CONJ_TAC THEN MATCH_MP_TAC Marchal_cells_2_new.CARD4_IMP_DISTINCT THEN FIRST_X_ASSUM_ST `4` (SUBST1_TAC o GSYM) THEN (REPLICATE_TAC 5 (FIRST_X_ASSUM MP_TAC)) THEN MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let set_of_list4_explicit = prove_by_refinement(
+  `!(a:A) b c d. set_of_list [a;b;c;d] = {a,b,c,d}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  GMATCH_SIMP_TAC set_of_list4;
+  BY(REWRITE_TAC[EL;HD;TL;arith `2 = SUC 1 /\ 1 = SUC 0 /\ 3 = SUC 2 /\ 4  = SUC 3`;LENGTH])
+  ]);;
+  (* }}} *)
+
+let LENGTH4_SET2 = prove_by_refinement(
+  `!(a:A) b c d e f. CARD {a,b,c,d} = 4 /\ set_of_list [a;b;c;d] = set_of_list [a;b;e;f] ==>
+    ((e = c /\ (f = d)) \/ ((e = d) /\ (f = c))) `,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  REWRITE_TAC[set_of_list4_explicit];
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM (MP_TAC o (MATCH_MP CARD4_ALL_DISTINCT));
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[EXTENSION;IN_INSERT;NOT_IN_EMPTY];
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_ASSUM (C INTRO_TAC [`c`]);
+  FIRST_ASSUM (C INTRO_TAC [`d`]);
+  FIRST_ASSUM (C INTRO_TAC [`e`]);
+  FIRST_X_ASSUM (C INTRO_TAC [`f`]);
+  ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let LENGTH4_SET2_SWAP01 = prove_by_refinement(
+  `!(a:A) b c d e f. CARD {a,b,c,d} = 4 /\ set_of_list [a;b;c;d] = set_of_list [b;a;e;f] ==>
+    ((e = c /\ (f = d)) \/ ((e = d) /\ (f = c))) `,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  REWRITE_TAC[set_of_list4_explicit];
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM (MP_TAC o (MATCH_MP CARD4_ALL_DISTINCT));
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[EXTENSION;IN_INSERT;NOT_IN_EMPTY];
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_ASSUM (C INTRO_TAC [`c`]);
+  FIRST_ASSUM (C INTRO_TAC [`d`]);
+  FIRST_ASSUM (C INTRO_TAC [`e`]);
+  FIRST_X_ASSUM (C INTRO_TAC [`f`]);
+  ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let CC_CELL_NOT_COPLANAR = prove_by_refinement(
+  `!V ul.    packing V /\
+         saturated V /\
+         leaf V ul ==> ~coplanar (cc_cell V ul)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[cc_cell];
+  REWRITE_TAC[Pack_defs.mcell];
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  INTRO_TAC CC_KE_34 [`V`;`ul`];
+  DISCH_TAC;
+  ABBREV_TAC `k = cc_ke V ul`;
+  TYPIFY `~(k=0) /\ ~(k=1) /\ ~(k=2)` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  FIRST_X_ASSUM_ST `\/` DISJ_CASES_TAC;
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC MCELL3_NONPLANAR;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[cc_uh;IN]);
+    FIRST_X_ASSUM_ST `cc_ke` MP_TAC;
+    REWRITE_TAC[cc_ke];
+    COND_CASES_TAC;
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+    BY(ASM_MESON_TAC[cc_uh;leaf;IN;arith `~(x < sqrt2) ==> sqrt2 <= x`]);
+  ASM_REWRITE_TAC[arith `~(4=3)`];
+  MATCH_MP_TAC MCELL4_NONPLANAR;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `cc_ke` MP_TAC;
+  REWRITE_TAC[cc_ke];
+  COND_CASES_TAC;
+    BY(ASM_MESON_TAC[REWRITE_RULE[IN] cc_uh]);
+  BY(ASM_REWRITE_TAC[arith `~(3=4)`])
+  ]);;
+  (* }}} *)
+
+let CC_CELL_NOT_COPLANAR_EXTREME = prove_by_refinement(
+  `!V ul pp.    packing V /\
+         saturated V /\
+         leaf V ul /\
+         ((if cc_ke V ul = 3 then mxi V (cc_uh V ul) else EL 3 (cc_uh V ul)) =
+         pp) ==> ~coplanar  {EL 0 ul, EL 1 ul, EL 2 ul,pp}`,
+  (* {{{ proof *)
+  [
+  ONCE_REWRITE_TAC[GSYM COPLANAR_AFFINE_HULL_COPLANAR];
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `coplanar (convex hull {EL 0 ul, EL 1 ul, EL 2 ul, pp})` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[COPLANAR_SUBSET;CONVEX_HULL_SUBSET_AFFINE_HULL]);
+  INTRO_TAC CC_CELL34 [`V`;`ul`;`pp`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  BY(ASM_MESON_TAC[CC_CELL_NOT_COPLANAR])
+  ]);;
+  (* }}} *)
+
+let CC_CELL_NOT_NULLSET = prove_by_refinement(
+  `!V ul. packing V /\ saturated V /\ leaf V ul ==>
+    ~NULLSET (cc_cell V ul)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `vol(cc_cell V ul) = &0` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[volume_props]);
+  ABBREV_TAC `(p:real^3) = (if cc_ke V ul = 3  then mxi V (cc_uh V ul) else EL 3 (cc_uh V ul))`;
+  INTRO_TAC CC_CELL34 [`V`;`ul`;`p`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  INTRO_TAC ZWVCBMN [`EL 0 ul`;` EL 1 ul`;` EL 2 ul`;` p`];
+  ANTS_TAC;
+    MATCH_MP_TAC CC_CELL_NOT_COPLANAR_EXTREME;
+    BY(ASM_MESON_TAC[]);
+  FIRST_X_ASSUM (SUBST1_TAC o GSYM);
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let CC_CELL_EXTREME_CARD = prove_by_refinement(
+  `!V ul pp.    packing V /\
+         saturated V /\
+         leaf V ul /\
+         ((if cc_ke V ul = 3 then mxi V (cc_uh V ul) else EL 3 (cc_uh V ul)) =
+         pp) ==> CARD {EL 0 ul, EL 1 ul, EL 2 ul,pp} = 4`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC Collect_geom2.NOT_COPLANAR_IMP_CARD4;
+  GMATCH_SIMP_TAC (GSYM Ckqowsa_3_points.coplanar_eq_coplanar_alt);
+  REWRITE_TAC[DIMINDEX_3;arith `2 <= 3`];
+  MATCH_MP_TAC CC_CELL_NOT_COPLANAR_EXTREME;
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let CC_CELL_INDEPENDENT = prove_by_refinement(
+  `!V ul pp.    packing V /\
+         saturated V /\
+         leaf V ul /\
+         (if cc_ke V ul = 3 then mxi V (cc_uh V ul) else EL 3 (cc_uh V ul)) =
+         pp ==> ~affine_dependent {EL 0 ul, EL 1 ul, EL 2 ul,pp}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[AFFINE_INDEPENDENT_IFF_CARD];
+  GMATCH_SIMP_TAC CC_CELL_EXTREME_CARD;
+  CONJ_TAC;
+    TYPIFY `V` EXISTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  CONJ_TAC;
+    BY(REWRITE_TAC[FINITE_INSERT;FINITE_EMPTY]);
+  REWRITE_TAC[INT_ARITH `&4 - (int_of_num) 1 = &3`];
+  REWRITE_TAC[INT_ARITH `x = int_of_num 3 <=> x <= &3 /\ ~(x <= &2)`];
+  CONJ_TAC;
+    INTRO_TAC AFF_DIM_LE_UNIV [`{EL 0 ul, EL 1 ul, EL 2 ul, pp}`];
+    BY(REWRITE_TAC[DIMINDEX_3]);
+  DISCH_THEN (MP_TAC o (MATCH_MP Rogers.AFF_DIM_LE_2_IMP_COPLANAR));
+  REWRITE_TAC[];
+  MATCH_MP_TAC CC_CELL_NOT_COPLANAR_EXTREME;
+  TYPIFY `V` EXISTS_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let CC_CELL_CONVEX_HULL_INJ = prove_by_refinement(
+  `!V ul vl pu pv. packing V /\ saturated V /\ leaf V ul /\ leaf V vl /\
+      (if cc_ke V ul = 3 then mxi V (cc_uh V ul) else EL 3 (cc_uh V ul)) = pu /\
+      (if cc_ke V vl = 3 then mxi V (cc_uh V vl) else EL 3 (cc_uh V vl)) = pv /\
+    cc_cell V ul = cc_cell V vl ==>
+    {EL 0 ul, EL 1 ul, EL 2 ul, pu} = {EL 0 vl,EL 1 vl, EL 2 vl, pv}
+   `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC Packing3.CONVEX_HULL_EQ_EQ_SET_EQ [`    {EL 0 ul, EL 1 ul, EL 2 ul, pu}`;`{EL 0 vl,EL 1 vl, EL 2 vl, pv}`];
+  ANTS_TAC;
+    BY(CONJ_TAC THEN MATCH_MP_TAC CC_CELL_INDEPENDENT THEN TYPIFY `V` EXISTS_TAC THEN ASM_REWRITE_TAC[]);
+  DISCH_THEN (unlist REWRITE_TAC o SYM);
+  FIRST_X_ASSUM MP_TAC;
+  REPEAT (GMATCH_SIMP_TAC CC_CELL34);
+  TYPIFY `pv` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  TYPIFY `pu` EXISTS_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let FUEIMOV_K = prove_by_refinement(
+  `!V ul vl.   saturated V /\ packing V /\ leaf V ul /\ leaf V vl /\
+   cc_cell V ul = cc_cell V vl ==> (cc_ke V ul = cc_ke V vl)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[cc_cell];
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC Ajripqn.AJRIPQN [`V`;`(cc_uh V ul)`;`(cc_uh V vl)`;`(cc_ke V ul)`;`(cc_ke V vl)`];
+  ASM_REWRITE_TAC[IN_INSERT;NOT_IN_EMPTY];
+  DISCH_THEN MATCH_MP_TAC;
+  TYPIFY `barV V 3 (cc_uh V ul) /\ barV V 3 (cc_uh V vl)` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    BY(ASM_MESON_TAC[REWRITE_RULE[IN] cc_uh]);
+  ASM_SIMP_TAC[CC_KE_34];
+  REWRITE_TAC[INTER_IDEMPOT];
+  BY(ASM_MESON_TAC[ CC_CELL_NOT_NULLSET;cc_cell])
+  ]);;
+  (* }}} *)
+
+let LIST_OF_CC_UH = prove_by_refinement(
+ `!V ul. saturated V /\ packing V /\ leaf V ul ==>
+     (cc_uh V ul) = [EL 0 ul; EL 1 ul; EL 2 ul; EL 3 (cc_uh V ul)]`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `LENGTH (cc_uh V ul) = 4` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[cc_uh;IN;Sphere.BARV;arith `3 + 1 = 4`]);
+  GMATCH_SIMP_TAC LENGTH4;
+  ASM_REWRITE_TAC[];
+  ASM_SIMP_TAC[EL_CC_UH];
+  BY(SIMP_TAC[EL;HD;TL;arith `3  = SUC 2 /\ 2 = SUC 1 /\ 1 = SUC 0`])
+  ]);;
+  (* }}} *)
+
+let SET_OF_LIST_CC_UH = prove_by_refinement(
+  `!V ul. saturated V /\ packing V /\ leaf V ul ==>
+    set_of_list (cc_uh V ul) = {EL 0 ul, EL 1 ul, EL 2 ul, EL 3 (cc_uh V ul)}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `LENGTH (cc_uh V ul) = 4` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[cc_uh;IN;Sphere.BARV;arith `3 + 1 = 4`]);
+  GMATCH_SIMP_TAC set_of_list4;
+  ASM_REWRITE_TAC[];
+  BY(ASM_SIMP_TAC[EL_CC_UH])
+  ]);;
+  (* }}} *)
+
+let MCELL4_EXTREME_POINT = prove_by_refinement(
+  `!V ul vl. saturated V /\ packing V /\ leaf V ul /\ leaf V vl /\
+    cc_cell V ul = cc_cell V vl /\ (cc_ke V ul = 4) ==> set_of_list (cc_uh V ul) = set_of_list (cc_uh V vl)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `cc_ke V vl = 4` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[FUEIMOV_K]);
+  ASM_SIMP_TAC[SET_OF_LIST_CC_UH];
+  INTRO_TAC CC_CELL_CONVEX_HULL_INJ[`V`;`ul`;`vl`;`EL 3 (cc_uh V ul)`;`EL 3 (cc_uh V vl)`];
+  BY(ASM_SIMP_TAC [arith `k = 4 ==> ~(k = 3)`])
+  ]);;
+  (* }}} *)
+
+let STEM_OF_LEAF = prove_by_refinement(
+  `!V ul. leaf V ul ==>
+    stem ul = {EL 0 ul, EL 1 ul}`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[stem;leaf;IN;Sphere.BARV;arith `2 + 1 = 3`];
+  REPEAT WEAK_STRIP_TAC;
+  GMATCH_SIMP_TAC set_of_list2;
+  SUBCONJ_TAC;
+    REWRITE_TAC[arith `2 = 1 + 1`];
+    MATCH_MP_TAC Packing3.LENGTH_TRUNCATE_SIMPLEX;
+    BY(ASM_REWRITE_TAC[arith `1 + 1 <= 3`]);
+  DISCH_TAC;
+  BY(ASM_MESON_TAC[arith `1+1<= 3 /\ 0 <= 1 /\ 1 <= 1`;Packing3.EL_TRUNCATE_SIMPLEX])
+  ]);;
+  (* }}} *)
+
+let FUEIMOV_4 = prove_by_refinement(
+  `!V ul vl. saturated V /\ packing V /\ leaf V ul /\ leaf V vl /\
+    cc_cell V ul = cc_cell V vl /\ (stem ul = stem vl) /\ (cc_ke V ul = 4) /\ ~(ul = vl) ==>
+    cc_uh V vl = [EL 1 ul;EL 0 ul;EL 3 (cc_uh V ul);EL 2 ul]`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `cc_ke V vl = 4` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[FUEIMOV_K]);
+  INTRO_TAC MCELL4_EXTREME_POINT [`V`;`ul`;`vl`];
+  ASM_REWRITE_TAC[];
+  REPEAT (GMATCH_SIMP_TAC SET_OF_LIST_CC_UH);
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `stem` MP_TAC;
+  REPEAT (GMATCH_SIMP_TAC STEM_OF_LEAF);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  TYPIFY `(EL 0 vl = EL 0 ul /\ EL 1 vl = EL 1 ul) \/ (EL 0 vl = EL 1 ul /\ EL 1 vl = EL 0 ul)` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM MP_TAC;
+    BY(SET_TAC[]);
+  INTRO_TAC K4_CHI_MSB_POS [`V`;`ul`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  INTRO_TAC K4_CHI_MSB_POS [`V`;`vl`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY ` [EL 0 ul; EL 1 ul; EL 2 ul] = ul /\ [EL 0 vl; EL 1 vl; EL 2 vl] = vl` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[LENGTH3;leaf;IN;Sphere.BARV;arith `2 + 1 = 3`]);
+  FIRST_X_ASSUM_ST `\/` DISJ_CASES_TAC;
+    ASM_REWRITE_TAC[];
+    DISCH_TAC;
+    INTRO_TAC LENGTH4_SET2 [`EL 0 ul`;`EL 1 ul`;`EL 2 ul`;`EL 3 (cc_uh V ul)`;`EL 2 vl`;`EL 3 (cc_uh V vl)`];
+    ANTS_TAC;
+      INTRO_TAC CC_CELL_EXTREME_CARD[`V`;`ul`;`EL 3(cc_uh V ul)`];
+      ASM_REWRITE_TAC[arith `~(4=3)`];
+      DISCH_THEN (SUBST1_TAC);
+      BY(ASM_REWRITE_TAC[set_of_list4_explicit]);
+    DISCH_THEN DISJ_CASES_TAC;
+      BY(ASM_MESON_TAC[]);
+    REPEAT (FIRST_X_ASSUM_ST `/\` MP_TAC) THEN REPEAT WEAK_STRIP_TAC;
+    PROOF_BY_CONTR_TAC;
+    REPEAT (FIRST_X_ASSUM_ST `chi_msb` MP_TAC);
+    ABBREV_TAC `c = cc_uh V ul`;
+    ABBREV_TAC `d = cc_uh V vl`;
+    EXPAND_TAC "ul";
+    EXPAND_TAC "vl";
+    REPEAT (FIRST_X_ASSUM_ST `CONS x y = z` kill);
+    ASM_REWRITE_TAC[];
+    DISCH_TAC;
+    ONCE_REWRITE_TAC[chi_msb_swap_23];
+    BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
+  COMMENT "second branch";
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  INTRO_TAC LENGTH4_SET2_SWAP01 [`EL 0 ul`;`EL 1 ul`;`EL 2 ul`;`EL 3 (cc_uh V ul)`;`EL 2 vl`;`EL 3 (cc_uh V vl)`];
+  ANTS_TAC;
+    INTRO_TAC CC_CELL_EXTREME_CARD[`V`;`ul`;`EL 3(cc_uh V ul)`];
+    ASM_REWRITE_TAC[arith `~(4=3)`];
+    DISCH_THEN (SUBST1_TAC);
+    BY(ASM_REWRITE_TAC[set_of_list4_explicit]);
+  DISCH_THEN DISJ_CASES_TAC;
+    REPEAT (FIRST_X_ASSUM_ST `/\` MP_TAC) THEN REPEAT WEAK_STRIP_TAC;
+    PROOF_BY_CONTR_TAC;
+    REPEAT (FIRST_X_ASSUM_ST `chi_msb` MP_TAC);
+    ABBREV_TAC `c = cc_uh V ul`;
+    ABBREV_TAC `d = cc_uh V vl`;
+    EXPAND_TAC "ul";
+    EXPAND_TAC "vl";
+    REPEAT (FIRST_X_ASSUM_ST `CONS x y = z` kill);
+    ASM_REWRITE_TAC[];
+    DISCH_TAC;
+    ONCE_REWRITE_TAC[chi_msb_swap_01];
+    BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
+  INTRO_TAC LIST_OF_CC_UH [`V`;`vl`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_THEN SUBST1_TAC;
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let MXI_NOT_IN_V = prove_by_refinement(
+  `!V ul. saturated V /\ packing V /\ leaf V ul /\ (cc_ke V ul = 3)  ==>
+    ~(mxi V (cc_uh V ul) IN V)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC MXI_IN_VORONOI_LIST [`V`;`(cc_uh V ul)`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[cc_uh;IN]);
+    FIRST_X_ASSUM_ST `cc_ke` MP_TAC;
+    REWRITE_TAC[cc_ke];
+    COND_CASES_TAC;
+      BY(REWRITE_TAC[arith `~(4=3)`]);
+    ASM_SIMP_TAC[arith `~(x < y) ==> (y <= x)`];
+    BY(ASM_MESON_TAC[cc_uh;leaf]);
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `EL 0 (cc_uh V ul) = EL 0 ul` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[EL_CC_UH]);
+  TYPIFY `EL 0 (cc_uh V ul) IN V` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_REWRITE_TAC[EL];
+    INTRO_TAC Packing3.BARV_SUBSET [`V`;`2`;`ul`];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[leaf;IN]);
+    INTRO_TAC Packing3.BARV_IMP_HD_IN_SET_OF_LIST [`V`;`2`;`ul`];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[leaf;IN]);
+    BY(ASM_MESON_TAC[Packing3.IN_TRANS]);
+  TYPIFY `&0 < sqrt2 /\ sqrt2 < sqrt(&4)` (C SUBGOAL_THEN MP_TAC);
+    REWRITE_TAC[Sphere.sqrt2];
+    GMATCH_SIMP_TAC REAL_LT_RSQRT;
+    CONJ_TAC;
+      BY(REAL_ARITH_TAC);
+    GMATCH_SIMP_TAC REAL_LT_RSQRT;
+    GMATCH_SIMP_TAC SQRT_POW_2;
+    BY(REAL_ARITH_TAC);
+  REWRITE_TAC[Collect_geom2.SQRT4_EQ2];
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM_ST `packing` MP_TAC;
+  REWRITE_TAC[Sphere.packing;NOT_FORALL_THM];
+  GEXISTL_TAC [`EL 0 (cc_uh V ul)`;`mxi V (cc_uh V ul)`];
+  ASM_REWRITE_TAC[];
+  ASM_SIMP_TAC[arith `x < y ==> ~(y <= x)`];
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[IN]);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[IN]);
+  DISCH_TAC;
+  FIRST_X_ASSUM_ST `dist` MP_TAC;
+  ASM_REWRITE_TAC[DIST_REFL];
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let MCELL_V_INTER_EXTREME = prove_by_refinement(
+ `!V ul .
+         saturated V /\ packing V /\ leaf V ul /\ (cc_ke V ul = 3) 
+   ==>
+   V INTER  {EL 0 ul,EL 1 ul, EL 2 ul,mxi V (cc_uh V ul)} = set_of_list ul`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `LENGTH ul = 3` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[leaf;IN;Sphere.BARV;arith `2 + 1 = 3`]);
+  MATCH_MP_TAC SUBSET_ANTISYM;
+  CONJ2_TAC;
+    REWRITE_TAC[SUBSET_INTER];
+    CONJ_TAC;
+      MATCH_MP_TAC Packing3.BARV_SUBSET;
+      EXISTS_TAC `2`;
+      BY(ASM_MESON_TAC[leaf;IN]);
+    GMATCH_SIMP_TAC set_of_list3;
+    ASM_REWRITE_TAC[];
+    BY(SET_TAC[]);
+  GMATCH_SIMP_TAC set_of_list3;
+  ASM_REWRITE_TAC[];
+  INTRO_TAC MXI_NOT_IN_V [`V`;`ul`];
+  ASM_REWRITE_TAC[];
+  BY(SET_TAC[])
+  ]);;
+  (* }}} *)
+
+let MCELL_EXTREME_DIFF_V = prove_by_refinement(
+ `!V ul .
+         saturated V /\ packing V /\ leaf V ul /\ (cc_ke V ul = 3) 
+   ==>
+     {EL 0 ul,EL 1 ul, EL 2 ul,mxi V (cc_uh V ul)} DIFF V = {mxi V (cc_uh V ul)}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `LENGTH ul = 3` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[leaf;IN;Sphere.BARV;arith `2 + 1 = 3`]);
+  MATCH_MP_TAC SUBSET_ANTISYM;
+  CONJ2_TAC;
+    INTRO_TAC MXI_NOT_IN_V [`V`;`ul`];
+    ASM_REWRITE_TAC[];
+    BY(SET_TAC[]);
+  INTRO_TAC MCELL_V_INTER_EXTREME [`V`;`ul`];
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC set_of_list3;
+  ASM_REWRITE_TAC[];
+  BY(SET_TAC[])
+  ]);;
+  (* }}} *)
+
+let FUEIMOV_3 = prove_by_refinement(
+  `!V ul vl.   saturated V /\ packing V /\ leaf V ul /\ leaf V vl /\ (cc_ke V ul = 3) /\
+   {EL 0 ul,EL 1 ul} = {EL 0 vl,EL 1 vl} /\ cc_cell V ul = cc_cell V vl ==> (ul = vl)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `LENGTH ul = 3 /\ LENGTH vl = 3` (C SUBGOAL_THEN MP_TAC);
+    BY(ASM_MESON_TAC[leaf;IN;Sphere.BARV;arith `2 + 1 = 3`]);
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `cc_ke V vl = 3` (C SUBGOAL_THEN ASSUME_TAC);
+    INTRO_TAC CC_KE_34 [`V`;`vl`];
+    DISCH_THEN DISJ_CASES_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    INTRO_TAC FUEIMOV_K [`V`;`vl`;`ul`];
+    BY(ASM_REWRITE_TAC[]);
+  INTRO_TAC CC_CELL_CONVEX_HULL_INJ [`V`;`ul`;`vl`;`mxi V (cc_uh V ul)`;`mxi V (cc_uh V vl)`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY `mxi V (cc_uh V ul) = mxi V (cc_uh V vl)` (C SUBGOAL_THEN ASSUME_TAC);
+    INTRO_TAC MCELL_EXTREME_DIFF_V [`V`;`ul`];
+    INTRO_TAC MCELL_EXTREME_DIFF_V [`V`;`vl`];
+    FIRST_X_ASSUM MP_TAC;
+    ASM_REWRITE_TAC[];
+    BY(SET_TAC[]);
+  TYPIFY `{EL 0 ul, EL 1 ul, EL 2 ul} =       {EL 0 vl, EL 1 vl, EL 2 vl}` (C SUBGOAL_THEN ASSUME_TAC);
+    INTRO_TAC MCELL_V_INTER_EXTREME [`V`;`ul`];
+    INTRO_TAC MCELL_V_INTER_EXTREME [`V`;`vl`];
+    ASM_REWRITE_TAC[];
+    REPEAT (GMATCH_SIMP_TAC set_of_list3);
+    CONJ_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    CONJ_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    FIRST_X_ASSUM_ST `EL` MP_TAC;
+    BY(SET_TAC[]);
+  TYPIFY `~(EL 0 ul = EL 1 ul)` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Marchal_cells_2_new.CARD4_IMP_DISTINCT;
+    GEXISTL_TAC [`EL 2 ul`;`mxi V (cc_uh V ul)`];
+    MATCH_MP_TAC CC_CELL_EXTREME_CARD;
+    TYPIFY `V` EXISTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `~(EL 1 ul = EL 2 ul)` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Marchal_cells_2_new.CARD4_IMP_DISTINCT;
+    GEXISTL_TAC [`EL 0 ul`;`mxi V (cc_uh V ul)`];
+    TYPIFY `{EL 1 ul, EL 2 ul, EL 0 ul, mxi V (cc_uh V ul)} = {EL 0 ul, EL 1 ul, EL 2 ul, mxi V (cc_uh V ul)}` (C SUBGOAL_THEN SUBST1_TAC);
+      BY(SET_TAC[]);
+    MATCH_MP_TAC CC_CELL_EXTREME_CARD;
+    TYPIFY `V` EXISTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `~(EL 0 ul = EL 2 ul)` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Marchal_cells_2_new.CARD4_IMP_DISTINCT;
+    GEXISTL_TAC [`EL 1 ul`;`mxi V (cc_uh V ul)`];
+    TYPIFY `{EL 0 ul, EL 2 ul, EL 1 ul, mxi V (cc_uh V ul)} = {EL 0 ul, EL 1 ul, EL 2 ul, mxi V (cc_uh V ul)}` (C SUBGOAL_THEN SUBST1_TAC);
+      BY(SET_TAC[]);
+    MATCH_MP_TAC CC_CELL_EXTREME_CARD;
+    TYPIFY `V` EXISTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `((EL 0 vl = EL 0 ul) /\ (EL 1 vl = EL 1 ul)) \/ ((EL 0 vl = EL 1 ul) /\ (EL 1 vl = EL 0 ul))` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `{a,b}={c,d}` MP_TAC;
+    REWRITE_TAC[Collect_geom.PAIR_EQ_EXPAND];
+    DISCH_THEN DISJ_CASES_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    BY(ASM_REWRITE_TAC[]);
+  COMMENT "1. next match EL 2";
+  TYPIFY `EL 2 vl = EL 2 ul` (C SUBGOAL_THEN ASSUME_TAC);
+    (FIRST_X_ASSUM_ST `x INSERT y =  x' INSERT y'` MP_TAC);
+    REWRITE_TAC[EXTENSION;IN_INSERT;NOT_IN_EMPTY];
+    DISCH_TAC;
+    FIRST_ASSUM (C INTRO_TAC [`EL 0 ul`]);
+    FIRST_ASSUM (C INTRO_TAC [`EL 1 ul`]);
+    FIRST_X_ASSUM (C INTRO_TAC [`EL 2 ul`]);
+    REPEAT (FIRST_X_ASSUM_ST `~` MP_TAC);
+    REWRITE_TAC[];
+    FIRST_X_ASSUM DISJ_CASES_TAC;
+      ASM_REWRITE_TAC[];
+      BY(MESON_TAC[]);
+    ASM_REWRITE_TAC[];
+    BY(MESON_TAC[]);
+  COMMENT "1. now use chi_msb to eliminate the second case";
+  FIRST_X_ASSUM DISJ_CASES_TAC;
+    ONCE_REWRITE_TAC[EQ_SYM_EQ];
+    GMATCH_SIMP_TAC LENGTH3;
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[LENGTH3]);
+  INTRO_TAC CELL3_NONDEG [`V`;`ul`];
+  ASM_REWRITE_TAC[];
+  INTRO_TAC CELL3_NONDEG [`V`;`vl`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAK_STRIP_TAC;
+  ABBREV_TAC `xi = mxi V (cc_uh V vl)`;
+  TYPIFY `chi_msb vl xi = chi_msb [EL 1 ul;EL 0 ul;EL 2 ul] xi` (C SUBGOAL_THEN MP_TAC);
+    REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+    REPEAT (FIRST_X_ASSUM (MP_TAC o (MATCH_MP LENGTH3)));
+    DISCH_TAC;
+    DISCH_THEN SUBST1_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  ONCE_REWRITE_TAC[chi_msb_swap_01];
+  REPEAT (FIRST_X_ASSUM (MP_TAC o (MATCH_MP LENGTH3)));
+  DISCH_THEN (SUBST1_TAC o GSYM);
+  REPEAT (FIRST_X_ASSUM_ST `chi_msb` MP_TAC);
+  BY(REAL_ARITH_TAC)
   ]);;
   (* }}} *)
 

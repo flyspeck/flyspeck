@@ -1185,6 +1185,80 @@ let SUM_BETA_BUMP_LEMMA = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let REAL_ABS_TRIANGLE_BOUND = prove_by_refinement(
+  `!a b x.  a <= x /\ x <= b ==> abs x <= abs a + abs b`,
+  (* {{{ proof *)
+  [
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let CRITICAL_EDGEX_BOUND = prove_by_refinement(
+  `?c1. !V X e. e IN critical_edgeX V X ==> abs(radV e - h0) <= c1`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[CRITICAL_EDGEX_ALT];
+  EXISTS_TAC `abs (hplus) + abs (hminus) + abs (h0)`;
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC REAL_ABS_TRIANGLE_BOUND [`hminus`;`hplus`;`radV e`];
+  ASM_REWRITE_TAC[];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let ABS_BUMP = prove_by_refinement(
+  `!h c1. abs(h- h0) <= c1 ==> abs(bump h) <= abs (#0.005) * (&1 +  (c1 pow 2) / abs((hplus - h0) pow 2))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Pack_defs.bump ];
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[REAL_ABS_MUL];
+  GMATCH_SIMP_TAC Real_ext.REAL_LE_LMUL_IMP;
+  CONJ_TAC;
+    BY(REAL_ARITH_TAC);
+  MATCH_MP_TAC (arith ` abs x + abs y <= z ==> abs (x - y) <= z`);
+  REWRITE_TAC[arith `abs(&1) + x <= &1 + y <=> x <= y`];
+  REWRITE_TAC[REAL_ABS_DIV];
+  REWRITE_TAC[real_div];
+  MATCH_MP_TAC Real_ext.REAL_PROP_LE_RMUL;
+  REWRITE_TAC[REAL_LE_INV_EQ];
+  CONJ2_TAC;
+    BY(REAL_ARITH_TAC);
+  REWRITE_TAC[REAL_ABS_POW];
+  MATCH_MP_TAC Collect_geom2.POS_IMP_POW2;
+  ASM_REWRITE_TAC[];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let BOUND_BETA_BUMP = prove_by_refinement(
+ `?c. !V X e.
+         saturated V /\ packing V /\ mcell_set V X /\ critical_edgeX V X e
+         ==> beta_bump_v1 V e X <= c`,
+  (* {{{ proof *)
+  [
+  INTRO_TAC CRITICAL_EDGEX_BOUND [];
+  REPEAT WEAK_STRIP_TAC;
+  EXISTS_TAC `&2 * abs (#0.005) * (&1 +  (c1 pow 2) / abs((hplus - h0) pow 2))`;
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[Pack_defs.beta_bump_v1;LET_DEF;LET_END_DEF];
+  COND_CASES_TAC;
+    MATCH_MP_TAC REAL_LE_TRANS;
+    ABBREV_TAC `e' = VX V X DIFF e`;
+    TYPIFY `abs (bump (radV e)) + abs (bump (radV e'))` EXISTS_TAC;
+    CONJ_TAC;
+      BY(REAL_ARITH_TAC);
+    MATCH_MP_TAC (arith `x <= z /\ y <= z ==> x + y <= &2 * z`);
+    BY(ASM_MESON_TAC[ ABS_BUMP]);
+  MATCH_MP_TAC (arith `&0 <= x ==> &0 <= &2 * abs (#0.005) * x`);
+  REWRITE_TAC[real_div];
+  MATCH_MP_TAC (arith `&0 <= x ==> &0 <= &1 + x`);
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  REWRITE_TAC[REAL_LE_INV_EQ];
+  REWRITE_TAC[ REAL_LE_POW_2];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
 
 
 end;;

@@ -331,6 +331,13 @@
 	   (replace-regexp-in-string "\\\\" "\\\\\\\\"   
 				     (hol-light-get-line))) "\")")))
 
+(defun hol-light-abbrev-tactic-region(beg end)
+  (interactive "r")
+  (hol-light-seval-string 
+   (concat "e_abbrev (\"" 
+	   (replace-regexp-in-string "\"" "\\\\\"" 
+	   (replace-regexp-in-string "\\\\" "\\\\\\\\"   
+				     (buffer-substring beg end))) "\")")))
 
 (defun hol-light-abbrev-tactic-newline()
   (interactive)

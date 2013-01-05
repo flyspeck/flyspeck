@@ -55,6 +55,9 @@
  '(comint-buffer-maximum-size 8000) ; limit buffer size.
 )
 
+(hol-light-de-then "THEN abc THENL")
+(replace-regexp-in-string ";;$" " " "abcdef")
+
 ;; run a few shells.
 (shell "*search*")
 

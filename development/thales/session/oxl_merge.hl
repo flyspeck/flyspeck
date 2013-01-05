@@ -1,0 +1,113 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Packing                                                           *)
+(* Lemma: OXLZLEZ                                                             *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2012-12-31                                                           *)
+(* ========================================================================== *)
+
+(* Combine all the OXLZLEZ lemmas into the final result *)
+
+(*
+let WELLDEFINED_FUNCTION_3 = prove_by_refinement(
+  `!(f:C -> A->B) (s:C->A->bool) b. (!x i j. s x i /\ s x j ==> (f x i = f x j)) ==>
+   (?(g:C -> B). (!x. s x = {} ==> g x = b) /\ (!x i. s x i ==> g x = f x i))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `(g:C->B) = \x. if (s x = {}) then b else (f x (@i. (s x i)))` ABBREV_TAC;
+  TYPIFY `g` EXISTS_TAC;
+  CONJ_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    EXPAND_TAC "g";
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  EXPAND_TAC "g";
+  COND_CASES_TAC;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN SET_TAC[]);
+  SELECT_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let S_LEAF_FINITE = `!V ul.  packing V ==> FINITE (s_leaf V ul)`;;
+
+let cc1 = `!V u0 u1 p n. saturated V /\ packing V /\ (n  = CARD (s_leaf V [u0;u1])) ==>
+    (?f.  IMAGE f (:num) = s_leaf V [u0;u1] /\ (!i. f (i + n) = f i) /\
+	(!i j. (i < j /\ j < n) ==> azim u0 u1 p (f i) < azim u0 u1 p (f j)))`;;
+
+*)
+
+let s_leaf = new_definition `s_leaf V ul u <=>  
+    (leaf V [EL 0 ul;EL 1 ul;u] /\ (cc_ke V [EL 0 ul; EL 1 ul; u] = 4 \/ cc_ke V [EL 1 ul;EL 0 ul;u]  = 4))`;;
+
+
+let REUHADY = prove_by_refinement(
+  `!V u0 u1 v1 v2.
+    saturated V /\ packing V /\ leaf V [u0;u1;v1] /\ leaf V [u0;u1;v2] /\ 
+    ~(v1 =v2)  ==>
+   sum {X | mcell_set V X /\ {u0,u1} IN edgeX V X /\ X SUBSET wedge_ge u0 u1 v1 v2}
+             (\t. dihX V t (u0,u1)) = azim u0 u1 v1 v2`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC Reuhady.REUHADY1;
+  GEXISTL_TAC [`[u0;u1;v1]`;`[u0;u1;v2]`];
+  TYPIFY `EL 2 [u0;u1;v1] = v1 /\ EL 2 [u0;u1;v2] = v2` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    BY(REWRITE_TAC[Bump.EL_EXPLICIT]);
+  TYPIFY `(hl [u0;u1;v1] < sqrt2 /\ hl [u0;u1;v2] < sqrt2 /\ [u0;u1;v1] IN barV V 2 /\ [u0;u1;v2] IN barV V 2) /\ hl [u0;u1] < sqrt(&2)` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    SUBCONJ_TAC;
+      BY(ASM_MESON_TAC[leaf;IN]);
+    REPEAT WEAK_STRIP_TAC;
+    INTRO_TAC Rogers.XNHPWAB4 [`V`;`[u0;u1;v1]`;`2`];
+    ASM_REWRITE_TAC[GSYM Sphere.sqrt2];
+    DISCH_THEN (C INTRO_TAC [`1`;`2`]);
+    REWRITE_TAC[arith `1 < 2 /\ 2 <= 2`;Marchal_cells.TRUNCATE_SIMPLEX_EXPLICIT_2;Marchal_cells.TRUNCATE_SIMPLEX_EXPLICIT_1];
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  TYPIFY `set_of_list (truncate_simplex 1 [u0; u1; v1]) = {u0, u1} /\  set_of_list (truncate_simplex 1 [u0; u1; v2]) = {u0, u1}` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    REWRITE_TAC[Marchal_cells.TRUNCATE_SIMPLEX_EXPLICIT_2;Marchal_cells.TRUNCATE_SIMPLEX_EXPLICIT_1];
+    BY(REWRITE_TAC[Bump.set_of_list2_explicit]);
+  TYPIFY `~([u0; u1; v1] = [u0; u1; v2])` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    BY(ASM_REWRITE_TAC[CONS_11]);
+  TYPIFY `~collinear {u0,u1,v1} /\ ~collinear {u0,u1,v2}` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[GSYM Bump.set_of_list3_explicit];
+    BY(ASM_MESON_TAC[GBEWYFX]);
+  ASM_SIMP_TAC[Leaf_cell.WEDGE_GE_ALMOST_DISJOINT];
+  TYPIFY `~(u0 = u1)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Collect_geom.NOT_COLLINEAR_IMP_2_UNEQUAL]);
+  TYPIFY `u0 IN V /\ u1 IN V` (C SUBGOAL_THEN (unlist ASM_REWRITE_TAC));
+    INTRO_TAC Packing3.BARV_SUBSET [`V`;`2`;`[u0;u1;v1]`];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[leaf;IN;Sphere.BARV]);
+    REWRITE_TAC[Bump.set_of_list3_explicit];
+    BY(SET_TAC[]);
+  SUBCONJ_TAC;
+    ASM_SIMP_TAC[Local_lemmas.AZIM_EQ_0_GE_ALT2];
+    DISCH_TAC;
+    INTRO_TAC Leaf_cell.FCHKUGT [`V`;`u0`;`u1`;`v1`;`v2`];
+    ANTS_TAC;
+      ASM_REWRITE_TAC[cc_A0;EL_EXPLICIT];
+      MATCH_MP_TAC Local_lemmas.COLL_IN_AFF_GT_AFF_GT_EQ;
+      ASM_REWRITE_TAC[];
+      FIRST_X_ASSUM MP_TAC;
+      GMATCH_SIMP_TAC Collect_geom.IN_AFF_GE_INTERPRET_TO_AFF_GT_AND_AFF;
+      CONJ_TAC;
+        BY(ASM_SIMP_TAC[Fan.th3a]);
+      REWRITE_TAC[aff];
+      TYPIFY `v2 IN affine hull {u0,u1}` ASM_CASES_TAC;
+        FIRST_X_ASSUM (MP_TAC o (MATCH_MP AFFINE_HULL_3_IMP_COLLINEAR));
+        BY(ASM_MESON_TAC[]);
+      BY(ASM_MESON_TAC[]);
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  REPEAT WEAK_STRIP_TAC;
+  MATCH_MP_TAC Leaf_cell.EWYBJUA;
+  TYPIFY `V` EXISTS_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+

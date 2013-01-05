@@ -308,9 +308,11 @@
   (interactive "r")
   (hol-light-seval-string 
    (concat "eval_tactic_lines (\""   
-       (replace-regexp-in-string "\"" "\\\\\"" 
-	  (replace-regexp-in-string "\\\\" "\\\\\\\\" 
-             (buffer-substring beg end))) "\")")))
+        (replace-regexp-in-string ";;$" " "
+	(replace-regexp-in-string "^e " " " 
+	     (replace-regexp-in-string "\"" "\\\\\"" 
+		(replace-regexp-in-string "\\\\" "\\\\\\\\" 
+                    (buffer-substring beg end))))) "\")")))
 
 (defun hol-light-tactic-line()
   (interactive)

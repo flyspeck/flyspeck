@@ -46,6 +46,10 @@ module Merge_ineq = struct
 
   let CALC_ID_TAC = Calc_derivative.CALC_ID_TAC;;
 
+  let let_RULE = fun th -> REWRITE_RULE[DEPTH_CONV let_CONV (concl th)] th;;
+
+  let critical_edge_y = new_definition `critical_edge_y y = ((&2*hminus <= y) /\ (y <= &2 *hplus))`;;
+
 let add_hyp s concl = 
   let nonlinear = map (fun t -> (hd(Ineq.getexact t)).ineq) s in
   let conj = end_itlist (curry mk_conj) nonlinear in
@@ -652,6 +656,17 @@ let simplex_exists = prove_by_refinement(
   BY(MESON_TAC[])
   ]);;
   (* }}} *)
+
+let DELTA_X_AND_DELTA_X4 = prove(`!x1 x2 x3 x4 x5 x6.
+				 (let d4 = delta_x4 x1 x2 x3 x4 x5 x6 in
+				 let d = delta_x x1 x2 x3 x4 x5 x6 in
+				 let v1 = ups_x x1 x2 x6 in
+				 let v2 = ups_x x1 x3 x5 in
+				 &4 * x1 * d = v1 * v2 - d4 * d4)`,
+  REPEAT GEN_TAC THEN 
+    REPEAT (CONV_TAC let_CONV) THEN
+    REWRITE_TAC[Sphere.delta_x4; Sphere.delta_x; Sphere.ups_x] THEN
+    REAL_ARITH_TAC);;
 
 (* dihV = dih_y *)
 let DIHV_EQ_DIH_Y = prove(`!v0:real^3 v1 v2 v3. ~collinear {v0, v1, v2} /\ ~collinear {v0, v1, v3}
@@ -1526,7 +1541,7 @@ let ineq_critical_edge = prove_by_refinement(
     ineq (APPEND u (CONS (&2,y,sqrt8) v)) f`,
   (* {{{ proof *)
   [
-  REWRITE_TAC[ineq_APPEND;Pack_defs.critical_edge_y];
+  REWRITE_TAC[ineq_APPEND;critical_edge_y];
   REWRITE_TAC[Sphere.ineq];
   REPEAT WEAK_STRIP_TAC;
   SUBGOAL_THEN `&2 <= y /\ y <= sqrt8 ==> y <= &2 * hminus \/ &2 * hplus <= y` ASSUME_TAC;
@@ -2199,7 +2214,7 @@ let critical_y_range = prove_by_refinement(
   `!y. &2 * hminus <= y /\ y <= &2 * hplus ==> critical_edge_y y`,
   (* {{{ proof *)
   [
-  REWRITE_TAC[Pack_defs.critical_edge_y]
+  REWRITE_TAC[critical_edge_y]
   ]);;
   (* }}} *)
 
@@ -3852,6 +3867,10 @@ let delta_x4_pos = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let ups_x_sym = prove(`!a b c. ups_x a b c = ups_x b a c`,
+   REWRITE_TAC[Sphere.ups_x] THEN REAL_ARITH_TAC);;
+
+
 let gamma3f_gamma3f_x_div_sqrtdelta_WEAK = prove_by_refinement(
   `!y4 y5 y6 a b c.
     &0 < y4 /\ &0 < y5 /\ &0 < y6 /\
@@ -3897,7 +3916,7 @@ let gamma3f_gamma3f_x_div_sqrtdelta_WEAK = prove_by_refinement(
     BY(MESON_TAC[ Collect_geom.UPS_X_SYM ]);
   REPEAT (GMATCH_SIMP_TAC ups_x_cell3);
   ASM_REWRITE_TAC[];
-  ONCE_REWRITE_TAC[ Arc_properties.ups_x_sym];
+  ONCE_REWRITE_TAC[ups_x_sym];
   ASM_REWRITE_TAC[];
   SUBGOAL_THEN `  &0 < ups_x (y6 * y6) (y4 * y4) (y5 * y5) ` (unlist REWRITE_TAC);
     BY(ASM_MESON_TAC[ Collect_geom.UPS_X_SYM]);

@@ -57,6 +57,12 @@ These should be reconciled with main flyspeck library
 
   let cayleyR = Cayleyr.cayleyR;;
 
+  let BY (t:tactic) (asl,w) = 
+    let (a,b,c)  = t (asl,w) in
+    let _ = (b = []) or failwith "by failed to finish goal" in
+      (a,b,c);;
+
+
 prioritize_real();;
 
 (* d3 is deprecated *) 
@@ -2297,21 +2303,6 @@ let COLLINEAR2 = prove(` ! x (y:real^N). collinear {x,y} `,
    ASM_SIMP_TAC[] THEN EXISTS_TAC ` &0 ` THEN CONV_TAC VECTOR_ARITH]
 		      );;
 
-(*
- g ` ! x (y:real^N). collinear {x,y} `;;
-e (REPEAT GEN_TAC THEN REWRITE_TAC[collinear]);;
-e (EXISTS_TAC ` x -(y: real^N)`);;
-e (ASM_SIMP_TAC[SET_RULE` a = b ==> {a,b,c} = {a,c} `]);;
-e (REWRITE_TAC[IN_SET2]);;
-e (REPEAT GEN_TAC);;
-e (STRIP_TAC);;
-e (ASM_SIMP_TAC[] THEN EXISTS_TAC ` &0 ` THEN CONV_TAC VECTOR_ARITH);;
-e (ASM_SIMP_TAC[] THEN EXISTS_TAC ` &1 ` THEN CONV_TAC VECTOR_ARITH);;
-e (ASM_SIMP_TAC[] THEN EXISTS_TAC ` -- &1 ` THEN CONV_TAC VECTOR_ARITH);;
-e (ASM_SIMP_TAC[] THEN EXISTS_TAC ` &0 ` THEN CONV_TAC VECTOR_ARITH);;
-let COLLINEAR2 = top_thm();;
-*)
-
 let TWO_EQ_IMP_COL3 = prove(` ! (x:real^N) y z .  x = y ==> collinear {x, y, z} `,
 STRIP_TR THEN SIMP_TAC[SET_RULE` a = b ==> {a,b,c} = {a,c} `; COLLINEAR2]);;
 
@@ -2944,28 +2935,24 @@ THEN SIMP_TAC[] THEN DISCH_TAC THEN REWRITE_TAC[ups_x; cayleytr; cayleyR;
 
 let LEMMA51 = GJWYYPS ;;
 
+(*
+
 g `!v1 v2 (v:real^3). ~(v1 = v2) ==> (collinear {v, v1, v2} <=> v IN aff {v1, v2})`;;
 e (REWRITE_TAC[COLLINEAR_EX]);;
 e (NHANH (MESON[]` a % b + c = vec 0 ==> ( a = &0 \/ ~(a = &0 ))`));;
 e (KHANANG);;
-e (NGOAC THEN PURE_ONCE_REWRITE_TAC[MESON[]` P a /\ a = &0 <=> P ( &0 ) 
-  /\ a = &0 `]);;
+e (NGOAC THEN PURE_ONCE_REWRITE_TAC[MESON[]` P a /\ a = &0 <=> P ( &0 )   /\ a = &0 `]);;
 e (REWRITE_TAC[REAL_ADD_LID; VECTOR_MUL_LZERO; VECTOR_ADD_LID]);;
-e (REWRITE_TAC[REAL_ARITH ` a + b= &0 <=> a = -- b `; VECTOR_ARITH` a % x + b % y = vec 0 
- <=> a % x = ( -- b) % y`]);;
-e (NHANH (MESON[REAL_ARITH ` a = &0 <=> -- a = &0 `; VECTOR_MUL_LCANCEL]` (b = --c /\ ~(b = &0 /\ c = &0)) /\ b % v1 = --c % v2
-  ==> v1 = v2 `));;
+e (REWRITE_TAC[REAL_ARITH ` a + b= &0 <=> a = -- b `; VECTOR_ARITH` a % x + b % y = vec 0  <=> a % x = ( -- b) % y`]);;
+e (NHANH (MESON[REAL_ARITH ` a = &0 <=> -- a = &0 `; VECTOR_MUL_LCANCEL]` (b = --c /\ ~(b = &0 /\ c = &0)) /\ b % v1 = --c % v2  ==> v1 = v2 `));;
 e (SIMP_TAC[]);;
 e (REWRITE_TAC[AFF_2POINTS_INTERPRET; IN_ELIM_THM]);;
 e (REPEAT GEN_TAC THEN DISCH_TAC THEN EQ_TAC);;
-e (REWRITE_TAC[VECTOR_ARITH ` a % v + b % v1 + c % v2 = vec 0 <=>
-  a % v = ( -- b) % v1 + ( --c ) % v2 `]);;
-e (PHA THEN REWRITE_TAC[MESON[CHANGE_SIDE]` a % v = v1  /\
-               ~(a = &0) <=> v = &1 / a % v1 /\ ~( a = &0 ) `]);;
+e (REWRITE_TAC[VECTOR_ARITH ` a % v + b % v1 + c % v2 = vec 0 <=>  a % v = ( -- b) % v1 + ( --c ) % v2 `]);;
+e (PHA THEN REWRITE_TAC[MESON[CHANGE_SIDE]` a % v = v1  /\               ~(a = &0) <=> v = &1 / a % v1 /\ ~( a = &0 ) `]);;
 e (REWRITE_TAC[VECTOR_ADD_LDISTRIB; VECTOR_MUL_ASSOC; REAL_ARITH `&1 / a * b = b / a`]);;
 e (REWRITE_TAC[AFF_2POINTS_INTERPRET; IN_ELIM_THM]);;
-e (MESON_TAC[REAL_FIELD ` ~ ( a = &0 ) /\ a = -- (b + c) ==>
-   ( -- b) / a + ( -- c) / a = &1 `]);;
+e (MESON_TAC[REAL_FIELD ` ~ ( a = &0 ) /\ a = -- (b + c) ==>   ( -- b) / a + ( -- c) / a = &1 `]);;
 e (STRIP_TAC);;
 e (EXISTS_TAC ` &1 `);;
 e (EXISTS_TAC ` -- ta`);;
@@ -2975,6 +2962,38 @@ e (ASM_SIMP_TAC[REAL_ARITH` ~(&1 = &0 ) /\ -- ( -- a + -- b ) = a + b `]);;
 e (CONV_TAC VECTOR_ARITH);;
 
 let NOT_TOW_EQ_IMP_COL_EQUAVALENT = top_thm();;
+
+*)
+
+let NOT_TOW_EQ_IMP_COL_EQUAVALENT = prove_by_refinement(
+`!v1 v2 (v:real^3). ~(v1 = v2) ==> (collinear {v, v1, v2} <=> v IN aff {v1, v2})`,
+  (* {{{ proof *)
+  [
+  (REWRITE_TAC[COLLINEAR_EX]);
+  (NHANH (MESON[]` a % b + c = vec 0 ==> ( a = &0 \/ ~(a = &0 ))`));
+  (KHANANG);
+  (NGOAC THEN PURE_ONCE_REWRITE_TAC[MESON[]` P a /\ a = &0 <=> P ( &0 )   /\ a = &0 `]);
+  (REWRITE_TAC[REAL_ADD_LID; VECTOR_MUL_LZERO; VECTOR_ADD_LID]);
+  (REWRITE_TAC[REAL_ARITH ` a + b= &0 <=> a = -- b `; VECTOR_ARITH` a % x + b % y = vec 0  <=> a % x = ( -- b) % y`]);
+  (NHANH (MESON[REAL_ARITH ` a = &0 <=> -- a = &0 `; VECTOR_MUL_LCANCEL]` (b = --c /\ ~(b = &0 /\ c = &0)) /\ b % v1 = --c % v2  ==> v1 = v2 `));
+  (SIMP_TAC[]);
+  (REWRITE_TAC[AFF_2POINTS_INTERPRET; IN_ELIM_THM]);
+  (REPEAT GEN_TAC THEN DISCH_TAC THEN EQ_TAC);
+    (REWRITE_TAC[VECTOR_ARITH ` a % v + b % v1 + c % v2 = vec 0 <=>  a % v = ( -- b) % v1 + ( --c ) % v2 `]);
+    (PHA THEN REWRITE_TAC[MESON[CHANGE_SIDE]` a % v = v1  /\               ~(a = &0) <=> v = &1 / a % v1 /\ ~( a = &0 ) `]);
+    (REWRITE_TAC[VECTOR_ADD_LDISTRIB; VECTOR_MUL_ASSOC; REAL_ARITH `&1 / a * b = b / a`]);
+     (REWRITE_TAC[AFF_2POINTS_INTERPRET; IN_ELIM_THM]);
+    BY( (MESON_TAC[REAL_FIELD ` ~ ( a = &0 ) /\ a = -- (b + c) ==>   ( -- b) / a + ( -- c) / a = &1 `]));
+   (STRIP_TAC);
+   (EXISTS_TAC ` &1 `);
+   (EXISTS_TAC ` -- ta`);
+   (EXISTS_TAC ` -- tb`);
+   (PHA);
+   (ASM_SIMP_TAC[REAL_ARITH` ~(&1 = &0 ) /\ -- ( -- a + -- b ) = a + b `]);
+  BY( (CONV_TAC VECTOR_ARITH))
+  ]);;
+  (* }}} *)
+
 
 
 let LEMMA30 = prove(`!v1 v2 v3 v4 x12 x13 x14 x23 x24 x34 a b c.

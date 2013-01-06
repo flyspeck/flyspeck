@@ -27,10 +27,15 @@ through the tactics in the tactic list one-by-one for purposes of debugging.
 module type Prove_by_refinement_type = sig
 
   val prove_by_refinement : term*(tactic list) -> thm
+  val prove_by_refinement_2 : string*term*(tactic list) -> thm
+
+(*
   val prove_by_step : term*(tactic list) -> goalstack
+*)
 
 (* navigation of prove_by_step: *)
 
+(*
   val e' : unit -> goalstack (* one step forward *)
   val f' : int -> goalstack (* n steps forward *)
   val b' : unit -> goalstack (* one step backwards *)
@@ -39,6 +44,7 @@ module type Prove_by_refinement_type = sig
   val n' : unit -> int (* number of next step *)
   val l' : unit -> int (* total number of steps *)
   val x' : unit -> int (* step position of next error *)
+*)
 
 end;;
 
@@ -66,8 +72,30 @@ hol_til_2005/HOL_TIL_2005/FLYSPECK_PUB_9_2004/hol_light_o/hol-ext/tactics_2.ml
 	try EQ_MP (ALPHA t' t) th
 	with Failure _ -> failwith "prove_by_refinement: generated wrong theorem";;
 
+  let prove_by_refinement_2(thm_name,t,(tacl:tactic list)) = 
+    let gstate = mk_goalstate ([],t) in
+    let ctacl = zip (0--(List.length tacl -1)) tacl in
+    let _,sgs,just = rev_itlist 
+      (fun (i,tac) gs -> 
+	 try by 
+	   (tac) gs
+         with Failure s -> 
+	   let _ = print_goalstack ([gs]) in
+	   let _ = report ("Proof of "^thm_name^" fails at step: "^(string_of_int i)) in
+	     failwith s
+      )
+      ctacl gstate in
+    let th = if sgs = [] then just null_inst []
+    else failwith "BY_REFINEMENT_PROOF: Unsolved goals" in
+    let t' = concl th in
+      if t' = t then th else
+	try EQ_MP (ALPHA t' t) th
+	with Failure _ -> failwith "prove_by_refinement: generated wrong theorem";;
+
+
 (* replaying proof by refinement *)
 
+(*
   let tl = ref ([]:tactic list);;
   let step = ref 0;;
   let gtm = ref `T`;;
@@ -92,6 +120,6 @@ hol_til_2005/HOL_TIL_2005/FLYSPECK_PUB_9_2004/hol_light_o/hol-ext/tactics_2.ml
   let r_step () = (prove_by_step (!gtm,!tl));;  (* revert *)
 
   let (e',f',b',p',r',n',l',x') = (e_step,f_step,b_step,p_step,r_step,get_step,get_steplength,next_error);;
-
+*)
 
 end;;

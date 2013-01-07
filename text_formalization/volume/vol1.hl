@@ -9,19 +9,14 @@
 
 
 
-
-module type Vol1_type = sig
-
-end;;
-
-
 flyspeck_needs "general/prove_by_refinement.hl";;
 
 (* flyspeck_needs "trigonometry/trig2.hl";; *)
 
 
 
-module Vol1 (* : Vol1_type *) = struct
+
+module Vol1 = struct
 
 
   let prove_by_refinement = Prove_by_refinement.prove_by_refinement;;
@@ -35,14 +30,166 @@ let sphere= new_definition`sphere x=(?(v:real^3)(r:real). (r> &0)/\ (x={w:real^3
 
 
 (* old definitions added by thales Nov 11, 2009 *)
-let radial_norm = new_definition `radial_norm r x C <=> (C SUBSET normball x r) /\ (!u. (x+u) IN C ==> (!t.(t> &0) /\ (t* norm u < r)==>(x+ t % u) IN C))`;;
 
-let eventually_radial_norm = new_definition `eventually_radial_norm x C <=> (?r. (r> &0) /\ radial_norm r x (C INTER normball x r))`;;
+(*
+let radial_norm = new_definition `radial_norm r (x:real^A) C <=> (C SUBSET normball x r) /\ (!u. (x+u) IN C ==> (!t.(t> &0) /\ (t* norm u < r)==>(x+ t % u) IN C))`;;
+*)
+
+let radial_norm_deprecated = new_definition `(radial_norm:real->real^A->(real^A->bool)->bool) = radial`;;
+
+let radial_norm = prove_by_refinement(
+  `!r x C. radial_norm r (x:real^A) C <=>
+         C SUBSET normball x r /\
+         (!u. x + u IN C
+              ==> (!t. t > &0 /\ t * norm u < r ==> x + t % u IN C))`,
+  (* {{{ proof *)
+  [
+    (REWRITE_TAC[radial_norm_deprecated;NORMBALL_BALL;Sphere.radial])
+  ]);;
+  (* }}} *)
+
+let RADIAL_VS_RADIAL_NORM = prove_by_refinement (
+ `!(x:real^A) r C. radial r x C <=> radial_norm r x C`,
+[ 
+  (REWRITE_TAC[radial_norm_deprecated])
+]);;
+
+(*
+let eventually_radial_norm = new_definition 
+  `eventually_radial_norm x C <=> (?r. (r> &0) /\ radial_norm r x (C INTER normball x r))`;;
+*)
+
+  let eventually_radial_norm_deprecated =  new_definition
+    `(eventually_radial_norm:real^A ->(real^A->bool)->bool) = eventually_radial`;;
+
+let eventually_radial_norm = prove_by_refinement(
+  `!C (x:real^A). eventually_radial_norm x C <=>
+         (?r. r > &0 /\ radial_norm r x (C INTER normball x r)) `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[eventually_radial_norm_deprecated;radial_norm_deprecated;Sphere.eventually_radial;NORMBALL_BALL]
+  ]);;
+  (* }}} *)
 
 let c_cone = new_definition `c_cone (v,w:real^3, r:real)={x:real^3 | ((x-v) dot w = norm (x-v)* norm w* r)}`;;
 
 let null_equiv = new_definition `null_equiv (s,t :real^3->bool)=(? (B:real^3-> bool). NULLSET B  /\
  ((s DIFF t) UNION (t DIFF s)) SUBSET B)`;;
+
+let VOLUME_PROPS_MEASURABLE = prove_by_refinement(
+  `!C. measurable C ==> vol C >= &0`,
+  (* {{{ proof *)
+  [
+  ASM_REWRITE_TAC[volume_props]
+  ]);;
+  (* }}} *)
+
+let VOLUME_PROPS_NULLSET = prove_by_refinement(
+  `  (!Z. NULLSET Z ==> vol Z = &0)`,
+  (* {{{ proof *)
+  [
+  ASM_REWRITE_TAC[volume_props]
+  ]);;
+  (* }}} *)
+
+let VOLUME_PROPS_SDIFF = prove_by_refinement(
+  ` (!X Y.
+          measurable X /\ measurable Y /\ NULLSET (SDIFF X Y)
+          ==> vol X = vol Y)`,
+  (* {{{ proof *)
+  [
+  ASM_REWRITE_TAC[volume_props]
+  ]);;
+  (* }}} *)
+
+
+let VOLUME_PROPS_SCALE = prove_by_refinement(
+  `(!X t.
+          measurable X /\ measurable (IMAGE (scale t) X)
+          ==> vol (IMAGE (scale t) X) = abs (t$1 * t$2 * t$3) * vol X)`,
+  (* {{{ proof *)
+  [
+  ASM_REWRITE_TAC[volume_props]
+  ]);;
+  (* }}} *)
+
+let VOLUME_PROPS_IMAGE = prove_by_refinement(
+  `(!X v. measurable X ==> vol (IMAGE ((+) v) X) = vol X)`,
+  (* {{{ proof *)
+  [
+  ASM_REWRITE_TAC[volume_props]
+  ]);;
+  (* }}} *)
+
+let VOLUME_PROPS_SOLID_TRIANGLE = prove_by_refinement(
+  `(!v0 v1 v2 v3 r.
+          r > &0 /\ ~coplanar {v0, v1, v2, v3}
+          ==> vol (solid_triangle v0 {v1, v2, v3} r) =
+              vol_solid_triangle v0 v1 v2 v3 r)`,
+  (* {{{ proof *)
+  [
+  ASM_REWRITE_TAC[volume_props]
+  ]);;
+  (* }}} *)
+
+let VOLUME_PROPS_CONV0 = prove_by_refinement(
+  ` (!v0 v1 v2 v3. vol (conv0 {v0, v1, v2, v3}) = vol_conv v0 v1 v2 v3)`,
+  (* {{{ proof *)
+  [
+  ASM_REWRITE_TAC[volume_props]
+  ]);;
+  (* }}} *)
+
+let VOLUME_PROPS_FRUSTT = prove_by_refinement(
+  ` (!v0 v1 v2 v3 h a.
+          ~collinear {v0, v1, v2} /\
+          ~collinear {v0, v1, v3} /\
+          h >= &0 /\
+          a > &0 /\
+          a <= &1
+          ==> vol (frustt v0 v1 h a INTER wedge v0 v1 v2 v3) =
+              vol_frustt_wedge v0 v1 v2 v3 h a)`,
+  (* {{{ proof *)
+  [
+  ASM_REWRITE_TAC[volume_props]
+  ]);;
+  (* }}} *)
+
+let VOLUME_PROPS_CONIC_CAP = prove_by_refinement(
+  ` (!v0 v1 v2 v3 r c.
+          ~collinear {v0, v1, v2} /\
+          ~collinear {v0, v1, v3} /\
+          r >= &0 /\
+          c >= -- &1 /\
+          c <= &1
+          ==> vol (conic_cap v0 v1 r c INTER wedge v0 v1 v2 v3) =
+              vol_conic_cap_wedge v0 v1 v2 v3 r c)`,
+  (* {{{ proof *)
+  [
+  ASM_REWRITE_TAC[volume_props]
+  ]);;
+  (* }}} *)
+
+let VOLUME_PROPS_RECT = prove_by_refinement(
+  ` (!a b. vol (rect a b) = vol_rect a b) `,
+  (* {{{ proof *)
+  [
+  ASM_REWRITE_TAC[volume_props]
+  ]);;
+  (* }}} *)
+
+let VOLUME_PROPS_NORMBALL = prove_by_refinement(
+  ` (!v0 v1 v2 v3 r.
+          ~collinear {v0, v1, v2} /\ ~collinear {v0, v1, v3} /\ r >= &0
+          ==> vol (normball v0 r INTER wedge v0 v1 v2 v3) =
+              vol_ball_wedge v0 v1 v2 v3 r)`,
+  (* {{{ proof *)
+  [
+  ASM_REWRITE_TAC[volume_props]
+  ]);;
+  (* }}} *)
+
+
 
 (*----------------------------------------------------------*)
 
@@ -1263,7 +1410,37 @@ let pre_def_4_3=REWRITE_RULE[VOLUME_FIX] (prove(`?(s:(real^3->bool)->real^3 -> r
 let pre_def_4_3b=REWRITE_RULE[VOLUME_FIX;SKOLEM_THM]
  pre_def1_4_3b;;
 
+let pre_def_4_3b_alt = prove_by_refinement(
+  `?s. !(x:real^3) C r.
+             r > &0 /\
+             measurable (C INTER ball (x, r)) /\
+             radial r x (C INTER ball (x, r))
+             ==> s x C = &3 * vol (C INTER ball(x,r)) / r pow 3`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[GSYM NORMBALL_BALL;GSYM radial_norm_deprecated;pre_def_4_3b]
+  ]);;
+  (* }}} *)
+
+(*
 let sol= new_specification ["sol"] pre_def_4_3b;;
+*)
+
+let sol_spec = new_specification ["sol"] pre_def_4_3b_alt;;
+
+let sol = prove_by_refinement(
+  `!(x:real^3) C r.
+         r > &0 /\
+         measurable (C INTER normball x r) /\
+         radial_norm r x (C INTER normball x r)
+         ==> sol x C = &3 * vol (C INTER normball x r) / r pow 3`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[NORMBALL_BALL;radial_norm_deprecated];
+  REPEAT STRIP_TAC;
+  ASM_MESON_TAC[sol_spec]
+  ]);;
+  (* }}} *)
 
 let AFF_GT_1_3=prove(`!x u v w.
          DISJOINT {x} {u, v, w}
@@ -1354,7 +1531,23 @@ let A=new_definition `A(h:real,t:real,l:real^2)=(&1-h/t)*(phi (h,t,l)-phi (t,t,l
 
 let cube= new_definition `cube (x:real^3)= {y:real^3 | !i. (1<= i)/\ (i<= 3) ==> ( x$i < y$i ) /\ ( y$i < x$i + &1)}`;; 
 
+
+
+(*
 let hinhcau=new_definition `hinhcau (x:real^3) (r:real)={y: real^3 | norm ( x - y ) < r } `;;
+*)
+
+let hinhcau_deprecated = new_definition `hinhcau (x:real^A) r = ball (x,r)`;;
+
+let hinhcau = prove_by_refinement(
+  ` !(x:real^A) r. hinhcau x r = {y | norm (x - y) < r}`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[EXTENSION;IN_ELIM_THM;hinhcau_deprecated;ball;IN_ELIM_THM;dist]
+  ]);;
+  (* }}} *)
+
+
 let set_of_cube= new_definition`set_of_cube S= {cube x| x IN S}`;;
 
 let union_of_cube= new_definition `union_of_cube (x:real^3) (r:real)= UNIONS (set_of_cube (hinhcau x r))`;;
@@ -1362,8 +1555,13 @@ let union_of_cube= new_definition `union_of_cube (x:real^3) (r:real)= UNIONS (se
 let int_ball= new_definition `int_ball (x:real^3) r= { y :real^3 | !i. (1<= i) /\ (i<= 3) ==> integer (y$i)} INTER (hinhcau x r)`;;
 let union_of_int_cube=new_definition `union_of_int_cube (x:real^3) (r:real) = UNIONS (set_of_cube (int_ball x r))`;;
 
+(*
 let map0=new_definition `map0 = \(c:real^3). cube c`;;
+*)
 
+(*
+let map0 = new_definition `map0 = cube`;;
+*)
 
 (*-------------------------------------------------------*)
 (*                 Somes lemmas                          *)
@@ -1453,40 +1651,51 @@ UNDISCH_TAC `(!i. 1 <= i /\ i <= 3 ==> integer ((x:real^3)$i) /\ integer ((y:rea
 (*-----------------------------------------------------------*)
 
 
-let inj_map0=prove(`! (x:real^3) (r:real). INJ map0 (int_ball x r) (set_of_cube (int_ball x r))`,
-		   REWRITE_TAC[INJ;map0;set_of_cube] 
-		     THEN SIMP_TAC[SET_RULE `x' IN int_ball x r ==> cube x' IN {cube x' | x' IN int_ball x r}`]
-		     THEN REPEAT GEN_TAC THEN REWRITE_TAC[int_ball]
-		     THEN REWRITE_TAC[IN_INTER;IN_ELIM_THM] THEN REPEAT STRIP_TAC
-		     THEN ASM_SIMP_TAC[GSYM (SPECL [`x':real^3`;`y:real^3`] disjoint_cube)]
-		     THEN REWRITE_TAC[DISJOINT;INTER_ACI;nonempty_cube]);;
+let inj_cube= prove_by_refinement(
+  `! (x:real^3) (r:real). INJ cube (int_ball x r) (set_of_cube (int_ball x r))`,
+ [
+		   REWRITE_TAC[INJ;set_of_cube];
+		   SIMP_TAC[SET_RULE `(x':real^3) IN int_ball x r ==> cube x' IN {cube x' | x' IN int_ball x r}`];
+		     REPEAT GEN_TAC;
+		     REWRITE_TAC[int_ball];
+		     REWRITE_TAC[IN_INTER;IN_ELIM_THM];
+		     REPEAT STRIP_TAC;
+		     ASM_SIMP_TAC[GSYM (SPECL [`x':real^3`;`y:real^3`] disjoint_cube)];
+		     BY(ASM_REWRITE_TAC[DISJOINT;INTER_ACI;nonempty_cube]);
+ ]);;
 
-let surj_map0=prove(`! (x:real^3) (r:real). SURJ map0 (int_ball x r) (set_of_cube (int_ball x r))`,
-REWRITE_TAC[SURJ] THEN REWRITE_TAC[map0;set_of_cube] 
-THEN SIMP_TAC[SET_RULE `x' IN int_ball x r ==> cube x' IN {cube x' | x' IN int_ball x r}`]
-  THEN REPEAT GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM] THEN DISCH_TAC THEN FIRST_X_ASSUM CHOOSE_TAC
-  THEN EXISTS_TAC `x'':real^3` THEN ASM_MESON_TAC[]);;
+let surj_cube= prove_by_refinement(
+   `! (x:real^3) (r:real). SURJ cube (int_ball x r) (set_of_cube (int_ball x r))`,
+   [
+	REWRITE_TAC[SURJ]; 
+     REWRITE_TAC[set_of_cube] ;
+     SIMP_TAC[SET_RULE `x' IN int_ball x r ==> cube x' IN {cube x' | x' IN int_ball x r}`]; 
+     REPEAT GEN_TAC; 
+     REWRITE_TAC[IN_ELIM_THM]; DISCH_TAC; FIRST_X_ASSUM CHOOSE_TAC
+ ; EXISTS_TAC `x'':real^3`; ASM_MESON_TAC[]
+   ]);;
 
 
-let bij_map0=prove(`! (x:real^3) (r:real). BIJ map0 (int_ball x r) (set_of_cube (int_ball x r))`,
-MESON_TAC[BIJ;inj_map0;surj_map0]);;
+let bij_cube=prove(`! (x:real^3) (r:real). BIJ cube (int_ball x r) (set_of_cube (int_ball x r))`,
+MESON_TAC[BIJ;inj_cube;surj_cube]);;
 
 
 (*-----------------------------------------------------------*)
 
-let surj2_map0=prove(`!(x:real^3) (r:real). IMAGE map0 (int_ball x r) = set_of_cube (int_ball x r)`,
-REWRITE_TAC[IMAGE] THEN REWRITE_TAC[map0] THEN REWRITE_TAC[set_of_cube] THEN SIMP_TAC[EXTENSION] 
-THEN REWRITE_TAC[IN_ELIM_THM] THEN SIMP_TAC[GSYM EXTENSION]);;
+let surj2_cube=  prove_by_refinement(
+  `!(x:real^3) (r:real). IMAGE cube (int_ball x r) = set_of_cube (int_ball x r)`,
+  [REWRITE_TAC[IMAGE] THEN REWRITE_TAC[] THEN REWRITE_TAC[set_of_cube] THEN SIMP_TAC[EXTENSION] 
+THEN REWRITE_TAC[IN_ELIM_THM] THEN SIMP_TAC[GSYM EXTENSION]]);;
 
 
 
 let int_ball_card_eq=prove(`!(x:real^3) (r:real). CARD (int_ball x r)= CARD (set_of_cube (int_ball x r))`,
-REPEAT GEN_TAC THEN SIMP_TAC[GSYM (SPECL [`X:real^3`;`r:real` ] surj2_map0)]
-  THEN MP_TAC(SPECL [`x:real^3`;`r:real`] finite_int_ball) THEN MP_TAC(SPECL [`x:real^3`;`r:real`] inj_map0)
+REPEAT GEN_TAC THEN SIMP_TAC[GSYM (SPECL [`X:real^3`;`r:real` ] surj2_cube)]
+  THEN MP_TAC(SPECL [`x:real^3`;`r:real`] finite_int_ball) THEN MP_TAC(SPECL [`x:real^3`;`r:real`] inj_cube)
   THEN REWRITE_TAC[MESON[] `a==>b==>c <=> a/\ b ==>c`;INJ] 
-  THEN SIMP_TAC[set_of_cube;map0;SET_RULE `x' IN int_ball x r ==> cube x' IN {cube x' | x' IN int_ball x r}`]
-  THEN REWRITE_TAC[MESON[map0] `cube (x':real^3)= map0 x'`;GSYM map0]
-  THEN MESON_TAC[ISPECL [`map0:real^3 -> real^3 -> bool`;`(int_ball x r):real^3 -> bool`] CARD_IMAGE_INJ]);;
+  THEN SIMP_TAC[set_of_cube;cube;SET_RULE `x' IN int_ball x r ==> cube x' IN {cube x' | x' IN int_ball x r}`]
+  THEN REWRITE_TAC[MESON[cube] `cube (x':real^3)= cube x'`;GSYM cube]
+  THEN MESON_TAC[ISPECL [`cube:real^3 -> real^3 -> bool`;`(int_ball x r):real^3 -> bool`] CARD_IMAGE_INJ]);;
 
 
 
@@ -1497,7 +1706,7 @@ GEN_TAC THEN REWRITE_TAC[EXTENSION;cube;interval;DIMINDEX_3] THEN SIMP_TAC[IN_EL
 let measurable_cube=prove( `!(x:real^3). measurable (cube x)`,REWRITE_TAC[cube_eq_interval;MEASURABLE_INTERVAL]);;
 
 let finite_set_of_cube=prove(`!(x:real^3)(r:real). FINITE (set_of_cube (int_ball x r))`,
-MESON_TAC[ISPECL [`map0:real^3 -> real^3 -> bool`; `(int_ball x r):real^3 -> bool`] FINITE_IMAGE;finite_int_ball;surj2_map0]);;
+MESON_TAC[ISPECL [`cube:real^3 -> real^3 -> bool`; `(int_ball x r):real^3 -> bool`] FINITE_IMAGE;finite_int_ball;surj2_cube]);;
 
 let MEASURABLE_UNIONS2 = prove
  (`!f:(real^N->bool)->bool.

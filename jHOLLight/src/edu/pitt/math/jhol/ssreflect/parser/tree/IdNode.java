@@ -51,7 +51,17 @@ public class IdNode extends ObjectNode {
 
 	@Override
 	protected void translate(StringBuffer buffer) {
-		buffer.append("(use_arg_then \"" + id + "\")");
+		if (!isEnvDefined()) {
+			buffer.append("(use_arg_then \"" + id + "\")");
+		}
+		else {
+			String th = "[";
+			if (isTheorem(id))
+				th += id;
+			th += "]";
+			
+			buffer.append("(use_arg_then2 (\"" + id + "\", " + th + "))");
+		}
 	}
 	
 	

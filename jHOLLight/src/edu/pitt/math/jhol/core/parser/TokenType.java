@@ -9,6 +9,7 @@ enum TokenType {
 	LPAR, RPAR,
 	LBRACK, RBRACK,
 	COMMA, COLON, SEMICOLON,
+	False, True,
 	Tyapp, Tyvar,
 	Var, Const, Comb, Abs,
 	String, Int, HOLType, Term, Theorem, List, Pair,

@@ -6,6 +6,7 @@ package edu.pitt.math.jhol.caml;
 public abstract class CamlType {
 	/* Constants for simple types */
 	public static final CamlType STRING = new StringType();
+	public static final CamlType BOOL = new BoolType();
 	public static final CamlType INT = new IntType();
 	public static final CamlType HOL_TYPE = new HOLTypeType();
 	public static final CamlType TERM = new TermType();
@@ -173,6 +174,42 @@ public abstract class CamlType {
 		@Override
 		public String toString() {
 			return "String";
+		}
+	}
+	
+	
+	/**
+	 * Bool
+	 */
+	public static class BoolType extends CamlType {
+		private BoolType() {
+		}
+
+		@Override
+		public String getPrintCommand() {
+			return "raw_string_of_bool";
+		}
+		
+		@Override
+		public int hashCode() {
+			return 179;
+		}
+		
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof BoolType))
+				return false;
+		
+			return true;
+		}
+		
+		@Override
+		public String toString() {
+			return "Bool";
 		}
 	}
 	

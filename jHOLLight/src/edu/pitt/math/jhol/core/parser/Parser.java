@@ -119,6 +119,16 @@ public class Parser {
 		case STRING:
 			s.nextToken();
 			return new CamlString(t.value);
+		
+		// Boolean: false
+		case False:
+			s.nextToken();
+			return new CamlBool(false);
+			
+		// Boolean: true
+		case True:
+			s.nextToken();
+			return new CamlBool(true);
 			
 		// Integer
 		case INTEGER:

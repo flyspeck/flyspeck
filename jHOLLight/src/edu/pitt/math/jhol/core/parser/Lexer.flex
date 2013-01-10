@@ -74,6 +74,11 @@ StringCharacter = [^\r\n\"]
 		"Comb" { return new Token(TokenType.Comb); }
 		"Abs" { return new Token(TokenType.Abs); }
 		
+		/* boolean values */
+		"false" { return new Token(TokenType.False); }
+		"true" { return new Token(TokenType.True); }
+		
+		/* types */
 		"String" { return new Token(TokenType.String); }
 		"Int" { return new Token(TokenType.Int); }
 		"HOLType" { return new Token(TokenType.HOLType); }

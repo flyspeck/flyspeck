@@ -714,8 +714,22 @@ let combine_args arg1 arg2 =
     Arg_theorem th0;;
 
 
+(* A temporary variable *)
 let use_arg_then_result = ref TRUTH;;
 
+(* Tests if the given id defines a theorem *)
+let test_id_thm id =
+  let lexbuf = 
+    Lexing.from_string ("use_arg_then_result := " ^ id ^ ";;") in
+  let ast = (!Toploop.parse_toplevel_phrase) lexbuf in
+    try
+      let _ = Toploop.execute_phrase false Format.std_formatter ast in
+	true
+    with _ -> false;;
+
+
+(* For a given id (string) finds an assumption or an existing theorem with the same name
+   and then applies the given tactic *)
 let use_arg_then id (arg_tac:arg_type->tactic) (g:goal) =
   let list = fst g in
   let arg =
@@ -736,6 +750,26 @@ let use_arg_then id (arg_tac:arg_type->tactic) (g:goal) =
 	    Toploop.execute_phrase false Format.std_formatter ast
 	  with _ -> failwith ("Bad identifier: " ^ id) in
 	  Arg_theorem !use_arg_then_result in
+    arg_tac arg g;;
+
+
+(* The same effect as use_arg_then but the theorem is given explicitly*)
+let use_arg_then2 (id, opt_thm) (arg_tac:arg_type->tactic) (g:goal) =
+  let list = fst g in
+  let arg =
+    try
+      let assumption = assoc id list in
+	Arg_theorem assumption
+    with Failure _ ->
+      try
+	let vars = get_context_vars g in
+	let var = assoc id vars in
+	  Arg_term var
+      with Failure _ ->
+	if opt_thm <> [] then
+	  Arg_theorem (hd opt_thm)
+	else
+	  failwith ("Assumption is not found: " ^ id) in
     arg_tac arg g;;
 
 

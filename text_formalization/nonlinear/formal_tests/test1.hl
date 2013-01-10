@@ -1,0 +1,251 @@
+needs "verifier/m_verifier_main.hl";;
+
+needs "nonlinear/lemma.hl";;
+needs "nonlinear/functional_equation.hl";;
+needs "nonlinear/ineq.hl";;
+
+let add_inequality = Ineq.add;;
+let find_ineqs = Ineq.getprefix;;
+needs "nonlinear/prep.hl";;
+needs "nonlinear/formal_tests/ineq_ids.hl";;
+
+needs "nonlinear/formal_tests/hminus.hl";;
+
+
+open M_verifier_main;;
+open Sphere;;
+
+(*************************)
+
+let dih_x_pos_eq = prove (`let d_x4 = delta_x4 x1 x2 x3 x4 x5 x6 in
+   let d = delta_x x1 x2 x3 x4 x5 x6 in
+     &0 < x1 /\ &0 < d ==>
+       dih_x x1 x2 x3 x4 x5 x6 = pi / &2 + atn(--d_x4 / sqrt (&4 * x1 * d))`,
+   REPEAT (CONV_TAC let_CONV) THEN STRIP_TAC THEN
+     REWRITE_TAC[dih_x] THEN CONV_TAC (DEPTH_CONV let_CONV) THEN
+     new_rewrite [] [] Trigonometry1.ATN2_BREAKDOWN THEN ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC SQRT_POS_LT THEN
+     MATCH_MP_TAC REAL_LT_MUL THEN STRIP_TAC THENL [ REAL_ARITH_TAC; ALL_TAC] THEN
+     MATCH_MP_TAC REAL_LT_MUL THEN ASM_REWRITE_TAC[]);;
+
+
+let arclength_pos_eq = prove(`&0 < ups_x (a * a) (b * b) (c * c) ==>
+       arclength a b c = pi / &2 + atn ((c * c - a * a - b * b) / sqrt (ups_x (a * a) (b * b) (c * c)))`,
+   STRIP_TAC THEN REWRITE_TAC[arclength] THEN
+     new_rewrite [] [] Trigonometry1.ATN2_BREAKDOWN THEN ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC SQRT_POS_LT THEN ASM_REWRITE_TAC[]);;
+
+let sqrt_pos_eq = prove(`&0 < x ==> sqrt x * sqrt x = x`,
+			DISCH_TAC THEN REWRITE_TAC[GSYM REAL_POW_2] THEN
+			  MATCH_MP_TAC SQRT_POW_2 THEN 
+			  MATCH_MP_TAC REAL_LT_IMP_LE THEN ASM_REWRITE_TAC[]);;
+
+
+let ineqs = 
+  let find id = 
+    let data = (hd o find_ineqs) id in
+      data.ineq in
+  let all_ineqs = map (fun id, t -> find id, t) ineq_ids in
+  let filter1 = filter (fun ineq, _ -> not (is_disj (rand ineq))) all_ineqs in
+    filter (fun ineq, _ -> not (is_binary "real_le" (rand ineq))) filter1;;
+
+
+let get_constants tm =
+  let rec find tm =
+    match tm with
+      | Const _ -> [tm]
+      | Comb (tm1, tm2) -> find tm1 @ find tm2
+      | Abs (_, tm2) -> find tm2 
+      | _ -> [] in
+    setify (find tm);;
+
+
+let ineqs = 
+  let c1 = "asn797k" and
+      c2 = "asnFnhk" in
+    filter (fun ineq, _ -> 
+	      let cs = get_constants ineq in
+	      let l = map (fst o dest_const) cs in
+		not (mem c1 l or mem c2 l)) ineqs;;
+
+let consts = end_itlist union (map (get_constants o fst) ineqs);;
+(* 192 *)
+length ineqs;;
+
+open Functional_equation;;
+open Nonlinear_lemma;;
+
+let flyspeck_defs = [
+  gamma2_x1_div_a; promote_pow3;
+  proj_x1; proj_x2; proj_x3; proj_x4; proj_x5; proj_x6;
+  delta_x4; delta_x; eulerA_x; num1; acs_sqrt_x1_d4;
+  arclength_x_123; arc_hhn; arclength_x1;
+  lfun_y1; gchi1_x; rhazim2_x; rhazim3_x; rhazim_x;
+  taum_sub345_x; dih4_x; halfbump_x1; halfbump_x4;
+  gchi2_x; gchi3_x; gchi4_x; gchi5_x; gchi6_x;
+  sqrt8; vol_x; dih2_x; dih3_x; 
+  sqrt_x1; sqrt_x2; sqrt_x3; sqrt_x4; sqrt_x5; sqrt_x6;
+  rad2_x; unit6;
+  promote1_to_6; gamma2_x_div_azim;
+  mm1; mm2; arclength_y1; h0; lfun;
+  rhazim2; rhazim3; taum_x; rhazim;
+  halfbump_x; dih4_y; dih5_x; dih6_x; gchi;
+  sol_y; rho_x; sol0; tau0;
+  node2_y; node3_y; rho;
+  bump; dih5_y; dih6_y; dih_y;
+  ly; interp; hplus; ups_x;
+  GSYM sol0_over_pi_EQ_const1;
+];;
+
+let cond_defs =
+  let conv = UNDISCH_ALL o CONV_RULE (DEPTH_CONV let_CONV) in
+    map conv [
+      dih_x_pos_eq;
+      arclength_pos_eq
+    ];;
+
+(* A temporary cheating *)
+let cond_defs =
+  let conv = UNDISCH_ALL o CONV_RULE (DEPTH_CONV let_CONV) in
+  let conv = Hol.new_axiom o concl o conv in
+    map conv [
+      dih_x_pos_eq;
+      arclength_pos_eq;
+      sqrt_pos_eq;
+    ];;
+
+let ineq_conv = REWRITE_CONV[Sphere.ineq; IMP_IMP] THENC REWRITE_CONV flyspeck_defs 
+  THENC DEPTH_CONV let_CONV THENC REWRITE_CONV cond_defs THENC REWRITE_CONV flyspeck_defs;;
+(* let consts2 = end_itlist union (map (get_constants o rand o concl o ineq_conv o fst) ineqs);; *)
+
+
+let verify_all pp ineqs =
+  let n = length ineqs in
+  let k = ref 0 in
+  let verify ineq_tm =
+    let _ = k := !k + 1 in
+    let _ = report (sprintf "Verifying: %d/%d" !k n) in
+    let eq_th = ineq_conv ineq_tm in
+    let ineq_tm1 = (rand o concl) eq_th in
+      try
+	verify_ineq default_params pp ineq_tm1
+      with Failure s ->
+	let _ = report s in
+	  TRUTH, {total_time = 0.0; formal_verification_time = 0.0; certificate = Verifier.dummy_stats} in
+    map (verify o fst) ineqs;;
+
+
+let sum_time ineqs result =
+  let original_time = itlist (fun (_,x) y -> x + y) ineqs 0 in
+  let failures = length (filter (fun x, _ -> x = TRUTH) result) in
+  let times = snd (unzip result) in
+    failures,
+  itlist (fun x y -> x.total_time +. y) times 0.0,
+  itlist (fun x y -> x.formal_verification_time +. y) times 0.0,
+  original_time;;
+
+
+(* Returns inequalities with the given informal verification time (bounds are inclusive) *)
+let get_ineqs t_min t_max =
+  filter (fun (_, t) -> t_min <= t && t <= t_max) ineqs;;
+
+
+(**************)
+(* 0 ms *)
+let ineqs0 = get_ineqs 0 0;;
+(* 57 *)
+length ineqs0;;
+
+let result0 = verify_all 4 ineqs0;;  
+(* base = 200, pp = 4: 422.494, 2.159; informal = 0 *)
+sum_time ineqs0 result0;;
+
+(*******************)
+(* 1 ms -- 100 ms *)
+let ineqs100 = get_ineqs 1 100;;
+(* 35 *)
+length ineqs100;;
+
+let result100 = verify_all 4 ineqs100;;
+(* base = 200, pp = 4: 5546, 3854; informal = 1134 *)
+sum_time ineqs100 result100;;
+
+
+(***********************************)
+(* 101 ms -- 500 ms, 501 -- 700 ms *)
+let ineqs500 = get_ineqs 101 500;;
+(* 11 *)
+length ineqs500;;
+
+let ineqs700 = get_ineqs 501 700;;
+(* 14 *)
+length ineqs700;;
+
+let result500 = verify_all 4 ineqs500;;
+
+let result700 = verify_all 4 ineqs700;;
+
+(* base = 200, pp = 4: 12098, 10451; informal = 3944 *)
+sum_time ineqs500 result500;;
+
+(* base = 200, pp = 4: 32065, 28705; informal = 8423 *)
+sum_time ineqs700 result700;;
+
+
+(******************)
+(* 701 -- 1000 ms *)
+let ineqs1000 = get_ineqs 701 1000;;
+(* 9 *)
+length ineqs1000;;
+
+let result1000 = verify_all 4 ineqs1000;;
+
+(* base = 200, pp = 4: 19040, 16688; informal = 7274 *)
+sum_time ineqs1000 result1000;;
+
+let x = 2;;
+
+(************************************)
+
+let ineqs1, ineqs2 = chop_list 57 ineqs;;
+let result = verify_all 4 ineqs1;;
+
+(* base = 200, pp = 4: 434.977, 2.202 (0) *)
+sum_time ineqs1 result;;
+
+let ineqs1, ineqs2 = chop_list 20 ineqs2;;
+let result2 = verify_all 4 ineqs1;;
+
+(* base = 200, pp = 4: 1809.949, 997.721 (279) *)
+sum_time ineqs1 result2;;
+
+let ineqs1, ineqs2 = chop_list 30 ineqs2;;
+let result3 = verify_all 4 ineqs1;;
+
+(* base = 200, pp = 4: 26885, 23111 (6863) *)
+sum_time ineqs1 result3;;
+
+
+let ineqs3, ineqs4 = chop_list 2 ineqs2;;
+let result4 = verify_all 4 ineqs3;;
+
+(* base = 200, pp = 4: 7105, 6439 (1125) *)
+sum_time ineqs3 result4;;
+
+let ineq_tm = List.nth ineqs3 1;;
+let eq_th = (ineq_conv THENC REWRITE_CONV[REAL_LE_REFL])
+  (subst[`#6.3504`, `x5:real`; `#4.0`, `x6:real`] (fst ineq_tm));;
+let ineq_tm1 = (rand o concl) eq_th;;
+(* verification time: 1954 (vs 3299) *)
+verify_ineq default_params 4 ineq_tm1;;
+
+
+let ineq_tm = List.nth ineqs3 1;;
+let eq_th = 
+  (REWRITE_CONV[REAL_ARITH `a + b * (-- &1) + c * (-- &1) + d * (-- &1) + e = (a + e) - (b + c + d)`] THENC
+     ineq_conv THENC REWRITE_CONV[REAL_LE_REFL])
+    (subst[`#6.3504`, `x5:real`; `#4.0`, `x6:real`] (fst ineq_tm));;
+let ineq_tm1 = (rand o concl) eq_th;;
+
+(* verification time: 1771 (vs 3299) *)
+verify_ineq default_params 4 ineq_tm1;;

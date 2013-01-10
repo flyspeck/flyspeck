@@ -1,0 +1,225 @@
+(* Gives an interval approximation of hminus *)
+(* hminus ~ 1.2317544220903043901 *)
+
+(* load_path := "/mnt/Repository/formal_ineqs" :: !load_path;; *)
+
+(* tested with base = 200 *)
+needs "verifier/m_verifier_main.hl";;
+
+(* module Hminus = struct *)
+
+open M_verifier_main;;
+
+
+let lmfun_cond_le = (UNDISCH_ALL o prove)(`x <= h0 ==> lmfun x = (h0 - x) / (h0 - &1)`,
+					  REWRITE_TAC[Sphere.lmfun] THEN REAL_ARITH_TAC);;
+
+let lmfun_cond_ge = (UNDISCH_ALL o prove)(`h0 <= x ==> lmfun x = &0`,
+					  ONCE_REWRITE_TAC[REAL_ARITH `a <= b <=> ~(b <= a) \/ a = b`] THEN
+					    STRIP_TAC THEN ASM_REWRITE_TAC[Sphere.lmfun] THEN
+					    REAL_ARITH_TAC);;
+
+let eq_tm = `marchal_quartic x - lmfun x`;;
+let eq_th1, eq_th2 = 
+  let ths = [Sphere.marchal_quartic; Sphere.h0; Sphere.hplus] in
+    REWRITE_CONV (lmfun_cond_le :: ths) eq_tm,
+  REWRITE_CONV (REAL_SUB_RZERO :: lmfun_cond_ge :: ths) eq_tm;;
+
+let eq_tm1 = (rand o concl) eq_th1 and
+    eq_tm2 = (rand o concl) eq_th2;;
+
+let ineq1_concl = mk_binary "real_lt" (eq_tm1, `&0`) and
+    ineq2_concl = mk_binary "real_lt" (`&0`, eq_tm1) and
+    ineq3_concl = mk_binary "real_lt" (`&0`, eq_tm2);;
+
+(* A better approximation cannot be achieved directly *)
+let bounds1 = `#1.2 <= x /\ x <= #1.2317544220903043901` and
+    bounds2 = `#1.2317544220903047 <= x /\ x <= #1.26` and
+    bounds3 = `#1.26 <= x /\ x <= #1.3`;;
+
+let ineq1_tm = mk_imp (bounds1, ineq1_concl) and
+    ineq2_tm = mk_imp (bounds2, ineq2_concl) and
+    ineq3_tm = mk_imp (bounds3, ineq3_concl);;
+
+let ineq1_th, _ = verify_ineq default_params 10 ineq1_tm;;
+let ineq2_th, _ = verify_ineq default_params 10 ineq2_tm;;
+let ineq3_th, _ = verify_ineq default_params 10 ineq3_tm;;
+
+let ineq_th = prove(`(#1.2 <= x /\ x < #1.3) /\ 
+		      ~(#1.2317544220903043901 <= x /\ x <= #1.2317544220903047) ==>
+		      ~(marchal_quartic x = lmfun x)`,
+		    REWRITE_TAC[DE_MORGAN_THM; REAL_NOT_LE] THEN
+		      ONCE_REWRITE_TAC[REAL_ARITH `a = b <=> a - b = &0`] THEN
+		      STRIP_TAC THENL [
+			MP_TAC (SPEC_ALL ineq1_th) THEN ASM_SIMP_TAC[REAL_LT_IMP_LE] THEN
+			  MP_TAC (DISCH_ALL eq_th1) THEN REWRITE_TAC[Sphere.h0] THEN ANTS_TAC THENL [
+			    REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC;
+			    ALL_TAC
+			  ] THEN
+			  DISCH_THEN (fun th -> REWRITE_TAC[GSYM th]) THEN
+			  REAL_ARITH_TAC;
+			ALL_TAC
+		      ] THEN
+		      DISJ_CASES_TAC (REAL_ARITH `x <= #1.26 \/ #1.26 <= x`) THENL [
+			MP_TAC (SPEC_ALL ineq2_th) THEN ASM_SIMP_TAC[REAL_LT_IMP_LE] THEN
+			  MP_TAC (DISCH_ALL eq_th1) THEN ASM_REWRITE_TAC[Sphere.h0] THEN
+			  DISCH_THEN (fun th -> REWRITE_TAC[GSYM th]) THEN
+			  REAL_ARITH_TAC;
+			ALL_TAC
+		      ] THEN
+		      MP_TAC (SPEC_ALL ineq3_th) THEN ASM_SIMP_TAC[REAL_LT_IMP_LE] THEN
+		      MP_TAC (DISCH_ALL eq_th2) THEN ASM_REWRITE_TAC[Sphere.h0] THEN
+		      DISCH_THEN (fun th -> REWRITE_TAC[GSYM th]) THEN
+		      REAL_ARITH_TAC);;
+
+
+let marchal_quartic_continuous_at = prove(`!x. marchal_quartic real_continuous atreal x`,
+				       GEN_TAC THEN
+					 new_rewrite [] [`marchal_quartic`] (GSYM ETA_AX) THEN
+					 PURE_REWRITE_TAC[Sphere.marchal_quartic] THEN
+					 MATCH_MP_TAC REAL_CONTINUOUS_MUL THEN CONJ_TAC THENL [
+					   MATCH_MP_TAC REAL_CONTINUOUS_SUB THEN
+					     REWRITE_TAC[REAL_CONTINUOUS_CONST; REAL_CONTINUOUS_AT_ID];
+					   ALL_TAC
+					 ] THEN
+					 MATCH_MP_TAC REAL_CONTINUOUS_MUL THEN CONJ_TAC THENL [
+					   MATCH_MP_TAC REAL_CONTINUOUS_SUB THEN
+					     REWRITE_TAC[REAL_CONTINUOUS_CONST; REAL_CONTINUOUS_AT_ID];
+					   ALL_TAC
+					 ] THEN
+					 REWRITE_TAC[real_div] THEN MATCH_MP_TAC REAL_CONTINUOUS_MUL THEN
+					 REWRITE_TAC[REAL_CONTINUOUS_CONST] THEN
+					 MATCH_MP_TAC REAL_CONTINUOUS_ADD THEN
+					 REWRITE_TAC[REAL_CONTINUOUS_CONST] THEN
+					 MATCH_MP_TAC REAL_CONTINUOUS_SUB THEN CONJ_TAC THENL [
+					   MATCH_MP_TAC REAL_CONTINUOUS_LMUL THEN
+					     MATCH_MP_TAC REAL_CONTINUOUS_POW THEN
+					     REWRITE_TAC[REAL_CONTINUOUS_AT_ID];
+					   ALL_TAC
+					 ] THEN
+					 MATCH_MP_TAC REAL_CONTINUOUS_LMUL THEN
+					 REWRITE_TAC[REAL_CONTINUOUS_AT_ID]);;
+
+(* Lemma piecewise_real_continuous *)
+let piecewise_real_continuous = section_proof ["a";"b";"t";"f1";"f2";"f"]
+`f1 real_continuous_on (real_interval [a,t]) /\ f2 real_continuous_on (real_interval [t,b]) /\
+        f1 t = f2 t /\ f = (\x. if x <= t then f1 x else f2 x) ==>
+        f real_continuous_on (real_interval [a,b])`
+[
+   (((repeat_tactic 1 9 (((use_arg_then "real_continuous_on")(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then "IN_REAL_INTERVAL")(thm_tac (new_rewrite [] [])))))) THEN ALL_TAC THEN (case THEN (move ["f1_cont"])) THEN (case THEN (move ["f2_cont"])) THEN (case THEN (move ["f12_eq"])) THEN (move ["f_eq"]) THEN (move ["x"]) THEN (move ["e"]) THEN (case THEN ((move ["x_in"]) THEN (move ["e_gt0"]))));
+   ((THENL) (((fun arg_tac -> arg_tac (Arg_theorem (REAL_ARITH `x < t \/ t < x \/ x = t`))) (disch_tac [])) THEN case) [(move ["h"]); ALL_TAC]);
+   ((((fun arg_tac -> (fun arg_tac -> (use_arg_then "f1_cont") (fun fst_arg -> (use_arg_then "e_gt0") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> (use_arg_then "REAL_LT_IMP_LE") (fun fst_arg -> (use_arg_then "h") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC) THEN (((((use_arg_then "x_in")(thm_tac (new_rewrite [] [])))) THEN ((simp_tac THEN TRY done_tac))) THEN ALL_TAC THEN (case THEN (move ["d"])) THEN (case THEN (move ["d_gt0"])) THEN (move ["ineq"])));
+   ((THENL_FIRST) (((fun arg_tac -> arg_tac (Arg_term (`min d (t - x)`))) (term_tac exists_tac)) THEN (split_tac)) ((((use_arg_then "h") (disch_tac [])) THEN (clear_assumption "h") THEN ((use_arg_then "d_gt0") (disch_tac [])) THEN (clear_assumption "d_gt0") THEN BETA_TAC) THEN (arith_tac) THEN (done_tac)));
+   (BETA_TAC THEN (move ["y"]) THEN (case THEN ((move ["y_ineq"]) THEN (move ["xy_lt"]))));
+   ((THENL_FIRST) ((fun arg_tac -> arg_tac (Arg_term (`y < t`))) (term_tac (have_gen_tac [](move ["y_lt"])))) ((((use_arg_then "h") (disch_tac [])) THEN (clear_assumption "h") THEN ((use_arg_then "xy_lt") (disch_tac [])) THEN (clear_assumption "xy_lt") THEN BETA_TAC) THEN (arith_tac) THEN (done_tac)));
+   (((((use_arg_then "f_eq")(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (repeat_tactic 1 9 (((use_arg_then "REAL_LT_IMP_LE")(thm_tac (new_rewrite [] []))))) THEN ((simp_tac THEN TRY done_tac)) THEN (((use_arg_then "ineq")(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then "xy_lt") (disch_tac [])) THEN (clear_assumption "xy_lt") THEN ((use_arg_then "y_lt") (disch_tac [])) THEN (clear_assumption "y_lt") THEN ((use_arg_then "y_ineq") (disch_tac [])) THEN (clear_assumption "y_ineq") THEN BETA_TAC) THEN (arith_tac) THEN (done_tac));
+   (case THEN (move ["h"]));
+   ((((fun arg_tac -> (fun arg_tac -> (use_arg_then "f2_cont") (fun fst_arg -> (use_arg_then "e_gt0") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> (use_arg_then "REAL_LT_IMP_LE") (fun fst_arg -> (use_arg_then "h") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC) THEN (((((use_arg_then "x_in")(thm_tac (new_rewrite [] [])))) THEN ((simp_tac THEN TRY done_tac))) THEN ALL_TAC THEN (case THEN (move ["d"])) THEN (case THEN (move ["d_gt0"])) THEN (move ["ineq"])));
+   ((THENL_FIRST) (((fun arg_tac -> arg_tac (Arg_term (`min d (x - t)`))) (term_tac exists_tac)) THEN (split_tac)) ((((use_arg_then "h") (disch_tac [])) THEN (clear_assumption "h") THEN ((use_arg_then "d_gt0") (disch_tac [])) THEN (clear_assumption "d_gt0") THEN BETA_TAC) THEN (arith_tac) THEN (done_tac)));
+   (BETA_TAC THEN (move ["y"]) THEN (case THEN ((move ["y_ineq"]) THEN (move ["xy_lt"]))));
+   ((THENL_FIRST) ((fun arg_tac -> arg_tac (Arg_term (`t < y`))) (term_tac (have_gen_tac [](move ["y_lt"])))) ((((use_arg_then "h") (disch_tac [])) THEN (clear_assumption "h") THEN ((use_arg_then "xy_lt") (disch_tac [])) THEN (clear_assumption "xy_lt") THEN BETA_TAC) THEN (arith_tac) THEN (done_tac)));
+   (((((use_arg_then "f_eq")(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (repeat_tactic 1 9 (((use_arg_then "REAL_NOT_LT")(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (((use_arg_then "y_lt")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "h")(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (((use_arg_then "ineq")(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then "xy_lt") (disch_tac [])) THEN (clear_assumption "xy_lt") THEN ((use_arg_then "y_lt") (disch_tac [])) THEN (clear_assumption "y_lt") THEN ((use_arg_then "y_ineq") (disch_tac [])) THEN (clear_assumption "y_ineq") THEN BETA_TAC) THEN (arith_tac) THEN (done_tac));
+   ((((fun arg_tac -> (fun arg_tac -> (use_arg_then "f2_cont") (fun fst_arg -> (use_arg_then "t") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "e_gt0") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN ((fun arg_tac -> (fun arg_tac -> (use_arg_then "f1_cont") (fun fst_arg -> (use_arg_then "t") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "e_gt0") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC) THEN ((((use_arg_then "h")(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then "REAL_LE_REFL")(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then "x_in")(thm_tac (new_rewrite [] []))))) THEN (simp_tac)));
+   (BETA_TAC THEN (case THEN (move ["d1"])) THEN (case THEN (move ["d1_gt0"])) THEN (move ["ineq1"]) THEN (case THEN (move ["d2"])) THEN (case THEN (move ["d2_gt0"])) THEN (move ["ineq2"]));
+   ((THENL_FIRST) (((fun arg_tac -> arg_tac (Arg_term (`min d1 d2`))) (term_tac exists_tac)) THEN (split_tac)) ((((use_arg_then "d2_gt0") (disch_tac [])) THEN (clear_assumption "d2_gt0") THEN ((use_arg_then "d1_gt0") (disch_tac [])) THEN (clear_assumption "d1_gt0") THEN BETA_TAC) THEN (arith_tac) THEN (done_tac)));
+   (BETA_TAC THEN (move ["y"]) THEN (case THEN ((move ["y_ineq"]) THEN (move ["xy_lt"]))));
+   (((fun arg_tac -> (fun arg_tac -> (use_arg_then "REAL_LET_TOTAL") (fun fst_arg -> (use_arg_then "y") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "x") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN case THEN (move ["xy_ineq"]));
+   (((((use_arg_then "f_eq")(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (((use_arg_then "h")(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then "REAL_LE_REFL")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "xy_ineq")(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (((use_arg_then "ineq1")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "xy_ineq")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "y_ineq")(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then "xy_lt") (disch_tac [])) THEN (clear_assumption "xy_lt") THEN BETA_TAC) THEN (arith_tac) THEN (done_tac));
+   ((((use_arg_then "f_eq")(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (((use_arg_then "h")(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then "REAL_LE_REFL")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "REAL_NOT_LT")(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then "xy_ineq")(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (((use_arg_then "h")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "f12_eq")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "h")(gsym_then (thm_tac (new_rewrite [] []))))));
+   ((((use_arg_then "ineq2")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "xy_lt") (disch_tac [])) THEN (clear_assumption "xy_lt") THEN ((use_arg_then "y_ineq") (disch_tac [])) THEN (clear_assumption "y_ineq") THEN ((use_arg_then "xy_ineq") (disch_tac [])) THEN (clear_assumption "xy_ineq") THEN BETA_TAC) THEN (arith_tac) THEN (done_tac));
+];;
+
+(* Lemma piecewise_real_continuous_univ *)
+let piecewise_real_continuous_univ = section_proof ["t";"f1";"f2";"f"]
+`f1 real_continuous_on UNIV /\ f2 real_continuous_on UNIV /\ f1 t = f2 t /\
+        f = (\x. if x <= t then f1 x else f2 x) ==>
+        f real_continuous_on UNIV`
+[
+   (BETA_TAC THEN (case THEN (move ["f1_cont"])) THEN (case THEN (move ["f2_con"])) THEN (case THEN (move ["f12_eq"])) THEN (move ["f_eq"]));
+   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`!a b. f real_continuous_on real_interval (a,b)`))) (term_tac (have_gen_tac [](move ["cont_int"])))));
+   (((((use_arg_then "REAL_CONTINUOUS_ON_EQ_REAL_CONTINUOUS_AT")(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then "REAL_OPEN_UNIV")(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac))) THEN (move ["x"]) THEN (move ["_"]));
+   (((fun arg_tac -> (fun arg_tac -> (use_arg_then "cont_int") (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`x - &1`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`x + &1`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC);
+   (((((use_arg_then "REAL_CONTINUOUS_ON_EQ_REAL_CONTINUOUS_AT")(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then "REAL_OPEN_REAL_INTERVAL")(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac))) THEN (DISCH_THEN apply_tac));
+   ((((use_arg_then "IN_REAL_INTERVAL")(thm_tac (new_rewrite [] [])))) THEN (arith_tac) THEN (done_tac));
+   ((BETA_TAC THEN (move ["a"]) THEN (move ["b"])) THEN (((use_arg_then "REAL_CONTINUOUS_ON_SUBSET") (disch_tac [])) THEN (clear_assumption "REAL_CONTINUOUS_ON_SUBSET") THEN (DISCH_THEN apply_tac)) THEN ((fun arg_tac -> arg_tac (Arg_term (`real_interval [a,b]`))) (term_tac exists_tac)));
+   ((((use_arg_then "REAL_INTERVAL_OPEN_SUBSET_CLOSED")(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (fun arg_tac -> (use_arg_then "piecewise_real_continuous") (fun fst_arg -> (use_arg_then "f_eq") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "f12_eq") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   ((split_tac) THEN ((((fun arg_tac -> (use_arg_then "REAL_CONTINUOUS_ON_SUBSET") (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`(:real)`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "SUBSET_UNIV")(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma lmfun_continuous *)
+let lmfun_continuous = section_proof []
+`lmfun real_continuous_on UNIV`
+[
+   ((fun arg_tac -> arg_tac (Arg_term (`lmfun = (\x. if x <= h0 then (h0 - x) / (h0 - &1) else &0)`))) (term_tac (have_gen_tac [](move ["eq"]))));
+   (((((use_arg_then "eq_ext")(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then "Sphere.lmfun")(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((THENL_ROT (1)) ((((fun arg_tac -> (use_arg_then "piecewise_real_continuous_univ") (fun fst_arg -> (use_arg_then "eq") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (split_tac)));
+   ((((use_arg_then "REAL_CONTINUOUS_ON_CONST")(thm_tac (new_rewrite [] [])))) THEN (arith_tac) THEN (done_tac));
+   ((((use_arg_then "real_div")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "REAL_CONTINUOUS_ON_RMUL")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "REAL_CONTINUOUS_ON_SUB")(thm_tac (new_rewrite [] [])))));
+   (((((use_arg_then "REAL_CONTINUOUS_ON_ID")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "REAL_CONTINUOUS_ON_CONST")(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+
+let root_th = prove(`?x. (#1.2317544220903043901 <= x /\ x <= #1.2317544220903047) /\
+		      marchal_quartic x = lmfun x`,
+		    REWRITE_TAC[GSYM IN_REAL_INTERVAL] THEN
+		      ONCE_REWRITE_TAC[REAL_ARITH `a = b <=> a - b = &0`] THEN
+		      MATCH_MP_TAC REAL_IVT_INCREASING THEN REPEAT STRIP_TAC THENL [
+			REAL_ARITH_TAC;
+			MATCH_MP_TAC REAL_CONTINUOUS_ON_SUB THEN CONJ_TAC THENL [
+			  REWRITE_TAC[REAL_CONTINUOUS_ON_EQ_CONTINUOUS_WITHIN] THEN
+			    REPEAT STRIP_TAC THEN
+			    MATCH_MP_TAC REAL_CONTINUOUS_ATREAL_WITHINREAL THEN
+			    REWRITE_TAC[marchal_quartic_continuous_at];
+			  ALL_TAC
+			] THEN
+			  MATCH_MP_TAC REAL_CONTINUOUS_ON_SUBSET THEN
+			  EXISTS_TAC `(:real)` THEN
+			  REWRITE_TAC[SUBSET_UNIV; lmfun_continuous];
+			MP_TAC (SPEC `#1.2317544220903043901` ineq1_th) THEN ANTS_TAC THENL [
+			  REAL_ARITH_TAC;
+			  ALL_TAC
+			] THEN
+			  MP_TAC ((SPEC `#1.2317544220903043901` o GEN_ALL o DISCH_ALL) eq_th1) THEN
+			  ANTS_TAC THENL [
+			    REWRITE_TAC[Sphere.h0] THEN REAL_ARITH_TAC;
+			    ALL_TAC
+			  ] THEN
+			  DISCH_THEN (fun th -> REWRITE_TAC[GSYM th]) THEN
+			  REAL_ARITH_TAC;
+			ALL_TAC
+		      ] THEN
+		      MP_TAC (SPEC `#1.2317544220903047` ineq2_th) THEN ANTS_TAC THENL [
+			REAL_ARITH_TAC;
+			ALL_TAC
+		      ] THEN
+		      MP_TAC ((SPEC `#1.2317544220903047` o GEN_ALL o DISCH_ALL) eq_th1) THEN
+		      ANTS_TAC THENL [
+			REWRITE_TAC[Sphere.h0] THEN REAL_ARITH_TAC;
+			ALL_TAC
+		      ] THEN
+		      DISCH_THEN (fun th -> REWRITE_TAC[GSYM th]) THEN
+		      REAL_ARITH_TAC);;
+
+
+let root_lemma = prove(`!P Q P2 y. y = (@x. P x /\ Q x) /\
+    (!x. P2 x ==> P x) /\ (?z. P2 z /\ Q z) /\ (!x. P x /\ ~(P2 x) ==> ~(Q x)) ==>
+    P2 y`, MESON_TAC[]);;
+
+
+let hminus_interval = prove(`interval_arith hminus (#1.2317544220903043901, #1.2317544220903047)`,
+   SUBGOAL_THEN `!x lo hi. interval_arith x (lo,hi) = (\x. interval_arith x (lo, hi)) x` MP_TAC THENL [
+     ASM_REWRITE_TAC[];
+     ALL_TAC
+   ] THEN
+    DISCH_THEN (fun th -> PURE_ONCE_REWRITE_TAC[th]) THEN
+     MATCH_MP_TAC root_lemma THEN REWRITE_TAC[interval_arith] THEN
+     EXISTS_TAC `\x. #1.2 <= x /\ x < #1.3` THEN
+     EXISTS_TAC `\x. marchal_quartic x = lmfun x` THEN
+     ASM_REWRITE_TAC[Sphere.hminus; CONJ_ASSOC] THEN
+     REWRITE_TAC[root_th; ineq_th] THEN
+     REAL_ARITH_TAC);;
+
+
+add_constant_interval hminus_interval;;
+
+(* end;; *)

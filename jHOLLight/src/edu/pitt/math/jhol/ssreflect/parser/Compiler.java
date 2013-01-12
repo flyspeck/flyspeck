@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.util.ArrayList;
 
+import edu.pitt.math.jhol.caml.CamlEnvironment;
 import edu.pitt.math.jhol.ssreflect.parser.tree.LemmaNode;
 import edu.pitt.math.jhol.ssreflect.parser.tree.ModuleNode;
 import edu.pitt.math.jhol.ssreflect.parser.tree.Node;
@@ -24,7 +25,6 @@ public class Compiler {
 	
 	// A global module flag 
 	private boolean moduleFlag;
-
 	
 	// Describes a lemma
 	private static class Lemma {
@@ -57,7 +57,7 @@ public class Compiler {
 		/**
 		 * Translates the lemma
 		 */
-		public void translate(PrintWriter out) {
+		public void translate(PrintWriter out, CamlEnvironment env) throws Exception {
 			StringBuffer buffer = new StringBuffer(1000);
 			String name = getName();
 			
@@ -68,21 +68,35 @@ public class Compiler {
 			// Statement
 			buffer.append("let " + name + " = section_proof ");
 			node.translateParameters(buffer);
-			out.println(buffer);
+//			out.println(buffer);
+			buffer.append('\n');
 
-			out.println(node.getGoalText());
+//			out.println(node.getGoalText());
+			buffer.append(node.getGoalText());
+			buffer.append('\n');
 
 			// Proof
-//			buffer.append(" [");
-			out.println('[');
+//			out.println('[');
+			buffer.append("[\n");
 			
 			for (TacticNode tac : proof) {
-				out.print("   ");
-				out.print(tac.toHOLCommand());
-				out.println(';');
+//				out.print("   ");
+//				out.print(tac.toHOLCommand());
+//				out.println(';');
+				buffer.append("   ");
+				buffer.append(tac.toHOLCommand(env));
+				buffer.append(";\n");
 			}
 			
-			out.println("];;");
+//			out.println("];;");
+			buffer.append("];;");
+			
+			String cmd = buffer.toString();
+			out.println(cmd);
+			
+			if (env != null) {
+				env.runCommand(cmd);
+			}
 		}
 	}
 	
@@ -129,7 +143,7 @@ public class Compiler {
 		/**
 		 * Finalizes the section
 		 */
-		public void finalizeSection(PrintWriter out) {
+		public void finalizeSection(PrintWriter out, CamlEnvironment env) throws Exception {
 			// Do not finalize lemmas in the initial section
 			if (initialSection)
 				return;
@@ -137,8 +151,13 @@ public class Compiler {
 			out.println();
 			out.println("(* Finalization of the section " + name + " *)");
 			
-			for (String lemma : lemmas) { 
-				out.println("let " + lemma + " = finalize_theorem " + lemma + ";;");
+			for (String lemma : lemmas) {
+				String cmd = "let " + lemma + " = finalize_theorem " + lemma + ";;"; 
+				out.println(cmd);
+				
+				if (env != null) {
+					env.runCommand(cmd);
+				}
 			}
 		}
 	}
@@ -210,15 +229,21 @@ public class Compiler {
 	/**
 	 * Processes a section
 	 */
-	private Section processSection(SectionNode currentSection) throws Exception {
+	private Section processSection(SectionNode currentSection, CamlEnvironment env) throws Exception {
 		Section section = new Section(currentSection);
 		String name = section.getName();
+		String cmd;
 		
 		// Start the section
 		if (currentSection != null) {
 			out.println();
 			out.println("(* Section " + name + " *)");
-			out.println(currentSection.toHOLCommand() + ";;");
+			cmd = currentSection.toHOLCommand(env) + ";;";
+			out.println(cmd);
+			
+			if (env != null) {
+				env.runCommand(cmd);
+			}
 		}
 
 		// Process all commands in the section
@@ -244,6 +269,9 @@ public class Compiler {
 				
 				if (moduleFlag)
 					throw new Exception("Only one module can be declared");
+				
+				if (env == null)
+					throw new Exception("Modules are not supported in fast compilation");
 			
 				// Start the module
 				String moduleName = ((ModuleNode) node).getName();
@@ -268,14 +296,18 @@ public class Compiler {
 					if (!name.equals(sectionNode.getName()))
 						throw new Exception("The open section has the name " + name + ": " + t);
 					
-					section.finalizeSection(out);
-					out.println(sectionNode.toHOLCommand() + ";;");
+					section.finalizeSection(out, env);
+					cmd = sectionNode.toHOLCommand(env) + ";;";
+					out.println(cmd);
+					if (env != null) {
+						env.runCommand(cmd);
+					}
 					
 					return section;
 				} 
 				else {
 					// New section
-					Section newSection = processSection(sectionNode);
+					Section newSection = processSection(sectionNode, env);
 					section.addAllLemmas(newSection);
 				}
 				
@@ -286,14 +318,19 @@ public class Compiler {
 			if (node instanceof LemmaNode) {
 				Lemma lemma = processLemmaProof((LemmaNode) node);
 				if (lemma != null) {
-					lemma.translate(out);
+					lemma.translate(out, env);
 					section.addLemmaName(lemma.getName());
 				}
 				
 				continue;
 			}
 			
-			out.println(node.toHOLCommand() + ";;");
+			// A raw HOL Light command
+			cmd = node.toHOLCommand(env) + ";;";
+			out.println(cmd);
+			if (env != null) {
+				env.runCommand(cmd);
+			}
 		}
 	}
 	
@@ -301,10 +338,10 @@ public class Compiler {
 	/**
 	 * Compiles the input
 	 */
-	public void compile() throws Exception {
+	public void compile(CamlEnvironment env) throws Exception {
 		try {
 			moduleFlag = false;
-			processSection(null);
+			processSection(null, env);
 			
 			// Close the module (if it is declared)
 			if (moduleFlag) {

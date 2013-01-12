@@ -39,7 +39,7 @@ public abstract class Node {
 		if (camlEnv == null)
 			return false;
 		
-		String cmd = "test_id_thm " + id;
+		String cmd = "test_id_thm \"" + id + "\"";
 		
 		try {
 			CamlObject result = camlEnv.execute(cmd, CamlType.BOOL);

@@ -47,6 +47,9 @@ import edu.pitt.math.jhol.test.TestCamlEnvironment;
  */
 @SuppressWarnings("serial")
 public class TestSSReflectGUI extends JFrame implements Configuration.Saver, ActionListener {
+	// OCaml environment
+	private final CamlEnvironment camlEnv;
+	
 	// Interprets the script
 	private final Interpreter interpreter;
 	
@@ -69,6 +72,7 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 	private static final String CMD_FILE_EXIT = "file-exit";
 	private static final String CMD_EDIT_HIGHLIGHT = "edit-highlight";
 	private static final String CMD_RUN_COMPILE = "run-compile";
+	private static final String CMD_RUN_FAST_COMPILE = "run-fast-compile";
 	
 	// File menu
 	private JMenu fileMenu;
@@ -93,6 +97,7 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 	 * Constructor
 	 */
 	public TestSSReflectGUI(CamlEnvironment caml) {
+		this.camlEnv = caml;
 //		this.interpreter = new Interpreter(caml, "caml/test.log");
 		this.interpreter = new Interpreter(caml, null);
 		this.configuration = new Configuration("gui.xml");
@@ -411,6 +416,11 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
     	menu.setMnemonic(KeyEvent.VK_R);
     	menuBar.add(menu);
     	
+    	menuItem = new JMenuItem("Compile (fast)");
+    	menuItem.setActionCommand(CMD_RUN_FAST_COMPILE);
+    	menuItem.addActionListener(this);
+    	menu.add(menuItem);
+    	
     	menuItem = new JMenuItem("Compile");
     	menuItem.setAccelerator(KeyStroke.getKeyStroke(
     	        KeyEvent.VK_B, ActionEvent.CTRL_MASK | ActionEvent.SHIFT_MASK));
@@ -426,7 +436,7 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
     /**
      * Compiles the current text
      */
-    private void compileText() {
+    private void compileText(boolean fastFlag) {
     	String text = editor.getText();
     	FileManager.FileInfo currentFile = fileManager.getCurrentFile();
     	
@@ -447,7 +457,10 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
     	
     		try {
     			Compiler compiler = new Compiler(in, out);
-    			compiler.compile();
+    			if (fastFlag)
+    				compiler.compile(null);
+    			else
+    				compiler.compile(camlEnv);
     		}
     		catch (Exception e) {
     	        final SimpleAttributeSet redAttrs = new SimpleAttributeSet();
@@ -484,11 +497,11 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
 		cmd = cmd.intern();
 		
 		// Compile
-		if (cmd == CMD_RUN_COMPILE) {
+		if (cmd == CMD_RUN_COMPILE || cmd == CMD_RUN_FAST_COMPILE) {
 			// Save all modifications first
 			if (fileManager.saveCurrent(editor.getText(), editor.getCaretPosition())) {
 				editor.setModified(false);
-				compileText();
+				compileText(cmd == CMD_RUN_FAST_COMPILE);
 			}
 			
 			return;

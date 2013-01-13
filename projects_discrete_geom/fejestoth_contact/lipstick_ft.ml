@@ -34,7 +34,7 @@ let glpkpath = "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
 
 (* let archiveraw = datapath ^ "fejesToth.txt";; (*read only *) *)
 let archiveraw = datapath ^ "graph_out.txt";; (*read only *)
-let model = glpkpath^ "fejesToth_contact/contact.mod";; (* read only *)
+let model = ref (glpkpath^ "fejesToth_contact/contact.mod");; (* read only *)
 let tmpfile = "/tmp/graph.dat";;  (* temporary output *)
 let dumpfile = "/tmp/graph.out";; (* temp output *)
 
@@ -104,9 +104,16 @@ let ampl_of_bb outs bb =
 
 (* read in the hypermap archive as java style strings *)
 
-let archive = strip_archive archiveraw;;
-let bbn i = mk_bb (List.nth archive i);;
-let exec() = map (fun i -> solve_branch_f model dumpfile "optival" ampl_of_bb (bbn i)) [0;1;2;3;4;5;6;7];;
+(*
+let archive(raw) = strip_archive raw;;
+*)
+
+(* 2013-01, added arch as an explicit argument *)
+
+let bbn arch i = mk_bb (List.nth arch i);;
+let exec(arch) = 
+  map (fun i -> solve_branch_f (!model) dumpfile "optival" ampl_of_bb (bbn arch i)) (0-- (List.length arch - 1));;
+
 (* - : string list list =
   [([], ["opt.val = 0"]); (["PROBLEM HAS NO FEASIBLE SOLUTION"], []);
    ([], ["opt.val = 0"]); (["PROBLEM HAS NO FEASIBLE SOLUTION"], []);

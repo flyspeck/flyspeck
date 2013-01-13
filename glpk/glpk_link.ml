@@ -201,7 +201,8 @@ let solve com model glpk_outfile varname ampl_of_bb bb =
   let _ = (solve_counter := !solve_counter + 1) in
   let inp = load_and_close_channel false ic in
   let _ = Unix.close_process (ic,oc) in
-  (* test for no feasible solution.  There are two different messages. *)
+  (* test for no feasible solution.  There are two different messages. *) 
+(*  let _ = Sys.command("cat "^ glpk_outfile) in (* debug *) *) 
   let com2 = sprintf "grep \"PROBLEM HAS NO.*FEASIBLE SOLUTION\" %s" glpk_outfile in
   let (ic,oc)  =Unix.open_process(com2) in
   let inp2 = load_and_close_channel false ic in

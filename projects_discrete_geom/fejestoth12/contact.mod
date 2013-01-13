@@ -28,7 +28,9 @@ set ITRIANGLE;
 set IQUAD;  
 set IPENT; 
 set IHEX; 
-set STANDARD := ITRIANGLE union IQUAD union IPENT union IHEX; # standard regions.
+set IHEPT; 
+set IOCT; 
+set STANDARD := ITRIANGLE union IQUAD union IPENT union IHEX union IHEPT union IOCT; # standard regions.
 set IDART3:= {(i,j) in DART: j in ITRIANGLE};
 set IDART4:= {(i,j) in DART: j in IQUAD};
 set ALLTRI:= setof {(i1,i2,i3,j1,k1,k2,k3,j2) in EDART cross EDART: (j1 = j2) and (i2=k1) and (i3=k2) and (i1=k3)} (i1,j1);
@@ -58,7 +60,7 @@ error_bound: optival <= 0.5;
 sol3{j in ITRIANGLE}: sol[j] >= delta0;
 sol4{j in IQUAD}: sol[j] >= 1.3085;
 sol5{j in IPENT}: sol[j] >= 2.129;
-sol6{j in IHEX}: sol[j] >= 2.95; 
+sol6{j in IHEX union IHEPT union IOCT}: sol[j] >= 2.95; 
 
 # azim bounds #
 azim3eq {(i,j) in IDART3}: azim[i,j] = dih0;

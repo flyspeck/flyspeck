@@ -34,7 +34,7 @@ let glpkpath = "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
 
 (* let archiveraw = datapath ^ "fejesToth.txt";; (*read only *) *)
 let archiveraw = datapath ^ "graph_out.txt";; (*read only *)
-let model = ref (glpkpath^ "fejesToth_contact/contact.mod");; (* read only *)
+let model = ref (glpkpath^ "../projects_discrete_geom/fejestoth12/contact.mod");; (* read only *)
 let tmpfile = "/tmp/graph.dat";;  (* temporary output *)
 let dumpfile = "/tmp/graph.out";; (* temp output *)
 
@@ -99,6 +99,8 @@ let ampl_of_bb outs bb =
     p"set IQUAD := %s;" (list_of (std_face_of_size bb 4) );
     p"set IPENT := %s;" (list_of (std_face_of_size bb 5)) ;
     p"set IHEX := %s;\n" (list_of (std_face_of_size bb 6));
+    p"set IHEPT := %s;\n" (list_of (std_face_of_size bb 7));
+    p"set IOCT := %s;\n" (list_of (std_face_of_size bb 8));
     p"set EDART := \n%s;\n"  (edart);] in
     Printf.fprintf outs "%s" j;;  
 

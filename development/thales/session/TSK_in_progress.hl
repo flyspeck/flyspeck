@@ -1,0 +1,432 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Packing                                                           *)
+(* Lemma: TSKAJXY                                                             *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2012-01-15                                                           *)
+(* ========================================================================== *)
+
+
+(*
+
+Case of 1 and 2 cells. TSKAJXY.
+
+*)
+
+let GAMMAX_NULLSET = prove_by_refinement(
+  `!V f X ul k. saturated V /\ packing V /\ barV V 3 ul /\ (X = mcell k V ul) /\ NULLSET X ==>
+  gammaX V X f = &0`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[Pack_defs.gammaX];
+  TYPIFY `total_solid V X = &0` (C SUBGOAL_THEN SUBST1_TAC);
+    REWRITE_TAC[Pack_defs.total_solid];
+    TYPIFY `(VX V X = {})` (C SUBGOAL_THEN SUBST1_TAC);
+      ASM_REWRITE_TAC[];
+      MATCH_MP_TAC Bump.VX_EMPTY;
+      BY(ASM_MESON_TAC[]);
+    BY(REWRITE_TAC[SUM_CLAUSES]);
+  TYPIFY `(edgeX V X = {})` (C SUBGOAL_THEN SUBST1_TAC);
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC Bump.RIJRIED;
+    BY(ASM_MESON_TAC[]);
+  REWRITE_TAC[SUM_CLAUSES];
+  TYPIFY `vol X = &0` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(ASM_MESON_TAC[volume_props]);
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let GAMMAX_MCELL1 = prove_by_refinement(
+  `!V X ul.  saturated V /\ packing V /\ barV V 3 ul /\ (X = mcell1 V ul) /\ ~(NULLSET X) ==>
+    gammaX V X lmfun = vol X - (&2 * mm1 /pi) * sol (EL 0 ul) X`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Pack_defs.gammaX];
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `edgeX V X = {}` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(ASM_MESON_TAC[Bump.EDGE_IMP_K2;Bump.MCELL1;arith `1 <= 1`]);
+  REWRITE_TAC[SUM_CLAUSES;Pack_defs.total_solid;arith `x + y* &0 = x`];
+  REPEAT AP_TERM_TAC;
+  TYPIFY `VX V X = {EL 0 ul}` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN SUBST1_TAC;
+    BY(REWRITE_TAC[SUM_SING]);
+  REWRITE_TAC[EL];
+  MATCH_MP_TAC SUBSET_ANTISYM;
+  CONJ_TAC;
+    MATCH_MP_TAC SUBSET_TRANS;
+    TYPIFY `V INTER X` EXISTS_TAC;
+    CONJ_TAC;
+      MATCH_MP_TAC Bump.HDTFNFZ_SUBSET;
+      BY(ASM_MESON_TAC[Bump.MCELL1]);
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC Bump.V_CELL1_SINGLE;
+    BY(ASM_REWRITE_TAC[]);
+  GMATCH_SIMP_TAC Hdtfnfz.HDTFNFZ;
+  REWRITE_TAC[SUBSET;IN_SING;IN_INTER];
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[Bump.MCELL1]);
+  REPEAT WEAK_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  CONJ2_TAC;
+    MATCH_MP_TAC Marchal_cells_3.HD_IN_MCELL;
+    BY(ASM_MESON_TAC[NEGLIGIBLE_EMPTY;arith `~(1=0)`;Bump.MCELL1]);
+  INTRO_TAC Packing3.BARV_SUBSET [`V`;`3`;`ul`];
+  GMATCH_SIMP_TAC Bump.set_of_list4;
+  REWRITE_TAC[EL;SUBSET;IN_INSERT;NOT_IN_EMPTY];
+  BY(ASM_MESON_TAC[IN;Sphere.BARV;arith `3 + 1 = 4`])
+  ]);;
+  (* }}} *)
+
+let MCELL2_VX_PROPS = prove_by_refinement(
+  `!V X ul.  saturated V /\ packing V /\ barV V 3 ul /\ (X = mcell2 V ul) /\ ~(NULLSET X) ==>
+    (VX V X = {EL 0 ul,EL 1 ul}) /\ ~(EL 0 ul = EL 1 ul) /\ (edgeX V X = {{EL 0 ul, EL 1 ul}})`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Pack_defs.gammaX];
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `VX V X = {EL 0 ul, EL 1 ul}` (C SUBGOAL_THEN MP_TAC);
+    GMATCH_SIMP_TAC Bump.HDTFNFZ_ALT;
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[Bump.MCELL2]);
+    ASM_REWRITE_TAC[Bump.MCELL2];
+    GMATCH_SIMP_TAC Lepjbdj.LEPJBDJ;
+    ASM_REWRITE_TAC[arith `1 <= 2 /\ 2 <= 4 /\ 2 -1 = 1`];
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[NEGLIGIBLE_EMPTY;Bump.MCELL2]);
+    MATCH_MP_TAC Bump.SET_OF_LIST_TRUNCATE_1;
+    BY(ASM_MESON_TAC[Sphere.BARV;IN;arith `2 <= 3 + 1`]);
+  DISCH_TAC;
+  TYPIFY `~(EL 0 ul = EL 1 ul)` (C SUBGOAL_THEN MP_TAC);
+    INTRO_TAC Marchal_cells_3.BARV_CARD_LEMMA [`V`;`ul`;`3`];
+    ASM_REWRITE_TAC[arith ` 3 + 1 = 4`];
+    GMATCH_SIMP_TAC Bump.set_of_list4;
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[IN;Sphere.BARV;arith `3 + 1 = 4`]);
+    BY(MESON_TAC[Marchal_cells_2_new.CARD4_IMP_DISTINCT]);
+  DISCH_TAC;
+  TYPIFY `edgeX V X = {{EL 0 ul, EL 1 ul}}` (C SUBGOAL_THEN MP_TAC);
+    REWRITE_TAC[Pack_defs.edgeX];
+    REWRITE_TAC[GSYM SUBSET_ANTISYM_EQ];
+    TYPIFY `!w. VX V X w <=> w IN VX V X` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+      BY(SET_TAC[]);
+    CONJ_TAC;
+      ASM_REWRITE_TAC[SUBSET;IN_INSERT;IN_SING;IN_ELIM_THM];
+      REBIND_TAC (`x:real^3->bool`,"A");
+      GEN_TAC;
+      REPEAT WEAK_STRIP_TAC;
+            BY(ASM_MESON_TAC[]);
+          BY(ASM_MESON_TAC[]);
+        BY(ASM_REWRITE_TAC[] THEN SET_TAC[]);
+      BY(ASM_MESON_TAC[]);
+    REWRITE_TAC[SUBSET];
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM MP_TAC;
+    BY(SET_TAC[]);
+  BY(ASM_SIMP_TAC[])
+  ]);;
+  (* }}} *)
+
+let GAMMAX_MCELL2 = prove_by_refinement(
+  `!V X ul.  saturated V /\ packing V /\ barV V 3 ul /\ (X = mcell2 V ul) /\ ~(NULLSET X) ==>
+    gammaX V X lmfun = vol X - (&2 * mm1 /pi) * (sol (EL 0 ul) X + sol (EL 1 ul) X) + 
+       (&8*mm2/ pi) * lmfun (hl [EL 0 ul;EL 1 ul]) * dihX V X (EL 0 ul,EL 1 ul)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Pack_defs.gammaX];
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `X IN mcell_set V` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[Pack_defs.mcell_set;Bump.MCELL2;IN_ELIM_THM];
+    BY(ASM_MESON_TAC[IN;Bump.MCELL2]);
+  INTRO_TAC MCELL2_VX_PROPS [`V`;`X`;`ul`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `total_solid V X = (sol (EL 0 ul) X + sol (EL 1 ul) X)` (C SUBGOAL_THEN SUBST1_TAC);
+    ASM_REWRITE_TAC[Pack_defs.total_solid];
+    ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC Geomdetail.SUM_DIS2;
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[IN_SING;SUM_SING];
+  GMATCH_SIMP_TAC Marchal_cells_3.BETA_PAIR_THM;
+  CONJ_TAC;
+    REPEAT WEAK_STRIP_TAC;
+    REWRITE_TAC[Pack_defs.HL;Bump.set_of_list2_explicit];
+    TYPIFY `{v,u} = {u,v}` (C SUBGOAL_THEN SUBST1_TAC);
+      BY(SET_TAC[]);
+    COND_CASES_TAC;
+      REWRITE_TAC[];
+      AP_THM_TAC;
+      AP_TERM_TAC;
+      MATCH_MP_TAC Marchal_cells_3.DIHX_SYM;
+      BY(ASM_MESON_TAC[IN_SING;IN]);
+    BY(REWRITE_TAC[]);
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+(* renamed from RCONE_GT_BALL_PLANE *)
+
+let RCONE_GT_HYPERPLANE = prove_by_refinement(
+  `!v0 v1 b t (p:real^A).  
+      p dot (v1 - v0) = b /\  ~(v1 = v0) /\ (&0 < t) /\  (b - v0 dot (v1 - v0) = r * t * dist(v1,v0))  ==> 
+       (p IN rcone_gt v0 v1 t <=> p IN ball (v0,r))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.rcone_gt;Sphere.rconesgn;ball;IN_ELIM_THM];
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `(p - v0) dot (v1 - v0) = p dot (v1 - v0) - v0 dot (v1 - v0)` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(VECTOR_ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[arith `dp * d * t > r * t * d <=> (&0  < d * t * (dp - r))`];
+  GMATCH_SIMP_TAC REAL_LT_MUL_EQ;
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC REAL_LT_MUL_EQ;
+  ASM_REWRITE_TAC[GSYM DIST_NZ];
+  BY(MESON_TAC[DIST_SYM;arith `&0 < x - y <=> y < x`])
+  ]);;
+  (* }}} *)
+
+let BALL_DIFF_RCONE_GE = prove_by_refinement(
+  `!u0 u1 (p:real^A) a r.  
+     p IN ball(u0,r) DIFF rcone_gt u0 u1 a /\ &0 <= a ==>
+    p dot (u1 - u0) <= u0 dot (u1 - u0) + r * a * dist(u1,u0)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.rcone_gt;Sphere.rconesgn;ball;IN_ELIM_THM;IN_DIFF;arith `~(x > y) <=> (x <= y)`];
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM_ST `dot` MP_TAC;
+  TYPIFY `(p - u0) dot (u1 - u0) = p dot (u1 - u0) - u0 dot (u1 - u0)` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(VECTOR_ARITH_TAC);
+  TYPIFY `dist (p,u0) * dist (u1,u0) * a <= r * a * dist(u1,u0)` ENOUGH_TO_SHOW_TAC;
+    BY(REAL_ARITH_TAC);
+  MATCH_MP_TAC (arith `&0 <= (r - dp) * d1 * a ==> dp * d1 * a <= r * a * d1`);
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  CONJ_TAC;
+    BY(ASM_MESON_TAC [arith `d < r ==> &0 <= r - d`;DIST_SYM]);
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  ASM_REWRITE_TAC[];
+  BY(REWRITE_TAC[DIST_POS_LE])
+  ]);;
+  (* }}} *)
+
+let BALL_DIFF_RCONE_GE_BISECTOR = prove_by_refinement(
+  `!u0 u1 (p:real^A) r h.
+    p IN ball(u0,r) DIFF rcone_gt u0 u1 (h/r) /\ &2 * h = dist(u1,u0) /\ &0 < r  ==>
+    dist(p,u0) <= dist(p,u1)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC BALL_DIFF_RCONE_GE [`u0`;`u1`;`p`;`h/r`;`r`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    GMATCH_SIMP_TAC REAL_LE_RDIV_EQ;
+    ASM_REWRITE_TAC[arith `&0 * x = &0`];
+    ONCE_REWRITE_TAC[arith `&0 <= h <=> &0 <= &2 * h`];
+    BY(ASM_MESON_TAC[DIST_POS_LE]);
+  TYPIFY `r * h / r * dist(u1,u0) = (dist(u1,u0)) pow 2 / &2` (C SUBGOAL_THEN SUBST1_TAC);
+    FIRST_X_ASSUM (SUBST1_TAC o SYM);
+    Calc_derivative.CALC_ID_TAC;
+    BY((FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  REWRITE_TAC[Leaf_cell.DIST_LE_HALF_PLANE];
+  REWRITE_TAC[Collect_geom.DIST_POW2_DOT];
+  MATCH_MP_TAC (arith `&2 * a + c -  b - &2 * b1  = &0 ==>     (a <= b1 + b / &2  ==> &0 <= c)`);
+  BY(VECTOR_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let MCELL1_EXPLICIT = prove_by_refinement(
+ `!V X ul. saturated V /\ packing V /\ barV V 3 ul /\ (X = mcell1 V ul) /\ ~(NULLSET X) ==>
+   (X = rogers V ul INTER cball (HD ul,sqrt (&2)) DIFF
+ rcone_gt (HD ul) (HD (TL ul)) (hl (truncate_simplex 1 ul) / sqrt (&2)))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Pack_defs.mcell1];
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `sqrt (&2) <= hl ul` (C SUBGOAL_THEN ASSUME_TAC);
+    PROOF_BY_CONTR_TAC;
+    FIRST_X_ASSUM_ST `rogers` MP_TAC;
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[NEGLIGIBLE_EMPTY]);
+  FIRST_X_ASSUM_ST `rogers` MP_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let MCELL1_VOL_RESTRICT = prove_by_refinement(
+  `!V X ul. saturated V /\ packing V /\ barV V 3 ul /\ (X = mcell1 V ul) /\ ~(NULLSET X) ==>
+    vol X = vol (X INTER ball(EL 0 ul, sqrt(&2)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `measurable X /\ measurable (X INTER ball(EL 0 ul, sqrt(&2)))` (C SUBGOAL_THEN ASSUME_TAC);
+    SUBCONJ_TAC;
+      BY(ASM_MESON_TAC[Urrphbz1.MEASURABLE_MCELL;Bump.MCELL1]);
+    DISCH_TAC;
+    MATCH_MP_TAC MEASURABLE_INTER;
+    BY(ASM_REWRITE_TAC[MEASURABLE_BALL]);
+  MATCH_MP_TAC Vol1.VOLUME_PROPS_SDIFF;
+  ASM_REWRITE_TAC[SDIFF];
+  MATCH_MP_TAC (CONJUNCT2 NULLSET_RULES);
+  CONJ2_TAC;
+    TYPIFY `!x. (x = {}) ==> NULLSET x` ENOUGH_TO_SHOW_TAC;
+      DISCH_THEN MATCH_MP_TAC;
+      BY(SET_TAC[]);
+    BY(MESON_TAC[NEGLIGIBLE_EMPTY]);
+  TYPIFY `X DIFF (X INTER ball(EL 0 ul,sqrt(&2))) SUBSET cball (EL 0 ul,sqrt(&2)) DIFF ball(EL 0 ul,sqrt(&2))` (C SUBGOAL_THEN ASSUME_TAC);
+    TYPIFY `X SUBSET cball(EL 0 ul,sqrt(&2))` ENOUGH_TO_SHOW_TAC;
+      BY(SET_TAC[]);
+    INTRO_TAC MCELL1_EXPLICIT [`V`;`X`;`ul`];
+    ASM_REWRITE_TAC[];
+    DISCH_THEN SUBST1_TAC;
+    REWRITE_TAC[EL];
+    BY(SET_TAC[]);
+  MATCH_MP_TAC NEGLIGIBLE_SUBSET;
+  FIRST_X_ASSUM MP_TAC;
+  TYPIFY `cball (EL 0 ul,sqrt(&2)) DIFF ball(EL 0 ul,sqrt(&2)) = {p | dist(EL 0 ul,p) = sqrt(&2)}` (C SUBGOAL_THEN SUBST1_TAC);
+    REWRITE_TAC[EXTENSION;cball;ball;IN_ELIM_THM;IN_DIFF];
+    BY(REAL_ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY `{p | dist(EL 0 ul,p) = sqrt(&2) }` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  BY(REWRITE_TAC[NEGLIGIBLE_SPHERE])
+  ]);;
+  (* }}} *)
+
+let MCELL1_SOL_RESTRICT = prove_by_refinement(
+  `!V X ul. saturated V /\ packing V /\ barV V 3 ul /\ (X = mcell1 V ul) /\ ~(NULLSET X) ==>
+    sol (EL 0 ul) X = sol (EL 0 ul) (X INTER ball(EL 0 ul, sqrt(&2)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC Urrphbz2.URRPHBZ2 [`V`;`ul`;`1`;`EL 0 ul`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    INTRO_TAC Packing3.BARV_SUBSET [`V`;`3`;`ul`];
+    ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC Bump.set_of_list4;
+    CONJ2_TAC;
+      BY(SET_TAC[]);
+    BY(ASM_MESON_TAC[Sphere.BARV;IN;arith `3 + 1 = 4`]);
+  REWRITE_TAC[Sphere.eventually_radial];
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `?r'. (&0 < r' /\ r' <= r /\ r' <= sqrt(&2))` (C SUBGOAL_THEN ASSUME_TAC);
+    EXISTS_TAC `if (r <= sqrt(&2)) then r else sqrt(&2)`;
+    COND_CASES_TAC;
+      BY(ASM_SIMP_TAC[arith `r > &0 ==> &0 < r`;arith `r <= r`]);
+    ASM_SIMP_TAC[arith `s <= s`;arith `~(r <= s) ==> (s <= r)`];
+    GMATCH_SIMP_TAC REAL_LT_RSQRT;
+    BY(REAL_ARITH_TAC);
+  FIRST_X_ASSUM MP_TAC THEN WEAK_STRIP_TAC;
+  INTRO_TAC Conforming.RADIAL_NORM_CO [`r`;`r'`;`EL 0 ul`;`X`];
+  ASM_REWRITE_TAC[GSYM Marchal_cells_2_new.RADIAL_VS_RADIAL_NORM;Bump.MCELL1;NORMBALL_BALL];
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC Vol1.sol [`EL 0 ul`;`X`;`r'`];
+  INTRO_TAC Vol1.sol [`EL 0 ul`;`X INTER ball (EL 0 ul,sqrt(&2))`;`r'`];
+  ASM_REWRITE_TAC[arith `r' > &0 <=> &0 < r'`;NORMBALL_BALL;INTER_ASSOC;GSYM Marchal_cells_2_new.RADIAL_VS_RADIAL_NORM;Bump.MCELL1];
+  TYPIFY ` ball(EL 0 ul,sqrt(&2)) INTER ball(EL 0 ul,r') = ball(EL 0 ul,r')` (C SUBGOAL_THEN SUBST1_TAC);
+    REWRITE_TAC[ball;EXTENSION;IN_ELIM_THM;IN_INTER];
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  TYPIFY `measurable (mcell 1 V ul INTER ball (EL 0 ul,r'))` (C SUBGOAL_THEN ((unlist ASM_REWRITE_TAC)));
+    MATCH_MP_TAC MEASURABLE_INTER;
+    CONJ2_TAC;
+      BY(ASM_REWRITE_TAC[MEASURABLE_BALL]);
+    BY(ASM_MESON_TAC[Urrphbz1.MEASURABLE_MCELL;Bump.MCELL1]);
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let CONV_CONVEX_HULL = prove_by_refinement(
+  `!(s:real^A->bool). conv s = convex hull s`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Geomdetail.conv;aff_ge_def;CONVEX_HULL_AFF_GE])
+  ]);;
+  (* }}} *)
+
+let CONVEX_HULL_4_AFF_GE = prove_by_refinement(
+  `!(w0:real^3) w1 w2 w3.  ~coplanar {w0,w1, w2,w3} ==>
+    (convex hull {w0,w1,w2,w3} = aff_ge {w0} {w1,w2,w3} INTER aff_ge {w1,w2,w3} {w0})`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  INTRO_TAC DIMINDEX_3 [];
+  DISCH_TAC;
+  INTRO_TAC Collect_geom2.ARIKWRQ [`w0`;`w1`;`w2`;`w3`];
+  REWRITE_TAC[LET_DEF;LET_END_DEF;CONV_CONVEX_HULL];
+  TYPIFY `~coplanar_alt {w0,w1,w2,w3}` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Leaf_cell.coplanar_eq_coplanar_alt;arith `2 <= 3`]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `CARD {w0,w1,w2,w3} = 4` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Collect_geom2.NOT_COPLANAR_IMP_CARD4;
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[];
+  DISCH_THEN SUBST1_TAC;
+  TYPIFY `({w0,w1,w2,w3} DIFF {w0} = {w1,w2,w3}) /\ ({w0,w1,w2,w3} DIFF {w1} = {w0,w2,w3}) /\ ({w0,w1,w2,w3} DIFF {w2} = {w0,w3,w1} ) /\ ({w0,w1,w2,w3} DIFF {w3} = {w0,w1,w2})` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    FIRST_X_ASSUM (MP_TAC o (MATCH_MP Leaf_cell.CARD4_ALL_DISTINCT));
+    BY(SET_TAC[]);
+  INTRO_TAC Cfyxfty.inter_aff_ge_3_1_is_aff_ge_1_3 [`w0`;`w1`;`w2`;`w3`];
+  ASM_REWRITE_TAC[];
+  BY(SET_TAC[])
+  ]);;
+  (* }}} *)
+
+let CONVEX_HULL_LEMMA_1 = prove_by_refinement(
+  `!(w0:real^3) w1 w2 w3 u ut t. ~coplanar {w0,w1,w2,w3} /\ u IN convex hull {w0,w1,w2,w3} /\
+   ut = w0 + t % (u - w0) /\ dist(ut,w0) <= dist`,
+  (* {{{ proof *)
+  [
+  #
+  ]);;
+  (* }}} *)
+
+
+let MCELL1_RADIAL = prove_by_refinement(
+  `!V X ul. saturated V /\ packing V /\ barV V 3 ul /\ (X = mcell1 V ul) /\ ~(NULLSET X) ==>
+    radial_norm (sqrt(&2)) (EL 0 ul) (X INTER ball(EL 0 ul,sqrt (&2)))
+`,
+  (* {{{ proof *)
+  [
+  st/r
+rt[GSYM RADIAL_VS_RADIAL_NORM;Sphere.radial]
+conj
+set[]
+
+art[]
+repeat (fxa mp) then rt[Bump.MCELL1]
+st/r
+art[IN_DIFF;IN_INTER]
+  ]);;
+  (* }}} *)
+
+
+
+let MCELL1_VOL = prove_by_refinement(
+  `!V X ul.  saturated V /\ packing V /\ barV V 3 ul /\ (X = mcell1 V ul) /\ ~(NULLSET X) ==>
+    vol X = c * sol (EL 0 ul) X`,
+  (* {{{ proof *)
+  [
+    rt[Pack_defs.mcell1]
+st/r
+typ `sqrt (&2) <= hl ul` sat
+contr
+fxast `rogers` mp
+art[]
+amt[?d]
+fxast `rogers` mp
+art[]
+dt
+
+typ `radial_norm (sqrt(&2)) (EL 0 ul) X` sat
+art[]
+mmp Conforming.RADIAL_DIFF
+
+
+mmp Vol1.inter_radial
+  ]);;
+  (* }}} *)
+
+

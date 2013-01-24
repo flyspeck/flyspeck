@@ -36,13 +36,11 @@ class Lib
   static const univariate i_halfbump_x,i_gchi,i_flat_term_x,
     i_lfun,i_rho;
 
-    static const univariate i_gamma2_x_div_azim(const interval&);
+    static const univariate i_gamma2_x_div_azim_v2(const interval&);
 
   static const Function promote1_to_6(const univariate&);
 
   static const Function constant6(const interval&);
-
-  //  static const Function gamma2_x1_div_a(const interval&);
 
 
  static Function uni(const univariate&,const Function&);

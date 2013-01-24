@@ -171,14 +171,13 @@ const univariate Lib::i_rho =
 /*   `!y. flat_term_x y = (sqrt y - &2 * h0) * rh0 * sol0 * (#0.5)` */
 const univariate Lib::i_flat_term_x = (univariate::i_sqrt + univariate::i_pow0 * (L::mone*L::two * L::h0)) * ( L::rh0 * L::sol0 * L::half);
 
-/* 
-         truncate_gamma2_x m x =
-         (&8 - x) * sqrt x / &24 -
-         ((&2 * mm1 / pi) * (&1 - sqrt x / sqrt8) -
-	 (&8 * mm2 / pi) * m * lfun (sqrt x / &2))  */
-const univariate Lib::i_gamma2_x_div_azim(const interval& m) {
-  static const interval mm1x("0.644310692071541214963158104232");
-  static const interval mm2x("0.0647175113309960600618528362429"); 
+/*   new_definition `gamma2_x_div_azim_v2 m x = (&8 - x)* sqrt x / (&24) -
+  ( &2 * (&2 * mm1/ pi) * (&1 - sqrt x / sqrt8) - 
+      (&8 * mm2 / pi) * m * lfun (sqrt x / &2))`;;  */
+const univariate Lib::i_gamma2_x_div_azim_v2(const interval& m) {
+  //  static const interval mm1x("0.644310692071541214963158104232"); // 2x fixed Jan 23, 2013.
+  static const interval mm1x("1.28862138414308242992631620846"); // = 4 mm1 /Pi
+  static const interval mm2x("0.0647175113309960600618528362429"); // = 8 mm2 / Pi.
   univariate t =     
    (L::i_sqrt * L::eight + univariate::i_pow3h2 * L::mone)*
      (L::one/ L::twentyfour) +
@@ -505,12 +504,25 @@ void Lib::selfTest()
   epsValue("i_flat_term",f,0.00201859856768314477);
   }
 
-  /* gamma2_x_div_azim */ {
-    univariate f1 =  Lib::i_gamma2_x_div_azim(interval::interval("1.1"));
+
+  /* gamma2_x_div_azim_v2 */ {
+    /*
+    univariate f1 =  Lib::i_gamma2_x_div_azim_v2(interval::interval("1.1"));
   Function f = Lib::promote1_to_6(f1);
-  epsValue("truncate_gamma2_x",f,0.102244026021654014);
+  epsValue("gamma2_x_div_azim_v2",f,0.102244026021654014);
   Function g = (Lib::uni(f1 , (Lib::x1)));
-  epsValue("truncate_gamma2_x",g,0.102244026021654014);
+  epsValue("test gamma2",g,0.102244026021654014);
+    */
+    // value computed in Mathematica with gamma2Ldivalpha[Sqrt[6.36]/2] function.
+    /* test1 */ {
+    univariate f1 =  Lib::i_gamma2_x_div_azim_v2(interval::interval("0.0"));
+  Function f = Lib::promote1_to_6(f1);
+  epsValue("gamma2_x_div_azim_v2",f,0.0326792785715012028653739253059);
+  Function g = (Lib::uni(f1 , (Lib::x1)));
+  epsValue("test gamma2",g,0.0326792785715012028653739253059);
+    }
+
+
   }
 
   /* truncate_dih_x  {

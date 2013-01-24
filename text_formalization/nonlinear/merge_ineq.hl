@@ -83,6 +83,50 @@ let ox3q1h_term() =
 let ox3q1h() =  new_definition (mk_eq (`ox3q1h:bool`,ox3q1h_term()));;
 let ox3q1h_mp = MP_TAC(ox3q1h());;
 
+(* GENERATE PACKING CHAPTER NONLINEAR INEQS *)
+(* get ids, make 1 def, extract *)
+
+let filter_flypaper tl = 
+  List.flatten (map (function
+	    | Flypaper s -> s
+	    | _ -> []) tl);;
+
+let has_flypaper_tag sl ind = 
+  let tl = ind.tags in
+    List.length (intersect (filter_flypaper tl) sl) > 0;;
+
+let is_ox3q1h ind = 
+  let oxl = "OXLZLEZ 6346351218" in
+  let s = ind.idv in
+    ( (String.length oxl <= String.length s) &&
+			     (String.sub s 0 (String.length oxl) = oxl));;  
+
+let packing_ineq_data = 
+  filter (fun ind ->
+	    has_flypaper_tag ["UKBRPFE";"BIEFJHU";"OXLZLEZ";"TSKAJXY"] ind &&
+	 not(is_ox3q1h ind)) (!Ineq.ineqs);;
+
+let mk_pack_nonlinear = 
+  let ineql = map (fun idv -> idv.ineq) packing_ineq_data in
+  let packing_ineq_conj = end_itlist (curry mk_conj) ineql in
+  let _ = new_definition (mk_eq (`pack_nonlinear_non_ox3q1h:bool`,packing_ineq_conj)) in
+    ();;
+
+let get_pack_nonlinear_non_ox3q1h = 
+  let ineql = map (fun ind -> ind.ineq) packing_ineq_data in
+  let sl = map (fun ind -> ind.idv) packing_ineq_data in
+  let packing_ineq_conj = end_itlist (curry mk_conj) ineql in
+  let th = new_definition (mk_eq (`pack_nonlinear_non_ox3q1h:bool`,packing_ineq_conj)) in
+  let th1 = UNDISCH (MATCH_MP (TAUT `(a <=> b) ==> (a ==> b)`) th) in
+  let co1 thm = if (is_conj (concl thm)) then CONJUNCT1 thm else thm in
+    fun s ->
+      let i = index s sl in
+      let th2 = funpow i CONJUNCT2 th1 in
+	co1 th2;;
+
+let example1 =  (get_pack_nonlinear_non_ox3q1h "BIXPCGW 6652007036 a2");;
+
+
 let [yv;a12;a23;a34;a14;b12;b23;b34;b14;c1;c2;c3;c4] = 
   map (fun t -> mk_var(t,`:real`))
     (Str.split (Str.regexp " ")

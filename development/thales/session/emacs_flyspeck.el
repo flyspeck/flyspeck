@@ -9,7 +9,7 @@
 
 (setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
 (setq hol-light-interactive-buffer-name "*jan15*")
-(setq hol-light-interactive-buffer-name "*dec31*")
+(setq hol-light-interactive-buffer-name "*jan24*")
 
 (system-name)
 ; thackmac

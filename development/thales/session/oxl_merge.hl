@@ -943,6 +943,101 @@ let LEAF_RANK_GG_SUM = prove_by_refinement(
   (* }}} *)
 
 
+let cc_data_v3 = new_definition `cc_data_v3 V f u0 u1 = 
+cc_v10 ([
+  (azim_mcell V f u0 u1);
+  (gg_mcell V f u0 u1);
+  (\i. gammaX V (cc_cell V [u0;u1;f i]) lmfun);
+  (\i. gammaX V (cc_cell V [u1;u0;f (SUC i)]) lmfun)
+],
+[
+(\i. dist(f i,f(SUC i)) < hminus);
+(\i. hminus <= dist (f i, f (SUC i)) /\ dist (f i,f(SUC i)) <= hplus);
+(\i. hplus < dist (f i, f(SUC i)));
+(\i. dist(u0,f i) <= &2 * h0 /\ dist (u1,f i) <= &2 * h0);
+(\i. hl [u0;u1;f i] < #1.34);
+(\i. ?ul. barV V 3 ul /\ {u0,u1} IN edgeX V (mcell4 V ul) /\ mcell4 V ul SUBSET (wedge_ge u0 u1 (f i) (f (SUC i))))
+],
+CARD (s_leaf V [u0;u1]))`;;
+
+let cc_card_data = prove_by_refinement(
+  `!V f u0 u1. cc_card_v10 (cc_data_v3 V f u0 u1) = CARD(s_leaf V [u0;u1])`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Oxl_def.cc_card_v10;cc_data_v3;Oxl_def.cc_v10])
+  ]);;
+  (* }}} *)
+
+let cc_real_data = prove_by_refinement(
+  `!V f u0 u1. cc_azim_v10 (cc_data_v3 V f u0 u1) = azim_mcell V f u0 u1 /\
+     cc_gg_v10 (cc_data_v3 V f u0 u1) = gg_mcell V f u0 u1 /\
+     cc_gg3a_v10 (cc_data_v3 V f u0 u1) = (\i. gammaX V (cc_cell V [u0;u1;f i]) lmfun) /\
+    cc_gg3b_v10 (cc_data_v3 V f u0 u1) = (\i. gammaX V (cc_cell V [u1;u0;f(SUC i)]) lmfun)`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[FUN_EQ_THM;Oxl_def.cc_azim_v10;Oxl_def.cc_gg_v10;Oxl_def.cc_gg3a_v10;Oxl_def.cc_gg3b_v10;Oxl_def.cc_real_v10;cc_data_v3;Oxl_def.cc_v10;Bump.EL_EXPLICIT])
+  ]);;
+  (* }}} *)
+
+let cc_bool_data = prove_by_refinement(
+  `!V f u0 u1. cc_subcrit_v10 (cc_data_v3 V f u0 u1) = (\i. dist(f i,f(SUC i)) < hminus) 
+ /\
+ cc_crit_v10 (cc_data_v3 V f u0 u1) = (\i. hminus <= dist (f i, f (SUC i)) /\ dist (f i,f(SUC i)) <= hplus) /\
+ cc_supercrit_v10 (cc_data_v3 V f u0 u1) = (\i. hplus < dist (f i, f(SUC i))) /\
+ cc_small_v10 (cc_data_v3 V f u0 u1) = (\i. dist(u0,f i) <= &2 * h0 /\ dist (u1,f i) <= &2 * h0) /\
+ cc_small_eta_v10 (cc_data_v3 V f u0 u1) = (\i. hl [u0;u1;f i] < #1.34) /\
+ cc_4cell_v10 (cc_data_v3 V f u0 u1) = 
+ (\i. ?ul. barV V 3 ul /\ {u0,u1} IN edgeX V (mcell4 V ul) /\ mcell4 V ul SUBSET (wedge_ge u0 u1 (f i) (f (SUC i))))
+`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[FUN_EQ_THM;Oxl_def.cc_subcrit_v10;Oxl_def.cc_crit_v10;Oxl_def.cc_supercrit_v10;Oxl_def.cc_small_v10;Oxl_def.cc_small_eta_v10;Oxl_def.cc_4cell_v10;Oxl_def.cc_bool_v10;cc_data_v3;Oxl_def.cc_v10;Bump.EL_EXPLICIT])
+  ]);;
+  (* }}} *)
+
+let cc_bool_model_data = prove_by_refinement(
+  `!V f w0 n u0 u1.
+    pack_nonlinear_non_ox3q1h /\
+    1 < n /\
+    packing V /\ saturated V /\       s_leaf V [u0;u1] HAS_SIZE n /\ 
+    u0 IN V /\ u1 IN V /\
+    ~collinear {u0, u1, w0 } /\
+    critical_edge_y (dist(u0,u1)) /\
+    leaf_rank V [u0;u1] w0 n f ==>
+    cc_bool_model_v10 (cc_data_v3 V f u0 u1)`,
+  (* {{{ proof *)
+  [
+  rt[Oxl_def.cc_bool_model_v10;cc_card_data];
+    rt[HAS_SIZE]
+st/r
+art[]
+conj
+asimp[arith `1 < n==> ~(n = 0)`]
+typ `(!i. ~(cc_crit_v10 (cc_data_v3 V f u0 u1) i /\        cc_supercrit_v10 (cc_data_v3 V f u0 u1) i)) /\ (!i. ~(cc_crit_v10 (cc_data_v3 V f u0 u1) i /\        cc_subcrit_v10 (cc_data_v3 V f u0 u1) i)) /\ (!i. ~(cc_supercrit_v10 (cc_data_v3 V f u0 u1) i /\        cc_subcrit_v10 (cc_data_v3 V f u0 u1) i))` (C gthen (unlist rt))
+rt[cc_bool_data]
+intro Merge_ineq.hminus_lt_hplus []
+rat
+typ `periodic (cc_subcrit_v10 (cc_data_v3 V f u0 u1)) n /\ periodic (cc_crit_v10 (cc_data_v3 V f u0 u1)) n /\ periodic (cc_supercrit_v10 (cc_data_v3 V f u0 u1)) n /\ periodic (cc_small_v10 (cc_data_v3 V f u0 u1)) n /\ periodic (cc_small_eta_v10 (cc_data_v3 V f u0 u1)) n /\ periodic (cc_4cell_v10 (cc_data_v3 V f u0 u1)) n` (C gthen (unlist rt))
+rt[Oxl_def.periodic;cc_bool_data;cc_real_data]
+rt[arith `!i. SUC(i + n) = SUC i + n`]
+intro LEAF_RANK_PERIODIC [`V`;`[u0;u1]`;`w0`;`n`;`f`]
+ants
+art[]
+rt[Oxl_def.periodic]
+mt[]
+conj
+st/r
+rt[cc_bool_data]
+rat
+rt[cc_bool_data]
+st/r
+(* to here, break out separate lemma. *)
+intro (Merge_ineq.get_pack_nonlinear_non_ox3q1h "JSPEVYT") [`&1`;`&1`;`&1`;`dist(u0,u1)`;`]
+  ]);;
+  (* }}} *)
+
+
+
 (*
 let S_LEAF_CARD_2 = prove_by_refinement(
   `!V ul w0 n f e.

@@ -279,7 +279,8 @@ let case_splits_execute =
 module Preprocess = struct 
   open Scripts;;
 
-  let add_inequality _ = ();;
+(*  let add_inequality _ = ();; *)
+
   let ineq = Sphere.ineq;;
   let print_tag t = match t with
   | Branching -> "Branching"
@@ -297,12 +298,13 @@ module Preprocess = struct
   | Delta135max f -> "Delta126max "^(string_of_float f)
   | _ -> ""
   ;;
+
   let print_one (s,tgl,ii) = 
     let p = Printf.sprintf in 
     let tgs = filter (fun s -> not(s="")) (map print_tag tgl) in
     let jsemi  = Flyspeck_lib.unsplit ";" (fun x-> x) in
     let tl = jsemi tgs in
-    let is = print_to_string pp_print_qterm ii in
+    let is = print_to_string pp_print_qterm (Sphere.all_forall ii) in
        Flyspeck_lib.join_lines [
       "add_inequality  { ";
       p "  idv= \"%s\";" s;
@@ -311,22 +313,31 @@ module Preprocess = struct
       p "  ineq= %s;" is;
       p "};;\n\n";
     ];;
+
   let preprocess1 s = 
+    let prep =  (Optimize.preprocess_split_idq 
+		     (hd (Ineq.getexact  (s)))) in
     let v = 
-    Flyspeck_lib.join_lines (map print_one
-		  (Optimize.preprocess_split_idq 
-		     (hd (Ineq.getexact  (s))))) in
+    Flyspeck_lib.join_lines (map print_one prep) in
     let _ = report v in
-      v;;
+      ((s,map (fun (s,_,_) -> s) prep),v);;
+
+  (* return the association list of idv -> list of new idv *)
   let preprocess filename = 
-    let cc0 = ["GRKIBMP"] in
     let cc = subtract (all_cases()) (disregard) in
-    let cc1 = fst(chop_list 5 cc) in
-    let header = "(* Auto generated file of preprocessed  inequalities *)\n\n" in
+    let header = "(* Auto generated file of preprocessed  inequalities. See Scripts.exec *)\n\n" in
+    let h1 = "(* "^flyspeck_version()^"\n   "^build_date() ^"*)\n\n" in
     let h2 = "(* need to defuse --# in printer.ml *)\n\n" in
+    let h3 = "module Prep = struct\n\n"^
+      "let prep_ineqs = ref ([]:ineq_datum list);;\n\n "^
+      "let add_inequality i  = \n"^
+      "let _ = prep_ineqs:= i :: !prep_ineqs in\n"^
+      "  ();;\n\n" in
     let p = map preprocess1 cc in
-    let v =     Flyspeck_lib.join_lines ( p) in
-      Flyspeck_lib.output_filestring filename (header^h2^v);;
+    let v = Flyspeck_lib.join_lines (map snd p) in
+    let e = "\n\nend;;" in
+    let _ = Flyspeck_lib.output_filestring filename (header^h1^h2^h3^v^e) in
+      map fst p;;
 
   let exec()=  preprocess "/tmp/prep.hl";;
 (*  exec();; needs "/tmp/prep.hl";; *)

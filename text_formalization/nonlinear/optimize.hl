@@ -60,8 +60,9 @@ let load_file = Flyspeck_lib.load_file;;
 (*    GENERAL PROCEDURES                                                  *)
 (* ========================================================================= *)
 
-(* The marker NONLIN is not used, but deleting it would
-   break code!  *)
+(* The marker NONLIN is used in mk_all_ineq.hl, 
+   where it is replaced with a constant equivalent to the conjunction of all the
+   nonlinear ineqs.   *)
 
 let NONLIN = new_definition `NONLIN = T`;;
 
@@ -1080,6 +1081,7 @@ let WRAPUP_TAC =
 
 (* SHARP CASES *)
 
+(*
 let gamma4f_delta0 = prove_by_refinement(
   mk_imp (`NONLIN:bool`,Sphere.all_forall `ineq [(sqrt8,y1,sqrt8);
 		    (&2,y2,&2);
@@ -1113,7 +1115,7 @@ let gamma4f_delta0 = prove_by_refinement(
   CONV_TAC  REAL_FIELD;    
   ]);;
   (* }}} *)
-
+*)
 
 
 
@@ -1123,6 +1125,7 @@ let gamma4f_delta0 = prove_by_refinement(
 
 let idq_fields idq = (idq.idv,idq.tags, idq.ineq);;
 
+(*
 let preprocess (s,tags,case) = 
   let is_xconvert = mem Xconvert tags in
   let is_branch = mem Branching tags in
@@ -1137,6 +1140,28 @@ let preprocess (s,tags,case) =
     e(SERIES3Q1H_5D_TAC) else e(ALL_TAC) in
   let _ = e (STYLIZE_TAC) in
   let _ = e (WRAPUP_TAC) in
+  let testineq = snd(top_goal()) in
+    (s,tags,testineq);;
+*)
+
+(* rewritten Jan 28, 2013 *)
+
+let preprocess (s,tags,case) = 
+  let is_xconvert = mem Xconvert tags in
+  let is_branch = mem Branching tags in
+  let _ = report ("process and exec: "^s) in
+  let LET_ELIM_TAC = CONV_TAC (REDEPTH_CONV let_CONV) in
+  let tacl = 
+    [LET_ELIM_TAC;
+     PRELIM_REWRITE_TAC;
+     MP_TAC (REWRITE_RULE[] NONLIN);
+     if (is_branch) then BRANCH_TAC else ALL_TAC;
+     if (is_xconvert) then X_OF_Y_TAC else ALL_TAC;
+     if (is_branch && not(is_xconvert)) then SERIES3Q1H_5D_TAC else ALL_TAC;
+     STYLIZE_TAC;
+     WRAPUP_TAC] in
+  let _ = g (case) in
+  let _ = e (EVERY tacl) in
   let testineq = snd(top_goal()) in
     (s,tags,testineq);;
 

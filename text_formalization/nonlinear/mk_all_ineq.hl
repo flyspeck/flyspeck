@@ -1,0 +1,146 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: nonlinear inequalities                                            *)
+(* Author:  Thomas Hales     *)
+(* Date: 2013-01-28                                                           *)
+(* ========================================================================== *)
+
+(* generate all theorems of terms in !Ineq.ineqs from a single assumption `prepared_nonlinear:bool`,
+   defined as the conjunction of all inequalities in prep.hl
+
+   Taking this a step further, we would get |- prepared_nonlinear ==> nonlinear
+
+ *)
+
+flyspeck_needs "nonlinear/prep.hl";;
+
+module Mk_all_ineq = struct
+
+  open Optimize;;
+
+let mk_nonlinear = 
+  let ineql = map (fun idv -> idv.ineq) !Ineq.ineqs in
+  let ineq_conj = end_itlist (curry mk_conj) ineql in
+  let _ = new_definition (mk_eq (`nonlinear:bool`,ineq_conj)) in
+    ();;
+
+let get_nonlinear = 
+  let sl = map (fun ind -> ind.idv) !Ineq.ineqs in
+  let ineql = map (fun idv -> idv.ineq) !Ineq.ineqs in
+  let ineq_conj = end_itlist (curry mk_conj) ineql in
+  let th = new_definition (mk_eq (`nonlinear:bool`,ineq_conj)) in
+  let th1 = UNDISCH (MATCH_MP (TAUT `(a <=> b) ==> (a ==> b)`) th) in
+  let co1 thm = if (is_conj (concl thm)) then CONJUNCT1 thm else thm in
+    fun s ->
+      let i = index s sl in
+      let th2 = funpow i CONJUNCT2 th1 in
+	co1 th2;;
+
+(*
+let prep_ineqs = ref ([]:ineq_datum list);;
+
+let add_inequality i  =
+  let _ = prep_ineqs:= i :: !prep_ineqs in
+    ();;
+*)
+
+let prep_ineqs = Prep.prep_ineqs;;
+
+let mk_prepared_nonlinear = 
+  let ineql = map (fun idv -> idv.ineq) (!prep_ineqs) in
+  let ineq_conj = end_itlist (curry mk_conj) ineql in
+  let _ = new_definition (mk_eq (`prepared_nonlinear:bool`,ineq_conj)) in
+    ();;
+
+let get_prep_nonlinear = 
+  let sl = map (fun ind -> ind.idv) !prep_ineqs in
+  let ineql = map (fun ind -> ind.ineq) (!prep_ineqs) in
+  let ineq_conj = end_itlist (curry mk_conj) ineql in
+  let th = new_definition (mk_eq (`prepared_nonlinear:bool`,ineq_conj)) in
+  let th1 = UNDISCH (MATCH_MP (TAUT `(a <=> b) ==> (a ==> b)`) th) in
+  let co1 thm = if (is_conj (concl thm)) then CONJUNCT1 thm else thm in
+    fun s ->
+      let i = index s sl in
+      let th2 = funpow i CONJUNCT2 th1 in
+	co1 th2;;
+
+let hasprefix s sl = filter (fun t -> (String.length s <= String.length t) &&
+			     (String.sub t 0 (String.length s) = s)) (sl);;
+
+let get_all_prep_nonlinear = 
+  let sl = map (fun ind -> ind.idv) !prep_ineqs in
+  let ineql = map (fun ind -> ind.ineq) (!prep_ineqs) in
+  let ineq_conj = end_itlist (curry mk_conj) ineql in
+  let th = new_definition (mk_eq (`prepared_nonlinear:bool`,ineq_conj)) in
+  let th1 = UNDISCH (MATCH_MP (TAUT `(a <=> b) ==> (a ==> b)`) th) in
+  let co1 thm = if (is_conj (concl thm)) then CONJUNCT1 thm else thm in
+  let c i thm = co1 (funpow i CONJUNCT2 thm) in
+  let get s = c (index s sl) th1 in
+    fun s ->
+      try [get s] with
+	  Failure _ -> 
+	    (let s' = s^" split(" in
+	     let ssl = hasprefix s' sl in
+	       map get ssl);;
+	    
+let example1 = get_all_prep_nonlinear  "GLFVCVK4a 8328676778";;
+
+(* This follows the same sequence in the module Optimize that is used to generate the inequalities
+   in prep.hl, finishing off the last step of the proof with a rewrite. *)
+
+let prove_ineq s = 
+  let DSPLIT_TAC i = DISCH_TAC THEN (Optimize.SPLIT_H0_TAC i) in
+  let LET_ELIM_TAC = CONV_TAC (REDEPTH_CONV let_CONV) in
+  let is_xconvert tags = mem Xconvert tags in
+  let is_branch tags = mem Branching tags in
+  let NONL = `prepared_nonlinear:bool` in
+  let idq = hd(Ineq.getexact s) in
+  let (s',tags,ineq) = idq_fields idq in
+  let _ = (s = s') or failwith "prove_ineq: wrong ineq" in 
+    try (s,prove(mk_imp(NONL,ineq),
+	  LET_ELIM_TAC THEN
+	    EVERY (map DSPLIT_TAC (get_split_tags idq)) THEN 
+	    EVERY
+	    [LET_ELIM_TAC;
+	     PRELIM_REWRITE_TAC;
+	     if (is_branch tags) then BRANCH_TAC else ALL_TAC;
+	     if (is_xconvert tags) then X_OF_Y_TAC else ALL_TAC;
+	     if (is_branch tags && not(is_xconvert tags)) then SERIES3Q1H_5D_TAC else ALL_TAC;
+	     STYLIZE_TAC;
+	     WRAPUP_TAC;
+	     REWRITE_TAC (get_all_prep_nonlinear s)]))
+    with Failure _ -> failwith s;;
+
+let example2 = map prove_ineq  ["GLFVCVK4a 8328676778";"4750199435";"GLFVCVK4 2477216213 y4supercrit"];;
+
+let exec() = 
+  let sl = map (fun t -> t.idv) !Ineq.ineqs in
+    map prove_ineq sl;;
+
+(* (* experimental, combine subgoals into a a single subgoal. *)
+let (merge1_goal:refinement) = 
+  fun (meta,sgs,just) ->
+  if List.length sgs < 2 then (meta,sgs,just)
+  else 
+    let s0::s1::s2 = sgs in
+    let _ = fst(s0) = [] or failwith "merge1_goal asl nonempty" in
+    let _ = fst(s1) = [] or failwith "merge1_goal asl nonempty" in
+    let sgs' = ([],mk_conj (snd s0, snd s1)) ::s2 in
+    let just' i ths = 
+      (just i ( (CONJUNCT1 (hd ths)) :: (CONJUNCT2 ( (hd ths))) :: tl ths)) in
+      (meta,sgs',just');;
+
+let rec merge_all_goal (meta,sgs,just) =
+  if (List.length sgs < 2) then (meta,sgs,just)
+  else merge_all_goal (merge1_goal (meta,sgs,just));;
+
+let top_asl_thm() =
+  let (_,sgs,f)::_ = !current_goalstack in
+  let t = snd(hd sgs) in
+    DISCH t (f null_inst [ASSUME t]);;
+*)
+
+
+
+ end;;

@@ -859,7 +859,77 @@ let LEAF_RANK_BIJ = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let ORDER_AZIM_SUM2Pi0 = prove_by_refinement(
+  `!x y z n g.
+         ~collinear {x, y, z} /\
+         (!i. i < n ==> ~collinear {x, y, g i}) /\
+         g n = g 0 /\
+         1 < n /\
+         (!j k.
+              j < n /\ k < n /\ j < k
+              ==> azim x y z (g j) < azim x y z (g k))
+         ==> sum {i | i < n} (\i. azim x y (g i) (g (i + 1))) = &2 * pi`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Counting_spheres.ORDER_AZIM_SUM2Pi [`x`;`y`;`z`;`n`;`g o PRE`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[o_THM];
+    REWRITE_TAC[IN_NUMSEG];
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      BY(ASM_MESON_TAC[arith `1 <= i /\ i <= n ==> PRE i < n`]);
+    ASM_REWRITE_TAC[arith `PRE (n + 1) = n /\ PRE 1 = 0`];
+    REPEAT WEAKER_STRIP_TAC;
+    BY(ASM_MESON_TAC[arith `1 <= i /\ i <= n ==> PRE i < n`;arith `j < k /\ 1 <= j ==> PRE j < PRE k`]);
+  DISCH_THEN (SUBST1_TAC o GSYM);
+  TYPIFY `sum (1..n) (\i. azim x y ((g o PRE) i) ((g o PRE) (i + 1))) = sum (1..n) ((\i. azim x y (g i) (g (i + 1))) o PRE)` (C SUBGOAL_THEN SUBST1_TAC);
+    MATCH_MP_TAC SUM_EQ;
+    REWRITE_TAC[IN_NUMSEG;o_THM];
+    REPEAT WEAKER_STRIP_TAC;
+    BY(ASM_SIMP_TAC[arith `1 <= x' ==> (PRE (x' + 1) = PRE x' + 1)`]);
+  MATCH_MP_TAC (GSYM Bump.BIJ_SUM);
+  REWRITE_TAC[BIJ;SURJ;INJ;IN_NUMSEG;IN_ELIM_THM];
+  SUBCONJ_TAC;
+    BY(ARITH_TAC);
+  DISCH_THEN (unlist REWRITE_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `SUC x'` EXISTS_TAC;
+  BY(FIRST_X_ASSUM MP_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
 let LEAF_RANK_GRUTOTI = prove_by_refinement(
+  `!V ul w0 n f.
+    1 < n /\
+    packing V /\ saturated V /\       s_leaf V ul HAS_SIZE n /\ 
+    EL 0 ul IN V /\ EL 1 ul IN V /\
+    ~collinear {EL 0 ul, EL 1 ul, w0 } /\
+    leaf_rank V ul w0 n f /\
+  hl [EL 0 ul;EL 1 ul] < sqrt (&2) ==>
+    sum {i | i < n } (azim_mcell V f (EL 0 ul) (EL 1 ul)) = &2 * pi`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `azim_mcell V f (EL 0 ul) (EL 1 ul) = (\i. azim_mcell V f (EL 0 ul) (EL 1 ul) i)` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REWRITE_TAC[FUN_EQ_THM]);
+  INTRO_TAC LEAF_RANK_REUHADY [`V`;`ul`;`w0`;`n`;`f`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN (unlist REWRITE_TAC);
+  REWRITE_TAC[arith `SUC i = i + 1`];
+  MATCH_MP_TAC ORDER_AZIM_SUM2Pi0;
+  TYPIFY `w0` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[S_LEAF_COLLINEAR]);
+  FIRST_X_ASSUM_ST `leaf_rank` MP_TAC;
+  REWRITE_TAC[leaf_rank];
+  BY(MESON_TAC[arith `0 + n = n`])
+  ]);;
+  (* }}} *)
+
+(*
+let LEAF_RANK_GRUTOTI_DEPRECATED = prove_by_refinement(
   `!V ul w0 n f.
     1 < n /\
     packing V /\ saturated V /\       s_leaf V ul HAS_SIZE n /\ 
@@ -901,6 +971,8 @@ let LEAF_RANK_GRUTOTI = prove_by_refinement(
   BY(ASM_MESON_TAC[Collect_geom.NOT_COLLINEAR_IMP_2_UNEQUAL])
   ]);;
   (* }}} *)
+*)
+
 
 let LEAF_RANK_GG_SUM = prove_by_refinement(
   `!V ul w0 n f.
@@ -994,6 +1066,8 @@ let cc_bool_data = prove_by_refinement(
   BY(REWRITE_TAC[FUN_EQ_THM;Oxl_def.cc_subcrit_v10;Oxl_def.cc_crit_v10;Oxl_def.cc_supercrit_v10;Oxl_def.cc_small_v10;Oxl_def.cc_small_eta_v10;Oxl_def.cc_4cell_v10;Oxl_def.cc_bool_v10;cc_data_v3;Oxl_def.cc_v10;Bump.EL_EXPLICIT])
   ]);;
   (* }}} *)
+
+
 
 let cc_bool_model_data = prove_by_refinement(
   `!V f w0 n u0 u1.

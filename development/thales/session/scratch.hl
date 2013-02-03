@@ -513,7 +513,7 @@ flyspeck_needs "nonlinear/cleanDeriv_examples.hl";;
 flyspeck_needs "../development/thales/chaff/tmp/vectors_patch.ml";;
 flyspeck_needs "../development/thales/chaff/tmp/determinants_patch.ml";;
 flyspeck_needs "../development/thales/chaff/tmp/wlog_patch.hl";;
-reneeds "trigonometry/trig2.hl";;
+flyspeck_needs "trigonometry/trig2.hl";;
 update_database();;
 augment_search_results;;
 !search_results;;
@@ -2368,3 +2368,48 @@ LET_ELIM_TAC;
     with Failure _ -> failwith s;;
 List.length !Ineq.ineqs;;
 List.length  !Prep.prep_ineqs;;
+
+
+  module Test = struct
+    open Hales_tactic;;
+    open Counting_spheres;;
+let FCHANGED_RADIAL_ALT = prove_by_refinement(
+  `!(p:real^3->bool) f r.
+    bounded p /\ polyhedron p /\ vec 0 IN interior p /\ f facet_of p ==>
+    radial r (vec 0) ( fchanged f INTER normball (vec 0) r)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ Sphere.radial ];
+  REPEAT WEAK_STRIP_TAC;
+  REWRITE_TAC[ NORMBALL_BALL ];
+  REWRITE_TAC[VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO];
+  CONJ_TAC;
+    BY(SET_TAC[]);
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM_ST `fchanged` MP_TAC;
+  REWRITE_TAC[IN_INTER];
+  REWRITE_TAC[ Polyhedron.fchanged ];
+  REWRITE_TAC[ IN_ELIM_THM ];
+  REPEAT WEAK_STRIP_TAC;
+  CONJ_TAC;
+    TYPIFY `v1` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    TYPIFY `t * t'` EXISTS_TAC;
+    REWRITE_TAC [ VECTOR_MUL_ASSOC ];
+    REPEAT (FIRST_X_ASSUM_ST `a > b` MP_TAC);
+    REWRITE_TAC [arith `a > b <=> b < a`];
+    BY(MESON_TAC[ REAL_LT_MUL ]);
+  INTRO_TAC Counting_spheres.RADIAL_NORMBALL [`(vec 0):real^3`;`r`];
+  REWRITE_TAC[ NORMBALL_BALL ];
+  REWRITE_TAC[ Sphere.radial ];
+  REWRITE_TAC[VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO];
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[ IN_BALL ];
+  REWRITE_TAC[ dist ];
+  REWRITE_TAC[VECTOR_ADD_RID;VECTOR_SUB_RZERO;VECTOR_ADD_LID;VECTOR_SUB_LZERO];
+  REWRITE_TAC[ NORM_NEG ];
+  BY(ASM_MESON_TAC[SUBSET])
+]
+);;
+  (* }}} *)
+  end;;

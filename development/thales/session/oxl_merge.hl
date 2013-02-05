@@ -198,7 +198,6 @@ let s_leaf_collinear = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
 let LEAF_RANKING_LEMMA = prove_by_refinement(
   `!V ul w0 n.  0 < n /\ packing V /\ saturated V /\ 
     s_leaf V ul HAS_SIZE n /\
@@ -2312,8 +2311,6 @@ let MCELL4_DIHX_AZIM = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
-
 (*
 let MCELL_SET_ALT = prove_by_refinement(
   `!V X. mcell_set V X <=> (?i ul. i <= 4 /\ X = mcell i V ul /\ barV V 3 ul)`,
@@ -2936,7 +2933,489 @@ let LEAF_RANK4_CHI_MSB = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let PERIODIC_REDUCE_MOD = prove_by_refinement(
+  `!(f:num->A) n i. 1 <= n /\ periodic f n ==> (?j. j < n /\ f i = f j /\ f (SUC i) = f (SUC j))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `i MOD n` EXISTS_TAC;
+  TYPIFY `~(n=0)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  ASM_SIMP_TAC[DIVISION];
+  ASM_SIMP_TAC[GSYM Oxl_def.periodic_mod];
+  BY(ASM_MESON_TAC[Hypermap.lemma_suc_mod;Oxl_def.periodic_mod])
+  ]);;
+  (* }}} *)
+
+(* renamed from PERIODIC_INJ *)
+
+let PERIODIC_EQ_IMAGE = prove_by_refinement(
+  `!(f:num->A) n i j. ~(n=0) /\ periodic f n /\ (i MOD n = j MOD n) ==> (f i = f j)`,
+  (* {{{ proof *)
+  [
+  BY(ASM_MESON_TAC[Oxl_def.periodic_mod])
+  ]);;
+  (* }}} *)
+
+let F_SUC_PRE = prove_by_refinement(
+  `!(f:num->A) n i. ~(n = 0) /\ periodic f n ==> f (SUC (i + n - 1)) = f i`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC PERIODIC_EQ_IMAGE;
+  EXISTS_TAC `n:num`;
+  ASM_REWRITE_TAC[];
+  ASM_SIMP_TAC[arith `~(n=0) ==> SUC (i + n - 1) = 1 * n + i`];
+  BY(REWRITE_TAC[MOD_MULT_ADD])
+  ]);;
+  (* }}} *)
+
+let LEAF_RANK4_CHI_MSB_ALT = prove_by_refinement(
+  `!V ul w0 n f i.  packing V /\
+         saturated V /\
+    barV V 3 ul /\
+         leaf_rank V [EL 0 ul; EL 1 ul] w0 n f /\
+         ~collinear {EL 0 ul, EL 1 ul, w0} /\
+         1 < n /\
+    ~NULLSET (mcell4 V ul) /\ 
+     mcell4 V ul SUBSET wedge_ge (EL 0 ul) (EL 1 ul) (f i) (f (SUC i)) ==>
+    &0 < chi_msb [EL 0 ul;EL 1 ul;f i] (f (SUC i))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC PERIODIC_REDUCE_MOD [`f`;`n`;`i`];
+  ANTS_TAC;
+    ASM_SIMP_TAC[ arith `1 < n ==> 1 <= n`];
+    BY(ASM_MESON_TAC[LEAF_RANK_PERIODIC]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC LEAF_RANK4_CHI_MSB [`V`;`ul`;`w0`;`n`;`f`;`j`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN MATCH_MP_TAC;
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let CARD4_IN_PAIRS = prove_by_refinement(
+  `!(a:A) b c d e f.
+    CARD {a,b,c,d} = 4 /\ {a,b,c,d} = {a,b,e,f} ==> {c,d} = {e,f}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Geomdetail.PAIR_EQ_EXPAND];
+  MATCH_MP_TAC Leaf_cell.LENGTH4_SET2;
+  REWRITE_TAC[set_of_list];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let CC_CELL_WEDGE_MATCH_UH = prove_by_refinement(
+  `!V ul u0 u1 w0 n f i j.  packing V /\
+         saturated V /\
+         leaf_rank V [EL 0 ul; EL 1 ul] w0 n f /\
+         ~collinear {EL 0 ul, EL 1 ul, w0} /\
+         1 < n /\
+         i < n /\ 
+    {u0,u1} = {EL 0 ul,EL 1 ul} /\
+    cc_cell V [u0;u1;f j] SUBSET wedge_ge (EL 0 ul) (EL 1 ul) (f i) (f (SUC i)) /\
+    cc_ke V [u0;u1;f j] = 4 ==>
+    {f j, EL 3 (cc_uh V [u0;u1;f j])} = {f i, f (SUC i)}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "basic facts";
+  TYPIFY `!j. leaf V [EL 0 ul; EL 1 ul; f j]` (C SUBGOAL_THEN ASSUME_TAC);
+    GEN_TAC;
+    MATCH_MP_TAC s_leaf_leaf;
+    REWRITE_TAC[IN];
+    MATCH_MP_TAC LEAF_RANK_S_LEAF;
+    BY(ASM_MESON_TAC[LEAF_RANK_TRUNCATE]);
+  TYPIFY `leaf V [u0;u1;f j]` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `{u0,u1} = {v0,v1}` MP_TAC;
+    REWRITE_TAC[Geomdetail.PAIR_EQ_EXPAND];
+    DISCH_THEN DISJ_CASES_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    ASM_REWRITE_TAC[];
+    INTRO_TAC Leaf_cell.ZASUVOR [`V`;`EL 0 ul`;`EL 1 ul`;`f j`];
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    BY(MESON_TAC[]);
+  TYPIFY `leaf V [u1;u0;f j]` (C SUBGOAL_THEN ASSUME_TAC);
+    INTRO_TAC Leaf_cell.ZASUVOR [`V`;`u0`;`u1`;`f j`];
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    BY(MESON_TAC[]);
+  INTRO_TAC Leaf_cell.EL_CC_UH [`V`;`[u0;u1;f j]`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[Bump.EL_EXPLICIT];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `~(NULLSET (cc_cell V [u0;u1;f j]))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[IN;Leaf_cell.CC_CELL_NOT_NULLSET]);
+  COMMENT "show 4-cell has standard form";
+  PROOF_BY_CONTR_TAC;
+  INTRO_TAC Leaf_cell.MCELL4_EDGE_FIRST [`V`;`cc_uh V [u0;u1;f j]`;`EL 0 ul`;`EL 1 ul`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    SUBCONJ_TAC;
+      BY(ASM_MESON_TAC[Leaf_cell.cc_uh]);
+    DISCH_TAC;
+    INTRO_TAC Leaf_cell.STEM_EDGEX [`V`;`[u0;u1;f j]`];
+    BY(ASM_REWRITE_TAC[Bump.EL_EXPLICIT;Leaf_cell.cc_cell;Bump.MCELL4]);
+  REWRITE_TAC[];
+  ONCE_REWRITE_TAC[EQ_SYM_EQ];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `cc_cell V [u0;u1;f j] = mcell4 V vl` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Leaf_cell.cc_cell;Bump.MCELL4]);
+  INTRO_TAC MCELL4_FI [`V`;`vl`;`w0`;`n`;`f`;`i`];
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[IN]);
+  DISCH_TAC;
+  COMMENT "show two cc cells are equal";
+  INTRO_TAC Leaf_cell.CC_CELL4 [`V`;`[u0;u1;f j]`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  TYPIFY `convex hull {EL 0 vl, EL 1 vl, f i, f (SUC i)} = convex hull set_of_list (cc_uh V [u0; u1; f j])` (C SUBGOAL_THEN MP_TAC);
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  TYPIFY `affine hull {EL 0 vl, EL 1 vl, f i, f (SUC i)} = affine hull set_of_list (cc_uh V [u0; u1; f j])` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[AFFINE_HULL_CONVEX_HULL]);
+  TYPIFY `aff_dim {EL 0 vl, EL 1 vl, f i, f (SUC i)} = aff_dim (set_of_list (cc_uh V [u0; u1; f j]))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[AFF_DIM_AFFINE_HULL]);
+  INTRO_TAC Leaf_cell.SET_OF_LIST_CC_UH [`V`;`[u0;u1;f j]`];
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[]);
+  REWRITE_TAC[Bump.EL_EXPLICIT];
+  DISCH_TAC;
+  TYPIFY `CARD {u0,u1,f j,EL 3 (cc_uh V [u0;u1;f j])} = 4` (C SUBGOAL_THEN ASSUME_TAC);
+    INTRO_TAC MCELL4_CARD4 [`V`;`cc_uh V [u0;u1;f j]`];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[IN;Leaf_cell.cc_uh]);
+    BY(ASM_REWRITE_TAC[]);
+  COMMENT "show two lists are equal";
+  INTRO_TAC Packing3.CONVEX_HULL_EQ_EQ_SET_EQ [`{EL 0 vl, EL 1 vl, f i, f (SUC i)}`;`set_of_list (cc_uh V [u0; u1; f j])`];
+  TYPIFY `(~affine_dependent {EL 0 vl, EL 1 vl, f i, f (SUC i)} /\   ~affine_dependent (set_of_list (cc_uh V [u0; u1; f j])))` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN (unlist REWRITE_TAC);
+    ASM_REWRITE_TAC[];
+    DISCH_TAC;
+    FIRST_X_ASSUM_ST `~` MP_TAC;
+    REWRITE_TAC[];
+    MATCH_MP_TAC CARD4_IN_PAIRS;
+    GEXISTL_TAC [`u0`;`u1`];
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM (SUBST1_TAC o GSYM);
+    FIRST_X_ASSUM_ST `{a,b} = {c,d}` MP_TAC;
+    BY(SET_TAC[]);
+  ASM_REWRITE_TAC[AFFINE_INDEPENDENT_IFF_CARD];
+  REWRITE_TAC[FINITE_INSERT;FINITE_EMPTY];
+  TYPIFY `aff_dim {u0, u1, f j, EL 3 (cc_uh V [u0; u1; f j])} = &3` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC NOT_COPLANAR_AFF_3;
+    ONCE_REWRITE_TAC[GSYM COPLANAR_CONVEX_HULL_COPLANAR];
+    DISCH_THEN (MP_TAC o (MATCH_MP COPLANAR_IMP_NEGLIGIBLE));
+    BY(ASM_MESON_TAC[COPLANAR_IMP_NEGLIGIBLE]);
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[INT_ARITH `!(x:int). &3 = x - &1 <=> x = &4`];
+  REWRITE_TAC[INT_OF_NUM_EQ];
+  MATCH_MP_TAC (arith `x <= 4 /\ ~(x <= 3) ==> (x = 4)`);
+  REWRITE_TAC[Geomdetail.CARD4];
+  DISCH_TAC;
+  INTRO_TAC AFF_DIM_LE_CARD [`{EL 0 ul, EL 1 ul, f i, f (SUC i)}`];
+  REWRITE_TAC[FINITE_INSERT;FINITE_EMPTY];
+  MATCH_MP_TAC (INT_ARITH `c <= &3 /\ a = int_of_num 3 ==> ~(a <= c - int_of_num 1)`);
+  ASM_REWRITE_TAC[INT_OF_NUM_LE];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let CC_CELL_WEDGE_MATCH_UH_ALT = prove_by_refinement(
+  `!V ul u0 u1 w0 n f i j.  packing V /\
+         saturated V /\
+         leaf_rank V [EL 0 ul; EL 1 ul] w0 n f /\
+         ~collinear {EL 0 ul, EL 1 ul, w0} /\
+         1 < n /\
+    {u0,u1} = {EL 0 ul,EL 1 ul} /\
+    cc_cell V [u0;u1;f j] SUBSET wedge_ge (EL 0 ul) (EL 1 ul) (f i) (f (SUC i)) /\
+    cc_ke V [u0;u1;f j] = 4 ==>
+    {f j, EL 3 (cc_uh V [u0;u1;f j])} = {f i, f (SUC i)}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `periodic f n` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[LEAF_RANK_PERIODIC]);
+  INTRO_TAC PERIODIC_REDUCE_MOD [`f`;`n`;`i`];
+  ASM_SIMP_TAC[arith `1 < n ==> 1 <= n`];
+  DISCH_THEN (fun t -> REPEAT (FIRST_X_ASSUM MP_TAC) THEN MP_TAC ( t));
+  STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC CC_CELL_WEDGE_MATCH_UH [`V`;`ul`;`u0`;`u1`;`w0`;`n`;`f`;`j'`;`j`];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let K4_CC_WI = prove_by_refinement(
+  `!V ul w0 n f i.  packing V /\
+         saturated V /\
+         leaf_rank V [EL 0 ul; EL 1 ul] w0 n f /\
+         ~collinear {EL 0 ul, EL 1 ul, w0} /\
+         1 < n /\
+         i < n /\ 
+    cc_ke V [EL 0 ul;EL 1 ul;f i] = 4 ==>
+     cc_cell V [EL 0 ul;EL 1 ul;f i] SUBSET wedge_ge (EL 0 ul) (EL 1 ul) (f i) (f (SUC i))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "preliminaries";
+  TYPIFY `periodic f n` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[ LEAF_RANK_PERIODIC]);
+  TYPIFY `~(n = 0)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(FIRST_X_ASSUM_ST `1 < n` MP_TAC THEN ARITH_TAC);
+  TYPIFY `f (SUC (i + n - 1)) = f i` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[F_SUC_PRE]);
+  INTRO_TAC CC_CELL_SUBSET_WEDGE [`V`;`ul`;`EL 0 ul`;`EL 1 ul`;`w0`;`n`;`f`;`i`];
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[]);
+  MATCH_MP_TAC (TAUT `~b ==> (a \/ b ==> a)`);
+  DISCH_TAC;
+  TYPIFY `!j. leaf V [EL 0 ul; EL 1 ul; f j]` (C SUBGOAL_THEN ASSUME_TAC);
+    GEN_TAC;
+    MATCH_MP_TAC s_leaf_leaf;
+    REWRITE_TAC[IN];
+    MATCH_MP_TAC LEAF_RANK_S_LEAF;
+    BY(ASM_MESON_TAC[LEAF_RANK_TRUNCATE]);
+  INTRO_TAC Leaf_cell.EL_CC_UH [`V`;`[EL 0 ul;EL 1 ul;f i]`];
+  ASM_REWRITE_TAC[Bump.EL_EXPLICIT];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `&0 < chi_msb [EL 0 (cc_uh V [EL 0 ul;EL 1 ul;f i]); EL 1 (cc_uh V [EL 0 ul;EL 1 ul;f i]); f(i + n - 1)] (f (SUC (i + n - 1)))` (C SUBGOAL_THEN MP_TAC);
+    MATCH_MP_TAC LEAF_RANK4_CHI_MSB_ALT;
+    GEXISTL_TAC [`V`;`w0`;`n`];
+    ASM_REWRITE_TAC[Bump.EL_EXPLICIT];
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[Leaf_cell.cc_uh;IN]);
+    TYPIFY `mcell4 V (cc_uh V [EL 0 ul;EL 1 ul; f i]) = cc_cell V [EL 0 ul;EL 1 ul;f i]` (C SUBGOAL_THEN SUBST1_TAC);
+      REWRITE_TAC[Leaf_cell.cc_cell;Bump.MCELL4];
+      BY(ASM_MESON_TAC[]);
+    CONJ_TAC;
+      MATCH_MP_TAC Leaf_cell.CC_CELL_NOT_NULLSET;
+      BY(ASM_MESON_TAC[]);
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  COMMENT "now compute chi a second way via 0 < chi cc_cell";
+  INTRO_TAC Leaf_cell.K4_CHI_MSB_POS [`V`;`[EL 0 ul;EL 1 ul;f (i)]`];
+  ASM_REWRITE_TAC[];
+  ONCE_REWRITE_TAC[Leaf_cell.chi_msb_swap_23];
+  TYPIFY `EL 3 (cc_uh V [EL 0 ul; EL 1 ul; f i]) = f (i + n - 1)` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN SUBST1_TAC;
+    BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
+  INTRO_TAC CC_CELL_WEDGE_MATCH_UH_ALT [`V`;`ul`;`EL 0 ul`;`EL 1 ul`;`w0`;`n`;`f`;`(i + n - 1)`;`i`];
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[Geomdetail.PAIR_EQ_EXPAND];
+  DISCH_THEN DISJ_CASES_TAC;
+    PROOF_BY_CONTR_TAC;
+    FIRST_X_ASSUM_ST `/\` MP_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC LEAF_RANK_AZIM_INJ [`V`;`[EL 0 ul;EL 1 ul;f i]`;`w0`;`n`;`f`;`i`;`i + n - 1`];
+    ASM_SIMP_TAC[arith `1 < n ==> ~(n = 0)`;Bump.EL_EXPLICIT;AZIM_REFL];
+    DISCH_THEN MP_TAC THEN ANTS_TAC;
+      BY(ASM_MESON_TAC[]);
+    BY(ASM_MESON_TAC[Oxl_2012.MOD_INJ1;arith `1 < n ==> ~(n = 0) /\ 1 < n ==> (n - 1) < n /\ 1 < n ==> ~(n - 1 = 0)`]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let MCELL4_REPARAM = prove_by_refinement(
+  `!V ul vl.  packing V /\ saturated V /\ CARD (set_of_list ul) = 4 /\ (set_of_list ul = set_of_list vl) /\
+    LENGTH vl = 4 /\ ~(NULLSET (mcell4 V ul)) /\
+    barV V 3 ul ==> mcell4 V ul = mcell4 V vl /\ barV V 3 vl`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Marchal_cells_3.LEFT_ACTION_LIST_3_EXISTS [`EL 0 ul`;`EL 1 ul`;`EL 2 ul`;`EL 3 ul`;`EL 0 vl`;`EL 1 vl`;`EL 2 vl`;`EL 3 vl`];
+  TYPIFY `set_of_list ul = {EL 0 ul, EL 1 ul, EL 2 ul, EL 3 ul}` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Bump.set_of_list4;
+    REWRITE_TAC[arith `4 = 3 + 1`] THEN MATCH_MP_TAC Marchal_cells_3.BARV_LENGTH_LEMMA;
+    BY(ASM_MESON_TAC[]);
+  TYPIFY `set_of_list vl = {EL 0 vl,EL 1 vl,EL 2 vl,EL 3 vl}` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Bump.set_of_list4;
+    BY(ASM_REWRITE_TAC[]);
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `ul = [EL 0 ul;EL 1 ul;EL 2 ul;EL 3 ul]` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Bump.LENGTH4;
+    REWRITE_TAC[arith `4 = 3 + 1`] THEN MATCH_MP_TAC Marchal_cells_3.BARV_LENGTH_LEMMA;
+    BY(ASM_MESON_TAC[]);
+  TYPIFY `vl = [EL 0 vl;EL 1 vl;EL 2 vl;EL 3 vl]` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Bump.LENGTH4;
+    BY(ASM_REWRITE_TAC[]);
+  INTRO_TAC Rvfxzbu.RVFXZBU [`V`;`ul`;`4`;`p`];
+  ASM_REWRITE_TAC[IN_INSERT;arith `4 - 1 = 3`];
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[Bump.MCELL4]);
+  DISCH_TAC;
+  INTRO_TAC Qzksykg.QZKSYKG1 [`V`;`ul`;`vl`;`4`;`p`];
+  DISCH_THEN MATCH_MP_TAC;
+  ASM_REWRITE_TAC[IN_INSERT;arith `4 - 1 = 3`];
+  BY(ASM_MESON_TAC[Bump.MCELL4;NEGLIGIBLE_EMPTY])
+  ]);;
+  (* }}} *)
+
+let K4_CC_WI_MINUS = prove_by_refinement(
+  `!V ul w0 n f i.  packing V /\
+         saturated V /\
+         leaf_rank V [EL 0 ul; EL 1 ul] w0 n f /\
+         ~collinear {EL 0 ul, EL 1 ul, w0} /\
+         1 < n /\
+         i < n /\ 
+    cc_ke V [EL 1 ul;EL 0 ul;f i] = 4 ==>
+     cc_cell V [EL 1 ul;EL 0 ul;f i] SUBSET wedge_ge (EL 0 ul) (EL 1 ul) (f (i + n - 1)) (f  i)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "preliminaries";
+  TYPIFY `periodic f n` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[ LEAF_RANK_PERIODIC]);
+  TYPIFY `~(n = 0)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(FIRST_X_ASSUM_ST `1 < n` MP_TAC THEN ARITH_TAC);
+  TYPIFY `f (SUC (i + n - 1)) = f i` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[F_SUC_PRE]);
+  TYPIFY `{EL 1 ul,EL 0 ul} = {EL 0 ul,EL 1 ul}` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(SET_TAC[]);
+  INTRO_TAC CC_CELL_SUBSET_WEDGE [`V`;`ul`;`EL 1 ul`;`EL 0 ul`;`w0`;`n`;`f`;`i`];
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[]);
+  MATCH_MP_TAC (TAUT `~a ==> (a \/ b ==> b)`);
+  DISCH_TAC;
+  TYPIFY `!j. leaf V [EL 0 ul; EL 1 ul; f j]` (C SUBGOAL_THEN ASSUME_TAC);
+    GEN_TAC;
+    MATCH_MP_TAC s_leaf_leaf;
+    REWRITE_TAC[IN];
+    MATCH_MP_TAC LEAF_RANK_S_LEAF;
+    BY(ASM_MESON_TAC[LEAF_RANK_TRUNCATE]);
+  TYPIFY `!j. leaf V [EL 1 ul;EL 0 ul; f j]` (C SUBGOAL_THEN ASSUME_TAC);
+    GEN_TAC;
+    INTRO_TAC Leaf_cell.ZASUVOR [`V`;`EL 0 ul`;`EL 1 ul`;`f j`];
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    BY(MESON_TAC[]);
+  INTRO_TAC Leaf_cell.EL_CC_UH [`V`;`[EL 1 ul;EL 0 ul;f i]`];
+  ASM_REWRITE_TAC[Bump.EL_EXPLICIT];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Leaf_cell.CC_CELL_NOT_NULLSET [`V`;`[EL 1 ul; EL 0 ul; f i]`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  COMMENT "reparametrize";
+  INTRO_TAC MCELL4_REPARAM [`V`;`cc_uh V [EL 1 ul;EL 0 ul;f i]`;`[EL 0 ul;EL 1 ul;f i; EL 3 (cc_uh V [EL 1 ul;EL 0 ul;f i])]`];
+  COMMENT "long list of ants";
+  ANTS_TAC;
+    ASM_REWRITE_TAC[LENGTH;arith `SUC(SUC(SUC(SUC 0))) = 4`];
+    INTRO_TAC Leaf_cell.CC_CELL_EXTREME_CARD [`V`;`[EL 1 ul;EL 0 ul;f i]`;`EL 3 (cc_uh V [EL 1 ul;EL 0 ul;f i])`];
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[arith `~(4 = 3)`]);
+    REWRITE_TAC[Bump.EL_EXPLICIT];
+    DISCH_TAC;
+    TYPIFY `barV V 3 (cc_uh V [EL 1 ul; EL 0 ul; f i])` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[Leaf_cell.cc_uh;IN]);
+    INTRO_TAC BARV3_SET_OF_LIST4 [`V`;`cc_uh V [EL 1 ul; EL 0 ul; f i]`];
+    ASM_REWRITE_TAC[];
+    DISCH_TAC;
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[]);
+    CONJ_TAC;
+      ASM_REWRITE_TAC[set_of_list];
+      BY(SET_TAC[]);
+    BY(ASM_MESON_TAC[Leaf_cell.cc_cell;Bump.MCELL4;IN]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `(vl:(real^3)list) =  [EL 0 ul; EL 1 ul; f i; EL 3 (cc_uh V [EL 1 ul; EL 0 ul; f i])]` TYPED_ABBREV_TAC;
+  TYPIFY `EL 0 vl = EL 0 ul /\ EL 1 vl = EL 1 ul` (C SUBGOAL_THEN ASSUME_TAC);
+    EXPAND_TAC "vl";
+    BY(REWRITE_TAC[Bump.EL_EXPLICIT]);
+  COMMENT "compute chi_msb";
+  INTRO_TAC LEAF_RANK4_CHI_MSB_ALT [`V`;`vl`;`w0`;`n`;`f`;`i`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[Leaf_cell.cc_cell;Bump.MCELL4]);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  COMMENT "now compute chi a second way via 0 < chi cc_cell";
+  INTRO_TAC Leaf_cell.K4_CHI_MSB_POS [`V`;`[EL 1 ul;EL 0 ul;f (i)]`];
+  ASM_REWRITE_TAC[];
+  ONCE_REWRITE_TAC[Leaf_cell.chi_msb_swap_01];
+  TYPIFY `EL 3 (cc_uh V [EL 1 ul; EL 0 ul; f i]) = f (SUC i)` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN SUBST1_TAC;
+    BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
+  INTRO_TAC CC_CELL_WEDGE_MATCH_UH_ALT [`V`;`ul`;`EL 1 ul`;`EL 0 ul`;`w0`;`n`;`f`;`i`;`i`];
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[Geomdetail.PAIR_EQ_EXPAND];
+  DISCH_THEN DISJ_CASES_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  PROOF_BY_CONTR_TAC;
+  FIRST_X_ASSUM_ST `/\` MP_TAC;
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC LEAF_RANK_AZIM_INJ [`V`;`[EL 0 ul;EL 1 ul]`;`w0`;`n`;`f`;`i`;`SUC i`];
+  ASM_SIMP_TAC[arith `1 < n ==> ~(n = 0)`;Bump.EL_EXPLICIT;AZIM_REFL];
+  REWRITE_TAC[arith `SUC i = (i + 1)`];
+  BY(ASM_MESON_TAC[Oxl_2012.MOD_INJ1;arith `1 < n ==> ~(n = 0) /\ ~(1 = 0)`])
+  ]);;
+  (* }}} *)
+
 end;;
 
 
+
 (* IN DEVELOPMENT: *)
+
+let F_DEMOD = prove_by_refinement(
+  `!f n i. periodic f n /\ 1 < n ==>
+    f (i MOD n) = f i /\ f (SUC (i MOD n)) = f (SUC i)`,
+  (* {{{ proof *)
+  [
+  st/r
+mp (arith `1 < n ==> ~(n =0)`)
+art[]
+st/r
+conj
+mmp PERIODIC_EQ_IMAGE
+typ `n` ex
+asimp[MOD_REFL]
+mmp PERIODIC_EQ_IMAGE
+typ `n` ex
+art[]
+rt[arith `SUC x = x + 1`]
+
+(* to here xxd *)
+ort[GSYM MOD_ADD_MOD]
+  ]);;
+  (* }}} *)
+
+
+let K3_CC_WI = prove_by_refinement(
+  `!V ul w0 n f i.
+         packing V /\
+         saturated V /\
+         leaf_rank V [EL 0 ul; EL 1 ul] w0 n f /\
+         ~collinear {EL 0 ul, EL 1 ul, w0} /\
+         1 < n /\
+         i < n /\
+         cc_ke V [EL 0 ul; EL 1 ul; f i] = 3
+         ==> cc_cell V [EL 0 ul; EL 1 ul; f i] SUBSET
+             wedge_ge (EL 0 ul) (EL 1 ul) (f i) (f (SUC i))`,
+  (* {{{ proof *)
+  [
+  st/r
+intro CC_CELL_SUBSET_WEDGE [`V`;`ul`;`EL 0 ul`;`EL 1 ul`;`w0`;`n`;`f`;`i`]
+art[]
+dthen disjcase
+art[]
+contr
+typ `~(n=0)` sat
+fxast `1 < n` mp then ARITH_TAC
+intro WEDGE_UNIQUE_CC_CELL [`V`;`ul`;`w0`;`n`;`f`;`i MOD n`;`i`]
+asimp[DIVISION]
+
+
+  ]);;
+  (* }}} *)

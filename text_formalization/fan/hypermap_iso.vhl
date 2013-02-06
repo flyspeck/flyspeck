@@ -17,6 +17,7 @@ Module Hypermap_iso.
 
 "let inE = CONJUNCT2 IN_ELIM_THM".
 
+
 Lemma bij_disjoint_union f g s t s' t':
         `DISJOINT s t /\ DISJOINT s' t' /\ BIJ (f:A->B) s s' /\ BIJ (g:A->B) t t'
                 ==> BIJ (\x. if x IN s then f x else g x) (s UNION t) (s' UNION t')`.
@@ -52,6 +53,14 @@ move => x [x_in].
 move: (g_surj x_in) => [y] [yt gy_eq].
 by exists y; rewrite yt (x_in_t yt).
 Qed.
+
+Lemma disjoint_diff s t: `DISJOINT s (t DIFF s)`.
+Proof.
+rewrite DISJOINT EXTENSION => x.
+rewrite IN_INTER IN_DIFF NOT_IN_EMPTY.
+by rewrite andbA andbAC andbN andFb.
+Qed.
+
 
 Lemma image_lemma f P: `IMAGE f {x | P x} = {f x | P x}`.
 Proof. by rewrite EXTENSION IN_IMAGE inE !IN_ELIM_THM /= andbC. Qed.
@@ -174,9 +183,35 @@ Lemma bij_alt f s t: `BIJ f s t <=>
         (!x. x IN s ==> f x IN t) /\
         (!x y. x IN s /\ y IN s /\ f x = f y ==> x = y) /\
         (!y. y IN t ==> ?x. x IN s /\ f x = y)`.
+Proof. by rewrite BIJ INJ SURJ andbAC !andbA andbb andbAC. Qed.
+
+Section Ext.
+
+Variables f g: `:A->B`.
+Variable s: `:A->bool`.
+Variable t: `:B->bool`.
+
+Hypothesis ext: `!x. x IN s ==> f x = g x`.
+
+Lemma inj_ext: `INJ f s t ==> INJ g s t`.
 Proof.
-by rewrite BIJ INJ SURJ andbAC !andbA andbb andbAC.
+rewrite !INJ => [] [f_in f_inj]; split => [x xs | x y h].
+  by rewrite -ext // f_in.
+by apply: f_inj; rewrite !ext.
 Qed.
+
+Lemma surj_ext: `SURJ f s t ==> SURJ g s t`.
+Proof.
+rewrite !SURJ => [] [f_in f_surj]; split => [x xs | x xt].
+  by rewrite -ext // f_in.
+move: (f_surj xt) => [y] [ys eq].
+by exists y; rewrite -ext.
+Qed.
+
+Lemma bij_ext: `BIJ f s t ==> BIJ g s t`.
+Proof. by rewrite !BIJ => h; split; [exact: inj_ext | exact: surj_ext]. Qed.
+
+End Ext.
 
 
 Lemma res_inv_left f s x:
@@ -290,6 +325,13 @@ have [t [t_in d_eq]] := hyp_iso_surj d_in.
 by rewrite -d_eq !hyp_iso_comm // !(res_inv_bij hyp_iso_bij) // lemma_dart_invariant.
 Qed.
 
+Lemma hyp_iso_ext g: `(!d. d IN (dart H) ==> f d = g d)
+	==> hyp_iso g (H, G)`.
+Proof.
+move => ext; rewrite hyp_iso (bij_ext hyp_iso_bij) // andTb => d d_in.
+by rewrite -!ext ?hyp_iso_comm // Hypermap.lemma_dart_invariant.
+Qed.
+  
 Lemma iso_components d: `d IN dart H ==>
         node G (f d) = IMAGE f (node H d) /\
         face G (f d) = IMAGE f (face H d) /\
@@ -591,23 +633,44 @@ by exists `vec 0` v.
 Qed.
 
 
-Lemma fan_hypermaps_iso V E: `FAN (vec 0,V,E)
-        ==> (hypermap1_of_fanx (vec 0,V,E)) iso (hypermap_of_fan (V,E))`.
+(* Isomorphism theorems *)
+Section Iso.
+
+Variable V: `:real^3->bool`.
+Variable E: `:(real^3->bool)->bool`.
+
+Hypothesis fan: `FAN (vec 0,V,E)`.
+
+Lemma bij_contracted_dart: `BIJ contracted_dart (d_fan (vec 0,V,E)) (dart_of_fan (V,E))`.
 Proof.
-move => fan; rewrite iso !(COMPONENTS_HYPERMAP_OF_FAN fan).
-have := hypermap_of_fan_rep fan.
-set p := `\t. _ t`; move/(_ p); "ANTS_TAC" => // h1_eq.
-rewrite !h1_eq; move: h1_eq => _.
-exists `contracted_dart`.
-rewrite !d_fan dart_of_fan_eq; split.
-  have ->: `contracted_dart = \t. if t IN d1_fan (vec 0,V,E) then contracted_dart t else contracted_dart t`.
+have ->: `contracted_dart = \t. if t IN d1_fan (vec 0,V,E) then contracted_dart t else contracted_dart t`.
     by rewrite if_same ETA_AX.
-  rewrite bij_disjoint_union darts_of_fan_disj // darts_of_fan_disj1 //.
-  by rewrite bij_contracted_dart1 bij_contracted_dart2.
+rewrite d_fan dart_of_fan_eq bij_disjoint_union darts_of_fan_disj //.
+by rewrite darts_of_fan_disj1 // bij_contracted_dart1 bij_contracted_dart2.
+Qed.
+
+
+Lemma hypermap_of_fan_rep_alt:
+	`dart (hypermap1_of_fanx (vec 0,V,E)) = d_fan (vec 0,V,E)
+	/\ edge_map (hypermap1_of_fanx (vec 0,V,E)) = res (e_fan (vec 0) V E) (d1_fan (vec 0,V,E))
+	/\ node_map (hypermap1_of_fanx (vec 0,V,E)) = res (n_fan (vec 0) V E) (d1_fan (vec 0,V,E))
+	/\ face_map (hypermap1_of_fanx (vec 0,V,E)) = res (f1_fan (vec 0) V E) (d1_fan (vec 0,V,E))`.
+Proof.
+have := hypermap_of_fan_rep fan.
+set p := `\t. _ t`; move/(_ p); "ANTS_TAC" => // eq.
+by rewrite !eq -p_def.
+Qed.
+
+
+Lemma fan_hypermaps_iso_explicit: 
+	`hyp_iso contracted_dart (hypermap1_of_fanx (vec 0,V,E), hypermap_of_fan (V,E))`.
+Proof.
+rewrite hyp_iso !(COMPONENTS_HYPERMAP_OF_FAN fan) !hypermap_of_fan_rep_alt.
+rewrite bij_contracted_dart // !d_fan andTb.
 have x_in_d2 x: `x IN d20_fan (vec 0,V,E) ==> ~(x IN d1_fan (vec 0,V,E))`.
   move => x2; apply: contraL (darts_of_fan_disj1 fan) => x1.
   by rewrite DISJOINT -MEMBER_NOT_EMPTY IN_INTER; exists x.
-rewrite IN_UNION => x [x_in]; rewrite -p_def /= !res ?x_in ?x_in_d2 //=; last first.
+rewrite IN_UNION => x [x_in]; rewrite !res ?x_in ?x_in_d2 //=; last first.
   move: x_in; rewrite d20_fan IN_ELIM_THM /= => [] [x'] [v] [h] ->.
   rewrite contracted_dart e_fan_pair_ext n_fan_pair_ext f_fan_pair_ext.
   by rewrite !(NOT_IN_DART1_OF_FAN fan).
@@ -619,5 +682,55 @@ have -> /=: `v,w IN dart1_of_fan (V,E)`.
 rewrite e_fan_pair n_fan_pair f_fan_pair h /= PAIR_EQ /=.
 by rewrite Fan_misc.INVERSE_SIGMA_FAN_EQ_INVERSE1_SIGMA_FAN // "GEN_ALL Collect_geom.PER_SET2".
 Qed.
+
+
+Lemma fan_hypermaps_iso: `(hypermap1_of_fanx (vec 0,V,E)) iso (hypermap_of_fan (V,E))`.
+Proof. exact: (hyp_iso_imp_iso fan_hypermaps_iso_explicit). Qed.
+
+
+"let ext_dart = new_definition 
+	`ext_dart (V,E) (v,w) = (vec 0,v,w,extension_sigma_fan (vec 0) V E v w)`".
+
+
+Lemma ext_dart_eq_inv_contracted_dart d: 
+	`d IN dart_of_fan (V,E)
+	==> ext_dart (V,E) d = res_inv contracted_dart (d_fan (vec 0,V,E)) d`.
+Proof.
+case: d => v w; rewrite ext_dart => vw_in.
+set w1 := `extension_sigma_fan _ V E v w`.
+have ->: `(v,w) = contracted_dart (vec 0:real^3,v,w,w1:real^3)` by rewrite contracted_dart.
+rewrite res_inv_left //; split => [x y h | ].
+  have := bij_contracted_dart.
+  by rewrite BIJ INJ => [] [] [_] h2 _; apply: h2.
+rewrite -w1_def extension_sigma_fan d_fan IN_UNION.
+case w_in: `w IN set_of_edge v V E` => /=.
+  rewrite d1_fan IN_ELIM_THM /=; left.
+  exists `vec 0` v w `sigma_fan (vec 0) V E v w` => /=.
+  by rewrite (properties_of_set_of_edge_fan fan).
+rewrite d20_fan IN_ELIM_THM /=; right.
+exists `vec 0` v => /=.
+move: vw_in; rewrite dart_of_fan IN_UNION !IN_ELIM_THM /=; case.
+  move => [v']; rewrite PAIR_EQ IN => [] [h] eq.
+  by rewrite !eq.
+move => [v'] [w'].
+rewrite PAIR_EQ (properties_of_set_of_edge_fan fan) => [] [h] eq.
+by move: w_in; rewrite !eq h.
+Qed.
+
+
+Lemma fan_hypermaps_iso_explicit2:
+	`hyp_iso (ext_dart (V,E)) (hypermap_of_fan (V,E),hypermap1_of_fanx (vec 0,V,E))`.
+Proof.
+have iso := (hyp_iso_inv fan_hypermaps_iso_explicit).
+apply: (hyp_iso_ext iso).
+rewrite hypermap_of_fan_rep_alt (COMPONENTS_HYPERMAP_OF_FAN fan) => d d_in.
+by rewrite ext_dart_eq_inv_contracted_dart.
+Qed.
+
+
+Lemma fan_hypermaps_iso2: `(hypermap_of_fan (V,E)) iso (hypermap1_of_fanx (vec 0,V,E))`.
+Proof. exact: (hyp_iso_imp_iso fan_hypermaps_iso_explicit2). Qed.
+
+End Iso.
 
 End FanHypermapsIso.

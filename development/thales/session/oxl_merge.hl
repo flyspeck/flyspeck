@@ -2311,17 +2311,6 @@ let MCELL4_DIHX_AZIM = prove_by_refinement(
   ]);;
   (* }}} *)
 
-(*
-let MCELL_SET_ALT = prove_by_refinement(
-  `!V X. mcell_set V X <=> (?i ul. i <= 4 /\ X = mcell i V ul /\ barV V 3 ul)`,
-  (* {{{ proof *)
-  [
-  rt[Pack_defs.mcell_set;IN_ELIM_THM]
-st/r
-  ]);;
-  (* }}} *)
-*)
-
 let PERIODIC_IMAGE = prove_by_refinement(
   `!f n. ~(n = 0) /\ periodic (f:num->A) n ==>
     IMAGE f {i | i < n} = IMAGE f (:num)`,
@@ -2891,8 +2880,6 @@ let WEDGE_UNIQUE_CC_CELL = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
-
 let LEAF_RANK4_CHI_MSB = prove_by_refinement(
   `!V ul w0 n f i.  packing V /\
          saturated V /\
@@ -3364,8 +3351,6 @@ let K4_CC_WI_MINUS = prove_by_refinement(
   ]);;
   (* }}} *)
 
-end;;
-
 let F_DEMOD = prove_by_refinement(
   `!f n i. periodic f n /\ 1 < n ==>
     f (i MOD n) = f i /\ f (SUC (i MOD n)) = f (SUC i)`,
@@ -3449,8 +3434,6 @@ let K4_CC_WI_ALT = prove_by_refinement(
   BY(ASM_SIMP_TAC[DIVISION;F_DEMOD])
   ]);;
   (* }}} *)
-
-(* IN DEVELOPMENT: *)
 
 let WEDGE_UNIQUE_CC_CELL_ALT = prove_by_refinement(
   `!V ul w0 n f i j.
@@ -3783,7 +3766,7 @@ let cc_prep_model_data = prove_by_refinement(
   COMMENT "now k=3";
   TYPIFY `cc_ke V [u1;u0;f (i+1)] = 4` (C SUBGOAL_THEN ASSUME_TAC);
     TYPIFY `s_leaf V [u0;u1] (f(i+1))` (C SUBGOAL_THEN MP_TAC);
-      BY(ASM_MESON_TAC[Oxl_merge.LEAF_RANK_S_LEAF]);
+      BY(ASM_MESON_TAC[LEAF_RANK_S_LEAF]);
     GMATCH_SIMP_TAC S_LEAF_SYM;
     ASM_REWRITE_TAC[];
     REWRITE_TAC[s_leaf;Bump.EL_EXPLICIT];
@@ -3842,6 +3825,33 @@ let DIST_IMP_COLLINEAR = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let UPS_X8_POS = prove_by_refinement(
+  `!y5 y6.
+    &2 <= y5 /\ y5 < &4 /\ &2 <= y6 /\ y6 < &4 ==>
+    &0 < ups_x (&8) (y5 * y5) (y6 * y6)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[GSYM Nonlinear_lemma.sqrt8_2;arith `&8 = #8.0`];
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC Merge_ineq.TRI_UPS_X_STRICT_POS;
+  MP_TAC Flyspeck_constants.bounds;
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let DIST_IMP_UPS_X_POS = prove_by_refinement(
+  `!(u0:real^3) u1 u2. &2 <= dist(u0,u1) /\ &2 <= dist(u0,u2) /\ &2 <= dist(u1,u2) /\
+    dist(u0,u1) < &4 /\ dist(u0,u2) < &4 /\ dist(u1,u2) < &4 ==>
+    &0 < ups_x (dist(u0,u1) pow 2) (dist (u0,u2) pow 2) (dist (u1,u2) pow 2)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[GSYM Collect_geom2.NOT_COL_EQ_UPS_X_POS];
+  MATCH_MP_TAC DIST_IMP_COLLINEAR;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
 let MCELL3_DOMAIN = prove_by_refinement(
   `!V ul.          saturated V /\
          packing V /\
@@ -3875,8 +3885,8 @@ let MCELL3_DOMAIN = prove_by_refinement(
   TYPIFY `~collinear {EL 0 ul,EL 1 ul,EL 2 ul}` (C SUBGOAL_THEN ASSUME_TAC);
     MATCH_MP_TAC NOT_COPLANAR_NOT_COLLINEAR;
     TYPIFY `mxi V ul` EXISTS_TAC;
-    ONCE_REWRITE_TAC[GSYM Oxl_merge.COPLANAR_CONVEX_HULL_COPLANAR];
-    GMATCH_SIMP_TAC (GSYM Oxl_merge.MCELL3_CONVEX_HULL);
+    ONCE_REWRITE_TAC[GSYM COPLANAR_CONVEX_HULL_COPLANAR];
+    GMATCH_SIMP_TAC (GSYM MCELL3_CONVEX_HULL);
     BY(ASM_MESON_TAC[COPLANAR_IMP_NEGLIGIBLE;IN]);
   ASM_REWRITE_TAC[];
   TYPIFY `~affine_dependent {EL 0 ul,EL 1 ul,EL 2 ul}` (C SUBGOAL_THEN ASSUME_TAC);
@@ -3913,6 +3923,82 @@ let MCELL3_DOMAIN = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let LEAF_DOMAIN = prove_by_refinement(
+  `!V ul.          saturated V /\
+         packing V /\
+    leaf V ul ==>
+ ~collinear {EL 0 ul,EL 1 ul,EL 2 ul} /\
+ &2 <= dist (EL 1 ul,EL 2 ul) /\
+ &2 <= dist (EL 0 ul,EL 2 ul) /\
+ &2 <= dist (EL 0 ul,EL 1 ul) /\
+ dist (EL 1 ul,EL 2 ul) < &2 * sqrt (&2) /\
+ dist (EL 0 ul,EL 2 ul) < &2 * sqrt (&2) /\
+ dist (EL 0 ul,EL 1 ul) < &2 * sqrt (&2) /\
+ eta_y (dist (EL 0 ul,EL 1 ul)) (dist (EL 0 ul,EL 2 ul))
+ (dist (EL 1 ul,EL 2 ul)) <
+ sqrt (&2)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `barV V 2 ul` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[Leaf_cell.leaf;IN];
+    BY(MESON_TAC[]);
+  TYPIFY `ul = [EL 0 ul;EL 1 ul;EL 2 ul]` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Bump.LENGTH3;
+    REWRITE_TAC[arith `3 = 2 + 1`] THEN MATCH_MP_TAC Marchal_cells_3.BARV_LENGTH_LEMMA;
+    BY(ASM_MESON_TAC[]);
+  TYPIFY `truncate_simplex 2 ul = ul` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM SUBST1_TAC;
+    BY(REWRITE_TAC[Marchal_cells.TRUNCATE_SIMPLEX_EXPLICIT_2]);
+  GMATCH_SIMP_TAC (GSYM RADV_ETAY);
+  TYPIFY `hl ( ul) < sqrt(&2)` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `leaf` MP_TAC;
+    REWRITE_TAC[Leaf_cell.leaf];
+    BY(MESON_TAC[Sphere.sqrt2]);
+  COMMENT "deal with radV";
+  TYPIFY `radV {EL 0 ul, EL 1 ul, EL 2 ul} < sqrt (&2)` (C SUBGOAL_THEN ASSUME_TAC);
+    (FIRST_X_ASSUM_ST `hl` MP_TAC THEN ASM_REWRITE_TAC[Pack_defs.HL;set_of_list]);
+    BY(FIRST_X_ASSUM_ST `EL` SUBST1_TAC THEN REWRITE_TAC[set_of_list;Bump.EL_EXPLICIT]);
+  TYPIFY `~collinear {EL 0 ul,EL 1 ul,EL 2 ul}` (C SUBGOAL_THEN ASSUME_TAC);
+    INTRO_TAC Leaf_cell.GBEWYFX [`V`;`ul`];
+    FIRST_ASSUM_ST `CONS (EL 0 ul)` SUBST1_TAC;
+    REWRITE_TAC[Bump.EL_EXPLICIT;set_of_list];
+    DISCH_THEN MATCH_MP_TAC;
+    BY(ASM_MESON_TAC[]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `~affine_dependent {EL 0 ul,EL 1 ul,EL 2 ul}` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[AFFINE_DEPENDENT_IMP_COLLINEAR_3]);
+  TYPIFY `!x y. {x,y} SUBSET {EL 0 ul,EL 1 ul,EL 2 ul} ==> dist(x,y) < &2 * sqrt(&2)` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    REWRITE_TAC[arith `x < &2 * y <=> inv(&2) * x < y`];
+    REWRITE_TAC[GSYM RADV2];
+    MATCH_MP_TAC REAL_LET_TRANS;
+    TYPIFY `radV {EL 0 ul, EL 1 ul, EL 2 ul}` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC Rogers.RADV_MONO;
+    ASM_REWRITE_TAC[EXTENSION;IN_INSERT;NOT_IN_EMPTY];
+    BY(MESON_TAC[]);
+  INTRO_TAC Packing3.BARV_SUBSET [`V`;`2`;`ul`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY `set_of_list ul = {EL 0 ul,EL 1 ul,EL 2 ul}` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_ASSUM_ST `CONS (EL 0 ul)` SUBST1_TAC;
+    BY(REWRITE_TAC[Bump.EL_EXPLICIT;set_of_list]);
+  TYPIFY `~(EL 0 ul = EL 1 ul) /\ ~(EL 1 ul = EL 2 ul) /\ ~(EL 0 ul = EL 2 ul)` (C SUBGOAL_THEN ASSUME_TAC);
+    TYPIFY `{EL 0 ul,EL 1 ul, EL 2 ul} = {EL 1 ul,EL 2 ul,EL 0 ul}` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(SET_TAC[]);
+    BY(ASM_MESON_TAC[Collect_geom.NOT_COLLINEAR_IMP_2_UNEQUAL]);
+  TYPIFY `&2 <= dist (EL 1 ul,EL 2 ul) /\  &2 <= dist (EL 0 ul,EL 2 ul) /\ &2 <= dist (EL 0 ul,EL 1 ul)` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    FIRST_X_ASSUM_ST `packing` MP_TAC;
+    REWRITE_TAC[Sphere.packing];
+    FIRST_X_ASSUM_ST `SUBSET` MP_TAC;
+    ASM_REWRITE_TAC[SUBSET;IN_INSERT;NOT_IN_EMPTY];
+    REWRITE_TAC[IN];
+    BY(ASM_MESON_TAC[]);
+  BY(REPEAT (CONJ_TAC THEN (TRY (FIRST_X_ASSUM MATCH_MP_TAC))) THEN SET_TAC[])
+  ]);;
+  (* }}} *)
 
 let TSKAJXY_3 = Prove_by_refinement.prove_by_refinement(
  `!V X ul. pack_nonlinear_non_ox3q1h /\
@@ -4049,7 +4135,7 @@ let AFF_DEP_COPLANAR = prove_by_refinement(
   REWRITE_TAC[AFFINE_INDEPENDENT_IFF_CARD;FINITE_INSERT;FINITE_EMPTY];
   REPEAT WEAKER_STRIP_TAC;
   ASM_REWRITE_TAC[INT_ARITH `int_of_num 4 - &1 = &3`];
-  BY(ASM_MESON_TAC[Leaf_cell.COPLANAR_IMP_AFF_DIM;Oxl_merge.NOT_COPLANAR_AFF_3;INT_ARITH `x = int_of_num 3 ==> ~(x <= &2)`])
+  BY(ASM_MESON_TAC[Leaf_cell.COPLANAR_IMP_AFF_DIM;NOT_COPLANAR_AFF_3;INT_ARITH `x = int_of_num 3 ==> ~(x <= &2)`])
   ]);;
   (* }}} *)
 
@@ -4137,18 +4223,19 @@ let RAD_PI_IMP_WEDGE4 = prove_by_refinement(
     azim u0 u1 (f i) (f (SUC i)) < pi /\
     radV {u0,u1,f i,f (SUC i)} < sqrt(&2)  ==>
     (?ul. mcell4 V ul SUBSET wedge_ge u0 u1 (f i) (f (SUC i)) /\
+       barV V 3 ul /\
     {u0,u1} IN edgeX V (mcell4 V ul))`,
   (* {{{ proof *)
   [
-  st/r
-typ `~coplanar {u0,u1,f i , f (SUC i)}` sat
-rt[ (GSYM Local_lemmas1.AZIM_COND_FOR_COPLANAR)]
-dthen disjcase
-intro Oxl_merge.LEAF_RANK_AZIM_INJ [`V`;`[u0;u1]`;`w0`;`n`;`f`;`i`;`SUC i`]
-art[Bump.EL_EXPLICIT]
-asimp[arith `1 < n ==> ~(n = 0)`;arith `SUC i = i + 1`]
-amt[ Oxl_2012.MOD_INJ1;arith `1 < n ==> ~(n = 0) /\ ~(1 = 0)`]
-repeat (fxa mp) then rat
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `~coplanar {u0,u1,f i , f (SUC i)}` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[ (GSYM Local_lemmas1.AZIM_COND_FOR_COPLANAR)];
+    DISCH_THEN DISJ_CASES_TAC;
+      INTRO_TAC LEAF_RANK_AZIM_INJ [`V`;`[u0;u1]`;`w0`;`n`;`f`;`i`;`SUC i`];
+      ASM_REWRITE_TAC[Bump.EL_EXPLICIT];
+      ASM_SIMP_TAC[arith `1 < n ==> ~(n = 0)`;arith `SUC i = i + 1`];
+      BY(ASM_MESON_TAC[ Oxl_2012.MOD_INJ1;arith `1 < n ==> ~(n = 0) /\ ~(1 = 0)`]);
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
   TYPIFY `!j. leaf V [u0; u1; f j]` (C SUBGOAL_THEN ASSUME_TAC);
     GEN_TAC;
     INTRO_TAC s_leaf_leaf[`V`;`[u0;u1]`;`f j`];
@@ -4157,16 +4244,427 @@ repeat (fxa mp) then rat
     REWRITE_TAC[IN];
     MATCH_MP_TAC LEAF_RANK_S_LEAF;
     BY(ASM_MESON_TAC[LEAF_RANK_TRUNCATE]);
-intro HL_IMP_BARV [`V`;`[u0;u1;f i;f (SUC i)]`]
-ants
-art[set_of_list]
-rt[LENGTH;arith `SUC(SUC(SUC(SUC 0))) = 4`]
-
-
-ants
-amt[Local_lemmas1.AZIM_COND_FOR_COPLANAR;arith `x < pi ==> ~(
+  INTRO_TAC HL_IMP_BARV [`V`;`[u0;u1;f i;f (SUC i)]`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[set_of_list];
+    REWRITE_TAC[LENGTH;arith `SUC(SUC(SUC(SUC 0))) = 4`];
+    TYPIFY `set_of_list [u0;u1;f i] SUBSET V` (C SUBGOAL_THEN MP_TAC);
+      MATCH_MP_TAC Packing3.BARV_SUBSET;
+      TYPIFY `2` EXISTS_TAC;
+      FIRST_X_ASSUM (C INTRO_TAC [`i`]);
+      REWRITE_TAC[Leaf_cell.leaf;IN];
+      BY(MESON_TAC[]);
+    TYPIFY `set_of_list [u0;u1;f (SUC i)] SUBSET V` (C SUBGOAL_THEN MP_TAC);
+      MATCH_MP_TAC Packing3.BARV_SUBSET;
+      TYPIFY `2` EXISTS_TAC;
+      FIRST_X_ASSUM (C INTRO_TAC [`SUC i`]);
+      REWRITE_TAC[Leaf_cell.leaf;IN];
+      BY(MESON_TAC[]);
+    REWRITE_TAC[set_of_list;SUBSET;IN_INSERT;NOT_IN_EMPTY];
+    REPEAT WEAKER_STRIP_TAC;
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[]);
+    CONJ_TAC;
+      BY(ASM_REWRITE_TAC[Pack_defs.HL;set_of_list]);
+    REWRITE_TAC[Marchal_cells.TRUNCATE_SIMPLEX_EXPLICIT_2];
+    FIRST_X_ASSUM (C INTRO_TAC [`i`]);
+    REWRITE_TAC[Leaf_cell.leaf];
+    BY(MESON_TAC[IN]);
+  DISCH_TAC;
+  COMMENT "now pick ul";
+  TYPIFY `[u0;u1;f i;f(SUC i)]` EXISTS_TAC;
+  TYPIFY `~NULLSET (mcell4 V [u0; u1; f i; f (SUC i)])` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_REWRITE_TAC[Pack_defs.mcell4;Pack_defs.HL;set_of_list];
+    FIRST_X_ASSUM (MP_TAC o (MATCH_MP Leaf_cell.ZWVCBMN));
+    BY(MESON_TAC[Vol1.VOLUME_PROPS_NULLSET;arith `x = &0 ==> ~(&0 < x)`]);
+  ASM_REWRITE_TAC[];
+  CONJ2_TAC;
+    GMATCH_SIMP_TAC Bump.MCELL4_EDGE;
+    CONJ_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    CONJ2_TAC;
+      REWRITE_TAC[set_of_list];
+      BY(SET_TAC[]);
+    BY(ASM_MESON_TAC[Collect_geom.NOT_COLLINEAR_IMP_2_UNEQUAL]);
+  (COMMENT "now place it in wedge");
+  GMATCH_SIMP_TAC MCELL4_CONVEX_HULL;
+  ASM_REWRITE_TAC[Bump.EL_EXPLICIT];
+  GMATCH_SIMP_TAC Local_lemmas.WEDGE_GE_EQ_AFF_GE;
+  ASM_REWRITE_TAC[];
+  INTRO_TAC LEAF_RANK_COLLINEAR [`V`;`[u0;u1]`;`w0`;`n`;`f`];
+  ASM_REWRITE_TAC[Bump.EL_EXPLICIT];
+  DISCH_TAC;
+  ASM_REWRITE_TAC[];
+  BY(REWRITE_TAC[Marchal_cells_2_new.CONVEX_HULL_4_SUBSET_AFF_GE_2_2])
   ]);;
   (* }}} *)
 
+let EDGE_LE_2RAD = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+    &0 < delta_x x1 x2 x3 x4 x5 x6 /\
+    &0 < x4 /\ &0 < x5 /\ &0 < x6 /\ &0 < ups_x x4 x5 x6 ==>
+    x4 <= &4 * rad2_x x1 x2 x3 x4 x5 x6`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC REAL_LE_TRANS;
+  TYPIFY `&4 * eta_x x4 x5 x6 pow 2` EXISTS_TAC;
+  CONJ2_TAC;
+    GMATCH_SIMP_TAC Real_ext.REAL_LE_LMUL_IMP;
+    CONJ_TAC;
+      BY(REAL_ARITH_TAC);
+    MATCH_MP_TAC Merge_ineq.rad2_x_eta_x;
+    BY(ASM_REWRITE_TAC[]);
+  INTRO_TAC Collect_geom.HVXIKHW [`sqrt x4`;`sqrt x5`;`sqrt x6`];
+  REWRITE_TAC[Collect_geom.ups_x_pow2];
+  REWRITE_TAC[Sphere.eta_y;LET_DEF;LET_END_DEF];
+  REPEAT (GMATCH_SIMP_TAC SQRT_POS_LE);
+  REPEAT (GMATCH_SIMP_TAC Merge_ineq.sqrtpow2);
+  ASM_SIMP_TAC [arith `&0 < x ==> &0 <= x`];
+  GMATCH_SIMP_TAC REAL_LE_LDIV_EQ;
+  CONJ_TAC;
+    BY(REAL_ARITH_TAC);
+  DISCH_TAC;
+  TYPIFY `x4 = sqrt(x4) pow 2` (C SUBGOAL_THEN MP_TAC);
+    GMATCH_SIMP_TAC SQRT_POW_2;
+    BY(ASM_SIMP_TAC[arith `&0 < x ==> &0 <= x`]);
+  DISCH_TAC;
+  ASM_SIMP_TAC [arith `x = y ==> (x <= &4 * z <=> y <= &4 * z)`];
+  TYPIFY `sqrt x4 pow 2 <= (&2 * eta_x x4 x5 x6) pow 2` ENOUGH_TO_SHOW_TAC;
+    BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
+  MATCH_MP_TAC Collect_geom2.POS_IMP_POW2;
+  CONJ_TAC;
+    GMATCH_SIMP_TAC SQRT_POS_LE;
+    BY(ASM_SIMP_TAC[arith `&0 < x ==> &0 <= x`]);
+  MATCH_MP_TAC REAL_LE_TRANS;
+  TYPIFY `max_real3 (sqrt x4) (sqrt x5) (sqrt x6)` EXISTS_TAC;
+  ASM_SIMP_TAC[arith `&2 * x = x * &2`];
+  REWRITE_TAC[Collect_geom.max_real3];
+  REWRITE_TAC[Misc_defs_and_lemmas.max_real];
+  BY(REPEAT COND_CASES_TAC THEN REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
 
-Marchal_cells_3.BARV_LENGTH_LEMMA;;
+let RAD2_Y_SQRT8 = prove_by_refinement(
+  `!y1 y2 y3 y5 y6.
+    &2 <= y5 /\ &2 <= y6 /\ y5 < &4 /\ y6 < &4 /\
+    &0 < delta_y y1 y2 y3 (sqrt8) y5 y6 ==>
+    &2 <= rad2_y y1 y2 y3 (sqrt8) y5 y6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.rad2_y;Sphere.delta_y;Sphere.y_of_x;Nonlinear_lemma.sqrt8_2;arith `#8.0 = &8`];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[arith `&2 <= x <=> &8 <= &4 * x`];
+  MATCH_MP_TAC EDGE_LE_2RAD;
+  REPEAT (GMATCH_SIMP_TAC REAL_LT_MUL_EQ);
+  ASM_SIMP_TAC[arith `&0 < &8`;arith `&2 <= x ==> &0 < x`];
+  MATCH_MP_TAC UPS_X8_POS;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let ATN2_LE_PI2 = prove_by_refinement(
+  `!x y. &0 < x ==> atn2(x,y) < pi/ &2`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.atn2];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC ATN_BOUNDS [];
+  ASSUME_TAC PI_POS;
+  DISCH_TAC;
+  COND_CASES_TAC;
+    BY(ASM_MESON_TAC[]);
+  COND_CASES_TAC;
+    REWRITE_TAC[ATN_POS_LT;arith `p - x < p <=> &0 < x`];
+    GMATCH_SIMP_TAC REAL_LT_DIV;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  COND_CASES_TAC;
+    REWRITE_TAC[arith `-- (x/ &2) - y < x / &2 <=> -- x < y`];
+    MATCH_MP_TAC (arith `&0 < pi /\ -- ( pi / &2) < u ==> --pi < u`);
+    BY(ASM_REWRITE_TAC[ATN_BOUNDS]);
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+(* renamed from DIH_X_LE_PI *)
+
+let DIH_X_LT_PI = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. &0 < x1 /\ &0 < delta_x x1 x2 x3 x4 x5 x6 ==>
+    dih_x x1 x2 x3 x4 x5 x6 < pi`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.dih_x;LET_DEF;LET_END_DEF];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[arith `pi / &2 + x < pi <=> x < pi / &2`];
+  MATCH_MP_TAC ATN2_LE_PI2;
+  GMATCH_SIMP_TAC REAL_LT_RSQRT;
+  REWRITE_TAC[arith `&0 pow 2 = &0`];
+  REWRITE_TAC[arith `&0 < &4 * x <=> &0 < x`];
+  GMATCH_SIMP_TAC REAL_LT_MUL_EQ;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let DIH_Y_LT_PI = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. &0 < y1 /\ &0 < delta_y y1 y2 y3 y4 y5 y6 ==>
+    dih_y y1 y2 y3 y4 y5 y6 < pi`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.delta_y;Sphere.dih_y;LET_DEF;LET_END_DEF];
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC DIH_X_LT_PI;
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC REAL_LT_MUL_EQ;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let GDRQXLGv3 = prove_by_refinement(
+  `!(v0:real^3) v1 v2 v3. (let s = {v0,v1,v2,v3} in             
+  let x1 = dist (v0,v1) pow 2 in
+            let x2 = dist (v0,v2) pow 2 in
+            let x3 = dist (v0,v3) pow 2 in
+            let x4 = dist (v2,v3) pow 2 in
+            let x5 = dist (v1,v3) pow 2 in
+            let x6 = dist (v1,v2) pow 2 in
+            ~coplanar s
+            ==> radV s pow 2 = rad2_x x1 x2 x3 x4 x5 x6)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LET_DEF;LET_END_DEF];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Merge_ineq.GDRQXLGv2 [`v0`;`v1`;`v2`;`v3`];
+  REWRITE_TAC[LET_DEF;LET_END_DEF];
+  DISCH_THEN MATCH_MP_TAC;
+  TYPIFY `coplanar {v0,v1,v2,v3} = coplanar_alt{v0,v1,v2,v3}` (C SUBGOAL_THEN MP_TAC);
+    MATCH_MP_TAC Leaf_cell.coplanar_eq_coplanar_alt;
+    BY(ASM_REWRITE_TAC[DIMINDEX_3;arith `2 <= 3`]);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  BY(ASM_MESON_TAC[Collect_geom2.NOT_COPLANAR_IMP_CARD4])
+  ]);;
+  (* }}} *)
+
+let coplanar_dih_y = prove_by_refinement(
+  `!u0 u1 u2 (u3:real^3).
+     ~coplanar {u0, u1, u2, u3} <=>
+     &0 <
+     delta_y (dist (u0,u1)) (dist (u0,u2)) (dist (u0,u3)) (dist (u2,u3))
+     (dist (u1,u3))
+     (dist (u1,u2))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC ( Leaf_cell.coplanar_eq_coplanar_alt);
+  REWRITE_TAC[DIMINDEX_3;arith `2 <= 3`];
+  REWRITE_TAC[REWRITE_RULE[TAUT `(a <=> ~b) <=> (b <=> ~a)`] (Collect_geom2.POS_EQ_NOT_COPLANANR)];
+  REWRITE_TAC[Merge_ineq.delta_delta_x];
+  BY(REWRITE_TAC[arith `x pow 2 = x * x`;GSYM Sphere.delta_y])
+  ]);;
+  (* }}} *)
+
+let WEDGE3_Y4 = prove_by_refinement(
+   `!V f w0 n i u0 u1 y1 y2 y3 y5 y6.
+     pack_nonlinear_non_ox3q1h /\
+    1 < n /\
+    packing V /\ saturated V /\   
+    ~collinear {u0, u1, w0 } /\
+    leaf_rank V [u0;u1] w0 n f /\
+     critical_edge_y (dist(u0,u1)) /\ 
+    ~(?vl. barV V 3 vl /\ {u0,u1} IN edgeX V (mcell4 V vl) /\ 
+	mcell4 V vl SUBSET wedge_ge u0 u1 (f i) (f (SUC i)) )  /\
+     y1 = dist(u0,u1) /\
+     y2 = dist(u0,f i) /\
+     y3 = dist(u0,f (SUC i)) /\
+    y5 = dist(u1,f (SUC i)) /\
+    y6 = dist(u1,f i)
+==> (?y4. 
+       &2 <= y4 /\ y4 <= &2 * sqrt(&2) /\
+       &0 < delta_y y1 y2 y3 y4 y5 y6 /\
+       dih_y y1 y2 y3 y4 y5 y6 <= azim u0 u1 (f i) (f (SUC i)) /\
+       &2 <= rad2_y y1 y2 y3 y4 y5 y6 /\
+      (azim u0 u1 (f i) (f (SUC i)) < pi /\ dist(f i,f (SUC i)) <= &2 * sqrt(&2) ==> y4 = dist(f i,f(SUC i))))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Pack_defs.critical_edge_y];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `!j. leaf V [u0; u1; f j]` (C SUBGOAL_THEN ASSUME_TAC);
+    GEN_TAC;
+    INTRO_TAC s_leaf_leaf[`V`;`[u0;u1]`;`f j`];
+    REWRITE_TAC[Bump.EL_EXPLICIT];
+    DISCH_THEN MATCH_MP_TAC;
+    REWRITE_TAC[IN];
+    MATCH_MP_TAC LEAF_RANK_S_LEAF;
+    BY(ASM_MESON_TAC[LEAF_RANK_TRUNCATE]);
+  INTRO_TAC LEAF_DOMAIN [`V`;`[u0;u1;f i]`];
+  INTRO_TAC LEAF_DOMAIN [`V`;`[u0;u1;f (SUC i)]`];
+  REWRITE_TAC[Bump.EL_EXPLICIT];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "delta with delta";
+  TYPIFY `!y4. &2 <= y4 /\ y4 <= &2 * sqrt(&2) ==> &0 <      delta_y (dist (u0,u1)) (dist (u0,f i)) (dist (u0,f (SUC i))) y4      (dist (u1,f (SUC i)))      (dist (u1,f i))` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    MP_TAC (Merge_ineq.get_pack_nonlinear_non_ox3q1h "FWGKMBZ");
+    REWRITE_TAC[Sphere.y_of_x;GSYM Sphere.delta_y];
+    REWRITE_TAC[Sphere.ineq];
+    DISCH_THEN (C INTRO_TAC [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`]);
+    REWRITE_TAC[arith `x > &0 <=> &0 < x`];
+    ASM_REWRITE_TAC[TAUT `x ==> b ==> c <=> x /\ b ==> c`];
+    DISCH_THEN MATCH_MP_TAC;
+    REWRITE_TAC[Nonlinear_lemma.sqrt8_sqrt2;Sphere.sqrt2];
+    BY(ASM_SIMP_TAC[arith `x < y ==> x <= y`]);
+  TYPIFY `&2 <= &2 * sqrt(&2)` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[GSYM Sphere.sqrt2];
+    MP_TAC Flyspeck_constants.bounds;
+    BY(REAL_ARITH_TAC);
+  COMMENT "first case";
+  TYPIFY `pi <= azim u0 u1 (f i) (f (SUC i))` ASM_CASES_TAC;
+    TYPIFY `&2 * sqrt(&2)` EXISTS_TAC;
+    ASM_SIMP_TAC[arith `pi <= x ==> ~(x < pi)`;arith `x <= x`];
+    CONJ_TAC;
+      MATCH_MP_TAC REAL_LE_TRANS;
+      TYPIFY `pi` EXISTS_TAC;
+      ASM_REWRITE_TAC[];
+      MATCH_MP_TAC (arith `x < y ==> x <= y`);
+      MATCH_MP_TAC DIH_Y_LT_PI;
+      CONJ2_TAC;
+        FIRST_X_ASSUM MATCH_MP_TAC;
+        BY(ASM_REWRITE_TAC[arith `x <= x`]);
+      FIRST_X_ASSUM_ST `hminus` MP_TAC;
+      BY(MP_TAC Nonlinear_lemma.hminus_gt THEN REAL_ARITH_TAC);
+    REWRITE_TAC[GSYM Sphere.sqrt2;GSYM Nonlinear_lemma.sqrt8_sqrt2];
+    MATCH_MP_TAC RAD2_Y_SQRT8;
+    ASM_SIMP_TAC[];
+    TYPIFY `!y. y < &2 * sqrt(&2) ==> y < &4` (C SUBGOAL_THEN ASSUME_TAC);
+      REWRITE_TAC[GSYM Sphere.sqrt2];
+      MP_TAC Flyspeck_constants.bounds;
+      BY(REAL_ARITH_TAC);
+    ASM_SIMP_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`;Sphere.sqrt2;Nonlinear_lemma.sqrt8_sqrt2]);
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[arith `~(pi <= x) <=> x < pi`];
+  DISCH_TAC;
+  COMMENT "second case";
+  TYPIFY `&2 * sqrt(&2) < dist(f i,f (SUC i))` ASM_CASES_TAC;
+    TYPIFY `&2 * sqrt(&2)` EXISTS_TAC;
+    ASM_SIMP_TAC[arith `x <= x`;arith `s < d ==> ~(d <= s)`];
+    CONJ2_TAC;
+      REWRITE_TAC[GSYM Sphere.sqrt2;GSYM Nonlinear_lemma.sqrt8_sqrt2];
+      MATCH_MP_TAC RAD2_Y_SQRT8;
+      ASM_SIMP_TAC[];
+      TYPIFY `!y. y < &2 * sqrt(&2) ==> y < &4` (C SUBGOAL_THEN ASSUME_TAC);
+        REWRITE_TAC[GSYM Sphere.sqrt2];
+        MP_TAC Flyspeck_constants.bounds;
+        BY(REAL_ARITH_TAC);
+      ASM_SIMP_TAC[];
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`;Sphere.sqrt2;Nonlinear_lemma.sqrt8_sqrt2]);
+    MATCH_MP_TAC REAL_LE_TRANS;
+    TYPIFY `dihV u0 u1 (f i) (f (SUC i))` EXISTS_TAC;
+    CONJ2_TAC;
+      MATCH_MP_TAC Rogers.DIHV_LE_AZIM;
+      BY(ASM_REWRITE_TAC[]);
+    INTRO_TAC Merge_ineq.DIHV_EQ_DIH_Y [`u0`;`u1`;`f i`;`f(SUC i)`];
+    ASM_SIMP_TAC[LET_DEF;LET_END_DEF];
+    DISCH_THEN SUBST1_TAC;
+    REWRITE_TAC[Sphere.dih_y;LET_DEF;LET_END_DEF];
+    MATCH_MP_TAC (arith `x < y ==> x <= y`);
+    MATCH_MP_TAC Tame_inequalities.DIH_X_MONO_LT_4;
+    REWRITE_TAC[GSYM Sphere.delta_y];
+    CONJ_TAC;
+      GMATCH_SIMP_TAC Misc_defs_and_lemmas.ABS_SQUARE;
+      BY(ASM_SIMP_TAC [arith `&2 <= x ==> abs(x ) = x`]);
+    CONJ_TAC;
+      GMATCH_SIMP_TAC REAL_LT_MUL_EQ;
+      FIRST_X_ASSUM_ST `hminus` MP_TAC;
+      BY(MP_TAC Nonlinear_lemma.hminus_gt THEN REAL_ARITH_TAC);
+    CONJ_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    TYPIFY `~coplanar {u0,u1,f i , f (SUC i)}` (C SUBGOAL_THEN ASSUME_TAC);
+      REWRITE_TAC[ (GSYM Local_lemmas1.AZIM_COND_FOR_COPLANAR)];
+      DISCH_THEN DISJ_CASES_TAC;
+        INTRO_TAC LEAF_RANK_AZIM_INJ [`V`;`[u0;u1]`;`w0`;`n`;`f`;`i`;`SUC i`];
+        ASM_REWRITE_TAC[Bump.EL_EXPLICIT];
+        ASM_SIMP_TAC[arith `1 < n ==> ~(n = 0)`;arith `SUC i = i + 1`];
+        BY(ASM_MESON_TAC[ Oxl_2012.MOD_INJ1;arith `1 < n ==> ~(n = 0) /\ ~(1 = 0)`]);
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    BY(ASM_REWRITE_TAC[GSYM coplanar_dih_y]);
+  COMMENT "last case";
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[arith `~(x < d) <=> (d <= x)`];
+  DISCH_TAC;
+  TYPIFY `dist(f i,f (SUC i))` EXISTS_TAC;
+  ASM_SIMP_TAC[];
+  TYPIFY `~(f i = f (SUC i))` (C SUBGOAL_THEN ASSUME_TAC);
+    DISCH_TAC;
+    INTRO_TAC LEAF_RANK_AZIM_INJ [`V`;`[u0;u1]`;`w0`;`n`;`f`;`i`;`SUC i`];
+    ASM_REWRITE_TAC[Bump.EL_EXPLICIT];
+    ASM_SIMP_TAC[arith `1 < n ==> ~(n = 0)`;arith `SUC i = i + 1`];
+    REWRITE_TAC[AZIM_REFL];
+    BY(ASM_MESON_TAC[ Oxl_2012.MOD_INJ1;arith `1 < n ==> ~(n = 0) /\ ~(1 = 0)`]);
+  TYPIFY `!i. V (f i)` (C SUBGOAL_THEN ASSUME_TAC);
+    GEN_TAC;
+    FIRST_X_ASSUM_ST `leaf` MP_TAC;
+    REWRITE_TAC[Leaf_cell.leaf;IN];
+    DISCH_THEN (C INTRO_TAC [`i'`]);
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC Packing3.BARV_SUBSET [`V`;`2`;`[u0;u1;f i']`];
+    ASM_REWRITE_TAC[set_of_list;SUBSET;IN_ELIM_THM;IN_INSERT;NOT_IN_EMPTY];
+    BY(MESON_TAC[IN]);
+  SUBCONJ_TAC;
+    FIRST_X_ASSUM_ST `packing` MP_TAC;
+    REWRITE_TAC[Sphere.packing];
+    DISCH_THEN MATCH_MP_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  COMMENT "azim on last case";
+  CONJ_TAC;
+    INTRO_TAC Rogers.DIHV_LE_AZIM [`u0`;`u1`;`f i`;`f(SUC i)`];
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    MATCH_MP_TAC (arith `x = y ==> (x <= a ==> y <= a)`);
+    INTRO_TAC Merge_ineq.DIHV_EQ_DIH_Y [`u0`;`u1`;`f i`;`f(SUC i)`];
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    BY(REWRITE_TAC[LET_DEF;LET_END_DEF]);
+  COMMENT "deal with rad";
+  MATCH_MP_TAC (arith `~(x < y) ==> y <= x`);
+  REWRITE_TAC[Sphere.rad2_y;Sphere.y_of_x;arith `x * x = x pow 2`];
+  INTRO_TAC (GSYM GDRQXLGv3) [`u0`;`u1`;`f i`;`f (SUC i)`];
+  REWRITE_TAC[LET_DEF;LET_END_DEF];
+  ANTS_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    BY(MESON_TAC[coplanar_dih_y]);
+  DISCH_THEN SUBST1_TAC;
+  DISCH_TAC;
+  TYPIFY `radV {u0,u1,f i, f(SUC i)} < sqrt(&2)` ENOUGH_TO_SHOW_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC RAD_PI_IMP_WEDGE4 [`V`;`f`;`w0`;`n`;`i`;`u0`;`u1`];
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM_ST `edgeX` MP_TAC;
+    BY(MESON_TAC[]);
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[arith `x < y <=> ~(y <= x)`];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `~` MP_TAC;
+  REWRITE_TAC[];
+  ONCE_REWRITE_TAC[GSYM Nonlin_def.sqrt2_sqrt2];
+  REWRITE_TAC[Sphere.sqrt2;arith `x pow 2 = x * x`];
+  GMATCH_SIMP_TAC Misc_defs_and_lemmas.ABS_SQUARE_LE;
+  GMATCH_SIMP_TAC Trigonometry2.LT_IMP_ABS_REFL;
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC REAL_LT_RSQRT;
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+end;;
+
+(* IN DEVELOPMENT: *)
+

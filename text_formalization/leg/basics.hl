@@ -1,0 +1,462 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2013-02-11 *)
+(* ========================================================================== *)
+
+(* General lemmas *)
+
+
+
+
+module Basics = struct
+
+  open Hales_tactic;;
+
+(* SECTION: LOGIC *)
+
+let BETA_ORDERED_PAIR_THM = prove_by_refinement(
+ `!(g:A->B->C) x. 
+    ((\ ( u, v). g u v) x = g (FST x) (SND x))`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  INTRO_TAC (GSYM PAIR) [`x`];
+  DISCH_THEN SUBST1_TAC;
+  BY(REWRITE_TAC[GABS_DEF;GEQ_DEF])
+  ]);;
+  (* }}} *)
+
+(* SECTION: SETS *)
+
+let SURJ_IMAGE = prove_by_refinement(
+  `!(f:A->B) a b. SURJ f a b ==> (b = (IMAGE f a))`,
+(* {{{ proof *)
+  [
+  REWRITE_TAC[SURJ;IMAGE];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[EXTENSION;IN_ELIM_THM];
+  BY(ASM_MESON_TAC[])
+ ]
+(* }}} *)
+);;
+
+let SURJ_FINITE = prove_by_refinement(
+  `!a b (f:A->B). FINITE a /\ (SURJ f a b) ==> FINITE b`,
+(* {{{ *)
+  [
+  ASM_MESON_TAC[SURJ_IMAGE;FINITE_IMAGE]
+  ]);;
+(* }}} *)
+
+let BIJ_INVERSE = prove_by_refinement(
+  `!a b (f:A->B). (SURJ f a b) ==> (?(g:B->A). (INJ g b a))`,
+(* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `!y. ?u. ((y IN b) ==> ((u IN a) /\ ((f:A->B) u = y)))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[SURJ]);
+  FIRST_X_ASSUM (MP_TAC o (REWRITE_RULE[SKOLEM_THM]));
+  REPEAT WEAKER_STRIP_TAC;
+  EXISTS_TAC `u:B->A`;
+  REWRITE_TAC[INJ];
+  BY(ASM_MESON_TAC[])
+  ]
+(* }}} *)
+);;
+
+let BIJ_SUM = prove_by_refinement(
+  `!(A:A->bool) (B:B->bool) f ab.
+    BIJ ab A B ==> (sum A (f o ab) = sum B f)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[BIJ;INJ];
+  BY(ASM_MESON_TAC[ SUM_IMAGE ; SURJ_IMAGE ])
+  ]);;
+  (* }}} *)
+
+(* SECTION: LISTS *)
+
+let EL_EXPLICIT = prove_by_refinement(
+  `!h t. EL 0 (CONS (h:a) t) = h /\
+   EL 1 (CONS h t) = EL 0 t /\
+   EL 2 (CONS h t) = EL 1 t /\
+   EL 3 (CONS h t) = EL 2 t /\
+   EL 4 (CONS h t) = EL 3 t /\
+   EL 5 (CONS h t) = EL 4 t /\
+   EL 6 (CONS h t) = EL 5 t`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[EL;HD;TL;arith `6 = SUC 5 /\ 5 = SUC 4 /\ 4 = SUC 3 /\ 3 = SUC 2 /\ 2 = SUC 1 /\ 1 = SUC 0`])
+  ]);;
+  (* }}} *)
+
+let LENGTH1 = prove_by_refinement(
+  `!ul:(A) list. LENGTH ul = 1 ==> ul = [EL 0 ul]`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LENGTH_EQ_CONS;arith `1 = SUC 0`;LENGTH_EQ_NIL];
+  REPEAT WEAK_STRIP_TAC;
+  BY(ASM_REWRITE_TAC[EL;HD])
+  ]);;
+  (* }}} *)
+
+let LENGTH2 = prove_by_refinement(
+  `!ul:(A) list. LENGTH ul = 2 ==> ul = [EL 0 ul;EL 1 ul]`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LENGTH_EQ_CONS;arith `2 = SUC 1`];
+  REPEAT WEAK_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM (unlist ONCE_REWRITE_TAC o (MATCH_MP LENGTH1));
+  BY(REWRITE_TAC[EL;HD;arith `1 = SUC 0`;TL])
+  ]);;
+  (* }}} *)
+
+let LENGTH3 = prove_by_refinement(
+  `!(ul:(A)list). LENGTH ul = 3 ==> ul = [EL 0 ul; EL 1 ul; EL 2 ul]`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LENGTH_EQ_CONS;arith `3 = SUC 2`];
+  REPEAT WEAK_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM (unlist ONCE_REWRITE_TAC o (MATCH_MP LENGTH2));
+  BY(REWRITE_TAC[EL;HD;arith `1 = SUC 0`;arith `2 = SUC 1`;TL])
+  ]);;
+  (* }}} *)
+
+let LENGTH4 = prove_by_refinement(
+  `!(ul:(A)list). LENGTH ul = 4 ==> ul = [EL 0 ul; EL 1 ul; EL 2 ul; EL 3 ul]`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LENGTH_EQ_CONS;arith `4 = SUC 3`];
+  REPEAT WEAK_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM (unlist ONCE_REWRITE_TAC o (MATCH_MP LENGTH3));
+  BY(REWRITE_TAC[EL;HD;arith `1 = SUC 0`;arith `2 = SUC 1`;arith `3 = SUC 2`;TL])
+  ]);;
+  (* }}} *)
+
+let set_of_list2_explicit = prove_by_refinement(
+  `!(a:A) b. set_of_list [a;b] = {a,b}`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[set_of_list])
+  ]);;
+  (* }}} *)
+
+let set_of_list2 = prove_by_refinement(
+  `!(ul:(A) list). LENGTH ul = 2 ==> set_of_list ul = {EL 0 ul, EL 1 ul}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM (MP_TAC o (MATCH_MP LENGTH2));
+  ABBREV_TAC `a:A = EL 0 ul`;
+  ABBREV_TAC `b:A = EL 1 ul`;
+  DISCH_THEN SUBST1_TAC;
+  BY(REWRITE_TAC[set_of_list])
+  ]);;
+  (* }}} *)
+
+let set_of_list3_explicit = prove_by_refinement(
+  `!(a:A) b c. set_of_list [a;b;c] = {a,b,c}`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[set_of_list])
+  ]);;
+  (* }}} *)
+
+let set_of_list3 = prove_by_refinement(
+  `!(ul:(A) list). LENGTH ul = 3 ==> set_of_list ul = {EL 0 ul, EL 1 ul, EL 2 ul}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM (MP_TAC o (MATCH_MP LENGTH3));
+  ABBREV_TAC `a:A = EL 0 ul`;
+  ABBREV_TAC `b:A = EL 1 ul`;
+  ABBREV_TAC `c:A = EL 2 ul`;
+  DISCH_THEN SUBST1_TAC;
+  BY(REWRITE_TAC[set_of_list])
+  ]);;
+  (* }}} *)
+
+let set_of_list4_explicit = prove_by_refinement(
+  `!(a:A) b c d. set_of_list [a;b;c;d] = {a,b,c,d}`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[set_of_list])
+  ]);;
+  (* }}} *)
+
+let set_of_list4 = prove_by_refinement(
+  `!(ul:(A) list). LENGTH ul = 4 ==> set_of_list ul = {EL 0 ul, EL 1 ul, EL 2 ul, EL 3 ul}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  FIRST_X_ASSUM (MP_TAC o (MATCH_MP LENGTH4));
+  ABBREV_TAC `a:A = EL 0 ul`;
+  ABBREV_TAC `b:A = EL 1 ul`;
+  ABBREV_TAC `c:A = EL 2 ul`;
+  ABBREV_TAC `d:A = EL 3 ul`;
+  DISCH_THEN SUBST1_TAC;
+  BY(REWRITE_TAC[set_of_list])
+  ]);;
+  (* }}} *)
+
+let INITIAL_SUBLIST_NIL = prove(`!(zl:(A)list). initial_sublist [] zl`,
+   REWRITE_TAC[Sphere.INITIAL_SUBLIST; APPEND] THEN MESON_TAC[]);;
+
+let INITIAL_SUBLIST_CONS = prove_by_refinement(
+  `!(a:A) b x y. initial_sublist (CONS a x) (CONS b y) <=> (a = b) /\ initial_sublist x y`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.INITIAL_SUBLIST];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[APPEND];
+  REWRITE_TAC[CONS_11];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let INITIAL_SUBLIST_TRANS = prove(`!(xl:(A)list) yl zl. initial_sublist xl yl /\ initial_sublist yl zl ==> initial_sublist xl zl`,
+   REWRITE_TAC[Sphere.INITIAL_SUBLIST] THEN
+     REPEAT STRIP_TAC THEN
+     ASM_MESON_TAC[APPEND_ASSOC]);;
+
+
+(* truncate simplex *)
+
+
+let BUTLAST_INITIAL_SUBLIST = prove(`!ul:(A)list. 1 <= LENGTH ul ==> initial_sublist (BUTLAST ul) ul`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (ISPEC `ul:(A)list` APPEND_BUTLAST_LAST) THEN
+     REWRITE_TAC[GSYM LENGTH_EQ_NIL] THEN
+     ASM_SIMP_TAC[ARITH_RULE `1 <= a ==> ~(a = 0)`] THEN
+     REWRITE_TAC[Sphere.INITIAL_SUBLIST] THEN
+     DISCH_TAC THEN
+     EXISTS_TAC `[LAST ul:A]` THEN
+     ASM_REWRITE_TAC[]);;
+
+let LENGTH_BUTLAST = prove(`!ul:(A)list. 1 <= LENGTH ul ==> LENGTH (BUTLAST ul) = LENGTH ul - 1`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (ISPEC `ul:(A)list` APPEND_BUTLAST_LAST) THEN
+     REWRITE_TAC[GSYM LENGTH_EQ_NIL] THEN
+     ASM_SIMP_TAC[ARITH_RULE `1 <= a ==> ~(a = 0)`] THEN
+     DISCH_THEN (fun th -> GEN_REWRITE_TAC (RAND_CONV o ONCE_DEPTH_CONV) [GSYM th]) THEN
+     REWRITE_TAC[LENGTH_APPEND; LENGTH] THEN
+     ARITH_TAC);;
+
+let LENGTH_IMP_CONS = prove(`!l:(A)list. 1 <= LENGTH l ==> ?h t. l = CONS h t`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (ISPECL [`l:(A)list`; `PRE (LENGTH (l:(A)list))`] LENGTH_EQ_CONS) THEN
+     ASM_SIMP_TAC[ARITH_RULE `1 <= n ==> SUC (PRE n) = n`] THEN
+     STRIP_TAC THEN
+     MAP_EVERY EXISTS_TAC [`h:A`; `t:(A)list`] THEN
+     ASM_REWRITE_TAC[]);;
+
+let INITIAL_SUBLIST_REFL = prove(`!ul. initial_sublist ul ul`, MESON_TAC[Sphere.INITIAL_SUBLIST; APPEND_NIL]);;
+
+let TRUNCATE_SIMPLEX_EXISTS = prove_by_refinement(
+  `!k ul:(A)list.  k+1 <= LENGTH ul ==> (?vl. 
+    LENGTH vl = k+1 /\ initial_sublist vl ul)`,
+  (* {{{ proof *)
+  [
+  TYPIFY `!r k (ul:(A)list). k + 1 <= LENGTH ul /\ LENGTH ul = r ==> (?vl. LENGTH vl = k + 1 /\ initial_sublist vl ul)` ENOUGH_TO_SHOW_TAC;
+    BY(MESON_TAC[]);
+  INDUCT_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `SUC r = k + 1` ASM_CASES_TAC;
+    TYPIFY `ul` EXISTS_TAC;
+    REWRITE_TAC[INITIAL_SUBLIST_REFL];
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  FIRST_X_ASSUM (C INTRO_TAC [`k`;`BUTLAST ul`]);
+  ANTS_TAC;
+    INTRO_TAC LENGTH_BUTLAST [`ul`];
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `vl` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC INITIAL_SUBLIST_TRANS;
+  TYPIFY `BUTLAST ul` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC BUTLAST_INITIAL_SUBLIST;
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let TRUNCATE_SIMPLEX_PROP = prove_by_refinement(
+  `!k ul:(A)list. k + 1 <= LENGTH ul ==> 
+    LENGTH (truncate_simplex k ul) = k + 1 /\ initial_sublist (truncate_simplex k ul) ul`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC TRUNCATE_SIMPLEX_EXISTS [`k`;`ul`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Sphere.TRUNCATE_SIMPLEX];
+  SELECT_TAC THEN ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let LENGTH_TRUNCATE_SIMPLEX = prove_by_refinement(
+  `!k ul. k + 1 <= LENGTH ul ==> LENGTH (truncate_simplex k ul) = k + 1`,
+  (* {{{ proof *)
+  [
+    BY(ASM_MESON_TAC[TRUNCATE_SIMPLEX_PROP])
+  ]);;
+  (* }}} *)
+
+let INITIAL_SUBLIST_OF_NIL = prove_by_refinement(
+  `!ul:(A) list. initial_sublist ul [] <=> (ul = [])`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.INITIAL_SUBLIST];
+  BY(MESON_TAC[APPEND_EQ_NIL])
+  ]);;
+  (* }}} *)
+
+let INITIAL_SUBLIST_INJ = prove_by_refinement(
+  `!ul:(A) list vl wl. LENGTH ul = LENGTH vl /\ initial_sublist ul wl /\ initial_sublist vl wl ==>
+    (ul = vl)`,
+  (* {{{ proof *)
+  [
+  TYPIFY `!k (ul:(A) list) vl wl. k = LENGTH ul /\ k = LENGTH vl /\ initial_sublist ul wl /\ initial_sublist vl wl ==> (ul = vl)` ENOUGH_TO_SHOW_TAC;
+    BY(MESON_TAC[]);
+  INDUCT_TAC;
+    BY(MESON_TAC[LENGTH_EQ_NIL]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC LENGTH_IMP_CONS [`ul`];
+  INTRO_TAC LENGTH_IMP_CONS [`vl`];
+  ANTS_TAC;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  STRIP_TAC;
+  ANTS_TAC;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  STRIP_TAC;
+  TYPIFY `LENGTH wl = 0` ASM_CASES_TAC;
+    BY(ASM_MESON_TAC[LENGTH_EQ_NIL;INITIAL_SUBLIST_OF_NIL;NOT_CONS_NIL]);
+  INTRO_TAC LENGTH_IMP_CONS [`wl`];
+  ANTS_TAC;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[CONS_11];
+  PROOF_BY_CONTR_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `initial_sublist` MP_TAC);
+  ASM_REWRITE_TAC[INITIAL_SUBLIST_CONS];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`t`;`t'`;`t''`]);
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    REPEAT (FIRST_X_ASSUM_ST `LENGTH` MP_TAC);
+    ASM_REWRITE_TAC[LENGTH;SUC_INJ];
+    BY(MESON_TAC[]);
+  DISCH_TAC;
+  FIRST_X_ASSUM_ST `~` MP_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let TRUNCATE_SIMPLEX_UNIQUE = prove_by_refinement(
+  `!k ul:(A) list vl.  k+1 <= LENGTH ul /\ LENGTH vl = k+ 1 /\ initial_sublist vl ul ==>
+      vl = truncate_simplex k ul`,
+  (* {{{ proof *)
+  [
+    BY(ASM_MESON_TAC[INITIAL_SUBLIST_INJ;TRUNCATE_SIMPLEX_PROP])
+  ]);;
+  (* }}} *)
+
+let INITIAL_SUBLIST_LENGTH_LE = prove_by_refinement(
+ `!xl:(A)list zl. initial_sublist xl zl ==> LENGTH xl <= LENGTH zl`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.INITIAL_SUBLIST];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[LENGTH_APPEND];
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let TRUNCATE_SIMPLEX_INITIAL_SUBLIST = prove_by_refinement(
+  `!k (xl:(A)list) zl.
+         truncate_simplex k zl = xl /\ k + 1 <= LENGTH zl <=>
+         initial_sublist xl zl /\ LENGTH xl = k + 1`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC (TAUT `((a ==> b) /\ (b ==> a)) ==> (a = b)`);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[TRUNCATE_SIMPLEX_PROP]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC TRUNCATE_SIMPLEX_PROP [`k`;`zl`];
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[INITIAL_SUBLIST_LENGTH_LE]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `k + 1 <= LENGTH zl` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[INITIAL_SUBLIST_LENGTH_LE]);
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC EQ_SYM;
+  MATCH_MP_TAC TRUNCATE_SIMPLEX_UNIQUE;
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let TRUNCATE_SIMPLEX0 = prove_by_refinement(
+  `!(x:A) y. truncate_simplex 0 (CONS x y) = [x]`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC TRUNCATE_SIMPLEX_INITIAL_SUBLIST [`0`;`[x]`;`(CONS x y)`];
+  REWRITE_TAC[LENGTH (* _CONS *);INITIAL_SUBLIST_CONS;INITIAL_SUBLIST_NIL];
+  BY(REWRITE_TAC[arith `SUC 0  = 0 + 1`;arith `0 + 1 <= SUC i`])
+  ]);;
+  (* }}} *)
+
+let LENGTH_TRUNCATE_SIMPLEX = prove_by_refinement(
+  `!k (ul:(A)list). SUC k <= LENGTH ul ==> LENGTH (truncate_simplex k ul) = SUC k`,
+  (* {{{ proof *)
+  [
+  BY(ASM_MESON_TAC[LENGTH_TRUNCATE_SIMPLEX;arith `SUC k = k + 1`])
+  ]);;
+  (* }}} *)
+
+let TRUNCATE_SIMPLEX_CONS = prove_by_refinement(
+  `!(x:A) y k. SUC k <= LENGTH y ==> truncate_simplex (SUC k) (CONS x y) = CONS x  (truncate_simplex k y)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC TRUNCATE_SIMPLEX_INITIAL_SUBLIST [`SUC k`;`CONS x (truncate_simplex k y)`;`(CONS x y)`];
+  REWRITE_TAC[LENGTH (* _CONS *);INITIAL_SUBLIST_CONS];
+  ASM_SIMP_TAC[arith `SUC k <= n ==> SUC k + 1 <= SUC n`];
+  ASM_SIMP_TAC[ LENGTH_TRUNCATE_SIMPLEX];
+  DISCH_THEN kill;
+  REWRITE_TAC[arith `SUC (SUC k) = SUC k + 1`];
+  INTRO_TAC TRUNCATE_SIMPLEX_INITIAL_SUBLIST [`k`;`truncate_simplex k y`;`y`];
+  BY(ASM_SIMP_TAC[LENGTH_TRUNCATE_SIMPLEX;arith `k+1 = SUC k`])
+  ]);;
+  (* }}} *)
+
+let TRUNCATE_SIMPLEX_EXPLICIT = prove_by_refinement(
+  `!(x1:A) x2 x3 x4. truncate_simplex 3 [x1;x2;x3;x4] = [x1;x2;x3;x4] /\
+    truncate_simplex 2 [x1;x2;x3;x4] = [x1;x2;x3] /\
+    truncate_simplex 2 [x1;x2;x3] = [x1;x2;x3] /\
+    truncate_simplex 1 [x1;x2;x3;x4] = [x1;x2] /\
+    truncate_simplex 1 [x1;x2;x3] = [x1;x2] /\
+    truncate_simplex 1 [x1;x2] = [x1;x2]`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[arith `3 = SUC 2 /\ 2 = SUC 1 /\ 1 = SUC 0`];
+  REPEAT (GMATCH_SIMP_TAC TRUNCATE_SIMPLEX_CONS);
+  REWRITE_TAC[LENGTH;TRUNCATE_SIMPLEX0];
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
+
+end;;

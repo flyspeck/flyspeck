@@ -23,6 +23,19 @@ let frees_of_goal (asl,w) =
   let varl = List.flatten (map frees tms) in
     map (fun t -> (fst (dest_var t), t)) varl;;
 
+let retype gls tm = 
+  let varl = filter has_stv (setify(frees tm)) in
+  let svarl = map (fun t-> (fst(dest_var t),t)) varl in
+  let fn = fun buff (s,t) -> try (let (_,_,m)= term_match [] t (assoc s gls) in m @ buff)
+  with _ -> failwith ("not found: "^s) in
+  let tyassoc = List.fold_left fn [] svarl in
+     (instantiate ([],[],tyassoc)) tm ;;
+
+let env (asl,w) tm = 
+  let gls = frees_of_goal (asl,w) in
+    retype gls tm;;
+
+(*
 let env (asl,w) tm = 
   let gls = frees_of_goal (asl,w) in
   let varl = filter has_stv (setify(frees tm)) in
@@ -31,6 +44,7 @@ let env (asl,w) tm =
   with _ -> failwith ("not found: "^s) in
   let tyassoc = List.fold_left fn [] svarl in
      (instantiate ([],[],tyassoc)) tm ;;
+*)
 
 let envl (asl,w) tml = 
   let gls = frees_of_goal (asl,w) in
@@ -78,7 +92,32 @@ let HYP_CONJ_TAC =
 UNSORTED
 ****************************** *)
 
+let SELECT_EXIST = prove_by_refinement(
+  `!(P:A->bool) Q. (?y. P y) /\ (!t. (P t ==> Q t)) ==> Q ((@) P)`,
+  (* {{{ proof *)
+
+  [
+  REPEAT STRIP_TAC;
+  ASSUME_TAC (ISPECL[`P:(A->bool)`;`y:A`] SELECT_AX);
+  ASM_MESON_TAC[];
+  ]);;
+
+  (* }}} *)
+
+let SELECT_THM = MESON[SELECT_EXIST]
+  `!(P:A->bool) Q. (((?y. P y) ==> (!t. (P t ==> Q t))) /\ ((~(?y. P y)) ==>
+     (!t. Q t))) ==> Q ((@) P)`;;
+
+let SELECT_TAC  =
+  let unbeta = prove(
+  `!(P:A->bool) (Q:A->bool). (Q ((@) P)) <=> (\t. Q t) ((@) P)`,MESON_TAC[]) in
+  let unbeta_tac = CONV_TAC (HIGHER_REWRITE_CONV[unbeta] true) in
+  unbeta_tac THEN (MATCH_MP_TAC SELECT_THM) THEN BETA_TAC THEN 
+  REPEAT STRIP_TAC;;
+
+(*
 let SELECT_TAC = Tactics.SELECT_TAC;;
+*)
 
 let COMMENT s = (report s; ALL_TAC);;
 
@@ -165,17 +204,61 @@ let BRANCH_B (t::tl) = t THENL [ALL_TAC;EVERY tl];;
 
 (* a few from Jordan *)
 
-let X_IN = Tactics_jordan.un;;
+let X_IN  = REWRITE_RULE[IN];;
 
-let SUBCONJ_TAC = Tactics_jordan.SUBCONJ_TAC;;
+let SUBCONJ_TAC =
+  MATCH_MP_TAC (TAUT `A /\ (A ==>B) ==> (A /\ B)`) THEN CONJ_TAC;;
 
-let PROOF_BY_CONTR_TAC = Tactics_jordan.PROOF_BY_CONTR_TAC;;
+let PROOF_BY_CONTR_TAC =
+  MATCH_MP_TAC (TAUT `(~A ==> F) ==> A`) THEN DISCH_TAC;;
 
-let UNDISCH_FIND_TAC = Tactics_jordan.UNDISCH_FIND_TAC;;
+let (UNDISCH_FIND_TAC: term -> tactic) =
+ fun tm (asl,w) ->
+   let p = can (term_match[] tm)  in
+   try let sthm,_ = remove
+     (fun (_,asm) -> can (find_term p) (concl ( asm))) asl in
+     UNDISCH_TAC (concl (snd sthm)) (asl,w)
+   with Failure _ -> failwith "UNDISCH_FIND_TAC";;
 
-let TYPE_THEN = Tactics_jordan.TYPE_THEN;;
+let rec type_set: (string*term) list  -> (term list*term) -> (term list*term)=
+  fun typinfo (acclist,utm) -> match acclist with
+    | [] -> (acclist,utm)
+    | (Var(s,_) as a)::rest ->
+         let a' = (assocd s typinfo a) in
+           if (a = a') then type_set typinfo (rest,utm)
+           else let inst = instantiate (term_match [] a a') in
+             type_set typinfo ((map inst rest),inst utm)
+    | _ -> failwith "type_set: variable expected"
+  ;;
 
-let TYPEL_THEN = Tactics_jordan.TYPEL_THEN;;
+let has_stv t =
+  let typ = (type_vars_in_term t) in
+  can (find (fun ty -> (is_vartype ty) && ((dest_vartype ty).[0] = '?'))) typ;;
+
+
+let TYPE_THEN: term  -> (term -> tactic) -> tactic =
+  fun t (tac:term->tactic) (asl,w) ->
+  let avoids = itlist (union o frees o concl o snd) asl
+                               (frees w) in
+  let strip  = fun t-> (match t with
+       |Var(s,_) -> (s,t) | _ -> failwith "TYPE_THEN" ) in
+  let typinfo = map strip avoids in
+  let t' = (snd (type_set typinfo ((frees t),t))) in
+    (warn ((has_stv t')) "TYPE_THEN: unresolved type variables");
+    tac t' (asl,w);;
+
+(* this version must take variables *)
+
+let TYPEL_THEN: term list -> (term list -> tactic) -> tactic =
+  fun t (tac:term list->tactic) (asl,w) ->
+  let avoids = itlist (union o frees o concl o snd) asl
+                               (frees w) in
+  let strip  = fun t-> (match t with
+       |Var(s,_) -> (s,t) | _ -> failwith "TYPE_THEN" ) in
+  let typinfo = map strip avoids in
+  let t' = map (fun u -> snd (type_set typinfo ((frees u),u))) t in
+    (warn ((can (find has_stv) t')) "TYPEL_THEN: unresolved type vars");
+     tac t' (asl,w);;
 
 let (EXISTSv_TAC :string -> tactic) = 
    fun s (asl,g) ->

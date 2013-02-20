@@ -4,9 +4,11 @@ needs "nonlinear/lemma.hl";;
 needs "nonlinear/functional_equation.hl";;
 needs "nonlinear/ineq.hl";;
 
-let add_inequality = Ineq.add;;
-let find_ineqs = Ineq.getprefix;;
 needs "nonlinear/prep.hl";;
+let add_inequality = Prep.add_inequality;;
+let find_ineqs idv = filter (fun t -> (String.length idv <= String.length t.idv) &&
+			     (String.sub t.idv 0 (String.length idv) = idv)) (!Prep.prep_ineqs);;
+
 needs "nonlinear/formal_tests/ineq_ids.hl";;
 
 needs "nonlinear/formal_tests/hminus.hl";;
@@ -40,15 +42,17 @@ let sqrt_pos_eq = prove(`&0 < x ==> sqrt x * sqrt x = x`,
 			  MATCH_MP_TAC SQRT_POW_2 THEN 
 			  MATCH_MP_TAC REAL_LT_IMP_LE THEN ASM_REWRITE_TAC[]);;
 
-
 let ineqs = 
+  let dummy = `ineq [] (P \/ Q)` in
   let find id = 
-    let data = (hd o find_ineqs) id in
-      data.ineq in
-  let all_ineqs = map (fun id, t -> find id, t) ineq_ids in
+    let data = find_ineqs id in
+      (snd o strip_forall) (if data = [] then dummy else (hd data).ineq) in
+  let all_ineqs = map (fun id, t -> find id, (id, t)) ineq_ids in
   let filter1 = filter (fun ineq, _ -> not (is_disj (rand ineq))) all_ineqs in
     filter (fun ineq, _ -> not (is_binary "real_le" (rand ineq))) filter1;;
 
+(* 195 *)
+length ineqs;;
 
 let get_constants tm =
   let rec find tm =
@@ -69,14 +73,16 @@ let ineqs =
 		not (mem c1 l or mem c2 l)) ineqs;;
 
 let consts = end_itlist union (map (get_constants o fst) ineqs);;
-(* 192 *)
+(* 193 *)
 length ineqs;;
+
+let all_ids = map (fst o snd) ineqs;;
 
 open Functional_equation;;
 open Nonlinear_lemma;;
 
 let flyspeck_defs = [
-  gamma2_x1_div_a_v2; promote_pow3;
+  gamma3f_x_div_sqrtdelta; promote_pow3;
   proj_x1; proj_x2; proj_x3; proj_x4; proj_x5; proj_x6;
   delta_x4; delta_x; eulerA_x; num1; acs_sqrt_x1_d4;
   arclength_x_123; arc_hhn; arclength_x1;
@@ -86,7 +92,7 @@ let flyspeck_defs = [
   sqrt8; vol_x; dih2_x; dih3_x; 
   sqrt_x1; sqrt_x2; sqrt_x3; sqrt_x4; sqrt_x5; sqrt_x6;
   rad2_x; unit6;
-  promote1_to_6; gamma2_x_div_azim_v2;
+  promote1_to_6;
   mm1; mm2; arclength_y1; h0; lfun;
   rhazim2; rhazim3; taum_x; rhazim;
   halfbump_x; dih4_y; dih5_x; dih6_x; gchi;
@@ -136,7 +142,7 @@ let verify_all pp ineqs =
 
 
 let sum_time ineqs result =
-  let original_time = itlist (fun (_,x) y -> x + y) ineqs 0 in
+  let original_time = itlist (fun (_,(_,x)) y -> x + y) ineqs 0 in
   let failures = length (filter (fun x, _ -> x = TRUTH) result) in
   let times = snd (unzip result) in
     failures,
@@ -147,14 +153,15 @@ let sum_time ineqs result =
 
 (* Returns inequalities with the given informal verification time (bounds are inclusive) *)
 let get_ineqs t_min t_max =
-  filter (fun (_, t) -> t_min <= t && t <= t_max) ineqs;;
+  filter (fun (_, (_, t)) -> t_min <= t && t <= t_max) ineqs;;
 
 
 (**************)
 (* 0 ms *)
 let ineqs0 = get_ineqs 0 0;;
-(* 57 *)
+(* 55 *)
 length ineqs0;;
+
 
 let result0 = verify_all 4 ineqs0;;  
 (* base = 200, pp = 4: 422.494, 2.159; informal = 0 *)

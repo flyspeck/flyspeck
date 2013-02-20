@@ -1,0 +1,1196 @@
+"needs \"tame/ssreflect/seq2-compiled.hl\"".
+
+Module List_hypermap.
+
+"open Ssrbool".
+"open Ssrnat".
+"open Seq".
+"open Seq2".
+
+"parse_as_infix (\"::\", (12, \"right\"))".
+"override_interface (\"::\", `CONS`)".
+"make_overloadable \"++\" `:A -> A -> A`".
+"overload_interface (\"++\", `cat`)".
+
+(* Returns the next element in the cyclic order:
+ next_el [1;3;2] 3 = 2
+ next_el [1;3;2] 2 = 1 *)
+
+"let next_el = new_definition `next_el list x = 
+  if (indexl x list = sizel list - 1) then (headl x list) else (nth x list (indexl x list + 1))`".
+
+"let prev_el = new_definition `prev_el list x = 
+  if (indexl x list = 0) then (last x list) else (nth x list (indexl x list - 1))`".
+
+
+"let hyp_edge_pairs = new_definition `hyp_edge_pairs H = {x, edge_map H x | x | x IN dart H}`".
+
+(* list_pairs [1;2;3] = {(1,2), (2,3), (3,1)} *)
+"let list_pairs = new_definition `list_pairs list = zip list (rot 1 list)`".
+
+"let list_of_darts = new_definition 
+	`list_of_darts ll = foldr (\list all. (list_pairs list) ++ all) [] ll`".
+
+"let darts_of_list = new_definition `darts_of_list ll = set_of_list (list_of_darts ll)`".
+
+"let list_of_edges = new_definition 
+	`list_of_edges ll = MAP (\d:A#A. d, (SND d,FST d)) (list_of_darts ll)`".
+
+"let list_of_faces = new_definition `list_of_faces ll = MAP list_pairs ll`".
+
+"let faces_of_list = new_definition `faces_of_list ll = MAP set_of_list (list_of_faces ll)`".
+
+"let list_of_elements = new_definition `list_of_elements ll = undup (flatten ll)`".
+
+"let elements_of_list = new_definition `elements_of_list ll = set_of_list (list_of_elements ll)`".
+
+"let list_of_nodes = new_definition 
+  `list_of_nodes ll = MAP (\x. filter (\d. FST d = x) (list_of_darts ll)) (list_of_elements ll)`".
+
+"let nodes_of_list = new_definition `nodes_of_list ll = MAP set_of_list (list_of_nodes ll)`".
+
+
+(* Special lists *)
+
+"let list_of_faces3 = new_definition `list_of_faces3 (L:((A)list)list) =
+  filter (\f. LENGTH f = 3) (list_of_faces L)`".
+
+"let list_of_faces4 = new_definition `list_of_faces4 (L:((A)list)list) =
+  filter (\f. LENGTH f = 4) (list_of_faces L)`".
+
+"let list_of_faces5 = new_definition `list_of_faces5 (L:((A)list)list) =
+  filter (\f. LENGTH f = 5) (list_of_faces L)`".
+
+"let list_of_faces6 = new_definition `list_of_faces6 (L:((A)list)list) =
+  filter (\f. LENGTH f = 6) (list_of_faces L)`".
+  
+"let list_of_faces456 = new_definition `list_of_faces456 (L:((A)list)list) =
+  filter (\f. 4 <= LENGTH f) (list_of_faces L)`".
+
+
+"let list_of_darts3 = new_definition `list_of_darts3 (L:((A)list)list) = 
+  flatten (list_of_faces3 L)`".
+
+"let list_of_darts4 = new_definition `list_of_darts4 (L:((A)list)list) =
+  flatten (list_of_faces4 L)`".
+
+"let list_of_dartsX = new_definition `list_of_dartsX (L:((A)list)list) =
+  flatten (list_of_faces456 L)`".
+
+
+(* Faces *)
+
+"let find_list = define `find_list x [] = []
+	/\ find_list x (CONS h t) = if (MEM x h) then h else find_list x t`".
+
+"let find_pair_list = define `find_pair_list d [] = [] 
+	/\ find_pair_list d (CONS h t) = if (MEM d (list_pairs h)) then h else find_pair_list d t`".
+
+"let find_face = new_definition `find_face d ll = find_list d (list_of_faces ll)`".
+
+
+(* Hypermap maps *)
+
+"let f_list = new_definition `f_list ll d = next_el (find_face d ll) d`".
+
+"let e_list = new_definition `e_list ll d = (SND d, FST d)`".
+
+(* let n_list = new_definition `n_list ll d = (FST d, PREV_EL (FST d) (find_pair_list d ll))`;; *)
+"let n_list = new_definition `n_list ll d = e_list ll (prev_el (find_face d ll) d)`".
+
+
+(* Hypermap definition *)
+
+"let f_list_ext = new_definition `f_list_ext ll = res (f_list ll) (darts_of_list ll)`".
+"let e_list_ext = new_definition `e_list_ext ll = res (e_list ll) (darts_of_list ll)`".
+"let n_list_ext = new_definition `n_list_ext ll = res (n_list ll) (darts_of_list ll)`".
+
+
+"let hypermap_of_list = new_definition 
+	`hypermap_of_list (ll:((A)list)list) = 
+		hypermap (darts_of_list ll, e_list_ext ll, n_list_ext ll, f_list_ext ll)`".
+
+
+(* Define "good" lists *)
+"let good_list = new_definition `good_list ll <=> 
+	uniq (list_of_darts ll) /\
+         all (\l. ~(l = [])) ll /\
+         (!d. MEM d (list_of_darts ll) ==> MEM (SND d, FST d) (list_of_darts ll))`".
+
+(* Define nodes of a good hypermap *)
+"let good_list_nodes = new_definition `good_list_nodes L <=> 
+	node_set (hypermap_of_list L) = set_of_list (nodes_of_list L)`".
+
+
+
+(* MoreList *)
+Section MoreList.
+
+Lemma rot_nil n: `rot n [] = []`.
+Proof. by rewrite rot drop take cat. Qed.
+
+Lemma rotr_nil n: `rotr n [] = []`.
+Proof. by rewrite rotr rot_nil. Qed.
+
+Lemma index_nil x: `indexl x [] = 0`.
+Proof. by rewrite index find. Qed.
+
+End MoreList.
+
+
+(* shift_left = rot 1 *)
+(* "let shift_left = (GEN_ALL o define) `shift_left [] = [] /\ shift_left (h :: t) = rcons t h`". *)
+
+(* shift_right = rotr 1 *)
+(* "let shift_right = new_definition `shift_right list = belast (last (HD list) list) list`". *)
+
+
+
+Lemma next_el_rot x list: `MEM x list ==> 
+	next_el list x = headl x (rot (indexl x list + 1) list)`.
+Proof.
+case: list => [|h t x_list]; first by rewrite MEM.
+rewrite next_el size_cons succnK.
+case eq: `indexl x _ = _2` => /=.
+  by rewrite eq rot_oversize // size_cons; arith.
+rewrite rot -nth0 nth_cat size_drop subn_gt0.
+rewrite LT_LE addn1 -ltE index_mem x_list /= size_cons eqSS eq /=.
+by rewrite nth_drop addn0.
+Qed.
+
+
+Lemma prev_el_rot x list: `MEM x list ==>
+	prev_el list x = headl x (rotr 1 (rot (indexl x list) list))`.
+Proof.
+case: list => [|h t x_list]; first by rewrite MEM.
+rewrite prev_el.
+case eq: `indexl x _ = _2` => /=.
+  by rewrite eq rot0 {2}lastI rotr1_rcons head last.
+rewrite rotr rot_add_mod size_rot.
+  by rewrite leq_pred leq_eqVlt index_mem.
+rewrite size_cons succnK.
+case eq2: `indexl x (CONS h t) = 1` => /=.
+  by rewrite eq2 subnn nth0 addn1 leqnn /= rot_oversize // size_cons leqnn.
+have neq: `SUC (sizel t) < sizel t + indexl x (CONS h t)` by move: eq eq2; arith.
+rewrite leqNgt neq /= rot -nth0 nth_cat size_drop subn_gt0.
+have -> /=: `(sizel t + indexl x (CONS h t)) - SUC (sizel t) < sizel (CONS h t)`.
+  by move: x_list eq eq2; rewrite -index_mem size_cons; arith.
+rewrite nth_drop; congr `nth x _1 _2` => //.
+by move: eq; arith.
+Qed.
+
+
+
+"let IN_TRANS = prove(`!(x:A) s t. t SUBSET s /\ x IN t ==> x IN s`, SET_TAC[])".
+
+"let zip = GEN_ALL zip".
+
+Lemma mem_zip s1 s2 a b: `MEM (a,b) (zip s1 s2) ==> MEM a s1 /\ MEM b s2`.
+Proof.
+elim: s1 s2 => [| h t Ih] [|h2 t2]; rewrite zip MEM // PAIR_EQ.
+by case => [[-> ->] | /Ih]; rewrite !MEM /=.
+Qed.
+
+
+Lemma EL_zip s1 s2 i: `sizel s1 = sizel s2 /\ i < sizel s1 
+	==> EL i (zip s1 s2) = (EL i s1, EL i s2)`.
+Proof.
+move => [size_eq i_lt].
+set x0 := `HD s1`.
+set y0 := `HD s2`.
+rewrite (EL_nth `x0,y0` `zip s1 s2`); first by rewrite size1_zip ?i_lt // size_eq leqnn.
+by rewrite nth_zip // PAIR_EQ -!EL_nth // -size_eq.
+Qed.
+
+(****************************)
+
+(* INDEX *)
+
+Lemma index_eq_size x s: `~(MEM x s) <=> indexl x s = sizel s`.
+Proof. by rewrite index -has_pred1 has_find ltn_neqAle find_size andbT negbK. Qed.
+   
+
+(* Shift left/right *)
+
+Lemma shift_right h t: `rotr 1 [] = [] /\
+	rotr 1 (h :: t) = belast (last h t) (h :: t)`.
+Proof. by rewrite rotr_nil {1}lastI rotr1_rcons belast. Qed.
+
+
+Lemma nth_shift_left x0 s i: `i < sizel s ==> 
+	nth x0 (rot 1 s) i = if (i = sizel s - 1) then nth x0 s 0 else nth x0 s (i + 1)`.
+Proof.
+move => i_lt.
+rewrite rot nth_cat size_drop ltn_neqAle.
+case eq: `i = sizel s - 1` => /=.
+  rewrite eq nth_take; first by move: i_lt; arith.
+  by congr `nth x0 s _`; move: i_lt; arith.
+have -> /=: `i <= sizel s - 1` by move: i_lt eq; arith.
+by rewrite nth_drop addnC //; move: eq i_lt; arith.
+Qed.
+
+
+Lemma nth_shift_right x0 s i: `i < sizel s ==>
+	nth x0 (rotr 1 s) i = if (i = 0) then nth x0 s (sizel s - 1) else nth x0 s (i - 1)`.
+Proof.
+elim: s => [| h t Ih i_lt]; first by rewrite size_nil ltn0.
+rewrite shift_right belast size_cons succnK.
+case i_eq: `i = 0` => /=; first by rewrite i_eq nth (last_nth x0).
+case: (num_CASES i) => // [m] i_eq.
+rewrite i_eq succnK nth lastI EQ_SYM_EQ nth_rcons size_belast.
+by move: i_lt i_eq; rewrite size_cons; arith.
+Qed.
+
+
+(* NEXT_EL, PREV_EL *)  
+
+Lemma perm_eq_rot n s: `perm_eq (rot n s) s`.
+Proof. by rewrite perm_rot perm_eq_refl. Qed.
+
+Lemma next_el_alt x0 x s: `MEM x s ==> next_el s x = nth x0 (rot 1 s) (indexl x s)`.
+Proof.
+move => xs; rewrite next_el (nth_shift_left x0) ?index_mem // -nth0.
+by case eq: `indexl x s = _` => /=; apply set_nth_default; move: xs eq; rewrite -index_mem; arith.
+Qed.
+
+Lemma prev_el_alt x0 x s: `MEM x s ==> prev_el s x = nth x0 (rotr 1 s) (indexl x s)`.
+Proof.
+move => xs; rewrite prev_el (nth_shift_right x0) ?index_mem // -nth_last.
+by case eq: `indexl x s = _` => /=; apply set_nth_default; move: xs eq; rewrite -index_mem; arith.
+Qed.
+
+Lemma mem_next_el x s: `MEM x s ==> MEM (next_el s x) s`.
+Proof. 
+by move => xs; rewrite (next_el_alt `HD s`) // -(mem_rot `1`) mem_nth // size_rot index_mem. 
+Qed.
+
+Lemma mem_prev_el x s: `MEM x s ==> MEM (prev_el s x) s`.
+Proof. 
+by move => xs; rewrite (prev_el_alt `HD s`) // -(mem_rotr `1`) mem_nth // size_rotr index_mem. 
+Qed.
+
+Lemma index_head x0 s: `indexl (headl x0 s) s = 0`.
+Proof. by case: s => [| h t]; rewrite index find // head pred1. Qed.
+
+
+Lemma prev_next_id x s: `uniq s /\ MEM x s ==> prev_el s (next_el s x) = x`.
+Proof.
+move => [uniq_s xs].
+have size_gt: `0 < sizel s` by rewrite -has_predT -hasP predT; exists x.
+rewrite (prev_el_alt `HD s`) ?mem_next_el // (next_el_alt `HD s`) //.
+rewrite nth_shift_left ?index_mem //.
+case eq1: `indexl x s = sizel s - 1` => /=.
+  by rewrite nth_shift_right index_uniq //= -eq1 nth_index.
+rewrite nth_shift_right index_uniq ?uniq_s; try (move: eq1 xs; rewrite -index_mem; arith).
+by rewrite addn1 eqS0 /= succnK nth_index.
+Qed.
+
+
+Lemma next_prev_id x s: `uniq s /\ MEM x s ==> next_el s (prev_el s x) = x`.
+Proof.
+move => [uniq_s xs]; set x0 := `HD s`.
+have size_gt: `0 < sizel s` by rewrite -has_predT -hasP predT; exists x.
+rewrite (next_el_alt x0) ?mem_prev_el // (prev_el_alt x0) //.
+rewrite nth_shift_right ?index_mem //.
+case eq1: `indexl x s = 0` => /=.
+  rewrite nth_shift_left index_uniq ?uniq_s /=; try (move: size_gt; arith).
+  by rewrite -eq1 nth_index.
+rewrite nth_shift_left index_uniq ?uniq_s; try (move: eq1 xs; rewrite -index_mem; arith).
+have -> /=: `~(indexl x s - 1 = sizel s - 1)`.
+  by move: eq1 xs; rewrite -index_mem; arith.
+by rewrite subnK ?nth_index //; move: eq1; arith.
+Qed.
+ 
+     
+(* FLATTEN, REMOVE_DUPLICATES *)
+
+Lemma mem_flatten x ll: `MEM x (flatten ll) <=> ?l. MEM l ll /\ MEM x l`.
+Proof.
+elim: ll => [| h t Ih]; first by rewrite flatten0 !MEM.
+rewrite flatten_cons mem_cat MEM Ih.
+split => [[xh | [l] h] | [l] [h1 xl]]; [exists h | exists l | ]; move => //.
+by case: h1 => [<- // | lt]; right; exists l.
+Qed.
+
+
+(* lists *)
+
+Lemma list_pairs_empty s: `list_pairs s = [] <=> s = []`.
+Proof. by rewrite list_pairs -!size_eq0 size1_zip // size_rot leqnn. Qed.
+
+Lemma list_of_darts_alt ll: `list_of_darts ll = flatten (list_of_faces ll)`.
+Proof.
+rewrite list_of_darts flatten list_of_faces.
+by elim: ll => [|h t Ih]; rewrite MAP !foldr.
+Qed.
+
+
+(* Faces *)
+
+"let find_list = GEN_ALL find_list".
+"let find_pair_list = GEN_ALL find_pair_list".
+
+Lemma find_face_alt d ll: `find_face d ll = list_pairs (find_pair_list d ll)`.
+Proof.
+rewrite find_face list_of_faces.
+elim: ll => [| h t Ih].
+  by rewrite MAP find_list find_pair_list list_pairs zip.
+rewrite MAP find_pair_list find_list.
+by case mem_d: `MEM d _` => /=; rewrite Ih.
+Qed.
+
+Lemma mem_find_list x ll: `MEM x (flatten ll) ==> MEM (find_list x ll) ll`.
+Proof.
+rewrite mem_flatten => [] [l].
+elim: ll => [|h t Ih]; rewrite MEM // find_list.
+move => [[<- | lt] xl]; first by rewrite xl /= MEM.
+by case xh: `MEM x h` => /=; rewrite MEM // Ih.
+Qed.
+
+Lemma mem_find_face d ll: `MEM d (list_of_darts ll) 
+	==> MEM (find_face d ll) (list_of_faces ll)`.
+Proof.
+rewrite list_of_darts_alt => h.
+by rewrite find_face mem_find_list.
+Qed.
+
+Lemma find_list_empty d ll: `find_list d ll = [] <=> ~(MEM d (flatten ll))`.
+Proof.
+rewrite mem_flatten NOT_EXISTS_THM negb_and.
+elim: ll => [|h t Ih]; rewrite MEM find_list //.
+case dh: `MEM d h` => /=.
+  have -> /=: `~(h = [])` by apply: contraL dh => ->; rewrite MEM.
+  by rewrite NOT_FORALL_THM negb_or !negbK; exists h.
+rewrite Ih; split => h1 x.
+  by case eq: `x = h` => /=; rewrite (eq, h1).
+by case: (h1 x) => /=; rewrite negb_or /=.
+Qed.
+
+
+Lemma mem_find_list_nonempty x ll: `all (\l. ~(l = [])) ll
+	==> (MEM x (flatten ll) <=> MEM (find_list x ll) ll)`.
+rewrite -allP /= => h1.
+split => [|h2]; first by apply mem_find_list.
+by move: (h1 h2); rewrite find_list_empty negbK.
+Qed.
+
+
+Lemma mem_find_face_nonempty d ll: `all (\l. ~(l = [])) ll
+	==> (MEM d (list_of_darts ll) <=> MEM (find_face d ll) (list_of_faces ll))`.
+Proof.
+move => h1.
+rewrite find_face -mem_find_list_nonempty ?list_of_darts_alt //.
+rewrite -!allP /= in h1 *; rewrite list_of_faces => s.
+rewrite MEM_MAP => [] [l] [l_ll] ->.
+by rewrite EQ_SYM_EQ list_pairs_empty h1.
+Qed.
+
+
+(* Hypermap maps properties *)    
+
+
+(* e_list_ext permutes darts *)
+
+Lemma e_list_ext_involution ll: `good_list ll ==> e_list_ext ll o e_list_ext ll = I`.
+Proof.
+rewrite FUN_EQ_THM o_THM I_THM e_list_ext good_list => [] [h_uniq] [all_n] mem_snd [x y].
+rewrite !res e_list FST SND darts_of_list !IN_SET_OF_LIST.
+case xy_in: `MEM (x,y) _` => /=.
+  by move: (mem_snd xy_in) => /=; rewrite e_list.
+by rewrite xy_in.
+Qed.
+
+
+"let INVERSE_EXISTS_IMP_BIJECTIVE = prove(`!(f:A->B) g. f o g = I /\ g o f = I ==> (!y. ?!x. f x = y)`,
+   REWRITE_TAC[FUN_EQ_THM; o_THM; I_THM] THEN			
+     REPEAT STRIP_TAC THEN REWRITE_TAC[EXISTS_UNIQUE] THEN
+     EXISTS_TAC `(g:B->A) y` THEN
+     ASM_REWRITE_TAC[] THEN
+     REPEAT STRIP_TAC THEN
+     POP_ASSUM (MP_TAC o AP_TERM `g:B->A`) THEN
+     ASM_REWRITE_TAC[])".
+
+
+Lemma e_list_ext_permutes_darts ll: `good_list ll 
+	==> (e_list_ext ll) permutes (darts_of_list ll)`.
+Proof.
+rewrite permutes => good_l; split.
+  by move => x x_n; rewrite e_list_ext res x_n.
+apply INVERSE_EXISTS_IMP_BIJECTIVE.
+by exists `e_list_ext ll`; rewr ETA_AX; rewrite e_list_ext_involution.
+Qed.
+
+
+(* f_list_ext permutes darts *)
+
+Lemma dart_in_darts d l ll: `MEM d (list_pairs l) /\ MEM l ll
+	==> MEM d (list_of_darts ll)`.
+Proof.
+rewrite list_of_darts_alt mem_flatten list_of_faces MEM_MAP => h.
+by exists `list_pairs l`; rewrite h andbT; exists l.
+Qed.
+
+
+Lemma mem_find_pair_list d ll: `MEM d (list_of_darts ll) ==> MEM (find_pair_list d ll) ll`.
+Proof.
+elim: ll => [|h t Ih]; rewrite list_of_darts foldr MEM // find_pair_list /=.
+case mem_d: `MEM d (list_pairs h)` => /=.
+by rewrite mem_cat mem_d orFb -list_of_darts => /Ih ->.
+Qed.
+
+
+Lemma dart_in_find_pair_list d ll: 
+	`MEM d (list_of_darts ll) <=> MEM d (list_pairs (find_pair_list d ll))`.
+Proof.
+elim: ll => [|h t Ih]; rewrite list_of_darts find_pair_list foldr.
+  by rewrite list_pairs zip.
+case mem_d: `MEM d (list_pairs h)` => /=; rewrite mem_cat mem_d // orFb.
+by rewrite -list_of_darts Ih.
+Qed.
+
+
+Lemma dart_in_face d ll: `MEM d (list_of_darts ll) <=> MEM d (find_face d ll)`.
+Proof. by rewrite find_face_alt dart_in_find_pair_list. Qed.
+
+Lemma mem_imp_not_uniq_cat x l1 l2: `MEM x l1 /\ MEM x l2 ==> ~(uniq (cat l1 l2))`.
+Proof. 
+move => [x_l1 x_l2]; rewrite cat_uniq -hasP !negb_and negbK /=.
+by right; left; exists x.
+Qed.
+
+
+Lemma uniq_imp_unique_list l1 l2 d ll: 
+	`uniq (list_of_darts ll) /\ MEM l1 ll /\ MEM l2 ll
+	/\ MEM d (list_pairs l1) /\ MEM d (list_pairs l2)
+	==> l1 = l2`.
+Proof.
+elim: ll => [|h t Ih]; rewrite !MEM //.
+rewrite list_of_darts foldr /= -list_of_darts.
+rewrite cat_uniq -hasP /= NOT_EXISTS_THM negb_and.
+move => [] [uniq_h] [not_mem] uniq_t [h1] [h2] [d_l1] d_l2.
+case: h1 h2 => h1 [] h2 //; last exact: Ih.
+  move: (not_mem d); rewrite -h1 d_l1 /=.
+  by rewrite (dart_in_darts d_l2).
+move: (not_mem d); rewrite -h2 d_l2 /=.
+by rewrite (dart_in_darts d_l1).
+Qed.
+
+
+Lemma find_pair_list_unique l d ll: `uniq (list_of_darts ll) /\ MEM l ll /\ MEM d (list_pairs l) 
+	==> l = find_pair_list d ll`.
+Proof.
+move => [uniq_darts] [l_ll] mem_d.
+apply: (uniq_imp_unique_list uniq_darts mem_d).
+by rewrite l_ll -find_face_alt -dart_in_face mem_find_pair_list (dart_in_darts mem_d).
+Qed.
+
+
+Lemma uniq_find_face d ll: `uniq (list_of_darts ll) ==> uniq (find_face d ll)`.
+Proof.
+elim: ll => [|h t Ih]; rewrite list_of_darts foldr find_face list_of_faces MAP find_list //=.
+rewrite -list_of_darts -list_of_faces -find_face cat_uniq => [] [uniq_h] [_] uniq_t.
+by case: `MEM d _` => //=; rewrite Ih.
+Qed.
+
+
+Lemma size_list_pairs l: `sizel (list_pairs l) = sizel l`.
+Proof. by rewrite list_pairs size1_zip // size_rot leqnn. Qed.
+
+Lemma mem_list_pairs x y l: `MEM (x,y) (list_pairs l) ==> MEM x l /\ MEM y l`.
+Proof. by rewrite list_pairs => /mem_zip; rewrite mem_rot. Qed.
+
+Lemma mem_f_list d ll: `MEM d (list_of_darts ll) ==> MEM (f_list ll d) (find_face d ll)`.
+Proof. by move => mem_d; rewrite f_list mem_next_el -dart_in_face. Qed.
+
+Lemma nth_list_pairs x0 i s: `i < sizel s
+	==> nth (x0, x0) (list_pairs s) i
+		= (nth x0 s i, nth x0 s (if i = sizel s - 1 then 0 else i + 1))`.
+Proof.
+move => i_lt; rewrite list_pairs nth_zip ?size_rot //.
+by rewrite nth_shift_left // -fun_if.
+Qed.
+
+Lemma uniq_list_pairs s: `uniq s ==> uniq (list_pairs s)`.
+Proof.
+set x0 := `HD s`.
+rewrite (uniq_nthP x0) (uniq_nthP `x0, x0`) size_list_pairs => h i j [i_lt_j] j_lt.
+apply: contra (h i_lt_j j_lt).
+rewrite !nth_list_pairs // ?PAIR_EQ /=.
+by move: i_lt_j j_lt; arith.
+Qed.
+
+
+Lemma mem_list_pairs_explicit x y s: `uniq s /\ MEM (x,y) (list_pairs s)
+	==> y = next_el s x`.
+Proof.
+rewrite -(nthP `x,y` `x,x`) size_list_pairs => [] [uniq_s] [i].
+rewrite list_pairs nth_zip ?size_rot // !PAIR_EQ => [] [i_lt] [x_eq] y_eq.
+rewrite (next_el_alt x); first by rewrite -(nthP x x); exists i.
+by rewrite -y_eq -{3}x_eq index_uniq.
+Qed.
+
+
+Lemma index_fst_snd x0 i x y s: `uniq s /\ i < sizel s /\ nth (x0,x0) (list_pairs s) i = (x,y)
+	==> indexl x s = i /\ indexl y s = if (i = sizel s - 1) then 0 else i + 1`.
+Proof.
+move => [uniq_s] [i_lt] /=.
+rewrite nth_list_pairs // PAIR_EQ => [] [<- <-].
+by rewrite !index_uniq // uniq_s; move: i_lt; arith.
+Qed.
+
+
+Lemma next_el_list_pairs x y s: `uniq s /\ MEM (x,y) (list_pairs s)
+	==> next_el (list_pairs s) (x,y) = (y, next_el s y)`.
+Proof.
+move => [uniq_s mem_d].
+have ys: `MEM y s` by rewrite (mem_list_pairs mem_d).
+rewrite (next_el_alt `x,x`) // (next_el_alt x) //.
+set i := `indexl _1 _2`.
+have nth_i: `nth (x,x) (list_pairs s) i = x,y`.
+  by rewrite -i_def nth_index.
+have i_lt: `i < sizel s`.
+  by rewrite -i_def -size_list_pairs index_mem.
+rewrite !nth_shift_left ?size_list_pairs // ?index_mem //.
+rewrite (index_fst_snd uniq_s i_lt x x y) //.
+case eq: `i = sizel s - 1` => /=.
+  rewrite nth_list_pairs; first by move: i_lt; arith.
+  rewrite PAIR_EQ; split.
+    by rewrite -(nth_index x y s) // (index_fst_snd uniq_s i_lt x x y).
+  by case eq2: `0 = sizel s - 1` => /=; rewrite -eq2.
+rewrite nth_list_pairs; first by move: i_lt eq; arith.
+rewrite PAIR_EQ; split.
+  by rewrite -(nth_index x y s) // (index_fst_snd uniq_s i_lt x x y).
+by case eq2: `i + 1 = _`.
+Qed.
+
+
+Lemma prev_el_list_pairs x y s: `uniq s /\ MEM (x,y) (list_pairs s)
+	==> prev_el (list_pairs s) (x,y) = (prev_el s x, x)`.
+Proof.
+move => [uniq_s mem_d].
+set t := `prev_el _1 _2`.
+have mem_t: `MEM t (list_pairs s)`.
+  by rewrite -t_def mem_prev_el.
+case: t mem_t t_def => a b mem_t t_def.
+have: `b = next_el s a`.
+  by rewrite (mem_list_pairs_explicit uniq_s mem_t).
+move/(congr1 `prev_el s`).
+rewrite prev_next_id ?(mem_list_pairs mem_t) // => <-.
+suff -> //: `b = x`.
+move: (congr1 `next_el (list_pairs s)` t_def).
+by rewrite next_prev_id ?uniq_list_pairs // next_el_list_pairs // PAIR_EQ => ->.
+Qed.
+
+
+Lemma f_list_inverse d ll: `uniq (list_of_darts ll) /\ MEM d (list_of_darts ll)
+	==> f_list ll (prev_el (find_face d ll) d) = d 
+	/\ prev_el (find_face (f_list ll d) ll) (f_list ll d) = d`.
+Proof.
+move => [uniq_s mem_d]; rewrite !f_list; split.
+  set f := `find_face d ll`.
+  suff ->: `find_face (prev_el f d) ll = f`.
+    by rewrite next_prev_id // -f_def uniq_find_face // -dart_in_face.
+  rewrite -{2}f_def !find_face_alt eq_sym; congr `_1 _2` => //.
+  apply: (find_pair_list_unique uniq_s).
+  rewrite mem_find_pair_list // -find_face_alt f_def mem_prev_el //.
+  by rewrite -f_def -dart_in_face.
+set f := `find_face d ll`.
+suff ->: `find_face (next_el f d) ll = f`.
+  by rewrite prev_next_id // -f_def uniq_find_face // -dart_in_face.
+rewrite -{2}f_def !find_face_alt eq_sym; congr `_1 _2` => //.
+apply: (find_pair_list_unique uniq_s).
+rewrite mem_find_pair_list // -find_face_alt f_def mem_next_el //.
+by rewrite -f_def -dart_in_face.
+Qed.
+
+
+Lemma find_face_f_list d ll: `uniq (list_of_darts ll) /\ MEM d (list_of_darts ll)
+	==> find_face (f_list ll d) ll = find_face d ll`.
+Proof.
+move => [uniq_s mem_d].
+rewrite !find_face_alt eq_sym; congr `_1 _2` => //.
+apply: (find_pair_list_unique uniq_s).
+by rewrite mem_find_pair_list // -find_face_alt mem_f_list.
+Qed.
+
+
+Lemma f_list_ext_permutes_darts ll: `uniq (list_of_darts ll)
+	==> (f_list_ext ll) permutes (darts_of_list ll)`.
+Proof.
+move => uniq_s.
+rewrite f_list_ext Hypermap_and_fan.RES_PERMUTES darts_of_list !IN_SET_OF_LIST.
+split => [d mem_d | ].
+  by rewrite dart_in_face find_face_f_list // mem_f_list.
+split => [d mem_d | d1 d2 [mem_d1] [mem_d2] eq]; last first.
+  have [_ <-] := f_list_inverse uniq_s mem_d1.
+  by rewrite eq (f_list_inverse uniq_s mem_d2).
+exists `prev_el (find_face d ll) d`.
+rewrite f_list_inverse //= dart_in_face.
+set f := `find_face d ll`.
+suff ->: `find_face (prev_el f d) ll = f`.
+  by rewrite mem_prev_el // -f_def -dart_in_face.
+rewrite -{2}f_def !find_face_alt eq_sym; congr `_1 _2` => //.
+apply: (find_pair_list_unique uniq_s).
+rewrite mem_find_pair_list // -find_face_alt f_def mem_prev_el //.
+by rewrite -f_def -dart_in_face.
+Qed.
+
+
+(* e o n o f = I *)
+
+Lemma find_face_empty d ll: `find_face d ll = [] <=> ~MEM d (list_of_darts ll)`.
+Proof. by rewrite find_face find_list_empty list_of_darts_alt. Qed.
+
+
+Lemma mem_find_face_imp_faces_eq d1 d2 ll: `uniq (list_of_darts ll) /\ MEM d1 (find_face d2 ll)
+	==> find_face d1 ll = find_face d2 ll`.
+Proof.
+move => [uniq_s mem_d1].
+rewrite !find_face_alt eq_sym; congr `_1 _2` => //.
+apply: (find_pair_list_unique uniq_s).
+rewrite -find_face_alt mem_d1 mem_find_pair_list //.
+apply: contraLR mem_d1.
+by rewrite -find_face_empty => ->; rewrite MEM.
+Qed.
+
+
+Lemma mem_find_face_imp_mem_darts d y ll: `MEM d (find_face y ll) ==> MEM d (list_of_darts ll)`.
+Proof.
+elim: ll => [| h t Ih]; rewrite find_face list_of_darts foldr list_of_faces MAP find_list //.
+rewrite -list_of_darts /= mem_cat.
+case mem_y: `MEM y _` => /=.
+by rewrite -list_of_faces -find_face => /Ih ->.
+Qed.
+
+
+Lemma f_list_ext_inverse ll: `uniq (list_of_darts ll)
+	==> inverse (f_list_ext ll) = res (\d. prev_el (find_face d ll) d) (darts_of_list ll)`.
+Proof.
+rewrite FUN_EQ_THM => uniq_s d.
+rewrite (PERMUTES_INVERSE_EQ (f_list_ext_permutes_darts uniq_s)).
+rewrite f_list_ext !res /= darts_of_list !IN_SET_OF_LIST.
+case mem_d: `MEM d _` => /=; last by rewrite mem_d.
+suff -> /=: `MEM _1 _2` by rewrite f_list_inverse.
+apply mem_find_face_imp_mem_darts; exists d.
+by rewrite mem_prev_el -dart_in_face.
+Qed.
+
+
+Lemma f_list_ext_inverse_works ll: `uniq (list_of_darts ll)
+	==> f_list_ext ll o inverse (f_list_ext ll) = I
+	/\ inverse (f_list_ext ll) o f_list_ext ll = I`.
+Proof.
+move => uniq_s.
+exact: (PERMUTES_INVERSES_o (f_list_ext_permutes_darts uniq_s)).
+Qed.
+
+
+Lemma n_eq_e_fi ll: `uniq (list_of_darts ll)
+	==> n_list_ext ll = e_list_ext ll o inverse (f_list_ext ll)`.
+Proof.
+move => uniq_s.
+rewrite f_list_ext_inverse // -eq_ext o_THM n_list_ext e_list_ext !res /= => d.
+rewrite darts_of_list !IN_SET_OF_LIST.
+case mem_d: `MEM d _` => /=; last by rewrite mem_d.
+suff -> /=: `MEM _1 _2` by rewrite n_list.
+apply mem_find_face_imp_mem_darts; exists d.
+by rewrite mem_prev_el -dart_in_face.
+Qed.
+
+
+Lemma n_list_ext_permutes_darts ll: `good_list ll
+	==> (n_list_ext ll) permutes (darts_of_list ll)`.
+Proof.
+move => good_s; move: (good_s); rewrite good_list => [] [uniq_s] _.
+rewrite n_eq_e_fi // PERMUTES_COMPOSE.
+rewrite e_list_ext_permutes_darts // PERMUTES_INVERSE //.
+exact: (f_list_ext_permutes_darts uniq_s).
+Qed.
+
+
+Lemma e_n_f_id ll: `good_list ll
+	==> e_list_ext ll o n_list_ext ll o f_list_ext ll = I`.
+Proof.
+move => good_s; move: (good_s); rewrite good_list => [] [uniq_s] _.
+by rewrite n_eq_e_fi // !o_ASSOC e_list_ext_involution // I_O_ID f_list_ext_inverse_works.
+Qed.
+
+
+(* hypermap_of_list is a hypermap *)
+
+Lemma tuple_hypermap_of_list ll: `good_list ll
+	==> tuple_hypermap (hypermap_of_list ll) =
+	darts_of_list ll, e_list_ext ll, n_list_ext ll, f_list_ext ll`.
+Proof.
+move => good_s; move: (good_s); rewrite good_list => [] [uniq_s] _.
+rewrite hypermap_of_list -"CONJUNCT2 Hypermap.hypermap_tybij" /=.
+rewrite e_list_ext_permutes_darts // n_list_ext_permutes_darts // f_list_ext_permutes_darts //.
+by rewrite e_n_f_id // darts_of_list FINITE_SET_OF_LIST.
+Qed.
+
+
+(* Set of faces *)
+
+Lemma next_el_mod x0 s x: `MEM x s
+	==> next_el s x = nth x0 s ((indexl x s + 1) MOD sizel s)`.
+Proof.
+move => xs; rewrite next_el -nth0.
+set n := `sizel s`.
+have [ge1 neq0]: `1 <= n /\ ~(n = 0)`.
+  by move: xs; rewrite MEM_EXISTS_EL -size n_def => [] [i]; arith.
+case eq: `indexl x s = _` => /=.
+  rewrite eq subnK // -{1}(muln1 n) MOD_MULT //.
+  by apply set_nth_default; rewrite n_def lt0n.
+have lt: `indexl x s + 1 < n`.
+  by move: xs eq; rewrite -index_mem n_def; arith.
+by rewrite MOD_LT //; apply set_nth_default; rewrite n_def.
+Qed.
+
+
+Lemma next_el_power x0 s x i: `uniq s /\ MEM x s
+	==> (next_el s POWER i) x = nth x0 s ((indexl x s + i) MOD (sizel s))`.
+Proof.
+move => [uniq_s mem_x].
+set n := `sizel s`.
+set k := `indexl x s`.
+have k_lt: `k < n:num` by rewrite -k_def -n_def index_mem.
+elim: i => [|i Ih].
+  by rewrite POWER_0 I_THM addn0 MOD_LT // -k_def nth_index.
+have neq0: `~(n = 0)`.
+  by apply: contraL mem_x; rewrite -n_def size_eq0 => ->; rewrite MEM.
+rewrite Hypermap.COM_POWER o_THM Ih next_el_mod.
+  by rewrite mem_nth n_def -DIVISION.
+rewrite (index_uniq uniq_s) n_def -?DIVISION //.
+congr `nth x0 s _`.
+have ->: `k + SUC i = (k + i) + 1` by arith.
+rewrite -(MOD_ADD_MOD neq0 `k + i:num`).
+case eq1: `n = 1` => /=; first by rewrite eq1 !MOD_1.
+by rewrite (MOD_LT `1`) //; move: eq1 neq0; arith.
+Qed.
+
+
+Lemma next_el_orbit s x: `uniq s /\ MEM x s
+	==> orbit_map (next_el s) x = set_of_list s`.
+Proof.
+move => [uniq_s mem_x].
+set n := `sizel s`.
+set x0 := `HD s`.
+have neq0: `~(n = 0)`.
+  by apply: contraL mem_x; rewrite -n_def size_eq0 => ->; rewrite MEM.
+rewrite Hypermap.orbit_map EXTENSION IN_SET_OF_LIST IN_ELIM_THM /= => d.
+split => [[i] [i_ge0] -> | mem_d].
+  by rewrite (next_el_power x0) // mem_nth n_def -DIVISION.
+set k := `indexl x s`.
+set i := `indexl d s`.
+have [k_lt i_lt]: `k < n /\ i < n:num`.
+  by rewrite -n_def -k_def -i_def !index_mem.
+exists `n - k + i:num`.
+rewrite GE LE_0 andTb.
+rewrite (next_el_power x0) // k_def n_def.
+have ->: `k + n - k + i = n + i:num` by move: k_lt; arith.
+by rewrite -{1}(mul1n n) MOD_MULT_ADD MOD_LT // -i_def nth_index.
+Qed.
+
+
+"let ORBIT_MAP_RES_LEMMA = prove(`!f (x:A) s. orbit_map f x SUBSET s ==> 
+			    orbit_map (res f s) x = orbit_map f x`,
+   REWRITE_TAC[SUBSET; Hypermap.orbit_map; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+     REWRITE_TAC[EXTENSION; IN_ELIM_THM] THEN
+     SUBGOAL_THEN `!n. (res f s POWER n) x = (f POWER n) (x:A)` ASSUME_TAC THENL
+     [
+       INDUCT_TAC THEN REWRITE_TAC[Hypermap.POWER_0] THEN
+	 ASM_REWRITE_TAC[Hypermap.COM_POWER; o_THM] THEN
+	 REWRITE_TAC[res] THEN
+	 SUBGOAL_THEN `(f POWER n) (x:A) IN s` (fun th -> REWRITE_TAC[th]) THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 EXISTS_TAC `n:num` THEN
+	 REWRITE_TAC[GE; LE_0];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[])".
+
+
+"let ORBIT_SUBSET_LEMMA = prove(`!f s (x:A). x IN s /\ (!y. y IN s ==> f y IN s)
+				 ==> orbit_map f x SUBSET s`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[Hypermap.orbit_map; SUBSET; IN_ELIM_THM] THEN
+     GEN_TAC THEN DISCH_THEN CHOOSE_TAC THEN POP_ASSUM MP_TAC THEN
+     SPEC_TAC (`x':A`, `y:A`) THEN
+     SPEC_TAC (`n:num`, `n:num`) THEN
+     INDUCT_TAC THEN ASM_SIMP_TAC[GE; LE_0; Hypermap.POWER_0; I_THM] THEN
+     GEN_TAC THEN REWRITE_TAC[Hypermap.COM_POWER; o_THM] THEN
+     DISCH_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `(f POWER n) (x:A)`) THEN
+     ASM_REWRITE_TAC[GE; LE_0])".
+
+
+"let ORBIT_MAP_RES = prove(`!f (x:A) s. x IN s /\ (res f s) permutes s
+			    ==> orbit_map (res f s) x = orbit_map f x`,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC ORBIT_MAP_RES_LEMMA THEN
+     MATCH_MP_TAC ORBIT_SUBSET_LEMMA THEN
+     ASM_REWRITE_TAC[] THEN
+     REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `(f:A->A) y = (res f s) y` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       ASM_REWRITE_TAC[res];
+       ALL_TAC
+     ] THEN
+     MP_TAC (ISPECL [`res (f:A->A) s`; `s:A->bool`] Hypermap_and_fan.PERMUTES_IMP_INSIDE) THEN
+     ASM_SIMP_TAC[])".
+
+
+Lemma f_list_ext_orbit ll x: `MEM x (list_of_darts ll) /\ uniq (list_of_darts ll)
+	==> orbit_map (f_list_ext ll) x = set_of_list (find_face x ll)`.
+Proof.
+move => [mem_x uniq_l].
+rewrite f_list_ext ORBIT_MAP_RES.
+  by rewrite -f_list_ext f_list_ext_permutes_darts // darts_of_list IN_SET_OF_LIST.
+have x_in_face: `MEM x (find_face x ll)` by rewrite -dart_in_face.
+suff ->: `orbit_map (f_list ll) x = orbit_map (next_el (find_face x ll)) x`.
+  by rewrite next_el_orbit // uniq_find_face.
+suff eq n: `(f_list ll POWER n) x = (next_el (find_face x ll) POWER n) x`.
+  by rewrite !Hypermap.orbit_map eq.
+elim: n => [|n Ih]; first by rewrite !POWER_0.
+rewrite !Hypermap.COM_POWER !o_THM Ih f_list.
+congr `next_el _1 _2` => //.
+apply: (mem_find_face_imp_faces_eq uniq_l).
+rewrite (next_el_power x) ?uniq_find_face //.
+rewrite mem_nth -DIVISION.
+by move: x_in_face; rewrite -index_mem; arith.
+Qed.
+
+
+Lemma uniq_flatten ll: `uniq (flatten ll) /\ all (\l. ~(l = [])) ll ==> uniq ll`.
+Proof.
+elim: ll => [|h t Ih]; rewrite uniq // flatten all foldr cat_uniq -flatten.
+move => [] [uniq_h] [not_has] uniq_t [h_n0] all_t.
+rewrite Ih // andbT.
+apply: contra not_has; rewrite -hasP /= => ht.
+move: h_n0; rewrite -size_eq0 -lt0n -has_predT -hasP => [] [x] [xh] _.
+exists x; rewrite xh andbT.
+by rewrite mem_flatten; exists h.
+Qed.
+
+
+Lemma flatten_filter_empty ll: `flatten (filter (\l. ~(l = [])) ll) = flatten ll`.
+Proof.
+elim: ll => [|h t Ih]; rewrite flatten filter // foldr -flatten /=.
+case eq: `h = []` => /=.
+  by rewrite Ih eq cat.
+by rewrite flatten foldr -flatten Ih.
+Qed.
+
+
+Lemma uniq_sublist_unique l1 l2 ll x: `uniq (flatten ll) /\ MEM l1 ll /\ MEM l2 ll
+	/\ MEM x l1 /\ MEM x l2
+	==> l1 = l2`.
+elim: ll => [|h t Ih]; rewrite !MEM // flatten_cons cat_uniq.
+move => [] [uniq_h] [not_has] uniq_t [c1] [c2] [x_l1] x_l2.
+case: c1 c2 => [eq1 | l1t] [eq2 | l2t] //; last by rewrite Ih.
+  apply: contraR not_has => _; rewrite -hasP /=.
+  by exists x; rewrite mem_flatten -eq1 x_l1 andbT; exists l2.
+apply: contraR not_has => _; rewrite -hasP /=.
+by exists x; rewrite mem_flatten -eq2 x_l2 andbT; exists l1.
+Qed.
+
+
+Lemma uniq_face_unique f1 f2 d ll: `uniq (list_of_darts ll)
+	/\ MEM f1 (list_of_faces ll) /\ MEM f2 (list_of_faces ll) /\ MEM d f1 /\ MEM d f2
+	==> f1 = f2`.
+Proof.
+move => [uniq_l] [mem_f1] [mem_f2] [mem_d1] mem_d2.
+apply uniq_sublist_unique.
+exists `list_of_faces ll` d.
+by rewrite -list_of_darts_alt.
+Qed.
+
+
+Lemma mem_face_lemma f ll: `good_list ll /\ MEM f (list_of_faces ll)
+	==> ?d. MEM d (list_of_darts ll) /\ f = find_face d ll`.
+Proof.
+rewrite good_list => [] [] [uniq_s] [all_n0] _ mem_f.
+exists `HD f`.
+have f_n0: `~(f = [])`.
+  suff: `all (\l. ~(l = [])) (list_of_faces ll)`.
+    by apply: contraL; rewrite -allPn /= => f_eq; exists f.
+  rewrite list_of_faces -map_MAP all_map preim /= -allP => x x_ll /=.
+  rewrite list_pairs_empty.
+  by move: all_n0; rewrite -allP => /(_ x_ll).
+have mem_hd: `MEM (HD f) f`.
+  by case: f f_n0 => // h t; rewrite HD MEM.
+rewrite dart_in_face.
+suff ->: `find_face (HD f) ll = f` by [].
+apply: (uniq_face_unique uniq_s `HD f`).
+suff mem_hd2: `MEM (HD f) (list_of_darts ll)`.
+  by rewrite mem_find_face // -dart_in_face.
+by rewrite list_of_darts_alt mem_flatten; exists f.
+Qed.
+
+
+Lemma face_set_eq_list ll: `good_list ll
+	==> face_set (hypermap_of_list ll) = set_of_list (faces_of_list ll)`.
+Proof.
+move => good_s; move: (good_s); rewrite good_list => [] [uniq_s] [all_n0] _.
+rewrite Hypermap.face_set Hypermap.face_map Hypermap.dart tuple_hypermap_of_list //=.
+rewrite Hypermap.set_of_orbits EXTENSION IN_ELIM_THM IN_SET_OF_LIST /= => f.
+rewrite darts_of_list IN_SET_OF_LIST.
+split => [[d] [mem_d] -> | ].
+  rewrite f_list_ext_orbit // faces_of_list MEM_MAP.
+  by exists `find_face d ll`; rewrite mem_find_face.
+rewrite faces_of_list MEM_MAP => [] [ff] [mem_ff] ->.
+have [d [mem_d] ->] := mem_face_lemma good_s mem_ff.
+by exists d; rewrite f_list_ext_orbit.
+Qed.
+
+     
+Lemma components_hypermap_of_list ll: `good_list ll
+	==> dart (hypermap_of_list ll) = darts_of_list ll
+	/\ edge_map (hypermap_of_list ll) = e_list_ext ll
+ 	/\ node_map (hypermap_of_list ll) = n_list_ext ll
+	/\ face_map (hypermap_of_list ll) = f_list_ext ll`.
+Proof.
+move => good_s.
+rewrite Hypermap.dart Hypermap.edge_map Hypermap.node_map Hypermap.face_map.
+by rewrite tuple_hypermap_of_list.
+Qed.
+
+
+Lemma set_of_list_filter P s: `set_of_list (filter P s) = {x | MEM x s /\ P x}`.
+Proof.
+elim: s => [|h t Ih]; rewrite filter MEM.
+  by rewrite set_of_list /= EMPTY_GSPEC.
+case c: `P h` => /=.
+  by rewrite "GEN_ALL set_of_list" Ih; move: c; "SET_TAC[]".
+by rewrite Ih; move: c; "SET_TAC[]".
+Qed.
+
+
+Lemma set_of_list_undup s: `set_of_list (undup s) = set_of_list s`.
+Proof.
+elim: s => [|h t Ih]; rewrite undup //.
+case mem_h: `MEM h t` => /=; rewrite !"GEN_ALL set_of_list" //.
+by rewrite Ih eq_sym -ABSORPTION IN_SET_OF_LIST.
+Qed.
+
+
+Lemma set_of_list_flatten s: `set_of_list (flatten s) = UNIONS {set_of_list l | MEM l s}`.
+Proof.
+elim: s => [|h t Ih]; rewrite flatten foldr MEM.
+  by rewrite set_of_list; "SET_TAC[]".
+by rewrite -flatten -APPEND_cat SET_OF_LIST_APPEND Ih; "SET_TAC[]".
+Qed.
+
+
+Lemma node_of_list_lemma x ll: `set_of_list (filter (\d. FST d = x) (list_of_darts ll))
+	= {(x, y) | y | (x, y) IN darts_of_list ll}`.
+Proof.
+rewrite set_of_list_filter darts_of_list IN_SET_OF_LIST EXTENSION !IN_ELIM_THM /= => d.
+split => [[y] h | [y] h].
+  by exists `SND d`; rewrite h -h PAIR.
+by exists d.
+Qed.
+
+
+Lemma set_nodes_of_list ll: `set_of_list (nodes_of_list ll)
+	= {{(x, y) | y | (x, y) IN darts_of_list ll} | x | x IN elements_of_list ll}`.
+Proof.
+rewrite nodes_of_list list_of_nodes !SET_OF_LIST_MAP.
+rewrite -!IMAGE_LEMMA IN_ELIM_THM /= -elements_of_list.
+rewrite EXTENSION !IN_ELIM_THM /= => y.
+split => [[n] [] [i] h -> | [i] h].
+  by exists i; rewrite !h node_of_list_lemma.
+exists `filter (\d. FST d = i) (list_of_darts ll)`.
+rewrite node_of_list_lemma -h /=.
+by exists i.
+Qed.
+
+
+Lemma good_list_node ll d: `good_list ll /\ good_list_nodes ll /\ d IN darts_of_list ll
+	==> node (hypermap_of_list ll) d = {(FST d, y) | y | (FST d, y) IN darts_of_list ll}`.
+Proof.
+rewrite good_list_nodes Hypermap.node_set Hypermap.set_of_orbits -Hypermap.node.
+rewrite set_nodes_of_list EXTENSION !IN_ELIM_THM /= => [] [good_s] [eq] d_in.
+move: (eq `node (hypermap_of_list ll) d`).
+have -> /=: `?x. _ x`.
+  by exists d; rewrite components_hypermap_of_list.
+move => [x] [x_in] eq; rewrite eq.
+suff ->: `x = FST d` by [].
+have := Hypermap.node_refl `hypermap_of_list ll` d.
+by rewrite eq IN_ELIM_THM /= => [] [y] ->.
+Qed.
+
+
+Lemma prev_el_list_pairs_general x y s: `MEM (x,y) (list_pairs s)
+	==> ?z. prev_el (list_pairs s) (x,y) = (z,x) /\ MEM (z,x) (list_pairs s)`.
+Proof.
+move => mem_xy.
+set z := `FST (prev_el (list_pairs s) (x,y))`.
+exists z.
+suff eq: `_1 = _2` by rewrite -eq mem_prev_el.
+suff {2}<-: `SND (prev_el (list_pairs s) (x,y)) = x` by rewrite -z_def PAIR.
+rewrite (prev_el_alt `x,x`) //.
+set k := `indexl (x,y) _`.
+set n := `sizel s`.
+have k_lt: `k < n:num`.
+  by rewrite -k_def -n_def -size_list_pairs index_mem.
+have nth_s: `nth x s k = x`.
+  have := nth_index mem_xy `x,x`.
+  by rewrite k_def list_pairs nth_zip ?size_rot // PAIR_EQ => ->.
+rewrite nth_shift_right ?size_list_pairs // list_pairs.
+case eq: `k = 0` => /=.
+  rewrite nth_zip ?size_rot // SND nth_shift_left /=; last by rewrite -eq nth_s.
+  by rewrite n_def; move: k_lt; arith.
+rewrite nth_zip ?size_rot // SND nth_shift_left; first by rewrite n_def; move: k_lt; arith.
+rewrite subnK; first by move: eq; arith.
+by rewrite nth_s n_def; move: eq k_lt; arith.
+Qed.
+
+
+Lemma n_list_ext_fst x y ll: `good_list ll /\ (x,y) IN darts_of_list ll
+	==> ?z. n_list_ext ll (x,y) = (x,z) /\ (x,z) IN darts_of_list ll`.
+Proof.
+move => [good_s xy_in].
+move: (xy_in); rewrite darts_of_list IN_SET_OF_LIST dart_in_face find_face_alt => mem_xy.
+have [z [eq mem_zx]] := prev_el_list_pairs_general mem_xy.
+exists z.
+have n_eq: `_1 = _2`.
+  by rewrite n_list_ext res n_list xy_in /= find_face_alt eq e_list.
+rewrite n_eq /= -n_eq -darts_of_list -!components_hypermap_of_list //.
+by rewrite Hypermap.lemma_dart_invariant // components_hypermap_of_list.
+Qed.
+
+
+Lemma list_ext_power_in_darts d ll n: `good_list ll /\ d IN darts_of_list ll
+	==> (e_list_ext ll POWER n) d IN darts_of_list ll /\
+	    (n_list_ext ll POWER n) d IN darts_of_list ll /\
+	    (f_list_ext ll POWER n) d IN darts_of_list ll`.
+Proof.
+move => [good_s]; rewrite -!components_hypermap_of_list // => d_in.
+rewrite Hypermap.lemma_dart_invariant_power_node //.
+rewrite Hypermap.lemma_dart_invariant_power_face // !andbT.
+apply IN_TRANS; exists `edge (hypermap_of_list ll) d`.
+by rewrite Hypermap.lemma_edge_subset // Hypermap.lemma_in_edge2.
+Qed.
+
+
+Lemma fst_n_list_ext_power x y ll n: `good_list ll /\ x,y IN darts_of_list ll
+	==> FST ((n_list_ext ll POWER n) (x,y)) = x`.
+Proof.
+move => [good_s xy_in].
+elim: n => [|n Ih]; first by rewrite POWER_0 I_THM.
+set d := `(n_list_ext ll POWER n) (x,y)`.
+rewrite Hypermap.COM_POWER o_THM d_def.
+have := n_list_ext_fst good_s `FST d` `SND d`.
+rewrite PAIR; "ANTS_TAC".
+  by rewrite -d_def list_ext_power_in_darts.
+by move => [z] ->.
+Qed.
+
+
+Lemma mem_list_pairs_exists x l: `MEM x l <=> ?y. MEM (x,y) (list_pairs l)`.
+Proof.
+split => [mem_x | [y] /mem_list_pairs /=].
+exists `next_el l x`.
+rewrite -(nthP `x,next_el l x` `x,x`).
+exists `indexl x l`.
+rewrite size_list_pairs index_mem mem_x andTb.
+rewrite nth_list_pairs ?index_mem // nth_index // PAIR_EQ /=.
+rewrite next_el -nth0.
+by case: `indexl x l = _` => /=.
+Qed.
+
+
+Lemma mem_list_of_darts d ll: `MEM d (list_of_darts ll)
+	<=> ?l. MEM l ll /\ MEM d (list_pairs l)`.
+Proof.
+split => [|[l] [mem_l mem_d]]; last by apply dart_in_darts; exists l.
+elim: ll => [|h t Ih]; rewrite list_of_darts foldr MEM //.
+rewrite -list_of_darts /= mem_cat.
+case => mem_d; first by exists h.
+move: (Ih mem_d) => [l] [mem_l] mem_d2.
+by exists l.
+Qed.
+
+
+Lemma mem_list_of_elements x ll: `MEM x (list_of_elements ll)
+	<=> ?y. MEM (x,y) (list_of_darts ll)`.
+Proof.
+rewrite list_of_elements mem_undup mem_flatten mem_list_of_darts.
+rewrite SWAP_EXISTS_THM; rewr RIGHT_EXISTS_AND_THM.
+by rewrite -mem_list_pairs_exists.
+Qed.
+
+
+Lemma uniq_node ll n: `good_list ll /\ MEM n (list_of_nodes ll) ==> uniq n`.
+Proof.
+rewrite good_list list_of_nodes MEM_MAP => [] [] [uniq_s] _ [d] [mem_d] -> /=.
+by rewrite filter_uniq.
+Qed.
+
+
+Lemma uniq_face ll f: `good_list ll /\ MEM f (list_of_faces ll) ==> uniq f`.
+Proof.
+move => [good_s mem_f]; move: (good_s); rewrite good_list => h.
+have [d [mem_d] ->] := mem_face_lemma mem_f good_s.
+by rewrite uniq_find_face.
+Qed.
+
+
+Lemma set_list_of_edges ll: `good_list ll
+	==> hyp_edge_pairs (hypermap_of_list ll) = set_of_list (list_of_edges ll)`.
+Proof.
+rewrite hyp_edge_pairs list_of_edges => good_s.
+rewrite !components_hypermap_of_list //.
+rewrite e_list_ext res e_list darts_of_list IN_SET_OF_LIST.
+rewrite EXTENSION IN_SET_OF_LIST !IN_ELIM_THM /= MEM_MAP /= => e.
+by split => [] [d] [mem_d] ->; exists d.
+Qed.
+
+
+(* Theorems for special lists *)
+
+Lemma face_of_list ll d: `good_list ll /\ MEM d (list_of_darts ll)
+	==> face (hypermap_of_list ll) d = set_of_list (find_face d ll)`.
+Proof.
+move => [good_s mem_d].
+have := face_set_eq_list good_s.
+rewrite Hypermap.face_set Hypermap.set_of_orbits -Hypermap.face.
+rewrite components_hypermap_of_list // darts_of_list !IN_SET_OF_LIST.
+rewrite EXTENSION => /(_ `face (hypermap_of_list ll) d`).
+have -> /=: `face _1 d IN _2` by rewrite IN_ELIM_THM /=; exists d.
+rewrite IN_SET_OF_LIST faces_of_list MEM_MAP => [] [f] [mem_f] face_eq.
+have [d2 [mem_d2] f_eq] := mem_face_lemma good_s mem_f.
+rewrite face_eq f_eq; congr `_1 _2` => //; rewrite eq_sym.
+apply mem_find_face_imp_faces_eq.
+move: good_s; rewrite good_list => -> /=.
+by rewrite -f_eq -IN_SET_OF_LIST -face_eq Hypermap.face_refl.
+Qed.
+
+
+Lemma card_face_of_list ll d: `good_list ll /\ MEM d (list_of_darts ll)
+	==> CARD (face (hypermap_of_list ll) d) = sizel (find_face d ll)`.
+Proof.
+move => [good_s mem_d].
+rewrite face_of_list // card_set_of_list_uniq // uniq_find_face.
+by move: good_s; rewrite good_list => ->.
+Qed.
+
+
+Lemma list_of_faces_n ll n: `good_list ll
+	==> {f | f IN face_set (hypermap_of_list ll) /\ CARD f = n} =
+		set_of_list (MAP set_of_list (filter (\f. sizel f = n) (list_of_faces ll)))`.
+Proof.
+move => good_s; move: (good_s); rewrite good_list => [] [uniq_s] _.
+rewrite Hypermap.face_set Hypermap.set_of_orbits -Hypermap.face IN_ELIM_THM /=.
+rewrite components_hypermap_of_list // darts_of_list IN_SET_OF_LIST.
+rewrite EXTENSION IN_ELIM_THM IN_SET_OF_LIST /= MEM_MAP mem_filter => f /=.
+split => [[g] [] [] [d] [mem_d] -> card_eq -> | [g] [] [size_g] mem_g ->].
+  exists `find_face d ll`.
+  by rewrite mem_find_face // face_of_list // -card_face_of_list.
+have [d [mem_d] g_eq] := mem_face_lemma good_s mem_g.
+exists `set_of_list g` => /=; split.
+  by exists d; rewrite face_of_list.
+by rewrite card_set_of_list_uniq // g_eq uniq_find_face.
+Qed.
+

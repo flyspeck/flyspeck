@@ -1,0 +1,1092 @@
+needs "fan/hypermap_iso-compiled.hl";;
+
+(* Module Add_triangle*)
+module Add_triangle = struct
+
+open Ssrbool;;
+open Ssrnat;;
+open Fan_defs;;
+open Hypermap_and_fan;;
+open Conforming2;;
+open Hypermap_iso;;
+let split_fan_face = new_definition 
+	`split_fan_face (V,E) (v,w) = (V, {w, sigma_fan (vec 0) V E v w} INSERT E)`;;
+let inE = CONJUNCT2 IN_ELIM_THM;;
+
+(* Lemma BIJ_IMAGE *)
+let BIJ_IMAGE = section_proof ["f";"s";"t"]
+`BIJ f s t ==> t = IMAGE f s`
+[
+   (((((use_arg_then2 ("BIJ", [BIJ]))(thm_tac (new_rewrite [] [])))) THEN (move ["h"])) THEN ((use_arg_then2 ("Misc_defs_and_lemmas.SURJ_IMAGE", [Misc_defs_and_lemmas.SURJ_IMAGE])) (thm_tac apply_tac)) THEN (done_tac));
+];;
+
+(* Section FanMisc *)
+begin_section "FanMisc";;
+(add_section_var (mk_var ("V", (`:real^3->bool`))));;
+(add_section_var (mk_var ("E", (`:(real^3->bool)->bool`))));;
+
+(* Lemma contracted_ext *)
+let contracted_ext = section_proof ["d"]
+`contracted_dart (ext_dart (V,E) d) = d`
+[
+   ((((use_arg_then2 ("d", [])) (disch_tac [])) THEN (clear_assumption "d") THEN case THEN (move ["v"]) THEN (move ["w"])) THEN ((((use_arg_then2 ("ext_dart", [ext_dart]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("contracted_dart", [contracted_dart]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma in_dart1_in_dart *)
+let in_dart1_in_dart = section_proof ["d"]
+`d IN dart1_of_fan (V,E) ==> d IN dart_of_fan (V,E)`
+[
+   ((((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("DART1_OF_FAN_SUBSET_DART_OF_FAN", [DART1_OF_FAN_SUBSET_DART_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("V", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("E", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC) THEN (((use_arg_then2 ("SUBSET", [SUBSET]))(thm_tac (new_rewrite [] [])))) THEN (exact_tac) THEN (done_tac));
+];;
+
+(* Lemma in_d1_in_d *)
+let in_d1_in_d = section_proof ["d"]
+`d IN d1_fan (vec 0,V,E) ==> d IN d_fan (vec 0,V,E)`
+[
+   ((BETA_TAC THEN (move ["d_in"])) THEN (((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("Fan.subset_d_fan", [Fan.subset_d_fan])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`vec 0`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("V", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("E", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC));
+   (((((use_arg_then2 ("SUBSET", [SUBSET]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+];;
+
+(* Lemma inE_eq_in_dart1 *)
+let inE_eq_in_dart1 = section_proof ["v";"w"]
+`{v,w} IN E <=> v,w IN dart1_of_fan (V,E)`
+[
+   (((((use_arg_then2 ("dart1_of_fan", [dart1_of_fan]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_ELIM_THM", [IN_ELIM_THM]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)) THEN ((THENL) (split_tac) [(move ["inE"]); ((case THEN (move ["v'"])) THEN (case THEN (move ["w'"])) THEN (case THEN (move ["inE"])))]));
+   ((((use_arg_then2 ("v", [])) (term_tac exists_tac)) THEN ((use_arg_then2 ("w", [])) (term_tac exists_tac))) THEN (done_tac));
+   (((((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN ((((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))))) THEN (done_tac));
+];;
+
+(* Lemma inE_imp_in_dart *)
+let inE_imp_in_dart = section_proof ["v";"w"]
+`{v,w} IN E ==> v,w IN dart_of_fan (V,E)`
+[
+   (((use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1]))(thm_tac (new_rewrite [] []))));
+   ((((fun arg_tac -> arg_tac (Arg_term (`(v,w)`))) (disch_tac [])) THEN BETA_TAC) THEN ((((use_arg_then2 ("SUBSET", [SUBSET]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("DART1_OF_FAN_SUBSET_DART_OF_FAN", [DART1_OF_FAN_SUBSET_DART_OF_FAN]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma dart1_switch *)
+let dart1_switch = section_proof ["v";"w"]
+`v,w IN dart1_of_fan (V,E) <=> w,v IN dart1_of_fan (V,E)`
+[
+   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`!v w. v,w IN dart1_of_fan (V,E) ==> w,v IN dart1_of_fan (V,E)`))) (term_tac (have_gen_tac [](move ["h"])))));
+   (((split_tac) THEN (move ["c"])) THEN (((use_arg_then2 ("h", [])) (disch_tac [])) THEN (clear_assumption "h") THEN (exact_tac)) THEN (done_tac));
+   ((BETA_TAC THEN (move ["v"]) THEN (move ["w"])) THEN ((((use_arg_then2 ("dart1_of_fan", [dart1_of_fan]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("IN_ELIM_THM", [IN_ELIM_THM]))(thm_tac (new_rewrite [] []))))) THEN (simp_tac) THEN (repeat_tactic 1 9 (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))))));
+   (BETA_TAC THEN (case THEN (move ["v'"])) THEN (case THEN (move ["w'"])) THEN (case THEN (move ["h"])) THEN (move ["eq"]));
+   ((((use_arg_then2 ("w'", [])) (term_tac exists_tac)) THEN ((use_arg_then2 ("v'", [])) (term_tac exists_tac))) THEN (((fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL Collect_geom.PER_SET2)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma dart_switch *)
+let dart_switch = section_proof ["v";"w"]
+`v,w IN dart_of_fan (V,E) <=> w,v IN dart_of_fan (V,E)`
+[
+   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`!v w. v,w IN dart_of_fan (V,E) ==> w,v IN dart_of_fan (V,E)`))) (term_tac (have_gen_tac [](move ["h"])))));
+   (((split_tac) THEN (move ["c"])) THEN (((use_arg_then2 ("h", [])) (disch_tac [])) THEN (clear_assumption "h") THEN (exact_tac)) THEN (done_tac));
+   ((BETA_TAC THEN (move ["v"]) THEN (move ["w"])) THEN ((((use_arg_then2 ("dart_of_fan", [dart_of_fan]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("IN_ELIM_THM", [IN_ELIM_THM]))(thm_tac (new_rewrite [] []))))) THEN (simp_tac) THEN (repeat_tactic 1 9 (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))))));
+   ((THENL) case [((case THEN (move ["v'"])) THEN (case THEN (move ["h"])) THEN (move ["eq"])); ((case THEN (move ["v'"])) THEN (case THEN (move ["w'"])) THEN (case THEN (move ["h"])) THEN (move ["eq"]))]);
+   ((DISJ1_TAC) THEN ((use_arg_then2 ("v'", [])) (term_tac exists_tac)) THEN (repeat_tactic 1 9 (((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((DISJ2_TAC) THEN (((use_arg_then2 ("w'", [])) (term_tac exists_tac)) THEN ((use_arg_then2 ("v'", [])) (term_tac exists_tac))) THEN (((fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL Collect_geom.PER_SET2)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+(add_section_hyp "fanV" (`FAN (vec 0, V, E)`));;
+
+(* Lemma finite_set_of_edge *)
+let finite_set_of_edge = section_proof ["v"]
+`FINITE (set_of_edge v V E)`
+[
+   (((use_arg_then2 ("Fan.remark_finite_fan1", [Fan.remark_finite_fan1]))(thm_tac (new_rewrite [] []))));
+   ((in_tac ["fanV"] false ((((use_arg_then2 ("FAN", [FAN]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fan1", [fan1]))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+];;
+
+(* Lemma azim_dart1_eq_azim_fan *)
+let azim_dart1_eq_azim_fan = section_proof ["v";"w"]
+`v,w IN dart1_of_fan (V,E)
+	==> azim_dart (V,E) (v,w) = azim_fan (vec 0) V E v w`
+[
+   ((((use_arg_then2 ("azim_dart", [azim_dart]))(thm_tac (new_rewrite [] [])))) THEN (move ["vw_in"]));
+   (((((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("PAIR_IN_DART1_OF_FAN_IMP_NOT_EQ", [PAIR_IN_DART1_OF_FAN_IMP_NOT_EQ])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)) THEN (done_tac));
+];;
+
+(* Lemma azim_dart_eq_azim_fan *)
+let azim_dart_eq_azim_fan = section_proof ["v";"w"]
+`v,w IN dart_of_fan (V,E)
+	==> azim_dart (V,E) (v,w) = azim_fan (vec 0) V E v w`
+[
+   (((((use_arg_then2 ("Hypermap_iso.dart_of_fan_eq", [Hypermap_iso.dart_of_fan_eq]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] []))))) THEN ALL_TAC THEN ((THENL) case [(move ["vw_in"]); ALL_TAC]));
+   ((((use_arg_then2 ("azim_dart1_eq_azim_fan", [azim_dart1_eq_azim_fan]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((((((use_arg_then2 ("IN_ELIM_THM", [IN_ELIM_THM]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)) THEN ALL_TAC THEN (case THEN (move ["y"])) THEN (case THEN ALL_TAC) THEN (case THEN (move ["yV"])) THEN (move ["h"])) THEN ((((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))) THEN (move ["eq"])));
+   (((repeat_tactic 1 9 (((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("azim_dart", [azim_dart]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (((use_arg_then2 ("azim_fan", [azim_fan]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("h", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("CARD_CLAUSES", [CARD_CLAUSES]))(thm_tac (new_rewrite [] []))))) THEN (arith_tac) THEN (done_tac));
+];;
+
+(* Lemma azim_dart1_eq_azim *)
+let azim_dart1_eq_azim = section_proof ["v";"w"]
+`v,w IN dart1_of_fan (V,E) /\ CARD (set_of_edge v V E) > 1 
+	==> azim_dart (V,E) (v,w) = azim (vec 0) v w (sigma_fan (vec 0) V E v w)`
+[
+   (BETA_TAC THEN (case THEN ((move ["vw_in"]) THEN (move ["c_gt1"]))));
+   (((((use_arg_then2 ("azim_dart1_eq_azim_fan", [azim_dart1_eq_azim_fan]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("azim_fan", [azim_fan]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("c_gt1", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma fully_surrounded_dart_of_fan_eq *)
+let fully_surrounded_dart_of_fan_eq = section_proof []
+`fully_surrounded (V,E) ==> dart_of_fan (V,E) = dart1_of_fan (V,E)`
+[
+   (((((use_arg_then2 ("FULLY_SURROUNDED", [FULLY_SURROUNDED]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("SUBSET_ANTISYM_EQ", [SUBSET_ANTISYM_EQ]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (move ["h"]));
+   ((((use_arg_then2 ("DART1_OF_FAN_SUBSET_DART_OF_FAN", [DART1_OF_FAN_SUBSET_DART_OF_FAN]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andbT", [andbT]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("SUBSET", [SUBSET]))(thm_tac (new_rewrite [] [])))));
+   ((case THEN (move ["v"]) THEN (move ["w"]) THEN (move ["in_dart"])) THEN (((use_arg_then2 ("SURROUNDED_IMP_IN_DART1_OF_FAN", [SURROUNDED_IMP_IN_DART1_OF_FAN])) (disch_tac [])) THEN (clear_assumption "SURROUNDED_IMP_IN_DART1_OF_FAN") THEN (DISCH_THEN apply_tac)));
+   (((((use_arg_then2 ("fanV", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("in_dart", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("h", []))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("PAIR_IN_DART_OF_FAN", [PAIR_IN_DART_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("in_dart", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma fully_surrounded_card_set_of_edge *)
+let fully_surrounded_card_set_of_edge = section_proof ["v"]
+`fully_surrounded (V,E) /\ v IN V ==> CARD (set_of_edge v V E) >= 3`
+[
+   (((((use_arg_then2 ("FULLY_SURROUNDED", [FULLY_SURROUNDED]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN ALL_TAC THEN (case THEN ((move ["h"]) THEN (move ["vV"]))));
+   (((use_arg_then2 ("SURROUNDED_IMP_CARD_SET_OF_EDGE_GE_3", [SURROUNDED_IMP_CARD_SET_OF_EDGE_GE_3])) (disch_tac [])) THEN (clear_assumption "SURROUNDED_IMP_CARD_SET_OF_EDGE_GE_3") THEN (DISCH_THEN apply_tac));
+   (((((use_arg_then2 ("fanV", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("vV", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("h", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma fully_surrounded_card_set_of_edge1 *)
+let fully_surrounded_card_set_of_edge1 = section_proof ["v"]
+`fully_surrounded (V,E) /\ v IN V ==> CARD (set_of_edge v V E) > 1`
+[
+   (((DISCH_THEN (fun snd_th -> (use_arg_then2 ("fully_surrounded_card_set_of_edge", [fully_surrounded_card_set_of_edge])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN BETA_TAC) THEN (arith_tac) THEN (done_tac));
+];;
+
+(* Lemma fully_surrounded_azim_dart_eq_azim *)
+let fully_surrounded_azim_dart_eq_azim = section_proof ["v";"w"]
+`fully_surrounded (V,E) /\ (v,w) IN dart_of_fan (V,E)
+	==> azim_dart (V,E) (v,w) = azim (vec 0) v w (sigma_fan (vec 0) V E v w)`
+[
+   (BETA_TAC THEN (case THEN ((move ["f_surr"]) THEN (move ["vw_in"]))));
+   ((((use_arg_then2 ("azim_dart1_eq_azim", [azim_dart1_eq_azim]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("vw_in", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] [])))));
+   (((((use_arg_then2 ("fully_surrounded_card_set_of_edge1", [fully_surrounded_card_set_of_edge1]))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("PAIR_IN_DART_OF_FAN", [PAIR_IN_DART_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma azim_gt0_card_set_of_edge *)
+let azim_gt0_card_set_of_edge = section_proof ["v";"w"]
+`{v,w} IN E /\ &0 < azim (vec 0) v w (sigma_fan (vec 0) V E v w)
+	==> CARD (set_of_edge v V E) > 1`
+[
+   ((((use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN (move ["vw_in"])));
+   ((((use_arg_then2 ("contraLR", [contraLR])) (disch_tac [])) THEN (clear_assumption "contraLR") THEN (DISCH_THEN apply_tac)) THEN ((((use_arg_then2 ("REAL_NOT_LT", [REAL_NOT_LT]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("GT", [GT]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("NOT_LT", [NOT_LT]))(thm_tac (new_rewrite [] []))))));
+   ((((fun arg_tac -> arg_tac (Arg_theorem (ARITH_RULE `!x. x <= 1 <=> x = 0 \/ x = 1`)))(thm_tac (new_rewrite [] [])))) THEN case);
+   (((((use_arg_then2 ("CARD_EQ_0", [CARD_EQ_0]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("finite_set_of_edge", [finite_set_of_edge]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac))) THEN (move ["h"]));
+   ((((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("PAIR_IN_DART1_OF_FAN", [PAIR_IN_DART1_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC) THEN ((((use_arg_then2 ("h", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("NOT_IN_EMPTY", [NOT_IN_EMPTY]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((BETA_TAC THEN (move ["c1"])) THEN (((use_arg_then2 ("sigma_fan", [sigma_fan]))(thm_tac (new_rewrite [] [])))));
+   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`set_of_edge v V E = {w}`))) (term_tac (have_gen_tac []((((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))) THEN (simp_tac))))));
+   (((((use_arg_then2 ("AZIM_REFL", [AZIM_REFL]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("REAL_LE_REFL", [REAL_LE_REFL]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((use_arg_then2 ("Hypermap.set_one_point", [Hypermap.set_one_point])) (thm_tac apply_tac));
+   (((((use_arg_then2 ("finite_set_of_edge", [finite_set_of_edge]))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("PAIR_IN_DART1_OF_FAN", [PAIR_IN_DART1_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma fully_surrounded_imp_fan80 *)
+let fully_surrounded_imp_fan80 = section_proof []
+`fully_surrounded (V,E) ==> fan80 (vec 0,V,E)`
+[
+   ((((use_arg_then2 ("Planarity.fan80", [Planarity.fan80]))(thm_tac (new_rewrite [] [])))) THEN (move ["h"]) THEN (move ["v"]) THEN (move ["u"]) THEN (DISCH_THEN (fun snd_th -> (use_arg_then2 ("inE_imp_in_dart", [inE_imp_in_dart])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN (move ["vu_in"]));
+   ((((use_arg_then2 ("fully_surrounded_azim_dart_eq_azim", [fully_surrounded_azim_dart_eq_azim]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("AZIM_DART_POS", [AZIM_DART_POS]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] [])))));
+   ((in_tac ["h"] false (((use_arg_then2 ("fully_surrounded", [fully_surrounded]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("h", []))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma sigma_fan_inV *)
+let sigma_fan_inV = section_proof ["v";"w"]
+`v,w IN dart1_of_fan (V,E)
+	==> sigma_fan (vec 0) V E v w IN V`
+[
+   ((DISCH_THEN (fun snd_th -> (fun arg_tac -> (use_arg_then2 ("PAIR_IN_DART1_OF_FAN", [PAIR_IN_DART1_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN BETA_TAC THEN (move ["h"]));
+   (((use_arg_then2 ("Packing3.IN_TRANS", [Packing3.IN_TRANS])) (thm_tac apply_tac)) THEN ((fun arg_tac -> arg_tac (Arg_term (`set_of_edge v V E`))) (term_tac exists_tac)));
+   (((((use_arg_then2 ("Fan.sigma_fan_in_set_of_edge", [Fan.sigma_fan_in_set_of_edge]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("Planarity.set_of_edge_subset_edges", [Planarity.set_of_edge_subset_edges]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma sigma_fan_not_fixed *)
+let sigma_fan_not_fixed = section_proof ["v";"w"]
+`v,w IN dart_of_fan (V,E) /\ fully_surrounded (V,E)
+	==> ~(sigma_fan (vec 0) V E v w = w)`
+[
+   (BETA_TAC THEN (case THEN ((move ["vw_in"]) THEN (move ["f_surr"]))));
+   ((((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("Fan.SIGMA_FAN", [Fan.SIGMA_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("v", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("w", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   ((((fun arg_tac -> (use_arg_then2 ("PAIR_IN_DART1_OF_FAN", [PAIR_IN_DART1_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("andbT", [andbT]))(thm_tac (new_rewrite [] [])))));
+   (((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("fully_surrounded_card_set_of_edge1", [fully_surrounded_card_set_of_edge1])) (fun fst_arg -> (use_arg_then2 ("f_surr", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("v", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC)) THEN (ANTS_TAC));
+   ((((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("PAIR_IN_DART_OF_FAN", [PAIR_IN_DART_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   (((use_arg_then2 ("contraL", [contraL])) (disch_tac [])) THEN (clear_assumption "contraL") THEN (DISCH_THEN apply_tac) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))));
+   ((((use_arg_then2 ("Hypermap.CARD_SINGLETON", [Hypermap.CARD_SINGLETON]))(thm_tac (new_rewrite [] [])))) THEN (arith_tac) THEN (done_tac));
+];;
+
+(* Section Hypermap1 *)
+begin_section "Hypermap1";;
+
+(* Lemma inv_e_fan_pair_ext *)
+let inv_e_fan_pair_ext = section_proof []
+`inverse (e_fan_pair_ext (V,E)) = e_fan_pair_ext (V,E)`
+[
+   ((((use_arg_then2 ("FUN_EQ_THM", [FUN_EQ_THM]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN ((move ["a"]) THEN (move ["b"]))));
+   ((((fun arg_tac -> (use_arg_then2 ("PERMUTES_INVERSE_EQ", [PERMUTES_INVERSE_EQ])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`dart_of_fan (V,E)`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("E_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN", [E_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   (((fun arg_tac -> arg_tac (Arg_term (`a,b IN dart1_of_fan (V,E)`))) (disch_eq_tac "ab_in" [])) THEN case THEN (simp_tac) THEN (process_fst_eq_tac));
+   (((repeat_tactic 1 9 (((use_arg_then2 ("e_fan_pair_ext", [e_fan_pair_ext]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("ab_in", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (repeat_tactic 1 9 (((use_arg_then2 ("e_fan_pair", [e_fan_pair]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("dart1_switch", [dart1_switch]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   (((repeat_tactic 1 9 (((use_arg_then2 ("e_fan_pair_ext", [e_fan_pair_ext]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("ab_in", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (((use_arg_then2 ("ab_in", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma bij_ext_dart *)
+let bij_ext_dart = section_proof []
+`BIJ (ext_dart (V,E)) (dart_of_fan (V,E)) (d_fan (vec 0,V,E))`
+[
+   (((fun arg_tac -> (use_arg_then2 ("bij_ext", [bij_ext])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`res_inv contracted_dart (d_fan (vec 0,V,E))`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (thm_tac apply_tac)) THEN (split_tac));
+   ((BETA_TAC THEN (move ["x"]) THEN (move ["x_in"])) THEN (((use_arg_then2 ("ext_dart_eq_inv_contracted_dart", [ext_dart_eq_inv_contracted_dart]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   (((use_arg_then2 ("bij_res_inv", [bij_res_inv])) (thm_tac apply_tac)) THEN (((use_arg_then2 ("bij_contracted_dart", [bij_contracted_dart]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma d_fan_eq_image *)
+let d_fan_eq_image = section_proof []
+`d_fan (vec 0,V,E) = IMAGE (ext_dart (V,E)) (dart_of_fan (V,E))`
+[
+   ((((fun arg_tac -> (use_arg_then2 ("BIJ_IMAGE", [BIJ_IMAGE])) (fun fst_arg -> (use_arg_then2 ("bij_ext_dart", [bij_ext_dart])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma contracted_in_dart *)
+let contracted_in_dart = section_proof ["d"]
+`d IN d_fan (vec 0,V,E)
+	==> contracted_dart d IN dart_of_fan (V,E)`
+[
+   (((((use_arg_then2 ("d_fan_eq_image", [d_fan_eq_image]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_IMAGE", [IN_IMAGE]))(thm_tac (new_rewrite [] []))))) THEN ALL_TAC THEN (case THEN (move ["x"])) THEN (case THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (move ["x_in"]));
+   ((((use_arg_then2 ("contracted_ext", [contracted_ext]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma ext_contracted *)
+let ext_contracted = section_proof ["d"]
+`d IN d_fan (vec 0,V,E)
+	==> ext_dart (V,E) (contracted_dart d) = d`
+[
+   (BETA_TAC THEN (move ["d_in"]));
+   ((((fun arg_tac -> (use_arg_then2 ("ext_dart_eq_inv_contracted_dart", [ext_dart_eq_inv_contracted_dart])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("contracted_in_dart", [contracted_in_dart]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   (((((use_arg_then2 ("res_inv_left", [res_inv_left]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("d_in", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andbT", [andbT]))(thm_tac (new_rewrite [] []))))) THEN (move ["x"]) THEN (move ["y"]) THEN (case THEN (move ["x_in"])) THEN (case THEN (move ["y_in"])) THEN (move ["eq"]));
+   (((fun arg_tac -> (use_arg_then2 ("bij_contracted_dart", [bij_contracted_dart])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC);
+   ((((((use_arg_then2 ("BIJ", [BIJ]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("INJ", [INJ]))(thm_tac (new_rewrite [] []))))) THEN ALL_TAC THEN (case THEN ALL_TAC) THEN (case THEN (move ["_"])) THEN ((fun arg_tac -> (fun arg_tac -> (fun arg_tac ->  (conv_thm_tac DISCH_THEN)  (fun fst_arg -> (use_arg_then2 ("x_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("y_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("eq", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (thm_tac MP_TAC)) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma ext_dart_eq_inv_contracted_dart1 *)
+let ext_dart_eq_inv_contracted_dart1 = section_proof ["d"]
+`d IN dart1_of_fan (V,E)
+	==> ext_dart (V,E) d = res_inv contracted_dart (d1_fan (vec 0,V,E)) d`
+[
+   ((((use_arg_then2 ("d", [])) (disch_tac [])) THEN (clear_assumption "d") THEN case THEN (move ["v"]) THEN (move ["w"])) THEN ((((use_arg_then2 ("ext_dart", [ext_dart]))(thm_tac (new_rewrite [] [])))) THEN (move ["vw_in"])));
+   ((fun arg_tac -> arg_tac (Arg_term (`extension_sigma_fan _ V E v w`))) (term_tac (set_tac "w1")));
+   ((THENL_FIRST) ((fun arg_tac -> arg_tac (Arg_term (`(v,w) = contracted_dart (vec 0:real^3,v,w,w1:real^3)`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))))) ((((use_arg_then2 ("contracted_dart", [contracted_dart]))(thm_tac (new_rewrite [] [])))) THEN (done_tac)));
+   (((((use_arg_then2 ("res_inv_left", [res_inv_left]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN ((THENL) (split_tac) [((move ["x"]) THEN (move ["y"]) THEN (move ["h"])); ALL_TAC]));
+   ((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("bij_contracted_dart1", [bij_contracted_dart1])) (fun fst_arg -> (use_arg_then2 ("V", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("E", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
+   ((((((use_arg_then2 ("BIJ", [BIJ]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("INJ", [INJ]))(thm_tac (new_rewrite [] []))))) THEN ALL_TAC THEN (case THEN ALL_TAC) THEN (case THEN (move ["_"])) THEN (move ["h2"]) THEN (move ["_"])) THEN (((use_arg_then2 ("h2", [])) (disch_tac [])) THEN (clear_assumption "h2") THEN (DISCH_THEN apply_tac)) THEN (done_tac));
+   ((((use_arg_then2 ("w1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("extension_sigma_fan", [extension_sigma_fan]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("Fan.d1_fan", [Fan.d1_fan]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_ELIM_THM", [IN_ELIM_THM]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   (((fun arg_tac -> arg_tac (Arg_term (`w IN set_of_edge v V E`))) (disch_eq_tac "w_in" [])) THEN case THEN (simp_tac) THEN (process_fst_eq_tac));
+   ((((fun arg_tac -> arg_tac (Arg_term (`vec 0`))) (term_tac exists_tac)) THEN ((use_arg_then2 ("v", [])) (term_tac exists_tac)) THEN ((use_arg_then2 ("w", [])) (term_tac exists_tac)) THEN ((fun arg_tac -> arg_tac (Arg_term (`sigma_fan (vec 0) V E v w`))) (term_tac exists_tac))) THEN (simp_tac));
+   ((((use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((((use_arg_then2 ("w_in", [])) (disch_tac [])) THEN (clear_assumption "w_in") THEN BETA_TAC) THEN (((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("PAIR_IN_DART1_OF_FAN", [PAIR_IN_DART1_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma bij_ext_dart1 *)
+let bij_ext_dart1 = section_proof []
+`BIJ (ext_dart (V,E)) (dart1_of_fan (V,E)) (d1_fan (vec 0,V,E))`
+[
+   (((fun arg_tac -> (use_arg_then2 ("bij_ext", [bij_ext])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`res_inv contracted_dart (d1_fan (vec 0,V,E))`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (thm_tac apply_tac)) THEN (split_tac));
+   ((BETA_TAC THEN (move ["x"]) THEN (move ["x_in"])) THEN (((use_arg_then2 ("ext_dart_eq_inv_contracted_dart1", [ext_dart_eq_inv_contracted_dart1]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   (((use_arg_then2 ("bij_res_inv", [bij_res_inv])) (thm_tac apply_tac)) THEN (((use_arg_then2 ("bij_contracted_dart1", [bij_contracted_dart1]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma d1_fan_eq_image *)
+let d1_fan_eq_image = section_proof []
+`d1_fan (vec 0,V,E) = IMAGE (ext_dart (V,E)) (dart1_of_fan (V,E))`
+[
+   ((((fun arg_tac -> (use_arg_then2 ("BIJ_IMAGE", [BIJ_IMAGE])) (fun fst_arg -> (use_arg_then2 ("bij_ext_dart1", [bij_ext_dart1])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma contracted_in_dart1 *)
+let contracted_in_dart1 = section_proof ["d"]
+`d IN d1_fan (vec 0,V,E) 
+	==> contracted_dart d IN dart1_of_fan (V,E)`
+[
+   (((((use_arg_then2 ("d1_fan_eq_image", [d1_fan_eq_image]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_IMAGE", [IN_IMAGE]))(thm_tac (new_rewrite [] []))))) THEN ALL_TAC THEN (case THEN (move ["x"])) THEN (case THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (move ["x_in"]));
+   ((((use_arg_then2 ("contracted_ext", [contracted_ext]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma dart_of_fan_eq_image *)
+let dart_of_fan_eq_image = section_proof []
+`dart_of_fan (V,E) = IMAGE contracted_dart (d_fan (vec 0,V,E))`
+[
+   ((((fun arg_tac -> (use_arg_then2 ("BIJ_IMAGE", [BIJ_IMAGE])) (fun fst_arg -> (fun arg_tac -> (use_arg_then2 ("bij_contracted_dart", [bij_contracted_dart])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma ext_in_dart *)
+let ext_in_dart = section_proof ["d"]
+`d IN dart_of_fan (V,E)
+	==> ext_dart (V,E) d IN d_fan (vec 0,V,E)`
+[
+   (((((use_arg_then2 ("dart_of_fan_eq_image", [dart_of_fan_eq_image]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_IMAGE", [IN_IMAGE]))(thm_tac (new_rewrite [] []))))) THEN ALL_TAC THEN (case THEN (move ["x"])) THEN (case THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (move ["x_in"]));
+   ((((use_arg_then2 ("ext_contracted", [ext_contracted]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma ext_in_dart1 *)
+let ext_in_dart1 = section_proof ["d"]
+`d IN dart1_of_fan (V,E)
+	==> ext_dart (V,E) d IN d1_fan (vec 0,V,E)`
+[
+   (((((use_arg_then2 ("dart1_of_fan_eq_image", [dart1_of_fan_eq_image]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_IMAGE", [IN_IMAGE]))(thm_tac (new_rewrite [] []))))) THEN ALL_TAC THEN (case THEN (move ["x"])) THEN (case THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (move ["x_in"]));
+   (((((use_arg_then2 ("ext_contracted", [ext_contracted]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("in_d1_in_d", [in_d1_in_d]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Section Dart1 *)
+begin_section "Dart1";;
+
+(* Lemma fan_hypermap_map2 *)
+let fan_hypermap_map2 = section_proof ["d"]
+`d IN d1_fan (vec 0,V,E)
+	==> face_map (hypermap1_of_fanx (vec 0,V,E)) d = f1_fan (vec 0) V E d /\
+	    node_map (hypermap1_of_fanx (vec 0,V,E)) d = n_fan (vec 0) V E d /\
+	    edge_map (hypermap1_of_fanx (vec 0,V,E)) d = e_fan (vec 0) V E d`
+[
+   ((BETA_TAC THEN (move ["d_in"])) THEN ((repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("hypermap_of_fan_rep_alt", [hypermap_of_fan_rep_alt])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("res", [res]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac))) THEN (done_tac));
+];;
+
+(* Lemma fan_hypermap_map1 *)
+let fan_hypermap_map1 = section_proof ["d"]
+`d IN dart1_of_fan (V,E) ==>
+	face_map (hypermap_of_fan (V,E)) d = f_fan_pair (V,E) d /\
+	node_map (hypermap_of_fan (V,E)) d = n_fan_pair (V,E) d /\
+	edge_map (hypermap_of_fan (V,E)) d = e_fan_pair (V,E) d`
+[
+   ((BETA_TAC THEN (move ["d_in"])) THEN (repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("COMPONENTS_HYPERMAP_OF_FAN", [COMPONENTS_HYPERMAP_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))));
+   (((((use_arg_then2 ("f_fan_pair_ext", [f_fan_pair_ext]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("n_fan_pair_ext", [n_fan_pair_ext]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("e_fan_pair_ext", [e_fan_pair_ext]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma f_fan_pair_eq_inv_n_o_e *)
+let f_fan_pair_eq_inv_n_o_e = section_proof ["d"]
+`d IN dart1_of_fan (V,E)
+	==> f_fan_pair (V,E) d = inverse (n_fan_pair_ext (V,E)) (e_fan_pair (V,E) d)`
+[
+   (BETA_TAC THEN (move ["d_in"]));
+   ((THENL_FIRST) ((fun arg_tac -> arg_tac (Arg_term (`f_fan_pair (V,E) d = f_fan_pair_ext (V,E) d`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))))) ((((use_arg_then2 ("f_fan_pair_ext", [f_fan_pair_ext]))(thm_tac (new_rewrite [] [])))) THEN (done_tac)));
+   (((fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL PERMUTES_INVERSE_INVERSE))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`dart_of_fan (V,E)`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] [])))));
+   ((((use_arg_then2 ("F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN", [F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((THENL_ROT (-1)) ((((use_arg_then2 ("INVERSE_F_FAN_PAIR_EXT", [INVERSE_F_FAN_PAIR_EXT]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("PERMUTATION_INVERSE_COMPOSE", [PERMUTATION_INVERSE_COMPOSE]))(thm_tac (new_rewrite [] []))))));
+   (((((use_arg_then2 ("inv_e_fan_pair_ext", [inv_e_fan_pair_ext]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("o_THM", [o_THM]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("e_fan_pair_ext", [e_fan_pair_ext]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("d_in", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   (repeat_tactic 1 9 (((use_arg_then2 ("PERMUTATION_PERMUTES", [PERMUTATION_PERMUTES]))(thm_tac (new_rewrite [] [])))));
+   ((split_tac) THEN ((fun arg_tac -> arg_tac (Arg_term (`dart_of_fan (V,E)`))) (term_tac exists_tac)) THEN (((fun arg_tac -> (use_arg_then2 ("FINITE_DART_OF_FAN", [FINITE_DART_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac ->(use_arg_then2 ("E_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN", [E_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN]))(fun tmp_arg1 -> (use_arg_then2 ("N_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN", [N_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN]))(fun tmp_arg2 -> arg_tac (Arg_theorem (CONJ (get_arg_thm tmp_arg1) (get_arg_thm tmp_arg2))))))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma fan_map_contracted *)
+let fan_map_contracted = section_proof ["d"]
+`d IN d1_fan (vec 0,V,E) ==>
+	f_fan_pair (V,E) (contracted_dart d) = contracted_dart (f1_fan (vec 0) V E d) /\
+	n_fan_pair (V,E) (contracted_dart d) = contracted_dart (n_fan (vec 0) V E d) /\
+	e_fan_pair (V,E) (contracted_dart d) = contracted_dart (e_fan (vec 0) V E d)`
+[
+   (BETA_TAC THEN (move ["d_in"]));
+   (((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("hyp_iso_comm", [hyp_iso_comm])) (fun fst_arg -> (fun arg_tac -> (use_arg_then2 ("fan_hypermaps_iso_explicit", [fan_hypermaps_iso_explicit])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("d", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC)) THEN (ANTS_TAC));
+   (((((fun arg_tac -> (use_arg_then2 ("hypermap_of_fan_rep_alt", [hypermap_of_fan_rep_alt])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("in_d1_in_d", [in_d1_in_d]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   (((repeat_tactic 1 9 (((use_arg_then2 ("fan_hypermap_map2", [fan_hypermap_map2]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (repeat_tactic 1 9 (((use_arg_then2 ("fan_hypermap_map1", [fan_hypermap_map1]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("contracted_in_dart1", [contracted_in_dart1]))(thm_tac (new_rewrite [] []))))) THEN ((simp_tac THEN TRY done_tac))) THEN (done_tac));
+];;
+
+(* Lemma fan_map_ext *)
+let fan_map_ext = section_proof ["d"]
+`d IN dart1_of_fan (V,E) ==>
+	f1_fan (vec 0) V E (ext_dart (V,E) d) = ext_dart (V,E) (f_fan_pair (V,E) d) /\
+	n_fan (vec 0) V E (ext_dart (V,E) d) = ext_dart (V,E) (n_fan_pair (V,E) d) /\
+	e_fan (vec 0) V E (ext_dart (V,E) d) = ext_dart (V,E) (e_fan_pair (V,E) d)`
+[
+   (BETA_TAC THEN (move ["d_in"]));
+   (((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("hyp_iso_comm", [hyp_iso_comm])) (fun fst_arg -> (fun arg_tac -> (use_arg_then2 ("fan_hypermaps_iso_explicit2", [fan_hypermaps_iso_explicit2])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("d", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC)) THEN (ANTS_TAC));
+   (((((fun arg_tac -> (use_arg_then2 ("COMPONENTS_HYPERMAP_OF_FAN", [COMPONENTS_HYPERMAP_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("in_dart1_in_dart", [in_dart1_in_dart]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   (((repeat_tactic 1 9 (((use_arg_then2 ("fan_hypermap_map1", [fan_hypermap_map1]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (repeat_tactic 1 9 (((use_arg_then2 ("fan_hypermap_map2", [fan_hypermap_map2]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("ext_in_dart1", [ext_in_dart1]))(thm_tac (new_rewrite [] []))))) THEN ((simp_tac THEN TRY done_tac))) THEN (done_tac));
+];;
+
+(* Finalization of the section Dart1 *)
+let fan_hypermap_map2 = finalize_theorem fan_hypermap_map2;;
+let fan_hypermap_map1 = finalize_theorem fan_hypermap_map1;;
+let f_fan_pair_eq_inv_n_o_e = finalize_theorem f_fan_pair_eq_inv_n_o_e;;
+let fan_map_contracted = finalize_theorem fan_map_contracted;;
+let fan_map_ext = finalize_theorem fan_map_ext;;
+end_section "Dart1";;
+
+(* Finalization of the section Hypermap1 *)
+let inv_e_fan_pair_ext = finalize_theorem inv_e_fan_pair_ext;;
+let bij_ext_dart = finalize_theorem bij_ext_dart;;
+let d_fan_eq_image = finalize_theorem d_fan_eq_image;;
+let contracted_in_dart = finalize_theorem contracted_in_dart;;
+let ext_contracted = finalize_theorem ext_contracted;;
+let ext_dart_eq_inv_contracted_dart1 = finalize_theorem ext_dart_eq_inv_contracted_dart1;;
+let bij_ext_dart1 = finalize_theorem bij_ext_dart1;;
+let d1_fan_eq_image = finalize_theorem d1_fan_eq_image;;
+let contracted_in_dart1 = finalize_theorem contracted_in_dart1;;
+let dart_of_fan_eq_image = finalize_theorem dart_of_fan_eq_image;;
+let ext_in_dart = finalize_theorem ext_in_dart;;
+let ext_in_dart1 = finalize_theorem ext_in_dart1;;
+let fan_hypermap_map2 = finalize_theorem fan_hypermap_map2;;
+let fan_hypermap_map1 = finalize_theorem fan_hypermap_map1;;
+let f_fan_pair_eq_inv_n_o_e = finalize_theorem f_fan_pair_eq_inv_n_o_e;;
+let fan_map_contracted = finalize_theorem fan_map_contracted;;
+let fan_map_ext = finalize_theorem fan_map_ext;;
+end_section "Hypermap1";;
+
+(* Finalization of the section FanMisc *)
+let contracted_ext = finalize_theorem contracted_ext;;
+let in_dart1_in_dart = finalize_theorem in_dart1_in_dart;;
+let in_d1_in_d = finalize_theorem in_d1_in_d;;
+let inE_eq_in_dart1 = finalize_theorem inE_eq_in_dart1;;
+let inE_imp_in_dart = finalize_theorem inE_imp_in_dart;;
+let dart1_switch = finalize_theorem dart1_switch;;
+let dart_switch = finalize_theorem dart_switch;;
+let finite_set_of_edge = finalize_theorem finite_set_of_edge;;
+let azim_dart1_eq_azim_fan = finalize_theorem azim_dart1_eq_azim_fan;;
+let azim_dart_eq_azim_fan = finalize_theorem azim_dart_eq_azim_fan;;
+let azim_dart1_eq_azim = finalize_theorem azim_dart1_eq_azim;;
+let fully_surrounded_dart_of_fan_eq = finalize_theorem fully_surrounded_dart_of_fan_eq;;
+let fully_surrounded_card_set_of_edge = finalize_theorem fully_surrounded_card_set_of_edge;;
+let fully_surrounded_card_set_of_edge1 = finalize_theorem fully_surrounded_card_set_of_edge1;;
+let fully_surrounded_azim_dart_eq_azim = finalize_theorem fully_surrounded_azim_dart_eq_azim;;
+let azim_gt0_card_set_of_edge = finalize_theorem azim_gt0_card_set_of_edge;;
+let fully_surrounded_imp_fan80 = finalize_theorem fully_surrounded_imp_fan80;;
+let sigma_fan_inV = finalize_theorem sigma_fan_inV;;
+let sigma_fan_not_fixed = finalize_theorem sigma_fan_not_fixed;;
+let inv_e_fan_pair_ext = finalize_theorem inv_e_fan_pair_ext;;
+let bij_ext_dart = finalize_theorem bij_ext_dart;;
+let d_fan_eq_image = finalize_theorem d_fan_eq_image;;
+let contracted_in_dart = finalize_theorem contracted_in_dart;;
+let ext_contracted = finalize_theorem ext_contracted;;
+let ext_dart_eq_inv_contracted_dart1 = finalize_theorem ext_dart_eq_inv_contracted_dart1;;
+let bij_ext_dart1 = finalize_theorem bij_ext_dart1;;
+let d1_fan_eq_image = finalize_theorem d1_fan_eq_image;;
+let contracted_in_dart1 = finalize_theorem contracted_in_dart1;;
+let dart_of_fan_eq_image = finalize_theorem dart_of_fan_eq_image;;
+let ext_in_dart = finalize_theorem ext_in_dart;;
+let ext_in_dart1 = finalize_theorem ext_in_dart1;;
+let fan_hypermap_map2 = finalize_theorem fan_hypermap_map2;;
+let fan_hypermap_map1 = finalize_theorem fan_hypermap_map1;;
+let f_fan_pair_eq_inv_n_o_e = finalize_theorem f_fan_pair_eq_inv_n_o_e;;
+let fan_map_contracted = finalize_theorem fan_map_contracted;;
+let fan_map_ext = finalize_theorem fan_map_ext;;
+end_section "FanMisc";;
+
+(* Lemma pair_expand *)
+let pair_expand = section_proof ["p"]
+`p = FST p,SND p`
+[
+   ((ALL_TAC) THEN (done_tac));
+];;
+
+(* Section AddTriangle *)
+begin_section "AddTriangle";;
+(add_section_var (mk_var ("V", (`:real^3->bool`))));;
+(add_section_var (mk_var ("E", (`:(real^3->bool)->bool`))));;
+(add_section_hyp "fanV" (`FAN (vec 0, V, E)`));;
+
+(* Lemma split_fan_face_eq *)
+let split_fan_face_eq = section_proof ["d"]
+`d IN dart_of_fan (V,E)
+	/\ CARD (face (hypermap_of_fan (V,E)) d) = 3
+	==> split_fan_face (V,E) d = (V,E)`
+[
+   (((use_arg_then2 ("d", [])) (disch_tac [])) THEN (clear_assumption "d") THEN case THEN (move ["v"]) THEN (move ["w"]) THEN (case THEN ((move ["d_in"]) THEN (move ["card3"]))));
+   ((fun arg_tac -> arg_tac (Arg_term (`v,w IN dart1_of_fan (V,E)`))) (term_tac (have_gen_tac [](move ["d_in1"]))));
+   ((((use_arg_then2 ("CARD_FACE_GT_1", [CARD_FACE_GT_1])) (disch_tac [])) THEN (clear_assumption "CARD_FACE_GT_1") THEN (DISCH_THEN apply_tac)) THEN ((((use_arg_then2 ("card3", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fanV", []))(thm_tac (new_rewrite [] []))))) THEN (arith_tac) THEN (done_tac));
+   ((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (let_RULE TRIANGULAR_FACE))) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("card3", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("d_in1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (case THEN ((move ["f_eq"]) THEN (move ["_"])))));
+   ((((use_arg_then2 ("split_fan_face", [split_fan_face]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("ABSORPTION", [ABSORPTION]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (simp_tac));
+   (((use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1]))(thm_tac (new_rewrite [] []))));
+   (((use_arg_then2 ("Packing3.IN_TRANS", [Packing3.IN_TRANS])) (thm_tac apply_tac)) THEN ((fun arg_tac -> arg_tac (Arg_term (`face (hypermap_of_fan (V,E)) (v,w)`))) (term_tac exists_tac)));
+   (((((use_arg_then2 ("f_eq", []))(thm_tac (new_rewrite [1] [])))) THEN (((use_arg_then2 ("FACE_SUBSET_DART1_OF_FAN", [FACE_SUBSET_DART1_OF_FAN]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (repeat_tactic 2 0 (((use_arg_then2 ("IN_INSERT", [IN_INSERT]))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+];;
+
+(* Lemma sigma_in_dart1 *)
+let sigma_in_dart1 = section_proof ["v";"w"]
+`v,w IN dart1_of_fan (V,E)
+	==> (v, sigma_fan (vec 0) V E v w) IN dart1_of_fan (V,E)`
+[
+   ((repeat_tactic 1 9 (((use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("Fan.properties_of_set_of_edge_fan", [Fan.properties_of_set_of_edge_fan])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))));
+   (((fun arg_tac -> (use_arg_then2 ("Fan.sigma_fan_in_set_of_edge", [Fan.sigma_fan_in_set_of_edge])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (exact_tac));
+];;
+
+(* Lemma in_face_lemma *)
+let in_face_lemma = section_proof ["v";"w"]
+`v,w IN dart1_of_fan (V,E)
+	==> v,w IN face (hypermap_of_fan (V,E)) (v,w)
+	/\ sigma_fan (vec 0) V E v w, v IN face (hypermap_of_fan (V,E)) (v,w)
+	/\ f_fan_pair (V,E) (v,w) IN face (hypermap_of_fan (V,E)) (v,w)`
+[
+   (BETA_TAC THEN (move ["vw_in"]));
+   ((((use_arg_then2 ("Hypermap.face_refl", [Hypermap.face_refl]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] [])))));
+   ((((fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (let_RULE FACE_LAST_POINT))) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] [])))));
+   (((((use_arg_then2 ("fan_hypermap_map1", [fan_hypermap_map1]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("POWER_1", [POWER_1]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("Hypermap.lemma_in_face", [Hypermap.lemma_in_face]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma f_fan_pair3 *)
+let f_fan_pair3 = section_proof ["v";"w"]
+`v,w IN dart1_of_fan (V,E)
+	/\ CARD (face (hypermap_of_fan (V,E)) (v,w)) = 3
+	==> f_fan_pair (V,E) (v,w) = (w, sigma_fan (vec 0) V E v w)
+	/\ f_fan_pair (V,E) (w, sigma_fan (vec 0) V E v w) = (sigma_fan (vec 0) V E v w, v)
+	/\ f_fan_pair (V,E) (sigma_fan (vec 0) V E v w, v) = (v,w) /\
+	w, sigma_fan (vec 0) V E v w IN dart1_of_fan (V,E)`
+[
+   (BETA_TAC THEN (case THEN ((move ["vw_in"]) THEN (move ["card3"]))));
+   ((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (let_RULE TRIANGULAR_FACE))) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("card3", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
+   ((fun arg_tac -> arg_tac (Arg_term (`sigma_fan _ V E v w`))) (term_tac (set_tac "w1")));
+   (BETA_TAC THEN (case THEN (move ["f_eq"])) THEN (case THEN ((move ["eq1"]) THEN (move ["eq2"]))));
+   ((fun arg_tac -> arg_tac (Arg_term (`w,w1 IN dart1_of_fan (V,E) /\ w1,v IN dart1_of_fan (V,E)`))) (term_tac (have_gen_tac [](move ["in_dart"]))));
+   (((repeat_tactic 1 9 (((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("IN_FACE_IMP_IN_DART1_OF_FAN", [IN_FACE_IMP_IN_DART1_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("f_eq", []))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("IN_INSERT", [IN_INSERT]))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+   ((((use_arg_then2 ("in_dart", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andbT", [andbT]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("f_fan_pair", [f_fan_pair]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] []))))) THEN (simp_tac));
+   ((fun arg_tac -> arg_tac (Arg_term (`{w,w1} IN E /\ {w1,v} IN E /\ {v,w} IN E /\ {w,v} IN E /\ {v,w1} IN E /\ {w1,w} IN E`))) (term_tac (have_gen_tac [](move ["inE"]))));
+   (((repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1])) (fun fst_arg -> (use_arg_then2 ("V", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("in_dart", []))(thm_tac (new_rewrite [] [])))))) THEN (repeat_tactic 1 9 (((split_tac) THEN ((TRY done_tac))))) THEN (((use_arg_then2 ("dart1_switch", [dart1_switch]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((repeat_tactic 1 9 (((use_arg_then2 ("Fan_misc.INVERSE_SIGMA_FAN_EQ_INVERSE1_SIGMA_FAN", [Fan_misc.INVERSE_SIGMA_FAN_EQ_INVERSE1_SIGMA_FAN]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN ((TRY done_tac)));
+   (((((use_arg_then2 ("eq1", []))(gsym_then (thm_tac (new_rewrite [1] []))))) THEN (((use_arg_then2 ("eq2", []))(gsym_then (thm_tac (new_rewrite [3] []))))) THEN (((use_arg_then2 ("w1_def", []))(gsym_then (thm_tac (new_rewrite [5] []))))) THEN (repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("Fan.INVERSE1_SIGMA_FAN", [Fan.INVERSE1_SIGMA_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+];;
+(add_section_hyp "f_surr" (`fully_surrounded (V,E)`));;
+
+(* Lemma fully_surrounded_card_face_alt *)
+let fully_surrounded_card_face_alt = section_proof ["d"]
+`d IN dart_of_fan (V,E)
+	==> CARD (face (hypermap_of_fan (V,E)) d) = 3 \/
+	   3 < CARD (face (hypermap_of_fan (V,E)) d)`
+[
+   (BETA_TAC THEN (move ["d_in"]));
+   (((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("FULLY_SURROUNDED_IMP_CARD_FACE_GE_3", [FULLY_SURROUNDED_IMP_CARD_FACE_GE_3])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f_surr", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("d_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC);
+   (((((use_arg_then2 ("GE", [GE]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("leq_eqVlt", [leq_eqVlt]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("EQ_SYM_EQ", [EQ_SYM_EQ]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma fully_surrounded_imp_conforming *)
+let fully_surrounded_imp_conforming = section_proof []
+`conforming_fan (vec 0,V,E)`
+[
+   (((fun arg_tac -> (use_arg_then2 ("Conforming.PIIJBJK", [Conforming.PIIJBJK])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac));
+   (((((use_arg_then2 ("fully_surrounded_imp_fan80", [fully_surrounded_imp_fan80]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("andbT", [andbT]))(thm_tac (new_rewrite [] []))))) THEN (move ["v"]) THEN (move ["vV"]));
+   ((((use_arg_then2 ("fully_surrounded_card_set_of_edge1", [fully_surrounded_card_set_of_edge1]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma fully_surrounded_diag_not_in_dart *)
+let fully_surrounded_diag_not_in_dart = section_proof ["v";"w"]
+`v,w IN dart_of_fan (V,E)
+	/\ 3 < CARD (face (hypermap_of_fan (V,E)) (v,w))
+	==> ~((w, sigma_fan (vec 0) V E v w) IN dart_of_fan (V,E))`
+[
+   (((use_arg_then2 ("v", [])) (disch_tac [])) THEN (clear_assumption "v") THEN BETA_TAC THEN (move ["u"]));
+   ((fun arg_tac -> arg_tac (Arg_term (`sigma_fan _ V E u w`))) (term_tac (set_tac "v")));
+   ((((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (repeat_tactic 1 9 (((use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1]))(gsym_then (thm_tac (new_rewrite [] [])))))));
+   ((BETA_TAC THEN (case THEN (move ["uw_in"]))) THEN (((use_arg_then2 ("contraL", [contraL])) (disch_tac [])) THEN (clear_assumption "contraL") THEN (DISCH_THEN apply_tac) THEN (move ["wv_in"])));
+   ((((use_arg_then2 ("NOT_LT", [NOT_LT]))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL Lvducxu.FACE_NODE_EDGE_ORBIT_INVERSE)))(thm_tac (new_rewrite [] [])))));
+   ((THENL_FIRST) (((use_arg_then2 ("Hypermap.card_orbit_le", [Hypermap.card_orbit_le])) (thm_tac apply_tac)) THEN (split_tac)) ((arith_tac) THEN (done_tac)));
+   ((((fun arg_tac -> (use_arg_then2 ("COMPONENTS_HYPERMAP_OF_FAN", [COMPONENTS_HYPERMAP_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("INVERSE_F_FAN_PAIR_EXT_EXPLICIT", [INVERSE_F_FAN_PAIR_EXT_EXPLICIT]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   ((((fun arg_tac -> arg_tac (Arg_theorem (ARITH_RULE `3 = SUC 2`)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("POWER", [POWER]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("Hypermap.POWER_2", [Hypermap.POWER_2]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("o_THM", [o_THM]))(thm_tac (new_rewrite [] []))))));
+   ((fun arg_tac -> arg_tac (Arg_term (`{v, u} IN E`))) (term_tac (have_gen_tac [](move ["vu_in"]))));
+   (((((fun arg_tac -> (use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1])) (fun fst_arg -> (use_arg_then2 ("V", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("dart1_switch", [dart1_switch]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("v_def", []))(gsym_then (thm_tac (new_rewrite [1] []))))) THEN (((use_arg_then2 ("sigma_in_dart1", [sigma_in_dart1]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1]))(gsym_then (thm_tac (new_rewrite [] []))))))) THEN (done_tac));
+   (((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("Planarity.PROPERTIES_TRIANGLE_FAN", [Planarity.PROPERTIES_TRIANGLE_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("v_def", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC)) THEN (ANTS_TAC));
+   ((((use_arg_then2 ("wv_in", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("uw_in", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("vu_in", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fully_surrounded_imp_fan80", [fully_surrounded_imp_fan80]))(thm_tac (new_rewrite [] [])))) THEN ((simp_tac THEN TRY done_tac)));
+   ((BETA_TAC THEN (move ["x"]) THEN (move ["xV"])) THEN (((use_arg_then2 ("fully_surrounded_card_set_of_edge1", [fully_surrounded_card_set_of_edge1]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   (BETA_TAC THEN (move ["eq"]));
+   ((repeat_tactic 1 9 (((use_arg_then2 ("res", [res]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("uw_in", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (((use_arg_then2 ("v_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("vu_in", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   (((repeat_tactic 1 9 (((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("wv_in", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma aux_lemma *)
+let aux_lemma = section_proof ["v";"w"]
+`let f = face (hypermap_of_fan (V,E)) (v,w) and
+			h = ext_dart (V,E) and
+			w1 = sigma_fan (vec 0) V E v w and
+			d2 = f_fan_pair (V,E) (v,w) in
+	v,w IN dart_of_fan (V,E) /\ 3 < CARD f
+	==> IMAGE h f IN face_set (hypermap1_of_fanx (vec 0,V,E))
+		/\ CARD (IMAGE h f) > 3
+		/\ {h (w1,v), h (v,w), h d2} SUBSET (IMAGE h f)
+		/\ f1_fan (vec 0) V E (h (w1,v)) = h (v,w)
+		/\ f1_fan (vec 0) V E (h (v,w)) = h d2
+		/\ ~(f1_fan (vec 0) V E (h d2) = h (w1,v))
+		/\ pr2 (h (w1,v)) = w1 /\ pr2 (h (v,w)) = v /\ pr2 (h d2) = w
+		/\ pr3 (h (w1,v)) = v /\ pr3 (h (v,w)) = w
+		/\ {w1,v} IN E /\ {v,w} IN E /\ ~({w, w1} IN E) /\ ~(w1 = w)`
+[
+   ((CONV_TAC let_CONV) THEN (BETA_TAC THEN (case THEN ((move ["vw_in0"]) THEN (move ["card_gt3"])))));
+   ((((use_arg_then2 ("vw_in0", [])) (disch_tac [])) THEN BETA_TAC) THEN (((((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN (move ["vw_in"])));
+   ((fun arg_tac -> (use_arg_then2 ("fan_hypermaps_iso_explicit2", [fan_hypermaps_iso_explicit2])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
+   ((fun arg_tac -> arg_tac (Arg_term (`hypermap_of_fan _`))) (term_tac (set_tac "H")));
+   ((fun arg_tac -> arg_tac (Arg_term (`face H _2`))) (term_tac (set_tac "f")));
+   ((fun arg_tac -> arg_tac (Arg_term (`ext_dart _`))) (term_tac (set_tac "h")));
+   ((fun arg_tac -> arg_tac (Arg_term (`sigma_fan _ V E v w`))) (term_tac (set_tac "w1")));
+   ((fun arg_tac -> arg_tac (Arg_term (`f_fan_pair _1 _2`))) (term_tac (set_tac "d2")));
+   (BETA_TAC THEN (move ["iso"]));
+   ((fun arg_tac -> arg_tac (Arg_term (`dart H = dart1_of_fan (V,E)`))) (term_tac (have_gen_tac [](move ["dart_eq"]))));
+   (((((use_arg_then2 ("H_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("COMPONENTS_HYPERMAP_OF_FAN", [COMPONENTS_HYPERMAP_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((fun arg_tac -> (use_arg_then2 ("in_face_lemma", [in_face_lemma])) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (move ["in_face"])));
+   (in_tac ["in_face"] false ((((use_arg_then2 ("H_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("f_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("w1_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("d2_def", []))(thm_tac (new_rewrite [] []))))));
+   ((fun arg_tac -> arg_tac (Arg_term (`v,w IN dart H /\ w1,v IN dart H /\ d2 IN dart H`))) (term_tac (have_gen_tac [](move ["in_dart"]))));
+   (((split_tac) THEN ((TRY done_tac))) THEN (split_tac) THEN ((use_arg_then2 ("Packing3.IN_TRANS", [Packing3.IN_TRANS])) (thm_tac apply_tac)) THEN ((use_arg_then2 ("f", [])) (term_tac exists_tac)) THEN ((((use_arg_then2 ("in_face", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("f_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("Hypermap.lemma_face_subset", [Hypermap.lemma_face_subset]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN (done_tac));
+   ((((use_arg_then2 ("f_def", []))(gsym_then (thm_tac (new_rewrite [1] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("iso_components", [iso_components])) (fun fst_arg -> (use_arg_then2 ("iso", [iso])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   ((((use_arg_then2 ("Hypermap.lemma_in_face_set", [Hypermap.lemma_in_face_set]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("hyp_iso_dart", [hyp_iso_dart])) (fun fst_arg -> (use_arg_then2 ("iso", [iso])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("dart_eq", []))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] [])))));
+   ((((use_arg_then2 ("CARD_IMAGE_INJ", [CARD_IMAGE_INJ]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("GT", [GT]))(thm_tac (new_rewrite [] []))))));
+   (((((use_arg_then2 ("f_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("Hypermap.FACE_FINITE", [Hypermap.FACE_FINITE]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andbT", [andbT]))(thm_tac (new_rewrite [] []))))) THEN (move ["x"]) THEN (move ["y"]) THEN (move ["h1"]));
+   ((((fun arg_tac -> (use_arg_then2 ("hyp_iso_inj", [hyp_iso_inj])) (fun fst_arg -> (use_arg_then2 ("iso", [iso])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac)) THEN ((((use_arg_then2 ("h1", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)));
+   ((split_tac) THEN ((use_arg_then2 ("Packing3.IN_TRANS", [Packing3.IN_TRANS])) (thm_tac apply_tac)) THEN ((fun arg_tac -> arg_tac (Arg_term (`face H (v,w)`))) (term_tac exists_tac)) THEN ((((use_arg_then2 ("h1", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("Hypermap.lemma_face_subset", [Hypermap.lemma_face_subset]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   (((((use_arg_then2 ("card_gt3", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] []))))) THEN (split_tac));
+   (((((use_arg_then2 ("SUBSET", [SUBSET]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("IN_INSERT", [IN_INSERT]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("NOT_IN_EMPTY", [NOT_IN_EMPTY]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("orbF", [orbF]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_IMAGE", [IN_IMAGE]))(thm_tac (new_rewrite [] []))))) THEN (move ["y"]));
+   (((THENL) (((THENL) case [ALL_TAC; (case THEN ALL_TAC)]) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) [((fun arg_tac -> arg_tac (Arg_term (`w1,v`))) (term_tac exists_tac)); ((fun arg_tac -> arg_tac (Arg_term (`v,w`))) (term_tac exists_tac)); ((use_arg_then2 ("d2", [])) (term_tac exists_tac))]) THEN (done_tac));
+   ((((use_arg_then2 ("h_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("fan_map_ext", [fan_map_ext]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("dart_eq", []))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("d2_def", []))(gsym_then (thm_tac (new_rewrite [] []))))));
+   ((repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1])) (fun fst_arg -> (use_arg_then2 ("V", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("dart_eq", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("in_dart", []))(thm_tac (new_rewrite [] []))))) THEN (simp_tac));
+   ((fun arg_tac -> arg_tac (Arg_term (`f_fan_pair (V,E) (w1,v) = v,w`))) (term_tac (have_gen_tac [](move ["eq"]))));
+   ((THENL_FIRST) ((fun arg_tac -> arg_tac (Arg_term (`{v,w1} IN E`))) (term_tac (have_gen_tac [](move ["in1"])))) (((((fun arg_tac -> (use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1])) (fun fst_arg -> (use_arg_then2 ("V", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("dart1_switch", [dart1_switch]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("dart_eq", []))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac)));
+   ((((use_arg_then2 ("f_fan_pair", [f_fan_pair]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("Fan_misc.INVERSE_SIGMA_FAN_EQ_INVERSE1_SIGMA_FAN", [Fan_misc.INVERSE_SIGMA_FAN_EQ_INVERSE1_SIGMA_FAN]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   ((((use_arg_then2 ("w1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("Fan.INVERSE1_SIGMA_FAN", [Fan.INVERSE1_SIGMA_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   (((((fun arg_tac -> (use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1])) (fun fst_arg -> (use_arg_then2 ("V", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("dart_eq", []))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+   ((THENL_ROT (-1)) (((((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)) THEN (split_tac)));
+   ((((use_arg_then2 ("f_fan_pair", [f_fan_pair]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("ext_dart", [ext_dart]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("Fan.pr2", [Fan.pr2]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("Fan.pr3", [Fan.pr3]))(thm_tac (new_rewrite [] []))))) THEN (simp_tac));
+   ((((use_arg_then2 ("dart_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq])) (fun fst_arg -> (use_arg_then2 ("f_surr", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("w1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))));
+   (((((fun arg_tac -> (use_arg_then2 ("fully_surrounded_diag_not_in_dart", [fully_surrounded_diag_not_in_dart])) (fun fst_arg -> (use_arg_then2 ("vw_in0", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("sigma_fan_not_fixed", [sigma_fan_not_fixed]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((((use_arg_then2 ("card_gt3", [])) (disch_tac [])) THEN (clear_assumption "card_gt3") THEN ((use_arg_then2 ("contraL", [contraL])) (disch_tac [])) THEN (clear_assumption "contraL") THEN (DISCH_THEN apply_tac)) THEN ((((use_arg_then2 ("NOT_LT", [NOT_LT]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("h_def", []))(thm_tac (new_rewrite [] []))))));
+   (((DISCH_THEN (fun snd_th -> (fun arg_tac -> (use_arg_then2 ("hyp_iso_inj", [hyp_iso_inj])) (fun fst_arg -> (use_arg_then2 ("iso", [iso])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN BETA_TAC) THEN ((THENL) (ANTS_TAC) [ALL_TAC; (move ["eq2"])]));
+   (((((use_arg_then2 ("in_dart", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("dart_eq", []))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("E_N_F_IN_DART1_OF_FAN", [E_N_F_IN_DART1_OF_FAN]))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+   ((((use_arg_then2 ("f_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("face", [face]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("Hypermap.card_orbit_le", [Hypermap.card_orbit_le]))(thm_tac (new_rewrite [] [])))));
+   ((((fun arg_tac -> arg_tac (Arg_theorem (ARITH_RULE `3 = SUC 2`)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("POWER", [POWER]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("Hypermap.POWER_2", [Hypermap.POWER_2]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("o_THM", [o_THM]))(thm_tac (new_rewrite [] []))))));
+   ((((use_arg_then2 ("H_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("fan_hypermap_map1", [fan_hypermap_map1])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (repeat_tactic 0 10 (((use_arg_then2 ("E_N_F_IN_DART1_OF_FAN", [E_N_F_IN_DART1_OF_FAN]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   (((((use_arg_then2 ("eq2", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] []))))) THEN (arith_tac) THEN (done_tac));
+];;
+
+(* Lemma fan_split_fan_face *)
+let fan_split_fan_face = section_proof ["v";"w"]
+`v,w IN dart_of_fan (V,E)
+	==> FAN (vec 0, split_fan_face (V,E) (v,w))
+	/\ dart_of_fan (split_fan_face (V,E) (v,w)) = dart1_of_fan (V,E)
+		UNION {(sigma_fan (vec 0) V E v w, w), (w, sigma_fan (vec 0) V E v w)}
+	/\ fully_surrounded (split_fan_face (V,E) (v,w))`
+[
+   ((BETA_TAC THEN (move ["vw_in"])) THEN (((use_arg_then2 ("vw_in", [])) (disch_tac [])) THEN BETA_TAC) THEN (((((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN (move ["vw_in1"])));
+   (((fun arg_tac -> (use_arg_then2 ("fully_surrounded_card_face_alt", [fully_surrounded_card_face_alt])) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN case THEN (move ["card_f"]));
+   ((((use_arg_then2 ("split_fan_face_eq", [split_fan_face_eq]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("fanV", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("f_surr", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   ((((use_arg_then2 ("UNION_COMM", [UNION_COMM]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("EQ_SYM_EQ", [EQ_SYM_EQ]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("SUBSET_UNION_ABSORPTION", [SUBSET_UNION_ABSORPTION]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("SUBSET", [SUBSET]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_INSERT", [IN_INSERT]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_SING", [IN_SING]))(thm_tac (new_rewrite [] [])))));
+   ((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (let_RULE TRIANGULAR_FACE))) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("card_f", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("vw_in1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (move ["f_eq"])));
+   (((THENL) (BETA_TAC THEN (move ["x"]) THEN (case THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))))) [(((use_arg_then2 ("dart1_switch", [dart1_switch]))(thm_tac (new_rewrite [] [])))); (ALL_TAC)]) THEN ((use_arg_then2 ("Packing3.IN_TRANS", [Packing3.IN_TRANS])) (thm_tac apply_tac)) THEN ((fun arg_tac -> arg_tac (Arg_term (`face (hypermap_of_fan (V,E)) (v,w)`))) (term_tac exists_tac)) THEN ((((use_arg_then2 ("FACE_SUBSET_DART1_OF_FAN", [FACE_SUBSET_DART1_OF_FAN]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("f_eq", []))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("IN_INSERT", [IN_INSERT]))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+   ((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (let_RULE aux_lemma))) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("card_f", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
+   ((fun arg_tac -> arg_tac (Arg_term (`hypermap_of_fan _`))) (term_tac (set_tac "H")));
+   ((fun arg_tac -> arg_tac (Arg_term (`face H _2`))) (term_tac (set_tac "f")));
+   ((fun arg_tac -> arg_tac (Arg_term (`ext_dart _`))) (term_tac (set_tac "h")));
+   ((fun arg_tac -> arg_tac (Arg_term (`sigma_fan _ V E v w`))) (term_tac (set_tac "w1")));
+   ((fun arg_tac -> arg_tac (Arg_term (`f_fan_pair _1 _2`))) (term_tac (set_tac "d2")));
+   ((fun arg_tac -> arg_tac (Arg_term (`{w,w1} INSERT E`))) (term_tac (set_tac "E1")));
+   (BETA_TAC THEN (case THEN (move ["h1"])) THEN (case THEN (move ["h2"])) THEN (case THEN (move ["h3"])) THEN (move ["h4"]));
+   ((fun arg_tac -> arg_tac (Arg_term (`E1 = E UNION {{w1,w}}`))) (term_tac (have_gen_tac [](move ["eq"]))));
+   (((((use_arg_then2 ("E1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("UNION_COMM", [UNION_COMM]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("Packing3.SING_UNION_EQ_INSERT", [Packing3.SING_UNION_EQ_INSERT]))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL Collect_geom.PER_SET2)))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   (((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("STEP3_REDUCE_FAN", [STEP3_REDUCE_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("h1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("h2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("h3", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`{w,w1} INSERT E`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("w1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("v", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("w", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC)) THEN (ANTS_TAC));
+   (((((use_arg_then2 ("fully_surrounded_imp_fan80", [fully_surrounded_imp_fan80]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN (repeat_tactic 0 15 (((split_tac) THEN ((TRY done_tac))))));
+   ((BETA_TAC THEN (move ["x"]) THEN (move ["xV"])) THEN (((fun arg_tac -> (use_arg_then2 ("fully_surrounded_card_set_of_edge1", [fully_surrounded_card_set_of_edge1])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   (((((use_arg_then2 ("E1_def", []))(thm_tac (new_rewrite [] [])))) THEN (move ["fan2"])) THEN ((((use_arg_then2 ("split_fan_face", [split_fan_face]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("w1_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("E1_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fan2", [fan2]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] []))))));
+   (((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("DART_FANADD_EQ_DART_FAN_ADD_2DART", [DART_FANADD_EQ_DART_FAN_ADD_2DART])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("h1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("h2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("h3", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("E1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("w1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("v", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("w", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC)) THEN (ANTS_TAC));
+   (((((use_arg_then2 ("fully_surrounded_imp_fan80", [fully_surrounded_imp_fan80]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN (repeat_tactic 0 15 (((split_tac) THEN ((TRY done_tac))))));
+   ((BETA_TAC THEN (move ["x"]) THEN (move ["xV"])) THEN (((fun arg_tac -> (use_arg_then2 ("fully_surrounded_card_set_of_edge1", [fully_surrounded_card_set_of_edge1])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((fun arg_tac -> arg_tac (Arg_term (`pr23`))) (term_tac (set_tac "cc")));
+   ((fun arg_tac -> arg_tac (Arg_term (`cc = contracted_dart`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))))));
+   ((((use_arg_then2 ("FUN_EQ_THM", [FUN_EQ_THM]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("cc_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("pr23", [pr23]))(thm_tac (new_rewrite [] [])))));
+   ((case THEN (move ["x1"])) THEN (case THEN (move ["x2"])) THEN (case THEN (move ["x3"]) THEN (move ["x4"])));
+   ((((use_arg_then2 ("Fan_defs.contracted_dart", [Fan_defs.contracted_dart]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((repeat_tactic 1 9 (((use_arg_then2 ("hypermap_of_fan_rep_alt", [hypermap_of_fan_rep_alt]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (repeat_tactic 1 9 (((use_arg_then2 ("dart_of_fan_eq_image", [dart_of_fan_eq_image]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN ((TRY done_tac)));
+   (((((fun arg_tac -> (use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN (move ["dart_eq"]));
+   ((((use_arg_then2 ("dart_eq", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((fun arg_tac -> arg_tac (Arg_term (`face (hypermap_of_fan (V,E1)) (w1,w)`))) (term_tac (set_tac "ds1")));
+   ((fun arg_tac -> arg_tac (Arg_term (`face (hypermap_of_fan (V,E1)) (w,w1)`))) (term_tac (set_tac "ds2")));
+   ((fun arg_tac -> (use_arg_then2 ("fan_hypermaps_iso_explicit2", [fan_hypermaps_iso_explicit2])) (fun fst_arg -> (use_arg_then2 ("fan2", [fan2])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
+   (((fun arg_tac -> arg_tac (Arg_term (`ext_dart _`))) (term_tac (set_tac "h2"))) THEN (move ["iso2"]));
+   (((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("FAN80_FANADD", [FAN80_FANADD])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("h1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("h2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("h3", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`{w,w1} INSERT E`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("w1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("v", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("w", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`IMAGE h2 ds1`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`IMAGE h2 ds2`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`vec 0:real^3,w,w1,v`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`vec 0:real^3,w1,v,w`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`vec 0:real^3,v,w,w1`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC)) THEN (ANTS_TAC));
+   (((((use_arg_then2 ("fully_surrounded_imp_fan80", [fully_surrounded_imp_fan80]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN (repeat_tactic 0 12 (((split_tac) THEN ((TRY done_tac))))));
+   ((BETA_TAC THEN (move ["x"]) THEN (move ["xV"])) THEN (((fun arg_tac -> (use_arg_then2 ("fully_surrounded_card_set_of_edge1", [fully_surrounded_card_set_of_edge1])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((((use_arg_then2 ("eq", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("E1_def", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (((use_arg_then2 ("h_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("ext_dart", [ext_dart]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("Fan.pr3", [Fan.pr3]))(thm_tac (new_rewrite [] []))))) THEN (simp_tac));
+   ((((use_arg_then2 ("ds1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("ds2_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("iso_components", [iso_components])) (fun fst_arg -> (use_arg_then2 ("iso2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (repeat_tactic 0 10 (((fun arg_tac -> (use_arg_then2 ("COMPONENTS_HYPERMAP_OF_FAN", [COMPONENTS_HYPERMAP_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fan2", [fan2])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("dart_eq", []))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("IN_INSERT", [IN_INSERT]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   ((((use_arg_then2 ("h2_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("ext_dart", [ext_dart]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("extension_sigma_fan", [extension_sigma_fan]))(thm_tac (new_rewrite [] []))))));
+   ((THENL_FIRST) (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`w IN set_of_edge w1 V E1 /\ w1 IN set_of_edge w V E1`))) (term_tac (have_gen_tac [](move ["w_in"]))))) ((repeat_tactic 1 9 (((use_arg_then2 ("w_in", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac)));
+   ((repeat_tactic 1 9 (((use_arg_then2 ("set_of_edge", [set_of_edge]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("inE", [inE]))(thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL Collect_geom.PER_SET2)))(thm_tac (new_rewrite [] [])))));
+   ((((use_arg_then2 ("w1_def", []))(gsym_then (thm_tac (new_rewrite [3] []))))) THEN (((use_arg_then2 ("sigma_fan_inV", [sigma_fan_inV]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((fun arg_tac -> (use_arg_then2 ("PAIR_IN_DART1_OF_FAN", [PAIR_IN_DART1_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("vw_in1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("andbT", [andbT]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andbb", [andbb]))(thm_tac (new_rewrite [] [])))));
+   (((((use_arg_then2 ("E1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("IN_INSERT", [IN_INSERT]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   (((((use_arg_then2 ("Planarity.fan80", [Planarity.fan80]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fully_surrounded", [fully_surrounded]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("E1_def", []))(thm_tac (new_rewrite [] []))))) THEN (move ["f80"]) THEN (case THEN ALL_TAC) THEN (move ["x"]) THEN (move ["y"]) THEN (move ["xy_in"]));
+   ((fun arg_tac -> arg_tac (Arg_term (`{x,y} IN E1`))) (term_tac (have_gen_tac [](move ["xy_inE"]))));
+   ((((use_arg_then2 ("xy_in", [])) (disch_tac [])) THEN (clear_assumption "xy_in") THEN BETA_TAC) THEN ((((use_arg_then2 ("dart_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("E1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("IN_INSERT", [IN_INSERT]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("NOT_IN_EMPTY", [NOT_IN_EMPTY]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)));
+   ((((THENL) case [(((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))); ALL_TAC]) THEN ((TRY done_tac))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] []))))));
+   ((case THEN ALL_TAC THEN (case THEN ((((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))))) THEN ((TRY done_tac))) THEN (((fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL Collect_geom.PER_SET2)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((((use_arg_then2 ("azim_dart1_eq_azim", [azim_dart1_eq_azim]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("f80", []))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("fan2", [fan2]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("xy_inE", []))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] []))))));
+   (((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL add_edge_imp_card_set_edge_ge1_fan))) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("w1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("w", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))));
+   (((((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("Fan_misc.FAN_IN_SET_OF_EDGE", [Fan_misc.FAN_IN_SET_OF_EDGE])) (fun fst_arg -> (use_arg_then2 ("fan2", [fan2])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("xy_inE", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("eq", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (simp_tac)) THEN (move ["a"]) THEN (move ["aV"]));
+   ((((fun arg_tac -> (use_arg_then2 ("fully_surrounded_card_set_of_edge1", [fully_surrounded_card_set_of_edge1])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma n_split_fan_face *)
+let n_split_fan_face = section_proof ["v";"w"]
+`v,w IN dart_of_fan (V,E)
+	/\ 3 < CARD (face (hypermap_of_fan (V,E)) (v,w))
+	==> (let w1 = sigma_fan (vec 0) V E v w and
+		d2 = f_fan_pair (V,E) (v,w) and
+		n = n_fan_pair (split_fan_face (V,E) (v,w)) in
+	n (w1,w) = n_fan_pair (V,E) (w1,v) /\
+	n (w1,v) = w1,w /\
+	n d2 = w,w1 /\
+	n (w,w1) = w,v /\
+	(!d. d IN dart_of_fan (split_fan_face (V,E) (v,w)) /\
+		~(d = w1,w \/ d = w1,v \/ d = d2 \/ d = w,w1)
+		==> n d = n_fan_pair (V,E) d))`
+[
+   (BETA_TAC THEN (case THEN (move ["vw_in"])) THEN (move ["card_gt3"]));
+   ((((use_arg_then2 ("vw_in", [])) (disch_tac [])) THEN BETA_TAC) THEN (((((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN (move ["vw_in1"])));
+   (CONV_TAC let_CONV);
+   ((fun arg_tac -> (use_arg_then2 ("fan_split_fan_face", [fan_split_fan_face])) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
+   (((use_arg_then2 ("split_fan_face", [split_fan_face]))(thm_tac (new_rewrite [] []))));
+   ((fun arg_tac -> arg_tac (Arg_term (`sigma_fan _ V E v w`))) (term_tac (set_tac "w1")));
+   ((fun arg_tac -> arg_tac (Arg_term (`f_fan_pair _1 _2`))) (term_tac (set_tac "d2")));
+   ((fun arg_tac -> arg_tac (Arg_term (`_ INSERT E`))) (term_tac (set_tac "E1")));
+   ((fun arg_tac -> arg_tac (Arg_term (`E1 = E UNION {{w1,w}}`))) (term_tac (have_gen_tac [](move ["E1_eq"]))));
+   (((((use_arg_then2 ("E1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL Collect_geom.PER_SET2)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("UNION_COMM", [UNION_COMM]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("Packing3.SING_UNION_EQ_INSERT", [Packing3.SING_UNION_EQ_INSERT]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   (BETA_TAC THEN (case THEN (move ["f1_fan"])) THEN (case THEN (move ["dart1"])) THEN (move ["f_surr1"]));
+   ((fun arg_tac -> arg_tac (Arg_term (`{w1,v} IN E /\ {v,w} IN E /\ ~({w,w1} IN E) /\ {w,v} IN E`))) (term_tac (have_gen_tac [](case THEN ((move ["e1"]) THEN (case THEN (move ["e2"])) THEN (case THEN (move ["e3"])) THEN (move ["e4"]))))));
+   ((repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1])) (fun fst_arg -> (use_arg_then2 ("V", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("dart1_switch", [dart1_switch]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("w1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("sigma_in_dart1", [sigma_in_dart1]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("vw_in1", []))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] []))))));
+   ((((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("fully_surrounded_diag_not_in_dart", [fully_surrounded_diag_not_in_dart]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   ((((use_arg_then2 ("dart_switch", [dart_switch]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((fun arg_tac -> arg_tac (Arg_term (`d2 = w,inverse1_sigma_fan (vec 0) V E w v`))) (term_tac (have_gen_tac [](move ["d2_eq"]))));
+   ((((use_arg_then2 ("d2_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("f_fan_pair", [f_fan_pair]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((((use_arg_then2 ("Fan_misc.INVERSE_SIGMA_FAN_EQ_INVERSE1_SIGMA_FAN", [Fan_misc.INVERSE_SIGMA_FAN_EQ_INVERSE1_SIGMA_FAN]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("fully_surrounded_imp_fan80", [fully_surrounded_imp_fan80])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f_surr", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (move ["f80"])));
+   ((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("fully_surrounded_card_set_of_edge1", [fully_surrounded_card_set_of_edge1])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f_surr", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (move ["gt1"])));
+   (split_tac);
+   ((repeat_tactic 1 9 (((use_arg_then2 ("n_fan_pair", [n_fan_pair]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("SIGMA_FAN_OF_FANADD_AT_POINT1", [SIGMA_FAN_OF_FANADD_AT_POINT1])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f1_fan", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e3", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f80", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("gt1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   (split_tac);
+   ((((use_arg_then2 ("n_fan_pair", [n_fan_pair]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("SIGMA_FAN_OF_FANADD_AT_POINT2", [SIGMA_FAN_OF_FANADD_AT_POINT2])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f1_fan", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e3", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f80", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("gt1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   (split_tac);
+   ((((use_arg_then2 ("d2_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("n_fan_pair", [n_fan_pair]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("SIGMA_FAN_OF_FANADD_AT_POINT6", [SIGMA_FAN_OF_FANADD_AT_POINT6])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f1_fan", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e3", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f80", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("gt1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   (((((fun arg_tac -> (use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1])) (fun fst_arg -> (use_arg_then2 ("V", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("d2_eq", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("d2_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("E_N_F_IN_DART1_OF_FAN", [E_N_F_IN_DART1_OF_FAN]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   (split_tac);
+   ((((use_arg_then2 ("n_fan_pair", [n_fan_pair]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("SIGMA_FAN_OF_FANADD_AT_POINT3", [SIGMA_FAN_OF_FANADD_AT_POINT3])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f1_fan", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e3", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f80", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("gt1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   (((((use_arg_then2 ("dart1", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("negb_or", [negb_or]))(thm_tac (new_rewrite [] [])))))) THEN (move ["d"]) THEN (case THEN ALL_TAC) THEN (move ["d_in"]) THEN (move ["d_neq"]));
+   ((THENL_LAST) ((THENL) (((use_arg_then2 ("d_in", [])) (disch_tac [])) THEN (clear_assumption "d_in") THEN case) [(move ["d_in"]); ALL_TAC]) (((((use_arg_then2 ("IN_INSERT", [IN_INSERT]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_SING", [IN_SING]))(thm_tac (new_rewrite [] []))))) THEN (done_tac)));
+   (((use_arg_then2 ("d_neq", [])) (disch_tac [])) THEN (clear_assumption "d_neq") THEN ((use_arg_then2 ("d_in", [])) (disch_tac [])) THEN (clear_assumption "d_in") THEN ((use_arg_then2 ("d", [])) (disch_tac [])) THEN (clear_assumption "d") THEN BETA_TAC THEN (case THEN ALL_TAC) THEN (move ["x"]) THEN (move ["y"]) THEN (move ["d_in"]) THEN (case THEN (move ["eq1"])) THEN (case THEN (move ["eq2"])) THEN (case THEN (move ["eq3"])) THEN (move ["eq4"]));
+   ((repeat_tactic 1 9 (((use_arg_then2 ("n_fan_pair", [n_fan_pair]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((THENL_ROT (-1)) (((fun arg_tac -> arg_tac (Arg_term (`x IN {w,w1}`))) (disch_eq_tac "h1" [])) THEN case THEN (simp_tac) THEN (process_fst_eq_tac)));
+   ((((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("SIGMA_FAN_OF_FANADD1", [SIGMA_FAN_OF_FANADD1])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f1_fan", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("gt1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e3", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   (((((fun arg_tac -> (use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1])) (fun fst_arg -> (use_arg_then2 ("V", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL Collect_geom.PER_SET2)))(thm_tac (new_rewrite [1] [])))) THEN (((use_arg_then2 ("E1_eq", []))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+   ((fun arg_tac -> arg_tac (Arg_term (`(~(v = y) /\ x = w1) \/ (~(y = SND d2) /\ x = w)`))) (term_tac (have_gen_tac []ALL_TAC)));
+   ((((use_arg_then2 ("h1", [])) (disch_tac [])) THEN (clear_assumption "h1") THEN BETA_TAC) THEN ((((use_arg_then2 ("IN_INSERT", [IN_INSERT]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_SING", [IN_SING]))(thm_tac (new_rewrite [] []))))) THEN (case THEN (move ["x_eq"])));
+   ((DISJ2_TAC) THEN ((((use_arg_then2 ("x_eq", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)) THEN (((use_arg_then2 ("eq3", [])) (disch_tac [])) THEN (clear_assumption "eq3") THEN ((use_arg_then2 ("contra", [contra])) (disch_tac [])) THEN (clear_assumption "contra") THEN (DISCH_THEN apply_tac) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN ((((use_arg_then2 ("x_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("d2_eq", []))(thm_tac (new_rewrite [1] [])))) THEN (((use_arg_then2 ("SND", [SND]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("d2_eq", []))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+   ((DISJ1_TAC) THEN ((((use_arg_then2 ("x_eq", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)) THEN (((use_arg_then2 ("eq2", [])) (disch_tac [])) THEN (clear_assumption "eq2") THEN ((use_arg_then2 ("contra", [contra])) (disch_tac [])) THEN (clear_assumption "contra") THEN (DISCH_THEN apply_tac) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("x_eq", []))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   (case THEN (move ["xy_eq"]));
+   ((((use_arg_then2 ("xy_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("SIGMA_FAN_OF_FANADD_AT_POINT4", [SIGMA_FAN_OF_FANADD_AT_POINT4])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f1_fan", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f80", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("gt1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e3", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   (((((use_arg_then2 ("xy_eq", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1])) (fun fst_arg -> (use_arg_then2 ("V", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((((use_arg_then2 ("xy_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("SIGMA_FAN_OF_FANADD_AT_POINT5", [SIGMA_FAN_OF_FANADD_AT_POINT5])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f1_fan", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f80", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("gt1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e3", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   (((((use_arg_then2 ("xy_eq", []))(gsym_then (thm_tac (new_rewrite [2] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1])) (fun fst_arg -> (use_arg_then2 ("V", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((split_tac) THEN ((TRY done_tac))))));
+   ((((use_arg_then2 ("xy_eq", [])) (disch_tac [])) THEN (clear_assumption "xy_eq") THEN BETA_TAC) THEN (((((use_arg_then2 ("d2_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("SND", [SND]))(thm_tac (new_rewrite [] []))))) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma inv_n_split_fan_face *)
+let inv_n_split_fan_face = section_proof ["v";"w"]
+`v,w IN dart_of_fan (V,E)
+	/\ 3 < CARD (face (hypermap_of_fan (V,E)) (v,w))
+	==> (let w1 = sigma_fan (vec 0) V E v w and
+		d2 = f_fan_pair (V,E) (v,w) and
+		n = inverse (n_fan_pair_ext (split_fan_face (V,E) (v,w))) in
+	n (n_fan_pair (V,E) (w1,v)) = w1,w
+	/\ n (w1,w) = w1,v
+	/\ n (w,w1) = d2
+	/\ n (w,v) = w,w1
+	/\ (!d. ~(d = n_fan_pair (V,E) (w1,v) \/ d = w1,w \/ d = w,w1 \/ d = w,v)
+		==> n d = inverse (n_fan_pair_ext (V,E)) d))`
+[
+   (BETA_TAC THEN (case THEN (move ["vw_in"])) THEN (move ["card_f"]));
+   ((((use_arg_then2 ("vw_in", [])) (disch_tac [])) THEN BETA_TAC) THEN (((((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN (move ["vw_in1"])));
+   (CONV_TAC let_CONV);
+   ((fun arg_tac -> (use_arg_then2 ("fan_split_fan_face", [fan_split_fan_face])) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
+   (((use_arg_then2 ("split_fan_face", [split_fan_face]))(thm_tac (new_rewrite [] []))));
+   ((fun arg_tac -> arg_tac (Arg_term (`sigma_fan _ V E v w`))) (term_tac (set_tac "w1")));
+   ((fun arg_tac -> arg_tac (Arg_term (`f_fan_pair _1 _2`))) (term_tac (set_tac "d2")));
+   ((fun arg_tac -> arg_tac (Arg_term (`_ INSERT E`))) (term_tac (set_tac "E1")));
+   (BETA_TAC THEN (case THEN (move ["fan1"])) THEN (case THEN (move ["dart1"])) THEN (move ["f_surr1"]));
+   ((repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("PERMUTES_INVERSE_EQ", [PERMUTES_INVERSE_EQ])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`dart_of_fan (V,E1)`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("N_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN", [N_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   ((fun arg_tac -> arg_tac (Arg_term (`w1,v IN dart1_of_fan (V,E) /\ d2 IN dart1_of_fan (V,E)`))) (term_tac (have_gen_tac [](move ["in_dart"]))));
+   ((((use_arg_then2 ("d2_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("E_N_F_IN_DART1_OF_FAN", [E_N_F_IN_DART1_OF_FAN]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   (((((use_arg_then2 ("w1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("dart1_switch", [dart1_switch]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("sigma_in_dart1", [sigma_in_dart1]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((fun arg_tac -> arg_tac (Arg_term (`w1,w IN dart1_of_fan (V,E1) /\ w1,v IN dart1_of_fan (V,E1)
+		/\ d2 IN dart1_of_fan (V,E1) /\ w,w1 IN dart1_of_fan (V,E1)`))) (term_tac (have_gen_tac [](move ["in_dart1"]))));
+   (((((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("dart1", []))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("IN_INSERT", [IN_INSERT]))(thm_tac (new_rewrite [] []))))) THEN (simp_tac) THEN (repeat_tactic 1 9 (((use_arg_then2 ("in_dart", []))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+   ((repeat_tactic 1 9 (((use_arg_then2 ("n_fan_pair_ext", [n_fan_pair_ext]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("in_dart1", []))(thm_tac (new_rewrite [] []))))) THEN (simp_tac));
+   ((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (let_RULE n_split_fan_face))) (fun fst_arg -> (use_arg_then2 ("card_f", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
+   (((((use_arg_then2 ("d2_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("split_fan_face", [split_fan_face]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("w1_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("E1_def", []))(thm_tac (new_rewrite [] []))))) THEN (move ["eq"]));
+   (((repeat_tactic 1 9 (((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] []))))) THEN (simp_tac) THEN (repeat_tactic 1 9 (((use_arg_then2 ("negb_or", [negb_or]))(thm_tac (new_rewrite [] [])))))) THEN (move ["d"]) THEN (move ["d_neq"]));
+   ((((fun arg_tac -> (use_arg_then2 ("PERMUTES_INVERSE_EQ", [PERMUTES_INVERSE_EQ])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`dart_of_fan (V,E1)`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("N_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN", [N_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   ((THENL_ROT (-1)) (((fun arg_tac -> arg_tac (Arg_term (`d IN dart1_of_fan (V,E)`))) (disch_eq_tac "d_in" [])) THEN case THEN (simp_tac) THEN (process_fst_eq_tac)));
+   ((fun arg_tac -> arg_tac (Arg_term (`inverse (n_fan_pair_ext (V,E)) d = d`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))))));
+   ((((fun arg_tac -> (use_arg_then2 ("PERMUTES_INVERSE_EQ", [PERMUTES_INVERSE_EQ])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`dart_of_fan (V,E)`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("N_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN", [N_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   (((((use_arg_then2 ("n_fan_pair_ext", [n_fan_pair_ext]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("d_in", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((((use_arg_then2 ("n_fan_pair_ext", [n_fan_pair_ext]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("dart1", []))(thm_tac (new_rewrite [] [])))));
+   (((((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("d_in", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_INSERT", [IN_INSERT]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_SING", [IN_SING]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("d_neq", []))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+   ((fun arg_tac -> arg_tac (Arg_term (`inverse _ d`))) (term_tac (set_tac "y")));
+   ((fun arg_tac -> arg_tac (Arg_term (`y IN dart1_of_fan (V,E)`))) (term_tac (have_gen_tac [](move ["y_in"]))));
+   ((((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("y_def", []))(gsym_then (thm_tac (new_rewrite [] []))))));
+   ((repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("COMPONENTS_HYPERMAP_OF_FAN", [COMPONENTS_HYPERMAP_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (((use_arg_then2 ("Hypermap.lemma_dart_inveriant_under_inverse_maps", [Hypermap.lemma_dart_inveriant_under_inverse_maps]))(thm_tac (new_rewrite [] [])))));
+   (((((use_arg_then2 ("COMPONENTS_HYPERMAP_OF_FAN", [COMPONENTS_HYPERMAP_OF_FAN]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((THENL_FIRST) ((fun arg_tac -> arg_tac (Arg_term (`n_fan_pair (V,E) y = n_fan_pair_ext (V,E) y`))) (term_tac (have_gen_tac [](move ["ny_eq"])))) (((((use_arg_then2 ("n_fan_pair_ext", [n_fan_pair_ext]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("y_in", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac)));
+   ((fun arg_tac -> arg_tac (Arg_term (`d = n_fan_pair (V,E) y`))) (term_tac (have_gen_tac [](move ["d_eq"]))));
+   ((((use_arg_then2 ("ny_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("y_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("PERMUTES_INVERSES", [PERMUTES_INVERSES])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`dart_of_fan (V,E)`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   ((((use_arg_then2 ("N_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN", [N_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((((use_arg_then2 ("n_fan_pair_ext", [n_fan_pair_ext]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("dart1", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("y_in", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   ((((use_arg_then2 ("dart1", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("y_in", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((((use_arg_then2 ("d_neq", [])) (disch_tac [])) THEN (clear_assumption "d_neq") THEN ((use_arg_then2 ("contraL", [contraL])) (disch_tac [])) THEN (clear_assumption "contraL") THEN (DISCH_THEN apply_tac)) THEN ((repeat_tactic 1 9 (((use_arg_then2 ("negb_and", [negb_and]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("negbK", [negbK]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("d_eq", []))(thm_tac (new_rewrite [] []))))));
+   ((fun arg_tac -> arg_tac (Arg_term (`~(w1,w IN dart1_of_fan (V,E)) /\ ~(w,w1 IN dart1_of_fan (V,E))`))) (term_tac (have_gen_tac [](move ["not_in"]))));
+   ((((use_arg_then2 ("dart1_switch", [dart1_switch]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andbb", [andbb]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("w1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   ((((use_arg_then2 ("fully_surrounded_diag_not_in_dart", [fully_surrounded_diag_not_in_dart]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((THENL_FIRST) ((THENL) case [(move ["y_eq"]); ALL_TAC]) ((((use_arg_then2 ("y_in", [])) (disch_tac [])) THEN (clear_assumption "y_in") THEN BETA_TAC) THEN ((((use_arg_then2 ("y_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("not_in", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac)));
+   (((THENL) case [(((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))); ALL_TAC]) THEN ((TRY done_tac)));
+   ((THENL_LAST) ((THENL) case [(((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))); (move ["y_eq"])]) ((((use_arg_then2 ("y_in", [])) (disch_tac [])) THEN (clear_assumption "y_in") THEN BETA_TAC) THEN ((((use_arg_then2 ("y_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("not_in", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac)));
+   (repeat_tactic 1 9 ((DISJ2_TAC)));
+   ((((use_arg_then2 ("d2_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("f_fan_pair", [f_fan_pair]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("n_fan_pair", [n_fan_pair]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   (((use_arg_then2 ("Fan_misc.INVERSE_SIGMA_FAN_EQ_INVERSE1_SIGMA_FAN", [Fan_misc.INVERSE_SIGMA_FAN_EQ_INVERSE1_SIGMA_FAN]))(gsym_then (thm_tac (new_rewrite [] [])))));
+   (((((use_arg_then2 ("fanV", []))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1])) (fun fst_arg -> (use_arg_then2 ("V", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("dart1_switch", [dart1_switch]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   (((((fun arg_tac -> (use_arg_then2 ("Fan.INVERSE1_SIGMA_FAN", [Fan.INVERSE1_SIGMA_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((fun arg_tac -> (use_arg_then2 ("inE_eq_in_dart1", [inE_eq_in_dart1])) (fun fst_arg -> (use_arg_then2 ("V", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("dart1_switch", [dart1_switch]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma n_split_fan_face_eq1 *)
+let n_split_fan_face_eq1 = section_proof ["v";"w";"d"]
+`v,w IN dart_of_fan (V,E)
+	/\ d IN dart_of_fan (split_fan_face (V,E) (v,w))
+	/\ ~(FST d = sigma_fan (vec 0) V E v w) /\ ~(FST d = w)
+	==> n_fan_pair (split_fan_face (V,E) (v,w)) d = n_fan_pair (V,E) d`
+[
+   ((((use_arg_then2 ("d", [])) (disch_tac [])) THEN (clear_assumption "d") THEN case THEN (move ["x"]) THEN (move ["y"])) THEN ((((use_arg_then2 ("FST", [FST]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN (move ["vw_in"])) THEN (case THEN (move ["xy_in"])) THEN (move ["neq"])));
+   (((fun arg_tac -> (use_arg_then2 ("fully_surrounded_card_face_alt", [fully_surrounded_card_face_alt])) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN case THEN (move ["card_f"]));
+   ((((use_arg_then2 ("split_fan_face_eq", [split_fan_face_eq]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (let_RULE n_split_fan_face))) (fun fst_arg -> (use_arg_then2 ("card_f", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (case THEN ((move ["_"]) THEN (case THEN (move ["_"])) THEN (case THEN (move ["_"])) THEN (case THEN (move ["_"])) THEN (move ["eq"])))));
+   (((((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("f_fan_pair", [f_fan_pair]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("neq", []))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+];;
+
+(* Lemma n_split_fan_face_eq2 *)
+let n_split_fan_face_eq2 = section_proof ["v";"w";"d"]
+`v,w IN dart_of_fan (V,E)
+	/\ d IN dart_of_fan (V,E)
+	/\ ~(d IN face (hypermap_of_fan (V,E)) (v,w))
+	==> n_fan_pair (split_fan_face (V,E) (v,w)) d = n_fan_pair (V,E) d`
+[
+   (BETA_TAC THEN (case THEN (move ["vw_in"])) THEN (case THEN (move ["d_in"])) THEN (move ["neq"]));
+   ((((use_arg_then2 ("vw_in", [])) (disch_tac [])) THEN BETA_TAC) THEN (((((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN (move ["vw_in1"])));
+   (((fun arg_tac -> (use_arg_then2 ("fully_surrounded_card_face_alt", [fully_surrounded_card_face_alt])) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN case THEN (move ["card_f"]));
+   ((((use_arg_then2 ("split_fan_face_eq", [split_fan_face_eq]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (let_RULE n_split_fan_face))) (fun fst_arg -> (use_arg_then2 ("card_f", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (repeat_tactic 1 9 (((use_arg_then2 ("negb_or", [negb_or]))(thm_tac (new_rewrite [] []))))));
+   ((((use_arg_then2 ("fan_split_fan_face", [fan_split_fan_face]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("d_in", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((THENL_FIRST) (split_tac) ((((use_arg_then2 ("d_in", [])) (disch_tac [])) THEN (clear_assumption "d_in") THEN ((use_arg_then2 ("contraL", [contraL])) (disch_tac [])) THEN (clear_assumption "contraL") THEN (DISCH_THEN apply_tac) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN ((((use_arg_then2 ("dart_switch", [dart_switch]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fully_surrounded_diag_not_in_dart", [fully_surrounded_diag_not_in_dart]))(thm_tac (new_rewrite [] []))))) THEN (done_tac)));
+   ((THENL_FIRST) (split_tac) ((((use_arg_then2 ("neq", [])) (disch_tac [])) THEN (clear_assumption "neq") THEN ((use_arg_then2 ("contra", [contra])) (disch_tac [])) THEN (clear_assumption "contra") THEN (DISCH_THEN apply_tac) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (let_RULE FACE_LAST_POINT))) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac)));
+   (split_tac);
+   ((((use_arg_then2 ("neq", [])) (disch_tac [])) THEN (clear_assumption "neq") THEN ((use_arg_then2 ("contra", [contra])) (disch_tac [])) THEN (clear_assumption "contra") THEN (DISCH_THEN apply_tac)) THEN (((((use_arg_then2 ("fan_hypermap_map1", [fan_hypermap_map1]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac))) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))));
+   (((((fun arg_tac -> (use_arg_then2 ("POWER_1", [POWER_1])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`face_map _`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("Hypermap.lemma_in_face", [Hypermap.lemma_in_face]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((((use_arg_then2 ("d_in", [])) (disch_tac [])) THEN (clear_assumption "d_in") THEN ((use_arg_then2 ("contraL", [contraL])) (disch_tac [])) THEN (clear_assumption "contraL") THEN (DISCH_THEN apply_tac) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("fully_surrounded_diag_not_in_dart", [fully_surrounded_diag_not_in_dart]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma f_split_fan_face *)
+let f_split_fan_face = section_proof ["v";"w"]
+`v,w IN dart_of_fan (V,E)
+	/\ 3 < CARD (face (hypermap_of_fan (V,E)) (v,w))
+	==> (let w1 = sigma_fan (vec 0) V E v w and
+		d2 = f_fan_pair (V,E) (v,w) and
+		f = f_fan_pair (split_fan_face (V,E) (v,w)) in
+	f (v,w) = w,w1 /\
+	f (w,w1) = w1,v /\
+	f (w1,w) = d2 /\
+	f (sigma_fan (vec 0) V E w1 v,w1) = w1,w /\
+	(!d. d IN dart_of_fan (split_fan_face (V,E) (v,w)) /\
+		~(d = v,w \/ d = w,w1 \/ d = w1,w \/ d = sigma_fan (vec 0) V E w1 v,w1)
+		==> f d = f_fan_pair (V,E) d))`
+[
+   (BETA_TAC THEN (case THEN (move ["vw_in"])) THEN (move ["card_f"]));
+   ((((use_arg_then2 ("vw_in", [])) (disch_tac [])) THEN BETA_TAC) THEN (((((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN (move ["vw_in1"])));
+   (CONV_TAC let_CONV);
+   ((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (let_RULE inv_n_split_fan_face))) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("card_f", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
+   ((fun arg_tac -> (use_arg_then2 ("fan_split_fan_face", [fan_split_fan_face])) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
+   (((use_arg_then2 ("split_fan_face", [split_fan_face]))(thm_tac (new_rewrite [] []))));
+   ((fun arg_tac -> arg_tac (Arg_term (`inverse _`))) (term_tac (set_tac "n")));
+   ((fun arg_tac -> arg_tac (Arg_term (`sigma_fan (vec 0) V E v w`))) (term_tac (set_tac "w1")));
+   ((fun arg_tac -> arg_tac (Arg_term (`f_fan_pair _ (v,w)`))) (term_tac (set_tac "d2")));
+   ((fun arg_tac -> arg_tac (Arg_term (`_ INSERT E`))) (term_tac (set_tac "E1")));
+   (BETA_TAC THEN (case THEN (move ["fan1"])) THEN (case THEN (move ["dart1"])) THEN (move ["f_surr1"]) THEN (move ["n_eq"]));
+   ((fun arg_tac -> arg_tac (Arg_term (`v,w IN dart1_of_fan (V,E1) /\ w,w1 IN dart1_of_fan (V,E1) /\
+	w1,w IN dart1_of_fan (V,E1) /\ sigma_fan (vec 0) V E w1 v,w1 IN dart1_of_fan (V,E1)`))) (term_tac (have_gen_tac [](move ["in_dart1"]))));
+   ((((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("dart1", []))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("IN_INSERT", [IN_INSERT]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("vw_in1", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((DISJ1_TAC) THEN ((((use_arg_then2 ("dart1_switch", [dart1_switch]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("sigma_in_dart1", [sigma_in_dart1]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("w1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("dart1_switch", [dart1_switch]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("sigma_in_dart1", [sigma_in_dart1]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((repeat_tactic 1 9 (((use_arg_then2 ("f_fan_pair_eq_inv_n_o_e", [f_fan_pair_eq_inv_n_o_e]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("n_def", []))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("e_fan_pair", [e_fan_pair]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("n_fan_pair", [n_fan_pair]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("n_eq", []))(thm_tac (new_rewrite [] []))))) THEN (simp_tac) THEN (repeat_tactic 1 9 (((use_arg_then2 ("negb_or", [negb_or]))(thm_tac (new_rewrite [] []))))));
+   (BETA_TAC THEN (case THEN ((move ["x"]) THEN (move ["y"]))) THEN (case THEN (move ["xy_in"])) THEN (move ["xy_neq"]));
+   ((((use_arg_then2 ("f_fan_pair_eq_inv_n_o_e", [f_fan_pair_eq_inv_n_o_e]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN ((TRY done_tac)));
+   ((fun arg_tac -> arg_tac (Arg_term (`x,y IN dart1_of_fan (V,E)`))) (term_tac (have_gen_tac [](move ["xy_in1"]))));
+   ((((use_arg_then2 ("xy_in", [])) (disch_tac [])) THEN (clear_assumption "xy_in") THEN BETA_TAC) THEN ((((use_arg_then2 ("dart1", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_INSERT", [IN_INSERT]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_SING", [IN_SING]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("xy_neq", []))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+   ((((use_arg_then2 ("f_fan_pair_eq_inv_n_o_e", [f_fan_pair_eq_inv_n_o_e]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (repeat_tactic 1 9 (((use_arg_then2 ("e_fan_pair", [e_fan_pair]))(thm_tac (new_rewrite [] []))))));
+   ((((use_arg_then2 ("n_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("n_eq", []))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("n_fan_pair", [n_fan_pair]))(thm_tac (new_rewrite [] [])))));
+   ((((use_arg_then2 ("xy_neq", [])) (disch_tac [])) THEN (clear_assumption "xy_neq") THEN BETA_TAC) THEN ((repeat_tactic 1 9 (((use_arg_then2 ("negb_or", [negb_or]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))))) THEN (((use_arg_then2 ("contra", [contra])) (disch_tac [])) THEN (clear_assumption "contra") THEN (DISCH_THEN apply_tac)));
+   (repeat_tactic 1 9 ((case THEN (simp_tac))));
+];;
+
+(* Lemma f_split_fan_face_eq *)
+let f_split_fan_face_eq = section_proof ["v";"w";"d"]
+`v,w IN dart_of_fan (V,E)
+	/\ d IN dart_of_fan (V,E)
+	/\ ~(d IN face (hypermap_of_fan (V,E)) (v,w))
+	==> f_fan_pair (split_fan_face (V,E) (v,w)) d = f_fan_pair (V,E) d`
+[
+   (BETA_TAC THEN (case THEN (move ["vw_in"])) THEN (case THEN (move ["d_in"])) THEN (move ["neq"]));
+   ((((use_arg_then2 ("vw_in", [])) (disch_tac [])) THEN BETA_TAC) THEN (((((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN (move ["vw_in1"])));
+   (((fun arg_tac -> (use_arg_then2 ("fully_surrounded_card_face_alt", [fully_surrounded_card_face_alt])) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN case THEN (move ["card_f"]));
+   ((((use_arg_then2 ("split_fan_face_eq", [split_fan_face_eq]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (let_RULE f_split_fan_face))) (fun fst_arg -> (use_arg_then2 ("card_f", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (repeat_tactic 1 9 (((use_arg_then2 ("negb_or", [negb_or]))(thm_tac (new_rewrite [] []))))));
+   ((((use_arg_then2 ("fan_split_fan_face", [fan_split_fan_face]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("d_in", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((THENL_FIRST) (split_tac) ((((use_arg_then2 ("neq", [])) (disch_tac [])) THEN (clear_assumption "neq") THEN ((use_arg_then2 ("contra", [contra])) (disch_tac [])) THEN (clear_assumption "contra") THEN (DISCH_THEN apply_tac) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("Hypermap.face_refl", [Hypermap.face_refl]))(thm_tac (new_rewrite [] [])))) THEN (done_tac)));
+   ((THENL_FIRST) (split_tac) ((((use_arg_then2 ("d_in", [])) (disch_tac [])) THEN (clear_assumption "d_in") THEN ((use_arg_then2 ("contraL", [contraL])) (disch_tac [])) THEN (clear_assumption "contraL") THEN (DISCH_THEN apply_tac) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("fully_surrounded_diag_not_in_dart", [fully_surrounded_diag_not_in_dart]))(thm_tac (new_rewrite [] [])))) THEN (done_tac)));
+   ((THENL_FIRST) (split_tac) ((((use_arg_then2 ("d_in", [])) (disch_tac [])) THEN (clear_assumption "d_in") THEN ((use_arg_then2 ("contraL", [contraL])) (disch_tac [])) THEN (clear_assumption "contraL") THEN (DISCH_THEN apply_tac) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN ((((use_arg_then2 ("dart_switch", [dart_switch]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fully_surrounded_diag_not_in_dart", [fully_surrounded_diag_not_in_dart]))(thm_tac (new_rewrite [] []))))) THEN (done_tac)));
+   (((use_arg_then2 ("neq", [])) (disch_tac [])) THEN (clear_assumption "neq") THEN ((use_arg_then2 ("contra", [contra])) (disch_tac [])) THEN (clear_assumption "contra") THEN (DISCH_THEN apply_tac) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))));
+   ((fun arg_tac -> arg_tac (Arg_term (`sigma_fan (vec 0) V E v w`))) (term_tac (set_tac "w1")));
+   ((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (let_RULE FACE_LAST_POINT))) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("vw_in1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
+   ((((use_arg_then2 ("w1_def", []))(thm_tac (new_rewrite [] [])))) THEN (move ["w1v_in"]));
+   (((fun arg_tac -> (use_arg_then2 ("Hypermap.lemma_face_identity", [Hypermap.lemma_face_identity])) (fun fst_arg -> (use_arg_then2 ("w1v_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))));
+   ((((fun arg_tac -> arg_tac (Arg_theorem (let_RULE FACE_LAST_POINT)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("fanV", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] [])))));
+   (((((use_arg_then2 ("w1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("dart1_switch", [dart1_switch]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("sigma_in_dart1", [sigma_in_dart1]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma face_split_fan_face *)
+let face_split_fan_face = section_proof ["v";"w";"d"]
+`v,w IN dart_of_fan (V,E)
+	/\ d IN dart_of_fan (V,E) /\ ~(d IN face (hypermap_of_fan (V,E)) (v,w))
+		==> face (hypermap_of_fan (split_fan_face (V,E) (v,w))) d
+			= face (hypermap_of_fan (V,E)) d`
+[
+   (BETA_TAC THEN (case THEN (move ["vw_in"])) THEN (case THEN (move ["d_in"])) THEN (move ["d_n_in"]));
+   ((((use_arg_then2 ("vw_in", [])) (disch_tac [])) THEN ((use_arg_then2 ("d_in", [])) (disch_tac [])) THEN BETA_TAC) THEN (((repeat_tactic 1 9 (((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac))) THEN (move ["d_in1"]) THEN (move ["vw_in1"])));
+   ((fun arg_tac -> (use_arg_then2 ("fan_split_fan_face", [fan_split_fan_face])) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (case THEN ((move ["fan1"]) THEN (case THEN (move ["dart1"])) THEN (move ["f_surr1"])))));
+   ((fun arg_tac -> (use_arg_then2 ("f_split_fan_face_eq", [f_split_fan_face_eq])) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (move ["f_eq"])));
+   (in_tac ["f_surr1"; "dart1"; "fan1"; "f_eq"] true (((use_arg_then2 ("split_fan_face", [split_fan_face]))(thm_tac (new_rewrite [] [])))));
+   ((fun arg_tac -> arg_tac (Arg_term (`sigma_fan _ V E v w`))) (term_tac (set_tac "w1")));
+   ((fun arg_tac -> arg_tac (Arg_term (`_ INSERT E`))) (term_tac (set_tac "E1")));
+   ((repeat_tactic 1 9 (((use_arg_then2 ("face", [face]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("orbit_map", [orbit_map]))(thm_tac (new_rewrite [] []))))));
+   ((fun arg_tac -> arg_tac (Arg_term (`face_map _`))) (term_tac (set_tac "f1")));
+   ((fun arg_tac -> arg_tac (Arg_term (`face_map _`))) (term_tac (set_tac "f")));
+   ((THENL_FIRST) (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`(f1 POWER n) d = (f POWER n) d /\ (f POWER n) d IN dart1_of_fan (V,E) 
+	/\ ~((f POWER n) d IN face (hypermap_of_fan (V,E)) (v,w))`))) (term_tac (have_gen_tac ["n"](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))))))) ((ALL_TAC) THEN (done_tac)));
+   ((((use_arg_then2 ("n", [])) (disch_tac [])) THEN (clear_assumption "n") THEN elim) THEN (((repeat_tactic 0 10 (((use_arg_then2 ("POWER_0", [POWER_0]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("I_THM", [I_THM]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac))) THEN (move ["n"]) THEN (case THEN (move ["eq"])) THEN (case THEN (move ["in1"])) THEN (move ["n_in"])));
+   ((repeat_tactic 1 9 (((use_arg_then2 ("Fan.POWER_RIGHT", [Fan.POWER_RIGHT]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("o_THM", [o_THM]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] [])))));
+   ((fun arg_tac -> arg_tac (Arg_term (`(f POWER n) d IN dart1_of_fan (V,E1)`))) (term_tac (have_gen_tac [](move ["fn_in1"]))));
+   (((((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("dart1", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((((use_arg_then2 ("f1_def", []))(gsym_then (thm_tac (new_rewrite [1] []))))) THEN (((use_arg_then2 ("f_def", []))(gsym_then (thm_tac (new_rewrite [2] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("fan_hypermap_map1", [fan_hypermap_map1]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("f_eq", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   (((((use_arg_then2 ("n_in", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((((use_arg_then2 ("f_def", []))(gsym_then (thm_tac (new_rewrite [1] []))))) THEN (((use_arg_then2 ("fan_hypermap_map1", [fan_hypermap_map1]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("E_N_F_IN_DART1_OF_FAN", [E_N_F_IN_DART1_OF_FAN]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] [])))));
+   (((fun arg_tac -> (use_arg_then2 ("Hypermap.lemma_different_faces", [Hypermap.lemma_different_faces])) (fun fst_arg -> (use_arg_then2 ("n_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN ((use_arg_then2 ("contra", [contra])) (disch_tac [])) THEN (clear_assumption "contra") THEN (DISCH_THEN apply_tac));
+   (((DISCH_THEN (fun snd_th -> (use_arg_then2 ("Hypermap.lemma_face_identity", [Hypermap.lemma_face_identity])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN BETA_TAC THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN ((use_arg_then2 ("Hypermap.lemma_face_identity", [Hypermap.lemma_face_identity])) (thm_tac apply_tac)));
+   (((((fun arg_tac -> (use_arg_then2 ("POWER_1", [POWER_1])) (fun fst_arg -> (use_arg_then2 ("f", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [1] []))))) THEN (((use_arg_then2 ("f_def", []))(gsym_then (thm_tac (new_rewrite [1] []))))) THEN (((use_arg_then2 ("Hypermap.lemma_in_face", [Hypermap.lemma_in_face]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma azim_split_fan_face *)
+let azim_split_fan_face = section_proof ["v";"w";"d"]
+`v,w IN dart_of_fan (V,E) /\ d IN dart_of_fan (V,E)
+		/\ ~(d = sigma_fan (vec 0) V E v w, v)
+		/\ ~(d = f_fan_pair (V,E) (v,w))
+		==> azim_dart (split_fan_face (V,E) (v,w)) d = azim_dart (V,E) d`
+[
+   (((use_arg_then2 ("d", [])) (disch_tac [])) THEN (clear_assumption "d") THEN case THEN (move ["a"]) THEN (move ["b"]));
+   (BETA_TAC THEN (case THEN (move ["vw_in"])) THEN (case THEN (move ["d_in"])) THEN (move ["d_n_in"]));
+   ((((use_arg_then2 ("vw_in", [])) (disch_tac [])) THEN ((use_arg_then2 ("d_in", [])) (disch_tac [])) THEN BETA_TAC) THEN (((repeat_tactic 1 9 (((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac))) THEN (move ["d_in1"]) THEN (move ["vw_in1"])));
+   (((fun arg_tac -> (use_arg_then2 ("fully_surrounded_card_face_alt", [fully_surrounded_card_face_alt])) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN case THEN (move ["card_f"]));
+   ((((use_arg_then2 ("split_fan_face_eq", [split_fan_face_eq]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((fun arg_tac -> (use_arg_then2 ("fan_split_fan_face", [fan_split_fan_face])) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
+   ((((use_arg_then2 ("split_fan_face", [split_fan_face]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("Packing3.SING_UNION_EQ_INSERT", [Packing3.SING_UNION_EQ_INSERT]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL Collect_geom.PER_SET2)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("UNION_COMM", [UNION_COMM]))(thm_tac (new_rewrite [] [])))));
+   ((fun arg_tac -> arg_tac (Arg_term (`E UNION _`))) (term_tac (set_tac "E1")));
+   (BETA_TAC THEN (case THEN (move ["fan1"])) THEN (case THEN (move ["dart1"])) THEN (move ["f_surr1"]));
+   ((repeat_tactic 1 9 (((use_arg_then2 ("azim_dart_eq_azim_fan", [azim_dart_eq_azim_fan]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (repeat_tactic 0 10 (((use_arg_then2 ("dart1", []))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   ((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (let_RULE aux_lemma))) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("card_f", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
+   ((fun arg_tac -> (use_arg_then2 ("fan_hypermaps_iso_explicit2", [fan_hypermaps_iso_explicit2])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
+   ((fun arg_tac -> (use_arg_then2 ("fan_hypermaps_iso_explicit2", [fan_hypermaps_iso_explicit2])) (fun fst_arg -> (use_arg_then2 ("fan1", [fan1])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
+   ((fun arg_tac -> arg_tac (Arg_term (`hypermap_of_fan _`))) (term_tac (set_tac "H2")));
+   ((fun arg_tac -> arg_tac (Arg_term (`ext_dart _`))) (term_tac (set_tac "h2")));
+   ((fun arg_tac -> arg_tac (Arg_term (`hypermap1_of_fanx _`))) (term_tac (set_tac "G2")));
+   ((fun arg_tac -> arg_tac (Arg_term (`hypermap_of_fan _`))) (term_tac (set_tac "H")));
+   ((fun arg_tac -> arg_tac (Arg_term (`ext_dart _`))) (term_tac (set_tac "h")));
+   ((fun arg_tac -> arg_tac (Arg_term (`sigma_fan _ V E v w`))) (term_tac (set_tac "w1")));
+   (BETA_TAC THEN (move ["iso2"]) THEN (move ["iso"]) THEN (case THEN (move ["h1"])) THEN (case THEN (move ["h2"])) THEN (case THEN (move ["h3"])) THEN (move ["h4"]));
+   ((fun arg_tac -> arg_tac (Arg_term (`face G2 (h2 (w1,w))`))) (term_tac (set_tac "ds1")));
+   ((fun arg_tac -> arg_tac (Arg_term (`face G2 (h2 (w,w1))`))) (term_tac (set_tac "ds2")));
+   ((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("fully_surrounded_imp_fan80", [fully_surrounded_imp_fan80])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f_surr", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (move ["f80"])));
+   ((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("fully_surrounded_card_set_of_edge1", [fully_surrounded_card_set_of_edge1])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f_surr", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (move ["gt1"])));
+   ((fun arg_tac -> arg_tac (Arg_term (`w IN set_of_edge w1 V E1 /\ w1 IN set_of_edge w V E1`))) (term_tac (have_gen_tac [](move ["w_in"]))));
+   ((fun arg_tac -> arg_tac (Arg_term (`w,w1 IN dart1_of_fan (V,E1) /\ w1,w IN dart1_of_fan (V,E1)`))) (term_tac (have_gen_tac [](move ["in1"]))));
+   (((((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("dart1", []))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("IN_UNION", [IN_UNION]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("IN_INSERT", [IN_INSERT]))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+   ((repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("PAIR_IN_DART1_OF_FAN", [PAIR_IN_DART1_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fan1", [fan1])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((fun arg_tac -> arg_tac (Arg_term (`w1,v IN dart_of_fan (V,E) /\ f_fan_pair (V,E) (v,w) IN dart_of_fan (V,E)`))) (term_tac (have_gen_tac [](move ["in_dart"]))));
+   ((((use_arg_then2 ("w1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("dart1_switch", [dart1_switch]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("sigma_in_dart1", [sigma_in_dart1]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   ((((use_arg_then2 ("E_N_F_IN_DART1_OF_FAN", [E_N_F_IN_DART1_OF_FAN]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((fun arg_tac -> arg_tac (Arg_term (`dart H = dart_of_fan (V,E)`))) (term_tac (have_gen_tac [](move ["dart_eq"]))));
+   (((((use_arg_then2 ("H_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("COMPONENTS_HYPERMAP_OF_FAN", [COMPONENTS_HYPERMAP_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   (((fun arg_tac -> arg_tac (Arg_term (`a,b IN face H (v,w)`))) (disch_eq_tac "d_in_face" [])) THEN case THEN (simp_tac) THEN (process_fst_eq_tac));
+   ((THENL_ROT (-1)) (((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("azim_fanadd_eq_ds", [azim_fanadd_eq_ds])) (fun fst_arg -> (use_arg_then2 ("gt1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f80", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("E1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("h1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("h2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("h3", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("w1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("v", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("w", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("ds1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("ds2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`vec 0:real^3,w,w1,v`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`vec 0:real^3,w1,v,w`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`vec 0:real^3,v,w,w1`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`h (a,b)`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC)) THEN (ANTS_TAC)));
+   (((repeat_tactic 1 9 (((use_arg_then2 ("tran", [tran]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("h_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("ext_dart", [ext_dart]))(thm_tac (new_rewrite [] []))))) THEN (simp_tac) THEN (repeat_tactic 1 9 (((use_arg_then2 ("Fan.pr2", [Fan.pr2]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("Fan.pr3", [Fan.pr3]))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+   ((repeat_tactic 11 0 (((use_arg_then2 ("h4", []))(thm_tac (new_rewrite [] []))))) THEN (simp_tac) THEN (((use_arg_then2 ("w1_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("E1_def", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((((use_arg_then2 ("ds2_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("ds1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("G2_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("h2_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("ext_dart", [ext_dart]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("extension_sigma_fan", [extension_sigma_fan]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("w_in", []))(thm_tac (new_rewrite [] []))))) THEN (simp_tac));
+   ((THENL_FIRST) ((((use_arg_then2 ("IN_IMAGE", [IN_IMAGE]))(thm_tac (new_rewrite [] [])))) THEN (split_tac)) (((fun arg_tac -> arg_tac (Arg_term (`a,b`))) (term_tac exists_tac)) THEN (done_tac)));
+   ((((use_arg_then2 ("d_n_in", [])) (disch_tac [])) THEN (clear_assumption "d_n_in") THEN BETA_TAC) THEN (repeat_tactic 1 9 (((use_arg_then2 ("negb_or", [negb_or]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (((use_arg_then2 ("contra", [contra])) (disch_tac [])) THEN (clear_assumption "contra") THEN (DISCH_THEN apply_tac)));
+   ((fun arg_tac -> (use_arg_then2 ("hyp_iso_inj", [hyp_iso_inj])) (fun fst_arg -> (use_arg_then2 ("iso", [iso])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (move ["inj"])));
+   (case THEN ((DISCH_THEN (fun snd_th -> (use_arg_then2 ("inj", [])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN BETA_TAC) THEN ((((use_arg_then2 ("dart_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((THENL_ROT (-1)) (((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("azim_fanadd_eq", [azim_fanadd_eq])) (fun fst_arg -> (use_arg_then2 ("gt1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f80", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("E1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("h1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("h2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("h3", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("w1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("v", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("w", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("ds1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("ds2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`vec 0:real^3,w,w1,v`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`vec 0:real^3,w1,v,w`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`vec 0:real^3,v,w,w1`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`h (a,b)`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`IMAGE h (face H (a,b))`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC)) THEN (ANTS_TAC)));
+   (((repeat_tactic 1 9 (((use_arg_then2 ("tran", [tran]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("h_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("ext_dart", [ext_dart]))(thm_tac (new_rewrite [] []))))) THEN (simp_tac) THEN (repeat_tactic 1 9 (((use_arg_then2 ("Fan.pr2", [Fan.pr2]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("Fan.pr3", [Fan.pr3]))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+   ((repeat_tactic 11 0 (((use_arg_then2 ("h4", []))(thm_tac (new_rewrite [] []))))) THEN (simp_tac) THEN (((use_arg_then2 ("w1_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("E1_def", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((((use_arg_then2 ("ds2_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("ds1_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("G2_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("h2_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("ext_dart", [ext_dart]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("extension_sigma_fan", [extension_sigma_fan]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("w_in", []))(thm_tac (new_rewrite [] []))))) THEN (simp_tac));
+   ((THENL_LAST) (split_tac) ((((use_arg_then2 ("IN_IMAGE", [IN_IMAGE]))(thm_tac (new_rewrite [] [])))) THEN ((fun arg_tac -> arg_tac (Arg_term (`a,b`))) (term_tac exists_tac)) THEN (((use_arg_then2 ("Hypermap.face_refl", [Hypermap.face_refl]))(thm_tac (new_rewrite [] [])))) THEN (done_tac)));
+   ((((use_arg_then2 ("IN_DELETE", [IN_DELETE]))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (use_arg_then2 ("iso_components", [iso_components])) (fun fst_arg -> (use_arg_then2 ("iso", [iso])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [1] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("dart_eq", []))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   ((((use_arg_then2 ("Hypermap.lemma_in_face_set", [Hypermap.lemma_in_face_set]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("hyp_iso_dart", [hyp_iso_dart])) (fun fst_arg -> (use_arg_then2 ("iso", [iso])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("dart_eq", []))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] [])))));
+   (((use_arg_then2 ("d_in_face", [])) (disch_tac [])) THEN (clear_assumption "d_in_face") THEN ((use_arg_then2 ("contra", [contra])) (disch_tac [])) THEN (clear_assumption "contra") THEN (DISCH_THEN apply_tac));
+   ((DISCH_THEN (fun snd_th -> (fun arg_tac -> (use_arg_then2 ("image_inj_gen", [image_inj_gen])) (fun fst_arg -> (fun arg_tac -> (use_arg_then2 ("hyp_iso_inj", [hyp_iso_inj])) (fun fst_arg -> (use_arg_then2 ("iso", [iso])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN BETA_TAC);
+   (((repeat_tactic 1 9 (((use_arg_then2 ("Hypermap.lemma_face_subset", [Hypermap.lemma_face_subset]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("dart_eq", []))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac))) THEN (((conv_thm_tac DISCH_THEN)(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   ((((use_arg_then2 ("Hypermap.face_refl", [Hypermap.face_refl]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma azim_split_fan_face_not_in_face *)
+let azim_split_fan_face_not_in_face = section_proof ["v";"w";"d"]
+`v,w IN dart_of_fan (V,E) /\
+	d IN dart_of_fan (V,E) /\
+	~(d IN face (hypermap_of_fan (V,E)) (v,w))
+	==> azim_dart (split_fan_face (V,E) (v,w)) d = azim_dart (V,E) d`
+[
+   (BETA_TAC THEN (case THEN (move ["vw_in"])) THEN (case THEN (move ["d_in"])) THEN (move ["d_n_in"]));
+   ((((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("azim_split_fan_face", [azim_split_fan_face])) (fun fst_arg -> (use_arg_then2 ("vw_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("d_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   ((((use_arg_then2 ("negb_or", [negb_or]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("d_n_in", [])) (disch_tac [])) THEN (clear_assumption "d_n_in") THEN ((use_arg_then2 ("contra", [contra])) (disch_tac [])) THEN (clear_assumption "contra") THEN (DISCH_THEN apply_tac)));
+   ((case THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN ((((use_arg_then2 ("in_face_lemma", [in_face_lemma]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fully_surrounded_dart_of_fan_eq", [fully_surrounded_dart_of_fan_eq]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+];;
+
+(* Lemma tau_split_fan_face_eq *)
+let tau_split_fan_face_eq = section_proof ["v";"w";"f"]
+`v,w IN dart_of_fan (V,E) /\
+	f IN face_set (hypermap_of_fan (V,E)) DELETE face (hypermap_of_fan (V,E)) (v,w)
+	==> tauVEF (V, {w,sigma_fan (vec 0) V E v w} INSERT E, f) = tauVEF (V, E, f)`
+[
+   ((((use_arg_then2 ("IN_DELETE", [IN_DELETE]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN (move ["vw_in"])) THEN (case THEN (move ["f_in"])) THEN (move ["f_n_in"]));
+   ((fun arg_tac -> arg_tac (Arg_term (`dart (hypermap_of_fan (V,E)) = dart_of_fan (V,E)`))) (term_tac (have_gen_tac [](move ["dart_eq"]))));
+   ((((use_arg_then2 ("COMPONENTS_HYPERMAP_OF_FAN", [COMPONENTS_HYPERMAP_OF_FAN]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((repeat_tactic 1 9 (((use_arg_then2 ("tauVEF", [tauVEF]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("split_fan_face", [split_fan_face]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("REAL_EQ_ADD_RCANCEL", [REAL_EQ_ADD_RCANCEL]))(thm_tac (new_rewrite [] [])))));
+   (((use_arg_then2 ("SUM_EQ", [SUM_EQ])) (thm_tac apply_tac)) THEN (move ["d"]) THEN (move ["d_in"]) THEN (simp_tac));
+   ((((use_arg_then2 ("REAL_EQ_MUL_RCANCEL", [REAL_EQ_MUL_RCANCEL]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("azim_split_fan_face_not_in_face", [azim_split_fan_face_not_in_face]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
+   (((fun arg_tac -> (use_arg_then2 ("Hypermap.lemma_face_representation", [Hypermap.lemma_face_representation])) (fun fst_arg -> (use_arg_then2 ("f_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC THEN (case THEN (move ["y"])) THEN (case THEN (move ["y_in"])) THEN (move ["f_eq"]));
+   (((((use_arg_then2 ("vw_in", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] []))))) THEN (split_tac));
+   (((use_arg_then2 ("Packing3.IN_TRANS", [Packing3.IN_TRANS])) (thm_tac apply_tac)) THEN ((use_arg_then2 ("f", [])) (term_tac exists_tac)) THEN (((use_arg_then2 ("d_in", []))(thm_tac (new_rewrite [] [])))));
+   (((((use_arg_then2 ("f_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("dart_eq", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("Hypermap.lemma_face_subset", [Hypermap.lemma_face_subset]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((((use_arg_then2 ("f_n_in", [])) (disch_tac [])) THEN (clear_assumption "f_n_in") THEN ((use_arg_then2 ("contra", [contra])) (disch_tac [])) THEN (clear_assumption "contra") THEN (DISCH_THEN apply_tac)) THEN ((DISCH_THEN (fun snd_th -> (use_arg_then2 ("Hypermap.lemma_face_identity", [Hypermap.lemma_face_identity])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN BETA_TAC THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))));
+   ((((use_arg_then2 ("d_in", [])) (disch_tac [])) THEN (clear_assumption "d_in") THEN BETA_TAC) THEN ((((use_arg_then2 ("f_eq", []))(thm_tac (new_rewrite [] [])))) THEN (DISCH_THEN (fun snd_th -> (use_arg_then2 ("Hypermap.lemma_face_identity", [Hypermap.lemma_face_identity])) (thm_tac (match_mp_then snd_th MP_TAC))))) THEN (done_tac));
+];;
+
+(* Finalization of the section AddTriangle *)
+let split_fan_face_eq = finalize_theorem split_fan_face_eq;;
+let sigma_in_dart1 = finalize_theorem sigma_in_dart1;;
+let in_face_lemma = finalize_theorem in_face_lemma;;
+let f_fan_pair3 = finalize_theorem f_fan_pair3;;
+let fully_surrounded_card_face_alt = finalize_theorem fully_surrounded_card_face_alt;;
+let fully_surrounded_imp_conforming = finalize_theorem fully_surrounded_imp_conforming;;
+let fully_surrounded_diag_not_in_dart = finalize_theorem fully_surrounded_diag_not_in_dart;;
+let aux_lemma = finalize_theorem aux_lemma;;
+let fan_split_fan_face = finalize_theorem fan_split_fan_face;;
+let n_split_fan_face = finalize_theorem n_split_fan_face;;
+let inv_n_split_fan_face = finalize_theorem inv_n_split_fan_face;;
+let n_split_fan_face_eq1 = finalize_theorem n_split_fan_face_eq1;;
+let n_split_fan_face_eq2 = finalize_theorem n_split_fan_face_eq2;;
+let f_split_fan_face = finalize_theorem f_split_fan_face;;
+let f_split_fan_face_eq = finalize_theorem f_split_fan_face_eq;;
+let face_split_fan_face = finalize_theorem face_split_fan_face;;
+let azim_split_fan_face = finalize_theorem azim_split_fan_face;;
+let azim_split_fan_face_not_in_face = finalize_theorem azim_split_fan_face_not_in_face;;
+let tau_split_fan_face_eq = finalize_theorem tau_split_fan_face_eq;;
+end_section "AddTriangle";;
+
+(* Close the module *)
+end;;

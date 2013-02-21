@@ -255,6 +255,33 @@ let STRICT_SORT_FINITE = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let MOD_INJ1_ALT = prove_by_refinement
+(`!k n. ~( n = 0) /\ k < n /\ ~( k = 0) ==> (! x. ~( x MOD n = (x + k) MOD n)) `,
+[
+  REPEAT STRIP_TAC;
+  INTRO_TAC Oxl_def.MOD_INJ [`n`;`x`;`x`;`x + (k:num)`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[IN_NUMSEG];
+    REPEAT (FIRST_X_ASSUM MP_TAC);
+    SIMP_TAC[LE_REFL; ARITH_RULE` ~( n = 0) ==> x <= n - 1 + x `; ARITH_RULE` a <= a + x:num `];
+    BY(ARITH_TAC);
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC)
+]);;
+
+let MOD_PERIOD_BOUNDED_ALT = prove_by_refinement (
+`!k n. ~( n = 0) /\ ~( k = 0) ==> (! x. (x + k) MOD n = x MOD n ==> n <= k ) `,
+[
+  REPEAT STRIP_TAC;
+  PROOF_BY_CONTR_TAC;
+  INTRO_TAC MOD_INJ1_ALT [`k`;`n`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[ARITH_RULE` a < (b:num) <=> ~(b <= a ) `]);
+  BY(ASM_MESON_TAC[])
+]);;
+
+let MOD_REFL_ALT = REWRITE_RULE[MULT_CLAUSES] (SPECL [`m:num `;`1`] MOD_MULT);;
+
+
 let periodic_o = prove_by_refinement(
   `!(g:A->B) f n. periodic f n ==> periodic (g o f) n`,
   (* {{{ proof *)
@@ -345,7 +372,7 @@ let F_DEMOD = prove_by_refinement(
   CONJ_TAC;
     MATCH_MP_TAC PERIODIC_EQ_IMAGE;
     TYPIFY `n` EXISTS_TAC;
-    BY(ASM_SIMP_TAC[MOD_REFL]);
+    BY(ASM_SIMP_TAC[MOD_MOD_REFL]);
   MATCH_MP_TAC PERIODIC_EQ_IMAGE;
   TYPIFY `n` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -366,7 +393,7 @@ let FM_DEMOD = prove_by_refinement(
   CONJ_TAC;
     MATCH_MP_TAC PERIODIC_EQ_IMAGE;
     TYPIFY `n` EXISTS_TAC;
-    BY(ASM_SIMP_TAC[MOD_REFL]);
+    BY(ASM_SIMP_TAC[MOD_MOD_REFL]);
   MATCH_MP_TAC PERIODIC_EQ_IMAGE;
   TYPIFY `n` EXISTS_TAC;
   ASM_REWRITE_TAC[];
@@ -1262,7 +1289,7 @@ let LEAF_RANK_AZIM_NZ = prove_by_refinement(
   INTRO_TAC LEAF_RANK_AZIM_INJ [`V`;`ul`;`w0`;`n`;`f`;`i`;`SUC i`];
   ASM_REWRITE_TAC[];
   ASM_SIMP_TAC[arith `1 < n ==> ~(n = 0)`];
-  BY(ASM_MESON_TAC[arith `SUC i = i + 1`;arith `1 < n ==> ~(n = 0)`;arith `~(1 = 0)`;arith `1 < n ==> ~(n <= 1)`;Oxl_2012.MOD_PERIOD_BOUNDED])
+  BY(ASM_MESON_TAC[arith `SUC i = i + 1`;arith `1 < n ==> ~(n = 0)`;arith `~(1 = 0)`;arith `1 < n ==> ~(n <= 1)`;MOD_PERIOD_BOUNDED_ALT])
   ]);;
   (* }}} *)
 
@@ -3648,7 +3675,7 @@ let LEAF_RANK4_CHI_MSB = prove_by_refinement(
       BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
     ASM_SIMP_TAC[MOD_LT];
     BY(ARITH_TAC);
-  ASM_SIMP_TAC[Oxl_2012.MOD_REFL;arith `1 < n ==> ~(n  = 0)`];
+  ASM_SIMP_TAC[MOD_REFL_ALT;arith `1 < n ==> ~(n  = 0)`];
   BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC)
   ]);;
   (* }}} *)
@@ -3889,7 +3916,7 @@ let K4_CC_WI_ALT = prove_by_refinement(
     ASM_SIMP_TAC[arith `1 < n ==> ~(n = 0)`;Bump.EL_EXPLICIT;AZIM_REFL];
     DISCH_THEN MP_TAC THEN ANTS_TAC;
       BY(ASM_MESON_TAC[]);
-    BY(ASM_MESON_TAC[Oxl_2012.MOD_INJ1;arith `1 < n ==> ~(n = 0) /\ 1 < n ==> (n - 1) < n /\ 1 < n ==> ~(n - 1 = 0)`]);
+    BY(ASM_MESON_TAC[MOD_INJ1_ALT;arith `1 < n ==> ~(n = 0) /\ 1 < n ==> (n - 1) < n /\ 1 < n ==> ~(n - 1 = 0)`]);
   BY(ASM_MESON_TAC[])
   ]);;
   (* }}} *)
@@ -4011,7 +4038,7 @@ let K4_CC_WIM = prove_by_refinement(
   INTRO_TAC LEAF_RANK_AZIM_INJ [`V`;`[EL 0 ul;EL 1 ul]`;`w0`;`n`;`f`;`i`;`SUC i`];
   ASM_SIMP_TAC[arith `1 < n ==> ~(n = 0)`;Bump.EL_EXPLICIT;AZIM_REFL];
   REWRITE_TAC[arith `SUC i = (i + 1)`];
-  BY(ASM_MESON_TAC[Oxl_2012.MOD_INJ1;arith `1 < n ==> ~(n = 0) /\ ~(1 = 0)`])
+  BY(ASM_MESON_TAC[MOD_INJ1_ALT;arith `1 < n ==> ~(n = 0) /\ ~(1 = 0)`])
   ]);;
   (* }}} *)
 
@@ -4739,7 +4766,7 @@ let RAD_PI_IMP_WEDGE4 = prove_by_refinement(
       INTRO_TAC LEAF_RANK_AZIM_INJ [`V`;`[u0;u1]`;`w0`;`n`;`f`;`i`;`SUC i`];
       ASM_REWRITE_TAC[Bump.EL_EXPLICIT];
       ASM_SIMP_TAC[arith `1 < n ==> ~(n = 0)`;arith `SUC i = i + 1`];
-      BY(ASM_MESON_TAC[ Oxl_2012.MOD_INJ1;arith `1 < n ==> ~(n = 0) /\ ~(1 = 0)`]);
+      BY(ASM_MESON_TAC[ MOD_INJ1_ALT;arith `1 < n ==> ~(n = 0) /\ ~(1 = 0)`]);
     BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
   TYPIFY `!j. leaf V [u0; u1; f j]` (C SUBGOAL_THEN ASSUME_TAC);
     GEN_TAC;
@@ -4819,7 +4846,7 @@ let LEAF_RANK_SUC_INJ = prove_by_refinement(
   ASM_REWRITE_TAC[Bump.EL_EXPLICIT];
   ASM_SIMP_TAC[arith `1 < n ==> ~(n = 0)`;arith `SUC i = i + 1`];
   REWRITE_TAC[AZIM_REFL];
-  BY(ASM_MESON_TAC[ Oxl_2012.MOD_INJ1;arith `1 < n ==> ~(n = 0) /\ ~(1 = 0)`])
+  BY(ASM_MESON_TAC[ MOD_INJ1_ALT;arith `1 < n ==> ~(n = 0) /\ ~(1 = 0)`])
   ]);;
   (* }}} *)
 
@@ -4983,7 +5010,7 @@ let WEDGE3_Y4 = prove_by_refinement(
         INTRO_TAC LEAF_RANK_AZIM_INJ [`V`;`[u0;u1]`;`w0`;`n`;`f`;`i`;`SUC i`];
         ASM_REWRITE_TAC[Bump.EL_EXPLICIT];
         ASM_SIMP_TAC[arith `1 < n ==> ~(n = 0)`;arith `SUC i = i + 1`];
-        BY(ASM_MESON_TAC[ Oxl_2012.MOD_INJ1;arith `1 < n ==> ~(n = 0) /\ ~(1 = 0)`]);
+        BY(ASM_MESON_TAC[ MOD_INJ1_ALT;arith `1 < n ==> ~(n = 0) /\ ~(1 = 0)`]);
       BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
     BY(ASM_REWRITE_TAC[GSYM coplanar_delta_y]);
   COMMENT "last case";
@@ -4998,7 +5025,7 @@ let WEDGE3_Y4 = prove_by_refinement(
     ASM_REWRITE_TAC[Bump.EL_EXPLICIT];
     ASM_SIMP_TAC[arith `1 < n ==> ~(n = 0)`;arith `SUC i = i + 1`];
     REWRITE_TAC[AZIM_REFL];
-    BY(ASM_MESON_TAC[ Oxl_2012.MOD_INJ1;arith `1 < n ==> ~(n = 0) /\ ~(1 = 0)`]);
+    BY(ASM_MESON_TAC[ MOD_INJ1_ALT;arith `1 < n ==> ~(n = 0) /\ ~(1 = 0)`]);
   TYPIFY `!i. V (f i)` (C SUBGOAL_THEN ASSUME_TAC);
     GEN_TAC;
     FIRST_X_ASSUM_ST `leaf` MP_TAC;

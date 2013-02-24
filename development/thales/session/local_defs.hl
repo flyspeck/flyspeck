@@ -1,0 +1,600 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(* Section: Introduction                                                      *)
+(* Chapter: Local Fan                                                         *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2013-02-18                                                           *)
+(* ========================================================================== *)
+
+(* module Local_defs = struct *)
+
+parse_as_infix("has_orders",(12,"right"));;
+parse_as_infix("cyclic_on",(13,"right"));;
+
+let has_orders = new_definition ` (f: A -> A) has_orders k <=>
+(! i. 0 < i /\ i < k ==> ~( ITER i f = I )) /\
+ITER k f = I `;;
+
+let order = new_definition ` order f x y = (@n. ITER n f x =y /\ (!i. 0< i /\ i< n ==> ~(ITER i f x= y)))`;;
+
+
+let cyclic_on = new_definition` f cyclic_on (S:A -> bool) <=>
+(! x. x IN S ==> S = {z | ?n. z = ITER n f x }) `;;
+
+let dih2k = new_definition` dih2k (H: (A) hypermap) k <=> 
+CARD (dart H) = 2 * k
+/\ (! x. x IN (dart H) ==> let S = face H x in 
+         dart H = S UNION (IMAGE (node_map H) S ))
+/\ (face_map H ) has_orders k /\
+(edge_map H ) has_orders 2 /\
+(node_map H) has_orders 2 `;;
+
+let EE = new_definition` EE v S = {w | {v,w} IN S }`;;
+
+let ord_pairs = new_definition` ord_pairs E = { a,b | {a,b} IN E } `;;
+
+let self_pairs = new_definition` self_pairs E V = { (v,v) | v IN V /\
+ EE v E = {} } `;;
+
+let darts_of_hyp = new_definition` darts_of_hyp E V = ord_pairs E UNION 
+self_pairs E V `;;
+
+let ee_of_hyp = new_definition` ee_of_hyp (x,V,E) ((a:real^3),(b:real^3)) = 
+if (a,b) IN darts_of_hyp E V then (b,a) else (a,b)`;;
+
+let nn_of_hyp = new_definition` nn_of_hyp (x,V,E) (v,u) =
+if (v,u) IN darts_of_hyp E V then
+(v, azim_cycle (EE v E) x v u) else (v,u)`;;
+
+let ivs_azim_cycle = new_definition`ivs_azim_cycle W v0 v w =
+if W = {} then w else 
+(@x. x IN W /\ azim_cycle W v0 v x = w ) `;;
+
+let ff_of_hyp = new_definition` ff_of_hyp (x,V,E) (v,u) =
+if (v,u) IN darts_of_hyp E V then
+(u, ivs_azim_cycle (EE u E) x u  v) else (v,u)`;;
+
+let HYP = new_definition` HYP (x,V,E) = (darts_of_hyp E V,
+ee_of_hyp (x,V,E), nn_of_hyp (x,V,E), ff_of_hyp (x,V,E)) `;;
+
+let local_fan = new_definition ` local_fan (V,E,FF ) <=>
+ let H = hypermap ( HYP (vec 0, (V: real^3 -> bool), E)) in
+  FAN (vec 0, V, E) /\
+  (?x. x IN ( dart H) /\ FF = face H x ) /\
+dih2k H (CARD FF ) `;;
+
+let rho_node1 = new_definition `!(v:real^3) FF. rho_node1 FF v = (@w. v,w IN FF)`;;
+
+let azim_in_fan = new_definition` azim_in_fan (v:real^3,w:real^3) E = 
+let d = (azim_cycle (EE v E) ( vec 0 ) v w) in
+ if CARD ( EE v E ) > 1 then 
+ azim (vec 0 ) v w d else &2 * pi `;;
+
+let wedge_in_fan_gt = new_definition`wedge_in_fan_gt (v,w) E = 
+  if CARD (EE v E) > 1 then
+wedge (vec 0) v w (azim_cycle (EE v E) (vec 0 ) v w ) else if 
+EE v E = {w} then { x | ~ ( x IN aff_ge {vec 0, v} {w} ) } else
+{ x | ~ ( x IN aff {vec 0, v} )} `;;
+
+let wedge_ge = new_definition `wedge_ge  v0 v1 w1 w2 = { z |
+&0 <= azim v0 v1 w1 z /\ azim v0 v1 w1 z <= azim v0 v1 w1 w2 }`;;
+
+let wedge_in_fan_ge = new_definition` wedge_in_fan_ge ((v:real^3),w) E = 
+  if CARD (EE v E) > 1 then
+wedge_ge (vec 0) v w (azim_cycle (EE v E) (vec 0 ) v w ) else { x:real^3 | T } `;;
+
+let convex_local_fan = new_definition
+  `convex_local_fan (V,E,FF) <=>
+   local_fan (V,E,FF) /\
+   (!x. x IN FF ==> azim_in_fan x E <= pi /\ V SUBSET wedge_in_fan_ge x E)`;;
+
+let v_prime = new_definition `v_prime V FF = {v| v IN V /\
+ (?w. (v,w) IN FF )} `;;
+
+let e_prime = new_definition ` e_prime E FF = {{v,w} | {v,w} IN E /\ 
+(v,w) IN FF } `;;
+
+let generic = new_definition` generic V E <=>
+(! v w u. {v,w} IN E /\ u IN V ==> aff_ge { vec 0 } {v,w} INTER 
+aff_lt {vec 0} {u} = {} )`;;
+
+let circular = new_definition ` circular V E <=> 
+(? v w u. {v,w} IN E /\ u IN V /\ ~(aff_gt { vec 0 } {v,w} INTER 
+aff_lt {vec 0} {u} = {}) )`;;
+
+let lunar = new_definition
+` lunar (v,w) V E <=> ~(circular V E) /\ {v,w} SUBSET V /\
+~( v = w ) /\ collinear {vec 0, v, w } `;;
+
+let rho_node1 = new_definition ` rho_node1 (FF:real^3 # real^3 -> bool) v = (@w. (v,w) IN FF)`;;
+
+let ivs_rho_node1 = new_definition ` ivs_rho_node1 (FF:real^3 # real^3 -> bool) v = (@a. a,v IN FF )`;;
+
+let interior_angle1 = new_definition
+` interior_angle1 x FF v = azim x v (rho_node1 FF v) (@a. a,v IN FF)`;;
+
+let sol_local = new_definition ` sol_local E f= &2 * pi+ sum f (\e. azim_in_fan e E- pi)`;;
+
+let rho_fun = new_definition `rho_fun y = &1 + (inv (&2 * h0 - &2)) * (inv pi) * sol0 * (y - &2)`;;
+
+let tau_fun = new_definition `tau_fun V E f = sum (f) (\e. rho_fun(norm(FST e)) * (azim_in_fan e E)) - (pi + sol0) * &(CARD f -2)`;;
+
+let deformation = new_definition 
+` deformation ff V (a,b) <=> (&0) IN real_interval (a,b) /\
+(! v r. v IN V /\ r IN real_interval (a,b) ==> (ff v) continuous atreal r) /\
+(!v. v IN V ==> ff v (&0) = v )`;;
+
+let localization = new_definition `localization (V, E) FF = (v_prime V FF, e_prime E FF) `;;
+
+let a_ear0=new_definition`a_ear0 J (i,j)=( if i  MOD 3=j MOD 3 then &0 else
+ (if {i  MOD 3,j MOD 3} IN J then sqrt(&8) else &2)) `;;
+
+let b_ear0=new_definition`b_ear0 J (i,j)=( if i  MOD 3=j MOD 3 then &0 else
+ (if {i  MOD 3,j MOD 3} IN J then cstab else &2* h0)) `;;
+
+let JNVXCRC = new_definition
+ `polar_fan(V,(E:(real^3->bool)->bool),FF) =
+        let r = rho_node1 FF in
+        let prime = \v. v cross (r v) in
+        ({ prime v | v IN V},
+         { {prime v,prime(r v)} | v IN V},
+         { (prime v,prime(r v)) | v IN V})`;;
+
+
+
+
+(* deprecated:
+let v_slice = new_definition ` v_slice f (v,w) = 
+{ ITER i f v | ! j. j < i ==> ~( ITER j f v = w ) }`;;
+
+
+let e_slice = new_definition ` e_slice f (v,w) = 
+{w,v} INSERT 
+{ {ITER i f v, ITER (i + 1) f v} | ! j. j < i + 1 ==> ~( ITER j f v = w)} `;;
+
+
+let f_slice = new_definition ` f_slice f (v,w) = 
+(w,v) INSERT
+{ (ITER i f v, ITER (i + 1) f v) | ! j. j < i + 1 ==> ~ (ITER j f v = w)} `;;
+*)
+
+
+let slicev = new_definition ` slicev E FF v w = {u| ?n. 0<= n /\ n<= order (rho_node1 FF) v w /\ u= ITER n (rho_node1 FF) v}`;;
+
+let slicee = new_definition ` slicee E FF v w = {e| ?u. u IN (slicev E FF v w) DELETE w /\ e={u,rho_node1 FF u} } UNION {{w,v}}`;;
+
+let slicef = new_definition ` slicef E FF v w = {f| ?u. u IN (slicev E FF v w) DELETE w /\ f=(u,rho_node1 FF u) } UNION {(w,v)}`;;
+
+let FAN_EDGE_SUBSET_V = prove_by_refinement(
+  `!V E e. FAN(vec 0, V, E) /\ e IN E ==> e SUBSET V`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Fan_defs.FAN;UNIONS_SUBSET];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let FAN_EDGE_EL_V = prove_by_refinement(
+  `!V E u v. FAN(vec 0,V,E) /\ {u,v} IN E ==> v IN V`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `v IN {u,v}` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(SET_TAC[]);
+  BY(ASM_MESON_TAC[FAN_EDGE_SUBSET_V;SUBSET])
+  ]);;
+  (* }}} *)
+
+(* renamed from FAN_EE, EE_EQ_set_of_edge *)
+
+let EE_elim = prove_by_refinement(
+  `!V E (v:real^3). FAN(vec 0,V,E) ==> EE v E = set_of_edge v V E`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[EE;Fan_defs.set_of_edge];
+  REWRITE_TAC[EXTENSION;IN_ELIM_THM];
+  BY(ASM_MESON_TAC[FAN_EDGE_EL_V])
+  ]);;
+  (* }}} *)
+
+(* renamed from darts_of_hyp_EQ_dart_of_fan *)
+
+let darts_of_hyp_elim = prove_by_refinement(
+  `!V E. FAN(vec 0,V,E) ==> darts_of_hyp E V = dart_of_fan (V,E)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[darts_of_hyp;Fan_defs.dart_of_fan;ord_pairs;self_pairs;SUBSET];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_SIMP_TAC[GSYM EE_elim];
+  BY(SET_TAC[])
+  ]);;
+  (* }}} *)
+
+(* renamed from ee_of_hyp_EQ_e_fan_pair_ext *)
+
+let ee_of_hyp_elim = prove_by_refinement(
+  `!V E (x:A).  FAN(vec 0,V,E)  ==> ee_of_hyp(x,V,E) = e_fan_pair_ext(V,E)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[FUN_EQ_THM;FORALL_PAIR_THM];
+  REWRITE_TAC[ee_of_hyp;Fan_defs.e_fan_pair_ext;Fan_defs.e_fan_pair];
+  ASM_SIMP_TAC[darts_of_hyp_elim;Hypermap_iso.dart_of_fan_eq;IN_UNION;IN_ELIM_THM;PAIR_EQ];
+  REWRITE_TAC[TAUT `a /\ b /\ c <=> (a /\ b) /\ c`;Misc_defs_and_lemmas.GSPEC_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `p1,p2 IN dart1_of_fan(V,E)` ASM_CASES_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[];
+  COND_CASES_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  BY(REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let AZIM_CYCLE_EQ_SIGMA_FAN_ALT = prove_by_refinement(
+  `!V E u v. FAN (vec 0,V,E) /\ u IN set_of_edge v V E
+        ==> azim_cycle (set_of_edge v V E) (vec 0) v u = sigma_fan (vec 0) V E v u`,
+  (* {{{ proof *)
+  [
+  BY(ASM_MESON_TAC[EE_elim;Wrgcvdr_cizmrrh.AZIM_CYCLE_EQ_SIGMA_FAN])
+  ]);;
+  (* }}} *)
+
+(* renamed from nn_of_hyp_EQ_n_fan_pair_ext : *)
+
+let nn_of_hyp_elim = prove_by_refinement(
+  `!V E.  FAN(vec 0,V,E)  ==> nn_of_hyp((vec 0),V,E) = n_fan_pair_ext(V,E)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[FUN_EQ_THM;FORALL_PAIR_THM];
+  REWRITE_TAC[nn_of_hyp;Fan_defs.n_fan_pair_ext;Fan_defs.n_fan_pair];
+  ASM_SIMP_TAC[EE_elim;darts_of_hyp_elim;Hypermap_iso.dart_of_fan_eq;IN_UNION;IN_ELIM_THM;PAIR_EQ];
+  REWRITE_TAC[TAUT `a /\ b /\ c <=> (a /\ b) /\ c`;Misc_defs_and_lemmas.GSPEC_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `p1,p2 IN dart1_of_fan(V,E)` ASM_CASES_TAC;
+    (ASM_REWRITE_TAC[PAIR_EQ]);
+    GMATCH_SIMP_TAC AZIM_CYCLE_EQ_SIGMA_FAN_ALT;
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[Fan_defs.dart1_of_fan;Fan_defs.set_of_edge];
+    REWRITE_TAC[IN_ELIM_PAIR_THM];
+    REWRITE_TAC[IN_ELIM_THM];
+    BY(ASM_MESON_TAC[FAN_EDGE_EL_V]);
+  ASM_REWRITE_TAC[];
+  TYPIFY`~(p1 = p2)` ASM_CASES_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  FIRST_X_ASSUM (ASSUME_TAC o (REWRITE_RULE[]));
+  ASM_REWRITE_TAC[];
+  COND_CASES_TAC;
+    ASM_REWRITE_TAC[PAIR_EQ];
+    INTRO_TAC Wrgcvdr_cizmrrh.W_SUBSET_SINGLETON_IMP_IDE [`{}:real^3->bool`;`p2`];
+    ANTS_TAC;
+      BY(SET_TAC[]);
+    BY(MESON_TAC[]);
+  BY(REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+(* renamed from ivs_azim_cycle_EQ_inverse_sigma_fan *)
+
+let ivs_azim_cycle_elim = prove_by_refinement(
+  `!V E p1 p2. FAN(vec 0,V,E)   /\ {p1,p2} IN E  
+  ==> ivs_azim_cycle (set_of_edge p1 V E) (vec 0) p1 p2 = inverse_sigma_fan (vec 0) V E p1 p2`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_SIMP_TAC[GSYM Fan_misc.INVERSE_SIGMA_FAN_EQ_INVERSE1_SIGMA_FAN];
+  ASM_SIMP_TAC[ (GSYM Wrgcvdr_cizmrrh.IVS_AZIM_EQ_INVERSE_SIGMA_FAN)];
+  BY(ASM_MESON_TAC[EE_elim])
+  ]);;
+  (* }}} *)
+
+(* renamed from ff_of_hyp_EQ_f_fan_pair_ext: *)
+
+let ff_of_hyp_elim = prove_by_refinement(
+  `!V E.  FAN(vec 0,V,E)  ==> ff_of_hyp(vec 0,V,E) = f_fan_pair_ext(V,E)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[FUN_EQ_THM;FORALL_PAIR_THM];
+  REWRITE_TAC[ff_of_hyp;Fan_defs.f_fan_pair_ext;Fan_defs.f_fan_pair];
+  ASM_SIMP_TAC[darts_of_hyp_elim;Hypermap_iso.dart_of_fan_eq;IN_UNION;IN_ELIM_THM;PAIR_EQ];
+  REWRITE_TAC[TAUT `a /\ b /\ c <=> (a /\ b) /\ c`;Misc_defs_and_lemmas.GSPEC_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `p1,p2 IN dart1_of_fan(V,E)` ASM_CASES_TAC;
+    (ASM_REWRITE_TAC[PAIR_EQ]);
+    ASM_SIMP_TAC[EE_elim];
+    GMATCH_SIMP_TAC ivs_azim_cycle_elim;
+    ASM_REWRITE_TAC[];
+    RULE_ASSUM_TAC (REWRITE_RULE[Fan_defs.dart1_of_fan;IN_ELIM_PAIR_THM]);
+    BY(ASM_MESON_TAC[Collect_geom.PER_SET2]);
+  ASM_REWRITE_TAC[];
+  COND_CASES_TAC THEN REWRITE_TAC[];
+  ASM_REWRITE_TAC[PAIR_EQ];
+  ASM_SIMP_TAC[EE_elim];
+  BY(REWRITE_TAC[Wrgcvdr_cizmrrh.IVS_AZIM_EMPTY_IDE])
+  ]);;
+  (* }}} *)
+
+let HYP_elim = prove_by_refinement(
+  `!V E. FAN (vec 0, V, E) ==> HYP ((vec 0),V,E) = (dart_of_fan (V,E),
+  e_fan_pair_ext(V,E),n_fan_pair_ext(V,E),f_fan_pair_ext(V,E))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  BY(ASM_SIMP_TAC[HYP;darts_of_hyp_elim;ee_of_hyp_elim;nn_of_hyp_elim;ff_of_hyp_elim])
+  ]);;
+  (* }}} *)
+
+let hypermap_HYP_elim = prove_by_refinement(
+  `!V E.  FAN(vec 0,V,E) ==> hypermap ( HYP (vec 0, (V: real^3 -> bool), E)) = hypermap_of_fan (V,E) `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  BY(ASM_SIMP_TAC[Fan_defs.HYPERMAP_OF_FAN_ALT;HYP_elim])
+  ]);;
+  (* }}} *)
+
+let local_fan2 = prove_by_refinement(
+  `!V E FF. local_fan (V,E,FF ) <=>
+ let H = hypermap_of_fan (V,E) in
+  FAN (vec 0, V, E) /\
+  FF IN face_set H /\
+  dih2k H (CARD FF ) `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[local_fan;LET_DEF;LET_END_DEF];
+  TYPIFY `FAN(vec 0,V,E)` ASM_CASES_TAC;
+    ASM_SIMP_TAC[hypermap_HYP_elim];
+    BY(ASM_MESON_TAC[Hypermap.lemma_in_face_set;Hypermap.lemma_face_representation]);
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let WRGCVDR_BIJ = prove_by_refinement(
+  `!V E FF. local_fan (V,E,FF) 
+        ==> BIJ FST FF V`,
+  (* {{{ proof *)
+  [
+    BY(ASM_MESON_TAC[Wrgcvdr_cizmrrh.WRGCVDR;FUN_EQ_THM])
+  ]);;
+  (* }}} *)
+
+let  WRGCVDR_ORBIT = prove_by_refinement(
+  `!V E FF. local_fan (V,E,FF) ==>
+      (!v. v IN V ==> orbit_map (rho_node1 FF) v = V) `,
+  (* {{{ proof *)
+  [
+    BY(MESON_TAC[ Local_lemmas.LOCAL_FAN_ORBIT_MAP_V])
+  ]);;
+  (* }}} *)
+
+let ALL_TO_THE_NONPARALLEL_PART_ALT = prove_by_refinement(
+  `!a b V E phii. deformation phii V (a,b) /\ FAN (vec 0,V,E)
+        ==> (?e. &0 < e /\
+                 (!t. --e < t /\ t < e
+                      ==> UNIONS (IMAGE (IMAGE (\v. phii v t)) E) SUBSET
+                          IMAGE (\v. phii v t) V /\
+                          graph (IMAGE (IMAGE (\v. phii v t)) E) /\
+                          fan1
+                          ((vec 0):real^3,
+                           IMAGE (\v. phii (v:real^3) t) V,
+                           IMAGE (IMAGE (\v. phii v t)) E) /\
+                          fan2
+                          ((vec 0):real^3,
+                           IMAGE (\v. phii v t) V,
+                           IMAGE (IMAGE (\v. phii v t)) E) /\
+                          fan6
+                          (vec 0,
+                           IMAGE (\v. phii v t) V,
+                           IMAGE (IMAGE (\v. phii v t)) E)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC Local_lemmas1.ALL_TO_THE_NONPARALLEL_PART;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let XRECQNS = prove_by_refinement(
+  `!a b V E f.
+    deformation f V (a,b) /\ FAN (vec 0,V,E) ==>
+     (?e. &0 < e /\ (!t. --e < t /\ t < e ==>
+        FAN(vec 0,
+	    IMAGE (\v. f (v:real^3) t) V,
+                               IMAGE (IMAGE (\v. f v t)) E)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Fan.FAN];
+  INTRO_TAC ALL_TO_THE_NONPARALLEL_PART_ALT [`a`;`b`;`V`;`E`;`f`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Deformation.FAN7_SMALL_DEFORMATION [`V`;`E`;`a`;`b`;`f`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `if (e < e') then e else e'` EXISTS_TAC;
+  COND_CASES_TAC;
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    BY(ASM_MESON_TAC[arith `&0 < e /\ e < e' /\ -- e < t /\ t < e ==> -- e' < t /\ t < e'`]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  BY(ASM_MESON_TAC[arith `&0 < e' /\ ~(e < e') /\ -- e' < t /\ t < e' ==> -- e < t /\ t < e`])
+  ]);;
+  (* }}} *)
+
+let COMPATIBLE_BW_TWO_LEMMAS2_ALT = prove_by_refinement(
+  `!V E FF HS fv fw v w. (convex_local_fan (V,E,FF) /\
+         v IN V /\
+         w IN V /\
+         ~(v = w) /\
+         (!x. x IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt x E) /\
+         HS = hypermap (HYP (vec 0,V,E UNION {{v, w}})) /\
+         fv = face HS (v,rho_node1 FF v)) /\
+        fw = face HS (w,rho_node1 FF w)
+        ==> (v_prime V fv = slicev E FF v w /\
+             e_prime (E UNION {{v, w}}) fv = slicee E FF v w /\
+             fv = slicef E FF v w) /\
+            v_prime V fw = slicev E FF w v /\
+            e_prime (E UNION {{w, v}}) fw = slicee E FF w v /\
+            fw = slicef E FF w v`,
+  (* {{{ proof *)
+  [
+  MESON_TAC[Nkezbfc_local.COMPATIBLE_BW_TWO_LEMMAS2]
+  ]);;
+  (* }}} *)
+
+let EJRCFJD_ALT = prove_by_refinement(
+  `!V E FF HS fv fw v w. convex_local_fan (V,E,FF) /\
+        v IN V /\
+        w IN V /\
+        ~(v = w) /\
+        (!x. x IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt x E) /\
+        HS = hypermap (HYP (vec 0,V,E UNION {{v, w}})) /\
+        fv = face HS (v,rho_node1 FF v) /\
+        fw = face HS (w,rho_node1 FF w)
+        ==> convex_local_fan (v_prime V fv,e_prime (E UNION {{v, w}}) fv,fv) /\
+            convex_local_fan (v_prime V fw,e_prime (E UNION {{w, v}}) fw,fw) /\
+            (!ff. sum {i | i < CARD V}
+                  (\i. ff i *
+                       interior_angle1 (vec 0) FF (ITER i (rho_node1 FF) v)) =
+                  sum
+                  {i | i < CARD V /\ ITER i (rho_node1 FF) v IN v_prime V fv}
+                  (\i. ff i *
+                       interior_angle1 (vec 0) fv (ITER i (rho_node1 FF) v)) +
+                  sum
+                  {i | i < CARD V /\ ITER i (rho_node1 FF) v IN v_prime V fw}
+                  (\i. ff i *
+                       interior_angle1 (vec 0) fw (ITER i (rho_node1 FF) v)))`,
+  (* {{{ proof *)
+  [
+  MESON_TAC[Local_lemmas1.EJRCFJD]
+  ]);;
+  (* }}} *)
+
+(* The assumption ~(v=w) is missing from NKEZBFC etc. *)
+
+let WEDGE_VV = prove_by_refinement(
+  `!a b c d. ~(b IN wedge a b c d) `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[wedge;IN_ELIM_THM];
+  REPEAT GEN_TAC;
+  TYPIFY `{a,b,b} = {a,b}` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(SET_TAC[]);
+  BY(REWRITE_TAC[COLLINEAR_2])
+  ]);;
+  (* }}} *)
+
+let ejr_distinct = prove_by_refinement(
+  `!V E FF v w. convex_local_fan (V,E,FF) /\
+    v IN V /\ 
+  (!e. e IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt e E) ==>
+    ~(w = v)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `aff_gt` MP_TAC;
+  REWRITE_TAC[NOT_FORALL_THM];
+  TYPIFY `(v,rho_node1 FF v)` EXISTS_TAC;
+  TYPIFY `local_fan (V,E,FF)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.CVX_LO_IMP_LO]);
+  DISCH_THEN MP_TAC THEN ANTS_TAC;
+    BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_RHO_NODE_PROS]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `{v,v} = {v}` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(SET_TAC[]);
+  TYPIFY `CARD(EE v E) > 1` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.LOFA_CARD_EE_V_1;arith `2 > 1`]);
+  ASM_REWRITE_TAC[wedge_in_fan_gt];
+  TYPIFY `v IN aff_gt {vec 0} {v}` (C SUBGOAL_THEN ASSUME_TAC);
+    GMATCH_SIMP_TAC AFF_GT_1_1;
+    REWRITE_TAC[DISJOINT;IN_ELIM_THM];
+    REWRITE_TAC[EXTENSION;IN_INTER;IN_SING;NOT_IN_EMPTY];
+    CONJ_TAC;
+      RULE_ASSUM_TAC (REWRITE_RULE[local_fan;Fan_defs.FAN]);
+      RULE_ASSUM_TAC (REWRITE_RULE[local_fan;Fan_defs.FAN;LET_DEF;LET_END_DEF;Fan_defs.fan2]);
+      BY(ASM_MESON_TAC[]);
+    GEXISTL_TAC [`&0`;`&1`];
+    REWRITE_TAC[arith `&0 < &1`;arith `&0 + &1 = &1`];
+    BY(VECTOR_ARITH_TAC);
+  REWRITE_TAC[SUBSET];
+  BY(ASM_MESON_TAC[WEDGE_VV])
+  ]);;
+  (* }}} *)
+
+let WEDGE_EDGE_NOT_ADJ = prove_by_refinement(
+  `!V E FF HS fv v w .  (local_fan (V,E,FF) /\
+         v IN V /\
+         w IN V /\
+         ~(v = w) /\
+         (!z t. z IN {v, w} /\ t IN V DIFF {z} ==> ~collinear {vec 0, z, t}) /\
+         (!x. x IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt x E)) /\
+        fv = face HS (v,rho_node1 FF v) ==>
+    ~(w = rho_node1 FF v)
+    // v_prime V (face HS (v,rho_node1 FF v)) PSUBSET V
+    `,
+  (* {{{ proof *)
+  [
+  st/r
+rt[PSUBSET]
+subconj
+rt[v_prime;SUBSET;IN_ELIM_THM]
+mt[]
+dt
+rt[EXTENSION]
+typ `?u. u IN V /\ ~(u IN v_prime V (face HS (v,rho_node1 FF v)))` ets
+mt[]
+typ `
+  ]);;
+  (* }}} *)
+
+
+let EJRCFJD_ALT2 = prove_by_refinement(
+ `!V E FF v w.
+     convex_local_fan (V,E,FF) /\
+     v IN V /\
+     w IN V /\
+     (!u u1.
+          u IN {v, w} /\ u1 IN V /\ ~(u = u1) ==> ~collinear {vec 0, u, u1}) /\
+     (!e. e IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt e E)
+     ==> convex_local_fan (slicev E FF v w,slicee E FF v w,slicef E FF v w) /\
+         convex_local_fan (slicev E FF w v,slicee E FF w v,slicef E FF w v) /\
+         tau_fun V E FF >=
+         tau_fun (slicev E FF v w) (slicee E FF v w) (slicef E FF v w) +
+         tau_fun (slicev E FF w v) (slicee E FF w v) (slicef E FF w v) /\
+         sol_local E FF =
+         sol_local (slicee E FF v w) (slicef E FF v w) +
+         sol_local (slicee E FF w v) (slicef E FF w v) /\
+         CARD (slicev E FF v w) < CARD V /\
+         CARD (slicev E FF w v) < CARD V /\
+         (generic V E
+          ==> generic (slicev E FF v w) (slicee E FF v w) /\
+              generic (slicev E FF w v) (slicee E FF w v))`,
+  (* {{{ proof *)
+  [
+st/r
+intro ejr_distinct [`V`;`E`;`FF`;`v`;`w`]
+ants
+art[]
+dt
+typ `HS = hypermap (HYP (vec 0,V,E UNION {{v, w}}))` abbrev
+typ `fv = face HS (v,rho_node1 FF v)` abbrev
+typ `fw = face HS (w,rho_node1 FF w)` abbrev
+intro EJRCFJD_ALT [`V`;`E`;`FF`;`HS`;`fv`;`fw`;`v`;`w`]
+art[]
+st/r
+art[]
+intro (GSYM COMPATIBLE_BW_TWO_LEMMAS2_ALT) [`V`;`E`;`FF`;`HS`;`fv`;`fw`;`v`;`w`]
+ants
+art[]
+st/r
+art[]
+rt[sol_local;tau_fun]
+  #
+  ]);;
+  (* }}} *)

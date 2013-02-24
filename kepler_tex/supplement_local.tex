@@ -5,14 +5,20 @@
 \newpage
 \section{Appendix on the main estimate}\label{sec:sup-local-fan}
 
-This appendix was written in May 2012 in response to Hoang Le Truong's observation that the dependent type $\BB_s\subset \ring{R}^k$, with variable $k$, is unpleasant to deal with in HOL Light.  Lemmas have been reworded to involve a single $\BB_s$
-rather than a collection of them, whenever possible.
+This appendix was written in May 2012 in response to Hoang Le Truong's
+observation that the dependent type $\BB_s\subset \ring{R}^k$, with
+variable $k$, is unpleasant to deal with in HOL Light.  Lemmas have
+been reworded to involve a single $\BB_s$ rather than a collection of
+them, whenever possible.
 
- It also grew out of an Objective CAML program that checks the completeness of the arguments in Section~\ref{sec:weight}, at an informal level.  This involved translating metric properties of local fans into combinatorial
-properties of augmented constraint systems, and then checking the combinatorial
-relations by computer.  As a result, the verification of the main estimate
-can now largely be viewed as a combinatorial proof that $S_{init}\Ra S_{term}$.
-This appendix documents the program \verb!check_completeness.hl!.
+It also grew out of an Objective CAML program that checks the
+completeness of the arguments in Section~\ref{sec:weight}, at an
+informal level.  This involved translating metric properties of local
+fans into combinatorial properties of stable constraint systems,
+and then checking the combinatorial relations by computer.  As a
+result, the verification of the main estimate can now largely be
+viewed as a combinatorial proof that $S_{init}\Ra S_{term}$.  This
+appendix documents the program \verb!check_completeness.hl!.
 
 One other improvement in exposition has been to replace the (inexplicit)
 function $\ell$, which was used to guarantee finite termination of algorithms,
@@ -20,99 +26,407 @@ with a relation $(\Ra)$, whose essential features are captured by
 finitely
 many iterations of a few basic operations.
 
-\begin{definition}\guid{ZBJCZHI}
-Let $s$ be a constraint system.  We say that $s$ is \newterm{tri-stable}, if $k(s)=3$
-and if the
-following conditions hold.
+\subsection{statement of results}\label{sec:statement'}
+
+This appendix can be read immediately before subsection~\ref{sec:statement}
+and all material after that point.
+For completeness, we repeat a few definitions and results.
+
+
+
+\begin{definition}[$\hm$,~$\tau$,~$\dih_i$]\guid{CUFCNHB}\label{def:tau}
+\formaldef{$\rho_0$}{rho\_fun}
+\formaldef{$\tau$}{tau\_fun}
+\formaldef{$\sol_0$}{sol0}
+\formaldef{$\azim$}{azim\_in\_fan}
+\formaldef{$\tau_{tri}$}{taum}
+Let $(V,E,F)$ be a nonreflexive local fan.  Recall that $\hm = 1.26$ and
+$L(h) = ({h_0-h})/({h_0-1})$, when $h \le h_0$.
+  Set
+\begin{align*}
+\rho_0(y) &= 1 + \dfrac{\sol_0}{\pi} \cdot
+    \dfrac{y-2}{2\hm-2} = 1 + \dfrac{\sol_0}{\pi}(1 - L(y/2)),\\
+  \tau(V,E,F) &=\sum_{x\in F}^{\phantom{!}} \rho_0(\normo{\nd(x)})\op{azim}(x)
++ \left(\pi+{\sol_0}\right) (2- k(F)),
+\end{align*}
+where $\sol_0=3\arccos(1/3)-\pi\approx0.551$ is the solid angle of a
+spherical equilateral triangle of side $\pi/3$, and $k(F)$ is the
+cardinality of $F$.  
+Let 
+\begin{equation}\label{eqn:tautri}
+  \tau_{tri}(y_1,y_2,y_3,y_4,y_5,y_6) =
+  \sum_{i=1}^3 \rho_0(y_i) \dih_i(y_1,\ldots,y_6)
+- \left(\pi+{\sol_0}\right),
+\end{equation}
+where
+\begin{align}\label{eqn:dihi}
+\dih_1(y_1,y_2,y_3,y_4,y_5,y_6) &= \dih(y_1,y_2,y_3,y_4,y_5,y_6),\notag\\
+\dih_2(y_1,y_2,y_3,y_4,y_5,y_6) &= \dih(y_2,y_3,y_1,y_5,y_6,y_4),\textand\notag \\
+\dih_3(y_1,y_2,y_3,y_4,y_5,y_6) &= \dih(y_3,y_1,y_2,y_6,y_4,y_5).
+\end{align}
+\indy{Notation}{h@$h_0 = 1.26$}%
+\indy{Notation}{zzt@$\tau_{tri}$}%
+\indy{Notation}{zzt@$\tau$ (weight assignment)}%
+\indy{Notation}{zzrho1@$\rho_0$ (real-valued function)}%
+\indy{Notation}{sol0@$\sol_0 = 3\arccos(1/3)-\pi$}%
+\indy{Notation}{dih@$\dih_i$}%
+\indy{Notation}{L@$L$ (linear function)}%
+\end{definition}
+
+
+\begin{definition}[standard,~protracted,~diagonal]\guid{KRACSCQ} 
+\formaldef{standard}{standard}
+\formaldef{protracted}{protracted}
+\formaldef{diagonal}{diagonal0}
+Let $(V,E)$ be a fan.  
+We write $\normo{\ee}$ for $\norm{\v}{\w}$, when $\ee=\{\v,\w\}\subset V$.
+We say that  $\ee$ is \newterm{standard} if
+\[
+2\le \normo{\ee}\le2\hm.
+\]
+We say that  $\ee$ is \newterm{protracted} if
+\[
+2\hm\le \normo{\ee}\le\sqrt{8}.
+\]
+If $\v,\w\in V$ are distinct, and $\ee=\{\v,\w\}$ is not an edge in $E$, then
+we call $\ee$ a \newterm{diagonal} of the fan.
+\end{definition}
+%\indy{Notation}{4@$\norm{\wild}$ (norm of fan edge)}% % doesn't parse
+
+
+\begin{theorem}[main~estimate]\guid{JEJTVGB}\label{lemma:empty-d}
+\formaldef{main estimate}{main\_estimate}
+\formaldef{\case{annulus}}{ball\_annulus}
+\formaldef{\case{diagonal}}{diagonal1}
+%\label{theorem:main}
+Let $(V,E,F)$ be a nonreflexive local fan (Definition~\ref{def:convex-local}).
+We make the following additional
+assumptions on $(V,E,F)$.
+\begin{enumerate}
+\item \case{packing} $V$ is a packing.  That is, for every $\v,\w\in
+V$, if $\norm{\v}{\w}<2$, then $\v=\w$.
+\item \case{annulus} $V\subset \BB$.
+\item \case{diagonal} For all distinct elements $\v,\w\in V$, if
+$\{\v,\w\}\not\in E$, then 
+\[ 
+\norm{\v}{\w}\ge 2\hm.
+\] 
+\item \case{card} 
+Let   $k=\card(E)=\card(F)$.  Then $3\le k \le 6$.
+\end{enumerate}
+In this context, we have the following conclusions.
+\begin{enumerate}
+\item Assume $k\ge 4$.  If  every edge of $E$ is standard, then
+\[ 
+\tau(V,E,F) \ge d (k), \text{ where } d(k) =
+\begin{cases}
+  0.206,&\text{if }k=4,\\
+  0.4819,&\text{if }k=5,\\
+  0.712,&\text{if }k=6.
+\end{cases}
+\] 
+\item Assume $k=5$.  Assume that every edge of $E$ is standard.
+Assume that every diagonal $\ee$ of the fan satisfies $\normo{\ee}\ge\sqrt{8}$.
+Then 
+\[
+\tau(V,E,F)\ge 0.616.
+\]
+\item Assume $k=5$.  Assume there exists some protracted edge in $E$ 
+and that the other four are standard.  Then 
+\[
+\tau(V,E,F)\ge 0.616.
+\]
+\item Finally, assume that $k=4$.  Assume that there exists some protracted
+ edge in $E$ and that the other three are standard.  
+Assume that both diagonals $\ee$ of the fan satisfy $\normo{\ee}\ge\sqrt{8}$.
+Then
+\[
+\tau(V,E,F)\ge 0.477.
+\]
+%% XX condition on diags >= sqrt8 added 2012-5-20.
+%% based on the semantics of glpk/tame_archive/head.mod.
+\end{enumerate}
+\end{theorem}
+
+There are two related inequalities that we will prove separately. For that reason,
+we state them as a separate lemma.
+
+\begin{lemma}\guid{HGDRXAN}\label{lemma:tau3}
+Let $(V,E,F)$ be a nonreflexive local fan.
+Under the same hypotheses on $(V,E,F)$ as in Theorem~\ref{lemma:empty-d}, 
+\begin{enumerate}
+\item Assume $k=3$. Then
+\[\tau(V,E,F)\ge 0.\]
+\item Assume $k=4$.  Assume that every edge of $E$ is standard.
+Assume that both diagonals $\ee$ of the fan satisfy $\normo{\ee}\ge3$.
+Then
+\[
+\tau(V,E,F)\ge 0.467.
+\]
+\end{enumerate}
+\end{lemma}
+
+
+\subsection{Definitions}
+
+
+\begin{definition}[torsor,~adjacent]
+%\formaldef{$\cstab$}{cstab}
+\formaldef{torsor}{torsor}
+  Let $k>1$ be an integer.  A \newterm{torsor} is a set $I$ with a
+  given simply transitive action of $\ring{Z}/k\ring{Z}$ on $I$.  We
+  write the application of $j\in\ring{Z}/k\ring{Z}$ to $i\in I$ as
+  $j+i$ or $i+j$.  We also write $j+i$
+  for the application of the image of $j\in\ring{Z}$ in $\ring{Z}/k\ring{Z}$ to
+  $i\in I$.  Note that each choice of base point $i_0\in I$ gives a
+  bijection $i\mapsto i+i_0$ between $\ring{Z}/k\ring{Z}$ and $I$.  
+  We say that $i$ and $j$ are not \newterm{adjacent} if $i\ne j\pm 1$.
+  %If $i,j\in I$, write 
+  %\[
+  %|i-j|_0 = \min\left \{ |m-n| \mid m + i = n +j,\ m,n\in\ring{Z}\right \}.
+  %\]
+  An
+  \fullterm{isomorphism of torsors}{isomorphism!torsor} 
+ is a bijection that respects the action.
+\indy{Notation}{I@$I$ (torsor)}%
+\end{definition}
+
+\begin{example} If $H=(D,e,n,f)$ is a hypermap with face $F$,
+then $F$ is a torsor under the action $x \mapsto f x$.  If $H$ is
+isomorphic to $\op{Dih}_{2k}$ and has vertex set $V$, then $V$ is a torsor
+under the action of $x\mapsto \rho x$, where $\rho$ is constructed
+analogously to $\rho_{(V,E,F)}$.  We may mostly restrict our attention to
+these cases.
+\end{example}
+
+% XX stab. May 17, 2012.  Dropped the constraint a_{ij}\le \stab.
+% It doesn't hold for one of the quad terminal constraint systems:
+% 1637868761 has diag at least 3.41.
+
+\begin{definition}[constraint~system]\guid{ZGFHNKX}
+\formaldef{constraint system}{constraint\_system}
+A \newterm{constraint system} $s$ consists of the following data:
+\begin{enumerate}
+\item a natural number $k\in \{3,4,5,6\}$,
+\item a $\ring{Z}/k\ring{Z}$-torsor $I$,
+\item a real number $d$,
+\item real constants $a_{ij}$, $b_{ij}$, $\alpha_{ij}$, $\beta_{ij}$ satisfying
+   $a_{ij} = a_{ji}$, $b_{ij}=b_{ji}$, $\alpha_{ij}=\alpha_{ji}$,
+$\beta_{ij}= \beta_{ji}$,  
+\[
+a_{ij}\le \alpha_{ij}\le \beta_{ij}\le b_{ij},
+\]
+ for $i,j\in I$,
+\item a subset $J\subset \{ \{i,1+i\} \mid i\in I\}$, 
+such that $\card(J)+k\le 6$.
+\item subsets $I_{str}$, $I_{str} \subset I$.
+\end{enumerate}
+\indy{Notation}{J@$J$}%
+\end{definition}
+
+For each constraint system $s$, we write $k(s)$,
+$d(s)$, $I(s)$, $a_{ij}(s)$, and so forth for the associated
+parameters.  
+
+(We merge the definitions of stable,  tri-stable, and augmented
+(augmented) from earlier versions.)
+% renamed augmented -> substandard, then mreged with stable.
+
+\begin{definition}\guid{ZBJCZHI} \guid{RIUGHVX} 
+\formaldef{stable constraint system}{stable\_system}
+\formaldef{$(k,a,b,d,I,J,+1)$}{(k\_sy,a\_sy,b\_sy,d\_sy,I\_sy,J\_sy,f\_sy)}
+\formaldef{tri-stable}{tri\_stable}
+\formaldef{$(a,b,d,k,I,J,+1)$}{$(a\_ts,b\_ts,d\_ts,k\_ts,I\_ts,J\_ts,f\_ts)$}
+\formaldef{substandard (stable)}{augmented\_constraint\_system1}
+\formaldef{substandard (tri-stable)}{augmented\_constraint\_system2}
+We say that a constraint system $s$ is \newterm{stable} if the following
+additional properties hold.
 \begin{enumerate}
 \item 
 \[
-0 = a_{ii}\text{ and }2\le a_{ij} \text{ for all }  i,j\in I \text{ such that } i\ne j.
+0 = a_{ii}\text{ and } 2\le a_{ij} \text{ for all }  i,j\in I \text{ such that } i\ne j.
 \]  
 \item
   Also, 
 \[
-  b_{i,i+1} < 4.
+  b_{i,i+1} ~\quad \begin{cases}
+    < 4, & k = 3\\
+    \le \stab, & k > 3.
+    \end{cases}
 \]  
 \item
 If $\{i,j\}\in J$, then $\leftclosed
   a_{ij},b_{ij}\rightclosed=\leftclosed\sqrt{8},\stab\rightclosed$.
-\end{enumerate}
-(Note that these are the same as stability conditions, except that
-%the stability condition $a_{ij}\le \stab$ has been dropped, 
-%and 
-$b_{i,i+1}\le \stab$ has been relaxed to $b_{i,i+1}<4$.)
-\end{definition}
-
-If $s$ is a tri-stable constraint system, we modify the definition
-of $\BB_s$ by dropping the condition requiring $(V_\v,E_\v,F_\v)$ 
-to be a local fan.  In other words, $\BB_s$ is the set of all functions
-$\v:I(s)\to\BB$ that have the following property.
-\begin{equation}\label{eqn:tri-stable}
-a_{ij}(s)\le\norm{\v_i}{\v_j}\le b_{ij}(s), \text{ for all } i,j\in I(s).
-\end{equation}
-
-
-\begin{definition}\guid{RIUGHVX} 
-An \newterm{augmented  constraint system} is
-a stable or tri-stable constraint system $s$ together with subsets of $I(s)$:
-$I_{lo}$, and $I_{str}$, and constants $\alpha_{ij},\beta_{ij}\in \ring{R}$, for
-$\{i,j\}\subset I(s)$ such that the following conditions hold.
-\begin{enumerate}
-\item $d(s) \le 0.9$.
+\item $d < 0.9$,
 \item  $m+k(s)\le 6$, where 
-$m=m(s)$ is the number of edges $\{i,j\}\subset I(s)$ such that
-$b_{i j}(s)> 2h_0$ or $a_{i j}(s)>2$. 
-\item $a_{ij}\le\alpha_{ij}\le \beta_{ij}\le b_{ij}$. 
+$m=m(s)$ is the number of edges $\{i,i+1\}\subset I(s)$ such that
+$b_{i ,i+1}(s)> 2h_0$ or $a_{i ,i+1}(s)>2$. 
+\end{enumerate}
+\indy{Notation}{m@$m(s)$ (number of nonstandard edges)}
+\end{definition}
+
+\begin{definition}[ear]  
+\formaldef{$a_{ij}$}{a\_ear0}
+\formaldef{$b_{ij}$}{b\_ear0}
+\formaldef{ear}{ear\_sy}
+We have a stable constraint system $s$ given by
+$k=\card(I)=3$, $d=0.11$, $J$ a singleton, 
+and
+\[
+\leftclosed a_{ij},b_{ij}\rightclosed=
+\begin{cases}
+ \leftclosed0,0\rightclosed,
+ &\text{~~if } i=j,\\
+ \leftclosed\sqrt8,\stab\rightclosed,
+ &\text{~~if } \{i,j\} \in J,\\
+ \leftclosed 2,2\hm\rightclosed,
+ &\text{~~otherwise. }
+\end{cases}
+\]
+We call $s$ an \newterm{ear} (by analogy with an ear
+in a triangulation of a polygon, which is a triangle that has two of
+its edges in common with the polygon).
+\end{definition}
+
+
+Next we associate a set $\BB_s$ with each constraint system $s$.
+\indy{Notation}{BBs@$\BB_s$}%
+
+
+\begin{definition}[$\BB_s$]\guid{KTFVGXF}
+  For every constraint system $s$, and every function
+  $\v:I(s)\to \BB$, let $V_\v\subset \BB$ be the image of
+  $\v$.  Let $E_\v$ be the image of $i\mapsto \{\v_i,\v_{i+1}\}$.  Let
+   $F_\v$ be the image of $i\mapsto (\v_i,\v_{i+1})$.
+ Let $\BB_s$ be
+  the set of all functions $\v$ that have the following properties.
+\begin{enumerate}
+\item $a_{ij}(s)\le\norm{\v_i}{\v_j}\le b_{ij}(s)$, for all $i,j\in I(s)$.
+\item if $k(s)>3$, then $(V_\v,E_\v,F_\v)$ is a nonreflexive local fan.
 \end{enumerate}
 \end{definition}
-\indy{Notation}{m@$m(s)$ (number of nonstandard edges)}
 
-\begin{example}\label{ex:extend-cs}
-Each stable or tri-stable constraint system for which the first two conditions
-hold may be extended to an augmented constraint system with
-$I_{lo}=I_{str}=\emptyset$, $\alpha_{ij}(s)=a_{ij}(s)$,
-$\beta_{ij}(s)=b_{ij}(s)$. 
+
+
+
+
+
+The set $J$ is used to make a small correction $d(s,\v)$ to the
+constant $d(s)$.  
+
+\begin{definition}[$d(s,\v)$]\guid{TPLCZFL}
+\formaldef{$\sigma$}{sigma\_sy}
+Set $\sigma(s) =1$ when $s$ is an ear;  $\sigma =
+-1$, otherwise.  Let $V=\{\v_i\mid i\in I(s)\}$ 
+be a set of points in $\ring{R}^3$.
+Write
+\begin{equation}
+d(s,\v) = d(s) +  0.1\, \sigma(s)\,\sum_{\{i,j\}\in J(s)} (\stab - \norm{\v_i}{\v_j}).
+\end{equation}
+\end{definition}
+\indy{Notation}{zzs@$\sigma=\pm1$}%
+\indy{Notation}{d@$d(s,\v)$}%
+
+This correction to $d(s)$  makes it a bit easier to prove inequalities when
+$\sigma(s)=-1$, at the cost of slightly more difficult inequalities for ears.
+
+When
+$k(s)=3$,
+the set $\{\v_i\mid i\in I\}$ may degenerate to planar
+configurations. By the
+stability
+constraint $b_{ij}(s)<4$, we have well-defined dihedral angles, so
+that $\tau^*(s,\wild)$ may be defined in general as follows.
+
+\begin{definition}[$\tau^*$]\guid{BGCEUKP}\label{def:tau-star}
+\indy{Notation}{zzt@$\tau^*$}%
+Let $s$ be a stable constraint system.  Define 
+\[
+\tau^*:\{(s,\v)\mid \ \v\in \BB_s\} \to \ring{R}
+\] 
+by
+\[ 
+(s,\v) \mapsto \tau(V_\v,E_\v,F_\v)-d(s,\v).
+\] 
+\indy{Notation}{zzt@$\tau^*$}%
+\end{definition}
+
+
+\begin{definition}[unadorned]\guid{SDJTENL}
+We say that a constraint system $s$ is \newterm{unadorned} if the following additional
+properties hold (with established notation):
+\begin{enumerate}
+\item For all $i,j\in I(s)$,  $a_{ij}=\alpha_{ij}$ and $b_{ij}=\beta_{ij}$.
+\item $I_{lo}=I_{str}=\emptyset$.
+\end{enumerate}
+\end{definition}
+
+
+\begin{example}\label{ex:extend-cs} 
+We may always transform a stable constraint system into another that is unadorned by
+setting $\alpha=a$, $\beta=b$, $I_{lo}=\emptyset$, $I_{str}=\emptyset$, and
+keeping the rest of the data the same.
 \end{example}
 
-If $s$ is an augmented constraint system,
-there is an associated constraint system that forgets the components
-$I_{lo}$, $I_{str}$, $\alpha_{ij}$, and $\beta_{ij}$. In this case, we
-let $\BB_s$ be the set previously defined for the underlying stable or
-tri-stable constraint system. We also let $\tau^*(s,\wild)$ be the
-previously defined function on the underlying constraint system. In
-the tri-stable case, we do not insist on local fans, but allow
-simplices that may degenerate to planar configurations. By the
-constraint $b_{ij}(s)<4$, we have well-defined dihedral angles, so
-that $\tau^*(s,\wild)$ is defined.
+\begin{definition}[$\smain$]\label{ex:main} 
+The constants in the conclusions of the main estimate
+  (Theorem~\ref{lemma:empty-d}) can be packaged into unadorned stable constraint
+  systems.  For example, the standard main estimate for $k=6$ gives
+  the constraint system $d=0.712$, $J=\emptyset$, $I$ an indexing set
+  of cardinality six, and
+\[
+a_{ij} = \begin{cases} 0, & i=j,\\
+  2, & j= i\pm1,\\
+  2 \hm, & \text{otherwise},
+  \end{cases}
+\qquad
+b_{ij}=\begin{cases}
+ 0, & i=j,\\
+ 2\hm, & j= i\pm1,\\
+ 4h_0^+, & otherwise,
+  \end{cases}
+\]
+where $h_0^+$ is any constant greater than $\hm$.
+The upper bound $4\hm$ on any diagonal comes from the triangle
+inequality: $\norm{\v_i}{\v_j} \le \normo{\v_i}+\normo{\v_j} \le
+4\hm$.   
+% XX added $\hm^+$ May 26, 2012 to avoid binding constraints.
+We write $\smain$ for the set of stable constraint systems $s$, with a
+fixed choice of torsor for each $k$, for all cases of the main
+estimate.
+\end{definition}
+\indy{Notation}{Smain@$\smain$ (main estimate constraint systems)}%
+
+The set $J(s)$ is empty for $s\in \smain$, so this correction does not
+directly affect the main estimates:
+\[
+d(s,\v) = d(s), \text{ for all } s \in \smain.
+\]
+
+\begin{definition}[$S_{init}$] \guid{BTKIQGE}
+For each of the cases of Theorem~\ref{lemma:empty-d} and \ref{lemma:tau3}, we fix an
+stable constraint system that encodes its parameters, as described in Example~\ref{ex:main}. 
+Let $S_{init}$ be this set of  stable constraint systems.
+\end{definition}
 
 
-%\begin{definition}  Let $\sigma$ be an augmented constraint system, with
-%associated unaugmented constraint system $s'$.
-%We have defined $\BB_{s'}$. Let $\BB_{s}$ be the subset of all  $\v\in\BB_{s'}$ such that
-%\begin{enumerate}
-%\item If $i\in I_{str}$,  then $\v_i$ is straight.
-%\item If $i\in I_{lo}$,  then $\normo{\v_i}=2$.
-%\item If $i\in I_{hi}$,  then $\normo{\v_i}=2h_0$.
-%\end{enumerate}
-%\end{definition}
 
 
+\subsection{minimization}
 
 
 \begin{lemma}\guid{PCRTTID} \label{lemma:aug-compact}
-Let $s$ be an augmented constraint system. Then
+Let $s$ be a stable constraint system. Then
 $\BB_s$ is compact (as a subset of
 $\BB^k \subset \ring{R}^{3k}$).
 \end{lemma}
 
-\begin{proof}  This holds when $s$ is a stable or tri-stable constraint
+\begin{proof}  This holds when $s$ is a stable constraint
 system.
 \end{proof}
 
-
 \begin{lemma}[continuity]\guid{HDPLYGYv2}\label{lemma:compact-fan}
-Let $s$ be an augmented constraint system.  Then the function 
+Let $s$ be a stable constraint system.  Then the function 
 \[
 \v\mapsto \tau^*(s,\v)
 \]
@@ -125,7 +439,7 @@ Lemma~\ref{lemma:aug-compact}.
 \end{proof}
 
 \begin{lemma}\guid{JKQEWGV}\label{lemma:not-circular}
-Let $s$ be an augmented constraint system.  Let $\v\in \BB_s$.
+Let $s$ be a stable constraint system.  Let $\v\in \BB_s$.
 Suppose that
 \[
 \sol(V_\v,E_\v,F_\v) \ge \pi.
@@ -137,7 +451,7 @@ $(V_\v,E_\v,F_\v)$ is
 less than $\pi$.  In particular, in this case, the local fan is not circular.
 \end{lemma}
 
-\begin{proof} By the definition of augmented constraint system,
+\begin{proof} By the definition of stable constraint system,
 we have $d(s)\le 0.9$. The proof of Lemma~\ref{lemma:09} extends readily
 to this context.
 \end{proof}
@@ -145,15 +459,8 @@ to this context.
 A \newterm{diagonal} of a constraint system $s$ is a pair $\{p,q\}\subset I(s)$
 such that $\{p,q\}$ is not a singleton and does not have the form $\{i,i+1\}$.
 
-
-
-Departing from the presentation of Section~\ref{sec:weight}, we do not
-use level functions and minimal counterexamples.  Rather, we proceed
-as follows.
-
-
 \begin{definition}[index,~$\iota$,~$\MM_s$]\guid{FNUEPJW}
-Let $s$ be an augmented constraint system.
+Let $s$ be a stable constraint system.
 Let $\MM_{s}\subset \BB_{s}$ be defined as follows.
 Let $\BB'_{s}$ be the set of all $\v\in \BB_{s}$ such that
 \begin{enumerate}
@@ -178,14 +485,6 @@ constraints.
 %(Obviously, if $I_{hi}\cap I_{lo}\ne \emptyset$, then $\MM_s=\emptyset$.)
 
 
-\begin{definition}[$S_{init}$] \guid{BTKIQGE}
-For each of the cases of Theorem~\ref{lemma:empty-d} and \ref{lemma:tau3}, we fix a
-stable constraint system that encodes its parameters, as described in Example~\ref{ex:main}. 
-We extend each $s$ to an augmented constraint system
-as in Example~\ref{ex:extend-cs}.
-Let $S_{init}$ be this set of  augmented constraint systems.
-\end{definition}
-
 We have the following analogue of Lemma~\ref{lemma:esm}.
 
 \begin{lemma}\guid{AYQJTMD}\label{lemma:init}
@@ -199,17 +498,12 @@ $s$.  By compactness and continuity, the set
 $\BB'_s$ of minimizers is nonempty.   
 The subset $\BB''_s$ on which the index is as small as possible
 is then also nonempty.  By our conventions in extending a constraint
-system to an augmented constraint system, $\BB''_s = \MM_s$.
+system to a stable constraint system, $\BB''_s = \MM_s$.
 \end{proof}
 
-Lemma~\ref{lemma:min-crit} is not used directly in this supplement.
-Instead, the criteria of the lemma will be presented somewhat differently
-in the treatment that follows.
-We have the following variant of Lemma~\ref{lemma:odx}.
-It is not necessary to formalize that lemma.  We use this instead.
 
 \begin{lemma}\guid{ODXLSTCv2}\label{lemma:odx2} 
-Let $s$ be an augmented constraint system,
+Let $s$ be a stable constraint system,
 and assume that $\w\in \MM_s$.  Let $i\in I(s)$.
 Assume  that $\w_i$ is not the pole of a lunar local fan $(V_\w,E_\w,F_\w)$.
 Assume that $4h_0 < b_{iq}(s)$ for every diagonal $\{i,q\}$ at $i$.
@@ -238,15 +532,8 @@ allow us to use Lemmas~\ref{lemma:fan-open-lunar} and
 \ref{lemma:fan-open-generic}, showing that fan conditions are preserved.
 \end{proof}
 
-
-
-
-
-We have the following variant of Lemma~\ref{lemma:imj}.
-It is not necessary to formalize that lemma.  We use this instead.
-
 \begin{lemma}\guid{IMJXPHRv2}\label{lemma:imj2}
-Let $s$ be an augmented constraint system.  Assume $i\in I_{str}(s)$ and
+Let $s$ be a stable constraint system.  Assume $i\in I_{str}(s)$ and
 that $\w\in \MM_s$.  
 Assume  that $\w_i$ is not the pole of a lunar local fan $(V_\w,E_\w,F_\w)$.
 Assume that $4h_0 < b_{iq}(s)$ for every diagonal $\{i,q\}$ at $i$.
@@ -261,7 +548,7 @@ $\norm{\w_i}{\w_q}=a_{i q}(s)$.
 \end{enumerate}
 \end{lemma}
 
-\begin{proof} We assume that the constaint on $J$ does not hold and
+\begin{proof} We assume that the constraint on $J$ does not hold and
 that $a_{p q}(s)<\norm{\v_p}{\v_q}$ for all diagonals, then continue as in the proof of
 Lemma~\ref{lemma:imj}.
 By Lemma~\ref{lemma:not-circular}, we may assume that one of the
@@ -277,11 +564,8 @@ allow us to use Lemmas~\ref{lemma:fan-open-lunar} and
 \ref{lemma:fan-open-generic}, showing that fan conditions are preserved.
 \end{proof}
 
-We have the following variant of Lemma~\ref{lemma:nux}.
-It is not necessary to formalize that lemma.  We use this instead.
-
 \begin{lemma}\guid{NUXCOEAv2}\label{lemma:nux2}
-Let $s$ be an augmented constraint system.  Assume $i\in I_{str}(s)$
+Let $s$ be a stable constraint system.  Assume $i\in I_{str}(s)$
 and that $\w\in \MM_s$.   
 Assume that $\norm{\w_i}{\w_j}=a_{ij}(s)$ for
 some $j$ is adjacent to $i$.  
@@ -290,8 +574,8 @@ Assume that $4h_0 < b_{iq}(s)$ for every diagonal $\{i,q\}$ at $i$.
 Then
 one of the following conditions holds.
 \begin{enumerate}
-\item If $\ell\in I(s)$ is adjacent to $i$, then $\norm{\w_i}{\w_\ell}=a_{ik}(s)$
-(for both choices of $\ell$ adjacent to $i$).
+\item We have $\norm{\w_i}{\w_\ell}=a_{ik}(s)$
+(for both choices of $\ell\in I(s)$ adjacent to $i$).
 \item There exists $j$ adjacent to $i$ such that $\{i,j\}\in J(s)$.
 \item Some diagonal $\{i,q\}\subset I(s)$ at $i$ satisfies
 $\norm{\w_i}{\w_q}=a_{i q}(s)$.
@@ -329,7 +613,7 @@ We are now ready to eliminate  lunar and circular
 fans.
 
 \begin{lemma}\guid{BJOQBJU}\label{lemma:bjo} 
-Let $s$ be an augmented constraint system.
+Let $s$ be a stable constraint system.
 Assume that $k(s)>3$.
 If $k(s)=6$, then assume additionally that
 $\stab\le a_{pq}(s)$, for every diagonal $\{p,q\}\subset I(s)$.
@@ -337,11 +621,11 @@ Then for every  $\w\in\MM_s$,  the local fan $(V_\w,E_\w,F_\w)$ is generic.
 \end{lemma}
 
 \begin{proof}
-By the definition of augmented constraint system, $4\le k(s)$ implies
-that $s$ is stable, so that for every edge $\{i,j\}\subset I$, we have
+By the definition of stable constraint system, $4\le k(s)$ implies
+that  for every edge $\{i,j\}\subset I$, we have
 $b_{i j}(s) \le\stab$.
 
-Let $w\in \MM_s$.  By Lemma~\ref{lemma:09}, the local fan of $\w$  is not circular.
+Let $\w\in \MM_s$.  By Lemma~\ref{lemma:09}, the local fan of $\w$  is not circular.
 To show that the local fan is generic, it is enough to show that it is not lunar.
 We assume for a contradiction that $\{\v_i,\v_j\}$ is the pole of a lunar fan.
 
@@ -362,7 +646,7 @@ for every edge. Equation~\ref{eqn:pole} shows that the indices $i$ and $j$
 must be opposite in the hexagon: $j = i+3$.  By the structure of lunar fans
 (Lemma~\ref{lemma:lunar}), $\w_\ell$ is straight for $\ell\ne i,j$.  Without
 loss of generality, we may
-pass to a stricter augmented constraint system $s'$ such that
+pass to a stricter stable constraint system $s'$ such that
 $\ell\in I_{str}(s')$, for $\ell\ne i,j$.  We then have $\w\in \MM_{s'}$.
 
 Recall that $i$ is fixed at a pole. 
@@ -379,14 +663,13 @@ we have $\tau^*(s',\w)>0$, which contradicts $\w\in \MM_{s'}$.
 \end{proof}
 
 
-
 \subsection{operations}
 
-This section describes some operations on augmented constraint
+This section describes some operations on stable constraint
 systems.
 
 \begin{definition}[restriction]\guid{PFEOBSC}
-Let $s$ be an augmented constraint system.
+Let $s$ be a stable constraint system.
 We say that $s'$ is a restriction of $s$ if there are sets $A$, $B$ of
 edges such that
 \[
@@ -408,10 +691,10 @@ the same for $s$ and $s'$.
 
 
 \begin{definition}[subdivision]\guid{YYKMEWW} 
-Let $s$ be an augmented constraint system,
+Let $s$ be a stable constraint system,
 and let $i,j\in  I(s)$, with $i\ne j$.  Select $c$ such that $a_{ij}(s)\le c\le b_{ij}(s)$.
 The subdivision of $s$ is the pair $\{s_1,s_2\}$ 
-of augmented constraint systems, where all the parameters for $s_1$ and $s_2$
+of stable constraint systems, where all the parameters for $s_1$ and $s_2$
 are the same as those of $s$, except that
 \[
 a_{ij}(s_1)=a_{ji}(s_1) = c, \text{ and } b_{ij}(s_2) = b_{ji}(s_2)=c.
@@ -422,6 +705,9 @@ and
 \leftclosed\alpha_{ij}(s),\beta_{ij}(s)\rightclosed\cap
 \leftclosed a_{ij}(s_\ell),b_{ij}(s_\ell)\rightclosed.
 \]
+(If one one of these intersections is empty, then we set $s_1=s_2$ and
+return the singleton $\{s_1\}$ consisting of the stable constraint
+system with nonempty intersection.)
 \end{definition}
 The subdivision thus corresponds to splitting an interval 
 $\leftclosed a_{ij},b_{ij}\rightclosed$ into
@@ -429,20 +715,14 @@ $\leftclosed a_{ij},b_{ij}\rightclosed$ into
 \leftclosed a_{ij},c\rightclosed \cup \leftclosed c,b_{ij}\rightclosed.
 \]
 
-\begin{definition}[attribute free]\guid{SDJTENL}
-An augmented constraint system $s$ is \newterm{attribute-free}, if
-$I_{str}(s)=I_{lo}(s)=\emptyset$, as well as
-$a_{ij}(s)=\alpha_{ij}(s)$ and $b_{ij}(s)=\beta_{ij}(s)$ for all
-$i,j$.
-\end{definition}
 
 
 \begin{definition}\guid{LCTBALA}  
-We say that an augmented constraint system $s$
-\newterm{transfers} to an augmented constraint system $s'$ if
+We say that a stable constraint system $s$
+\newterm{transfers} to a stable constraint system $s'$ if
 \begin{enumerate}
 \item If $s$ is an ear, then $s=s'$.
-\item $s'$ is attribute free.
+\item $s'$ is unadorned.
 \item $I(s) = I(s')$.
 \item $d(s)\le d(s')$.
 \item For all $i,j$, we have $a_{ij}(s')\le a_{ij}(s)\le b_{ij}(s)\le b_{ij}(s')$.
@@ -453,6 +733,7 @@ $I_{lo}(s')\subset I_{lo}(s)$.
 \end{definition}
 
 
+
 \begin{definition}\guid{TEQQCLX}
  The \newterm{opposite} $I'$ of a torsor $I$ is the torsor with the
 same underlying set and the action is composed with the group automorphism
@@ -461,31 +742,54 @@ Two torsors are \newterm{equivalent} if they are isomorphic or if
 one is isomorphic to the opposite of the other.
 \end{definition}
 
-If $s$ is an augmented constraint system with torsor $I(s)$, and if
+If $s$ is a stable constraint system with torsor $I(s)$, and if
 $I'$ is any equivalent torsor, then we can use the bijection between $I(s)$ and $I'$
-to obtain an augmented constraint system $s'$ with $I' = I(s')$.  An
-augmented constraint system $s'$ related in this way to $s$ is said
+to obtain a stable constraint system $s'$ with $I' = I(s')$.  An
+stable constraint system $s'$ related in this way to $s$ is said
 to be \newterm{equivalent} to $s$.  An \newterm{equi-transfer} of $s$
-to $s'$ is a transfer from $s$ to an augmented constraint system that
+to $s'$ is a transfer from $s$ to a stable constraint system that
 is equivalent to $s'$.
+
+\begin{lemma}[]\guid{TECOXBM}\rating{0}\label{lemma:2hm-slice1}
+\formalauthor{Hoang Le Truong}
+Let $s$ be a stable constraint system, and let $\v\in \BB_s$.
+Let $\u,\w\in V_\v$ satisfy $2\le\norm{\u}{\w}\le \stab$ where
+$\{\u,\w\}\not\in E_\v$.  Then $\u$ and $\w$ are nonparallel.
+Moreover,
+$C^0\{\u,\w\}\subset \Wdarto(x)$ for all $x\in F$.
+\end{lemma}
+
+
+\begin{proof}  This is a repetition of Lemma~\ref{lemma:2hm-slice}.
+\end{proof}
 
 
 \begin{definition}[slice]\guid{CJMHFAT}
- Let $s$ be an augmented constraint system and let $p,q\in I(s)$ where $p$ and
-  $q$ are not adjacent.  (In particular, $k(s)=\card(I(s))>3$, and $s$ is stable.)  We
-  say that a pair $\{s',s''\}$ of augmented constraint systems is an
+ Let $s$ be a stable constraint system and let $p,q\in I(s)$ where $p$ and
+  $q$ are not adjacent.  (In particular, $k(s)=\card(I(s))>3$.)  We
+  say that a pair $\{s',s''\}$ of stable constraint systems is an
 \newterm{slice} of  the
   diagonal $\{p,q\}$ of $s$, if the following conditions hold.
 \begin{enumerate}
-\item $\{s',s''\}$ covers the diagonal $\{p,q\}$ of $s$ in the sense of unaugmented
-constraint systems.  In fact, we use the stricter condition
+\item $I(s')\cup  I(s'') = I(s),\quad I(s')\cap I(s'') = {p,q}$.
+\item $d(s) \le d(s') + d(s'')$.
+\item $d(s') < 0.9$, $d(s'') < 0.9$.
+\item $J(t) \subset J(s) \cup \{\{p,q\}\}$, for $t = s',s''$.  
+\item $\{p,q\}\in J(s')$ iff $s'$ or $s''$ is an ear.
+\item $\{p,q\}\in J(s')$ iff $\{p,q\}\in J(s'')$.
+\item 
 \[
-a_{p q}(s)=a_{p q}(t), \text{ and } b _{p q}(s) = b_{p q}(t),
+a_{ij}(t) = a_{ij}(s), \text{ and } b_{ij}(t) = a_{ij}(s),
+\]
+for all $t\in \{s',s''\}$ and all $i,j\in I(t)$ except $\{i,j\} = \{p,q\}$.
+\item 
+\[
+a_{p q}(t)=\alpha_{p q}(s), \text{ and } b_{p q}(t)= \beta _{p q}(s),
 \]
 for all $t\in \{s',s''\}$.
 \item
 \[
-\alpha_{i j}(t) = a_{i j}(t), \text{ and } \beta_{i j}(t) = b_{i j}(t),
+\alpha_{i j}(s) = a_{i j}(t), \text{ and } \beta_{i j}(t) = b_{i j}(t),
 \]
 for all $t\in\{s',s''\}$ and all $i,j\in I(s)$.
 %\item For $t=s',s''$,
@@ -500,21 +804,23 @@ $I_{lo}(t)=I_{str}(t)=\emptyset$ for all  $t\in \{s',s''\}$.
 \end{definition}
 
 
+The word {\it slice} is used for related operations on the indexing
+set, the local fan, and the stable constraint system.  A slice of a
+stable constraint system is used in parallel with the slice a fan of
+cardinality $k$ into two smaller fans with cardinalities $k(s')$ and
+$k(s'')$.  All of the edge length constraints are to be preserved
+under slicing.  Note that the data $\alpha_{ij}$, $\beta_{ij}$,
+$I_{lo}$, $I_{str}$ for $s'$ and $s''$ have been {\it reset} to
+default values.
 
-The word
-{\it slice} is used for related operations on the indexing set, the
-local fan, and the augmented constraint system.
-A slice of an augmented constraint system is used in parallel with the
-slice a fan of cardinality $k$ into two smaller fans with
-cardinalities $k(s')$ and $k(s'')$.  All of the edge length
-constraints are to be preserved under slicing.
-Note that the data $\alpha_{ij}$, $\beta_{ij}$, $I_{lo}$, $I_{str}$
-for $s'$ and $s''$ have been {\it reset} to default values. 
-
-If $\{s',s''\}$ is an slice of a diagonal $\{p,q\}$, then we can use the inclusions $I(s')\subset I(s)$ and $I(s'')\subset I(s)$ to restrict an element $\v:I(s)\to\BB$ to $\v':I(s')\to \BB$ and $\v'':I(s'')\to \BB$.  The inequality $d(s)\le d(s') + d(s'')$ of a covered diagonal implies a related inequality.
+If $\{s',s''\}$ is an slice of a diagonal $\{p,q\}$, then we can use
+the inclusions $I(s')\subset I(s)$ and $I(s'')\subset I(s)$ to
+restrict an element $\v:I(s)\to\BB$ to $\v':I(s')\to \BB$ and
+$\v'':I(s'')\to \BB$.  The inequality $d(s)\le d(s') + d(s'')$ of a
+covered diagonal implies a related inequality.
 
 \begin{lemma}\guid{QKNVMLB}\label{lemma:cover2}
-Let $s$ be an augmented constraint system with diagonal $\{p,q\}$ and slice
+Let $s$ be a stable constraint system with diagonal $\{p,q\}$ and slice
  $\{s',s''\}$. 
 Let $\v\in \BB_s$ and let $\v'$ and $\v''$ be constructed from $\v$ as above.
 Then  $\v'\in \BB_{s'}$ and $\v''\in \BB_{s''}$.
@@ -538,12 +844,12 @@ of $\MM_s$ propagates in an orderly way under the operations of
 restriction, slicing, equi-transfer, and subdivision.
 
 \begin{definition}[$\ra$~$\Ra$] \guid{AZGJNZO}
-Let $\op{ACS}$ be the set of augmented constraint systems
+Let $\op{ACS}$ be the set of stable constraint systems
 and let $P(\op{ACS})$ be the set of finite subsets of $\op{ACS}$. 
  We define a relation $(\ra)$ on $\op{ACS}\times P(\op{ACS})$.
 We write $s\ra T$ if the following condition holds.
 \begin{enumerate}
-%\item $k=1$ and $s$ transfers to an augmented constraint system equivalent to $s_1$.
+%\item $k=1$ and $s$ transfers to a stable constraint system equivalent to $s_1$.
 %\item $k=2$ and $\{s_1,s_2\}$ is an slice along some diagonal of $s$.
 %\item $k=2$ and $\{s_1,s_2\}$ is a subdivision of $s$.
 \item If $\MM_s\ne\emptyset$, then 
@@ -567,7 +873,7 @@ that $s_2\ra \{s_3\}$.  Then $s_1\ra\{s_3\}$.  So $S_1\Ra S_3$.
 \end{proof}
 
 \begin{lemma}\guid{IEWZAVH}\label{lemma:propagate}
-Let $S$  and $T$ be finite sets of augmented constraint systems such that
+Let $S$  and $T$ be finite sets of stable constraint systems such that
 $S\Ra T$.  Assume that $\MM_s\ne\emptyset$ for some $s\in S$.
 Then $\MM_t\ne\emptyset$ for some $t\in T$.
 \end{lemma}
@@ -589,7 +895,7 @@ either $\BB_{s_1}$ or $\BB_{s_2}$.  Hence $s\ra\{s_1,s_2\}$.
 \end{example}
 
 \begin{example}[transfer, equi-transfer]\guid{YXIONXL}  Let $t$ be a transfer of
-an augmented constraint system $s$.  Assume that $\MM_s\ne\emptyset$.
+a stable constraint system $s$.  Assume that $\MM_s\ne\emptyset$.
 Let $\w\in \MM_s$.
 We have $w\in \BB_s\subset\BB_t$, and $\d(t,\w) \ge d(s,\w)$,
 as well as $\tau^*(t,\w)\le\tau^*(t,\w)\le 0$.   By compactness, there
@@ -597,7 +903,7 @@ exists a global minimizer,
 $\v\in\BB''_t\ne\emptyset$.  It satisfies
 $\tau^*(t,\v)\le\tau^*(t,\w)\le 0$.  By the definition of transfer,
 $t$
-is attribute free, so that $\BB''_t=\MM_t$.  (Note that $\MM_s$ and
+is unadorned, so that $\BB''_t=\MM_t$.  (Note that $\MM_s$ and
 $\MM_t$
 might be disjoint.)  This shows that
 $\MM_t\ne\emptyset$.
@@ -606,7 +912,7 @@ then we again have $s\ra\{t\}$.
 \end{example}
 
 \begin{example}[slice]\guid{LKGRQUI}  Let $\{s',s''\}$ be a slice of
-an augmented constraint system $s$ along
+a stable constraint system $s$ along
 a diagonal $\{p,q\}$.  Assume that $\w\in\MM_s$.
 Let $\w'\in \BB_{s'}$ and $\w''\in \BB_{s''}$ be obtained
 by restriction of parameters.  From Lemma~\ref{lemma:cover2},
@@ -614,7 +920,7 @@ we have $\tau^*(s',\w')\le 0$ or $\tau^*(s'',\w'')\le0$.  To be
 concrete, say $\tau^*(s',\w')\le 0$.  The global minimizer
 $\v'\in\BB_{s'}$
 then also satisfies $\tau^*(s',\v')\le 0$.  By the definition of
-slice, $s'$ is attribute free, so that $\BB''_{s'}=\MM_{s'}$ and
+slice, $s'$ is unadorned, so that $\BB''_{s'}=\MM_{s'}$ and
 $\v'\in \MM_{s'}$.  Hence $s\ra\{s',s''\}$.
 \end{example}
 
@@ -626,7 +932,7 @@ that it has some diagonal $\norm{\w_i}{\w_j}\le\stab$.  By slicing
 along
 the diagonal $\{i,j\}$, we obtain $\{s_1,s_2\}$ that are generic, with
 $s\ra\{s_1,s_2\}$.  In this way, we may easily dispose of non-generic
-fans.  I what follows, we may assume that every member of $\MM_s$ is
+fans.  In what follows, we may assume that every member of $\MM_s$ is
 generic.
 \end{remark}
 
@@ -638,17 +944,17 @@ that the members of $\MM_s$ are generic, to avoid the assumption
 on poles of lunar fans in the lemma.
 
 \begin{example}[deformation] \guid{KESHTYS} 
-Let $s$ be an augmented constraint
+Let $s$ be a stable constraint
   system, with $\MM_s\ne\emptyset$.  Let $i\in I(s)$.
 Assume that for both $j$ adjacent to $i$, we have $\{i,j\}\not\in
 J(s)$.
 Assume further that $4h_0 < b_{iq}(s)$ for every diagonal $\{i,q\}$ at
-$i$.  Let $s'$ be an augmented constraint system with all parameters
+$i$.  Let $s'$ be a stable constraint system with all parameters
 the same as $s$, except that $I_{lo}(s') = \{i\}\cup I_{lo}(s)$.
 Keeping $i$ fixed, we
 let $D=D_i\subset I(s)$ be the set of $j\ne i$ such that 
 $\alpha_{ij}(s)=a_{ij}(s)$. 
-Let $S_1$ be the set of augmented constraint systems indexed by $j\in
+Let $S_1$ be the set of stable constraint systems indexed by $j\in
 D$,
 obtained by
 modifying $s$, setting $\beta_{ij}(s)=a_{ij}(s)$, with other
@@ -672,9 +978,9 @@ the lateral deformations (Remark~\ref{rem:contract}) give arrows
 s\ra S.
 \]
 
-We have specified a set $S_{init}$ of initial augmented constraints systems.
+We have specified a set $S_{init}$ of initial stable constraints systems.
 We specify a second set $S_{term}=\{s_{(6)},s_{(5)},\ldots\}$ 
-of terminal augmented constraint systems, where
+of terminal stable constraint systems, where
  $s_{(k)}$, for $k=5,6$,  are given by
 \[
 I=\ring{Z}/k\ring{Z}, J=I_{lo}=I_{str}=\emptyset, d(s_{(5)})=0.616, d(s_{(6)})=0.712,
@@ -727,7 +1033,7 @@ Similarly, we use the spherical triangle inequality and the inequality
 $\Delta\ge0$ in a few places to conlude that $\MM_s=\emptyset$.
 But we insist that the proof of \eqref{eqn:init-term} is essentially
 a combinatorial search.  The computer code makes no reference
-to local fans, working consistently at the level of abstraction of augmented
+to local fans, working consistently at the level of abstraction of stable
 constraint
 systems.
 
@@ -743,7 +1049,7 @@ contradiction shows that $\MM_s=\emptyset$ for all $s\in S_{init}$,
 so that $\tau^*(s,\v)>0$.  This proves the main estimate.
 
 We remark that the verifications of  different cases in $S_{init}$ become
-highly intertwined through the relation $(\Ra)$.  Each augmented
+highly intertwined through the relation $(\Ra)$.  Each stable
 constraint
 system in $S_{term}$ contributes to the proof of many different cases
 of the main estimate.

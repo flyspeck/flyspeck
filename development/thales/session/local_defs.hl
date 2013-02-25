@@ -527,32 +527,805 @@ let ejr_distinct = prove_by_refinement(
   ]);;
   (* }}} *)
 
+  TYPIFY `CARD(EE v E) > 1` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.LOFA_CARD_EE_V_1;arith `2 > 1`]);
+  FIRST_X_ASSUM_ST `wedge_in_fan_gt` MP_TAC;
+
+
 let WEDGE_EDGE_NOT_ADJ = prove_by_refinement(
-  `!V E FF HS fv v w .  (local_fan (V,E,FF) /\
-         v IN V /\
-         w IN V /\
-         ~(v = w) /\
-         (!z t. z IN {v, w} /\ t IN V DIFF {z} ==> ~collinear {vec 0, z, t}) /\
-         (!x. x IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt x E)) /\
-        fv = face HS (v,rho_node1 FF v) ==>
-    ~(w = rho_node1 FF v)
-    // v_prime V (face HS (v,rho_node1 FF v)) PSUBSET V
-    `,
+  `!V E FF v .  local_fan (V,E,FF) /\
+         v IN V ==>
+           ~(aff_gt {vec 0} {v, rho_node1 FF v} SUBSET wedge_in_fan_gt (v,rho_node1 FF v) E) `,
   (* {{{ proof *)
   [
-  st/r
-rt[PSUBSET]
-subconj
-rt[v_prime;SUBSET;IN_ELIM_THM]
-mt[]
-dt
-rt[EXTENSION]
-typ `?u. u IN V /\ ~(u IN v_prime V (face HS (v,rho_node1 FF v)))` ets
-mt[]
-typ `
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `CARD(EE v E) > 1` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.LOFA_CARD_EE_V_1;arith `2 > 1`]);
+  FIRST_X_ASSUM_ST `wedge_in_fan_gt` MP_TAC;
+  ASM_REWRITE_TAC[wedge_in_fan_gt];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Nkezbfc_local.AFF_GT_SUBSET_WEDGE_IMP_VERTEX [`(vec 0):real^3`;`v`;`rho_node1 FF v`;`rho_node1 FF v`;`azim_cycle (EE v E) (vec 0) v (rho_node1 FF v)`];
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC Local_lemmas1.LF_AZIM_CYCLE_EQ_IVS_ND;
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_THEN MP_TAC THEN ANTS_TAC;
+    BY(ASM_MESON_TAC[Local_lemmas.LOFA_IMP_NOT_COLL_IVS;Local_lemmas.LOCAL_FAN_CHARACTER_OF_RHO_NODE2]);
+  BY(REWRITE_TAC[wedge;IN_ELIM_THM;AZIM_REFL;arith `~(&0 < &0)`])
   ]);;
   (* }}} *)
 
+let PERIODIC_RHO_NODE1 = prove_by_refinement(
+  `!V E FF v.  local_fan (V,E,FF) /\ v IN V ==> periodic (\i. ITER i (rho_node1 FF) v) (CARD V)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Oxl_def.periodic;GSYM ITER_ADD];
+  REPEAT WEAKER_STRIP_TAC;
+  AP_TERM_TAC;
+  MATCH_MP_TAC Local_lemmas1.LOFA_IMP_ITER_RHO_NODE_ID2;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let V_PRIME_SUBSET_V = prove_by_refinement(
+  `!V f.  v_prime (V:real^3->bool) (f:real^3 # real^3 -> bool) SUBSET V`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[v_prime;SUBSET;IN_ELIM_THM];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let SLICEV_IMAGE = prove_by_refinement(
+  `!V E FF v w i.
+     convex_local_fan (V,E,FF) /\
+     v IN V /\
+     w IN V /\
+     (!u u1.
+          u IN {v, w} /\ u1 IN V /\ ~(u = u1) ==> ~collinear {vec 0, u, u1}) /\
+     (!e. e IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt e E) /\
+     (i < CARD V) /\
+     (w = ITER i (rho_node1 FF) v)
+     ==>
+       slicev E FF v w = IMAGE  (\j. ITER j (rho_node1 FF) v) {j | j < i+1 } `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC ejr_distinct [`V`;`E`;`FF`;`v`;`w`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  TYPIFY `HS = hypermap (HYP (vec 0,V,E UNION {{v, w}}))` TYPED_ABBREV_TAC;
+  TYPIFY `fv = face HS (v,rho_node1 FF v)` TYPED_ABBREV_TAC;
+  TYPIFY `fw = face HS (w,rho_node1 FF w)` TYPED_ABBREV_TAC;
+  INTRO_TAC EJRCFJD_ALT [`V`;`E`;`FF`;`HS`;`fv`;`fw`;`v`;`w`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC (GSYM COMPATIBLE_BW_TWO_LEMMAS2_ALT) [`V`;`E`;`FF`;`HS`;`fv`;`fw`;`v`;`w`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  TYPIFY `local_fan (V,E,FF)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.CVX_LO_IMP_LO]);
+  TYPIFY `!i. ITER i (rho_node1 FF) v IN V` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_ORBIT_MAP_VITER;]);
+  COMMENT "remove a many lines here";
+  TYPIFY `!j. j < CARD V /\ ITER j (rho_node1 FF) v IN v_prime V fv <=> j < i+1` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC (REWRITE_RULE[TAUT `(a ==> b ==> c) <=> (a /\ b ==> c)`] Local_lemmas1.CONDS_IN_V_PRIME_NUM);
+    ASM_REWRITE_TAC[IN_DIFF;IN_SING];
+    BY(ASM_MESON_TAC[]);
+  COMMENT "v_prime as image";
+  TYPIFY `v_prime V fv = IMAGE  (\j. ITER j (rho_node1 FF) v) {j | j < i+1 }` (C SUBGOAL_THEN ASSUME_TAC);
+    GMATCH_SIMP_TAC Local_lemmas1.POINTS_IN_HAFL_CIRCLE;
+    GEXISTL_TAC [`w`;`FF`;`v`];
+    CONJ_TAC;
+      GEXISTL_TAC [`E`;`HS`];
+      ASM_REWRITE_TAC[IN_DIFF;IN_SING];
+      BY(ASM_MESON_TAC[]);
+    REWRITE_TAC[EXTENSION;IN_ELIM_THM;IN_IMAGE];
+    X_GEN_TAC `u:real^3`;
+    REWRITE_TAC[Geomdetail.EQ_EXPAND];
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      TYPIFY `n` EXISTS_TAC;
+      ASM_REWRITE_TAC[];
+      REWRITE_TAC[arith `n < i+1 <=> ~(i < n)`];
+      BY(ASM_MESON_TAC[]);
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `x` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `m < CARD V` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(REPEAT (FIRST_X_ASSUM_ST `(a:num) < b` MP_TAC) THEN ARITH_TAC);
+    TYPIFY `m = i` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[Local_lemmas1.LT_CARD_MONO_LOFA]);
+    BY(REPLICATE_TAC 5 (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let SLICEW_IMAGE = prove_by_refinement(
+  `!V E FF v w n.
+     convex_local_fan (V,E,FF) /\
+     v IN V /\
+     w IN V /\
+     (!u u1.
+          u IN {v, w} /\ u1 IN V /\ ~(u = u1) ==> ~collinear {vec 0, u, u1}) /\
+     (!e. e IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt e E) /\
+     (n < CARD V) /\
+     (w = ITER n (rho_node1 FF) v)
+     ==>
+       slicev E FF w v = IMAGE  (\j. ITER j (rho_node1 FF) v) {j | j = 0 \/ (n <= j /\ j < CARD V) }`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC ejr_distinct [`V`;`E`;`FF`;`v`;`w`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  TYPIFY `HS = hypermap (HYP (vec 0,V,E UNION {{v, w}}))` TYPED_ABBREV_TAC;
+  TYPIFY `fv = face HS (v,rho_node1 FF v)` TYPED_ABBREV_TAC;
+  TYPIFY `fw = face HS (w,rho_node1 FF w)` TYPED_ABBREV_TAC;
+  INTRO_TAC EJRCFJD_ALT [`V`;`E`;`FF`;`HS`;`fv`;`fw`;`v`;`w`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC (GSYM COMPATIBLE_BW_TWO_LEMMAS2_ALT) [`V`;`E`;`FF`;`HS`;`fv`;`fw`;`v`;`w`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  TYPIFY `local_fan (V,E,FF)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.CVX_LO_IMP_LO]);
+  TYPIFY `!i. ITER i (rho_node1 FF) v IN V` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_ORBIT_MAP_VITER;]);
+  TYPIFY `!j. j < CARD V /\ ITER j (rho_node1 FF) v IN v_prime V fw <=> (j =0) \/ (n <= j /\ j < CARD V)` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC (REWRITE_RULE[TAUT `(a ==> b ==> c) <=> (a /\ b ==> c)`] Local_lemmas1.CONDS_IN_V_PRIME_NUM2);
+    ASM_REWRITE_TAC[IN_DIFF;IN_SING];
+    BY(ASM_MESON_TAC[]);
+  COMMENT "v_prime as image";
+  TYPIFY `v_prime V fw = IMAGE  (\j. ITER j (rho_node1 FF) v) {j | j = 0 \/ (n <= j /\ j < CARD V) }` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[EXTENSION;IN_IMAGE];
+    X_GEN_TAC `u:real^3`;
+    TYPIFY `u IN v_prime V fw` ASM_CASES_TAC;
+      ASM_REWRITE_TAC[];
+      INTRO_TAC V_PRIME_SUBSET_V [`V`;`fw`];
+      REWRITE_TAC[SUBSET];
+      DISCH_THEN (C INTRO_TAC [`u`]);
+      DISCH_TAC;
+      INTRO_TAC Polar_fan.LOCAL_FAN_ORBIT_MAP_EXPLICIT [`V`;`E`;`FF`;`v`;`u`];
+      ANTS_TAC;
+        BY(ASM_MESON_TAC[]);
+      REWRITE_TAC[IN_ELIM_THM];
+      REPEAT WEAKER_STRIP_TAC;
+      TYPIFY `i` EXISTS_TAC;
+      ASM_REWRITE_TAC[];
+      BY(ASM_MESON_TAC[]);
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[NOT_EXISTS_THM;IN_ELIM_THM];
+    BY(ASM_MESON_TAC[]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+(* Might extract things like the exact card of slicev, and the fact that 3 < CARD V *)
+
+let CARD_SLICEV_LT = prove_by_refinement(
+  `!V E FF v w.
+     convex_local_fan (V,E,FF) /\
+     v IN V /\
+     w IN V /\
+     (!u u1.
+          u IN {v, w} /\ u1 IN V /\ ~(u = u1) ==> ~collinear {vec 0, u, u1}) /\
+     (!e. e IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt e E) ==>
+      CARD (slicev E FF v w) < CARD V`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC ejr_distinct [`V`;`E`;`FF`;`v`;`w`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  TYPIFY `HS = hypermap (HYP (vec 0,V,E UNION {{v, w}}))` TYPED_ABBREV_TAC;
+  TYPIFY `fv = face HS (v,rho_node1 FF v)` TYPED_ABBREV_TAC;
+  TYPIFY `fw = face HS (w,rho_node1 FF w)` TYPED_ABBREV_TAC;
+  INTRO_TAC EJRCFJD_ALT [`V`;`E`;`FF`;`HS`;`fv`;`fw`;`v`;`w`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC (GSYM COMPATIBLE_BW_TWO_LEMMAS2_ALT) [`V`;`E`;`FF`;`HS`;`fv`;`fw`;`v`;`w`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  TYPIFY `local_fan (V,E,FF)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.CVX_LO_IMP_LO]);
+  TYPIFY `!i. ITER i (rho_node1 FF) v IN V` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_ORBIT_MAP_VITER;]);
+  INTRO_TAC Polar_fan.LOCAL_FAN_ORBIT_MAP_EXPLICIT [`V`;`E`;`FF`;`v`;`w`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `1 < CARD V` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Local_lemmas1.DIFFERENCE_IMP_LT_CARDV;
+    ASM_REWRITE_TAC[arith `n < 1 <=> n = 0`];
+    BY(ASM_MESON_TAC[ITER]);
+  TYPIFY `~(i = CARD V - 1)` (C SUBGOAL_THEN ASSUME_TAC);
+    DISCH_TAC;
+    TYPIFY `w = ivs_rho_node1 FF v` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[Local_lemmas.ITER_CARD_MINUS1_EQ_IVS_RN1]);
+    INTRO_TAC WEDGE_EDGE_NOT_ADJ [`V`;`E`;`FF`;`w`];
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    REWRITE_TAC[];
+    RULE_ASSUM_TAC (ONCE_REWRITE_RULE[Collect_geom.PER_SET2]);
+    TYPIFY `w,rho_node1 FF w IN FF` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_RHO_NODE_PROS]);
+    TYPIFY `rho_node1 FF w = v` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[Local_lemmas1.LOCAL_FAN_RHO_NODE_IVS]);
+    BY(ASM_MESON_TAC[]);
+  TYPIFY `!j. j < CARD V /\ ITER j (rho_node1 FF) v IN v_prime V fv <=> j < i+1` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC (REWRITE_RULE[TAUT `(a ==> b ==> c) <=> (a /\ b ==> c)`] Local_lemmas1.CONDS_IN_V_PRIME_NUM);
+    ASM_REWRITE_TAC[IN_DIFF;IN_SING];
+    BY(ASM_MESON_TAC[]);
+  COMMENT "v_prime as image";
+  TYPIFY `v_prime V fv = IMAGE  (\j. ITER j (rho_node1 FF) v) {j | j < i+1 }` (C SUBGOAL_THEN ASSUME_TAC);
+    GMATCH_SIMP_TAC Local_lemmas1.POINTS_IN_HAFL_CIRCLE;
+    GEXISTL_TAC [`w`;`FF`;`v`];
+    CONJ_TAC;
+      GEXISTL_TAC [`E`;`HS`];
+      ASM_REWRITE_TAC[IN_DIFF;IN_SING];
+      BY(ASM_MESON_TAC[]);
+    REWRITE_TAC[EXTENSION;IN_ELIM_THM;IN_IMAGE];
+    X_GEN_TAC `u:real^3`;
+    REWRITE_TAC[Geomdetail.EQ_EXPAND];
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      TYPIFY `n` EXISTS_TAC;
+      ASM_REWRITE_TAC[];
+      REWRITE_TAC[arith `n < i+1 <=> ~(i < n)`];
+      BY(ASM_MESON_TAC[]);
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `x` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `m < CARD V` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(REPLICATE_TAC 10 (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+    TYPIFY `m = i` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[Local_lemmas1.LT_CARD_MONO_LOFA]);
+    BY(REPLICATE_TAC 5 (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  COMMENT "now use IMAGE CARD";
+  FIRST_X_ASSUM (SUBST1_TAC);
+  MATCH_MP_TAC LET_TRANS;
+  TYPIFY `CARD {j | j < i + 1}` EXISTS_TAC;
+  CONJ_TAC;
+    MATCH_MP_TAC CARD_IMAGE_LE;
+    BY(REWRITE_TAC[FINITE_NUMSEG_LT]);
+  REWRITE_TAC[CARD_NUMSEG_LT];
+  BY(REPLICATE_TAC 10 (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let SLICEW_BIJ = prove_by_refinement(
+  `!V E FF v w n.
+         convex_local_fan (V,E,FF) /\
+         v IN V /\
+         w IN V /\
+         (!u u1.
+              u IN {v, w} /\ u1 IN V /\ ~(u = u1)
+              ==> ~collinear {vec 0, u, u1}) /\
+         (!e. e IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt e E) /\
+         n < CARD V /\
+         w = ITER n (rho_node1 FF) v
+         ==> 
+             BIJ (\j. ITER j (rho_node1 FF) v)
+             {j | j = 0 \/ n <= j /\ j < CARD V} (slicev E FF w v)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[BIJ];
+  REPEAT WEAKER_STRIP_TAC;
+  SUBCONJ2_TAC;
+    INTRO_TAC SLICEW_IMAGE [`V`;`E`;`FF`;`v`;`w`;`n`];
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    DISCH_THEN SUBST1_TAC;
+    BY(REWRITE_TAC[Misc_defs_and_lemmas.IMAGE_SURJ]);
+  REWRITE_TAC[SURJ;INJ];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[IN_ELIM_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `local_fan (V,E,FF)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.CVX_LO_IMP_LO]);
+  TYPIFY `FINITE V` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_FINITE_V]);
+  TYPIFY `0 < CARD V` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_SIMP_TAC[ arith `0 < x <=> ~(x = 0)`;CARD_EQ_0;EXTENSION;NOT_IN_EMPTY;NOT_FORALL_THM];
+    BY(ASM_MESON_TAC[]);
+  INTRO_TAC Local_lemmas1.LT_CARD_MONO_LOFA [];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN MATCH_MP_TAC;
+  BY(ASM_MESON_TAC[])
+ ]);;
+  (* }}} *)
+
+let SLICEV_BIJ = prove_by_refinement(
+  `!V E FF v w n.
+         convex_local_fan (V,E,FF) /\
+         v IN V /\
+         w IN V /\
+         (!u u1.
+              u IN {v, w} /\ u1 IN V /\ ~(u = u1)
+              ==> ~collinear {vec 0, u, u1}) /\
+         (!e. e IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt e E) /\
+         n < CARD V /\
+         w = ITER n (rho_node1 FF) v
+         ==> 
+             BIJ (\j. ITER j (rho_node1 FF) v)
+             {j | j < n + 1} (slicev E FF v w)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[BIJ];
+  REPEAT WEAKER_STRIP_TAC;
+  SUBCONJ2_TAC;
+    INTRO_TAC SLICEV_IMAGE [`V`;`E`;`FF`;`v`;`w`;`n`];
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    DISCH_THEN SUBST1_TAC;
+    BY(REWRITE_TAC[Misc_defs_and_lemmas.IMAGE_SURJ]);
+  REWRITE_TAC[SURJ;INJ];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[IN_ELIM_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `local_fan (V,E,FF)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.CVX_LO_IMP_LO]);
+  TYPIFY `FINITE V` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_FINITE_V]);
+  TYPIFY `0 < CARD V` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_SIMP_TAC[ arith `0 < x <=> ~(x = 0)`;CARD_EQ_0;EXTENSION;NOT_IN_EMPTY;NOT_FORALL_THM];
+    BY(ASM_MESON_TAC[]);
+  INTRO_TAC Local_lemmas1.LT_CARD_MONO_LOFA [];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN MATCH_MP_TAC;
+  BY(ASM_MESON_TAC[arith `x < n+1 /\ n < c==> x < c`])
+ ]);;
+  (* }}} *)
+
+let CARD_SLICEV = prove_by_refinement(
+  `!V E FF v w n.
+         convex_local_fan (V,E,FF) /\
+         v IN V /\
+         w IN V /\
+         (!u u1.
+              u IN {v, w} /\ u1 IN V /\ ~(u = u1)
+              ==> ~collinear {vec 0, u, u1}) /\
+         (!e. e IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt e E) /\
+         n < CARD V /\
+         w = ITER n (rho_node1 FF) v
+         ==> CARD (slicev E FF v w) + CARD(slicev E FF w v) = CARD V + 2`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC SLICEV_BIJ [`V`;`E`;`FF`;`v`;`w`;`n`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  INTRO_TAC SLICEW_BIJ [`V`;`E`;`FF`;`v`;`w`;`n`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY `f = (\j. ITER j (rho_node1 FF) v)` TYPED_ABBREV_TAC;
+  TYPIFY `CARD {j | j < n + 1} =  CARD (slicev E FF v (ITER n (rho_node1 FF) v))` (C SUBGOAL_THEN MP_TAC);
+    MATCH_MP_TAC Misc_defs_and_lemmas.BIJ_CARD;
+    ASM_REWRITE_TAC[FINITE_NUMSEG_LT];
+    BY(ASM_MESON_TAC[]);
+  DISCH_THEN (SUBST1_TAC o GSYM);
+  TYPIFY `CARD {j | j =0 \/ ( n <= j /\ j < CARD V)} =  CARD (slicev E FF w v)` (C SUBGOAL_THEN MP_TAC);
+    MATCH_MP_TAC Misc_defs_and_lemmas.BIJ_CARD;
+    TYPIFY `f` EXISTS_TAC;
+    CONJ2_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    MATCH_MP_TAC FINITE_SUBSET;
+    TYPIFY `{0} UNION {j | j < CARD V}` EXISTS_TAC;
+    CONJ_TAC;
+      MATCH_MP_TAC FINITE_UNION_IMP;
+      BY(ASM_REWRITE_TAC[FINITE_INSERT;FINITE_EMPTY;FINITE_NUMSEG_LT]);
+    BY(SET_TAC[]);
+  ASM_REWRITE_TAC[];
+  DISCH_THEN (SUBST1_TAC o GSYM);
+  REWRITE_TAC[CARD_NUMSEG_LT];
+  TYPIFY `{j | j  = 0 \/ n <= j /\ j < CARD V } = {0} UNION {j | n <= j /\ j < CARD V}` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(SET_TAC[]);
+  INTRO_TAC Geomdetail.CARD_EQUATION [`{0}`;`{j | n <= j /\ j < CARD V}`];
+  ANTS_TAC;
+    REWRITE_TAC[FINITE_INSERT;FINITE_EMPTY];
+    MATCH_MP_TAC FINITE_SUBSET;
+    TYPIFY ` {j | j < CARD V}` EXISTS_TAC;
+    ASM_REWRITE_TAC[FINITE_NUMSEG_LT];
+    BY(SET_TAC[]);
+  TYPIFY `({0} INTER {j | n <= j /\ j < CARD V}) = {}` (C SUBGOAL_THEN SUBST1_TAC);
+    REWRITE_TAC[EXTENSION;NOT_IN_EMPTY;IN_INTER;IN_SING;IN_ELIM_THM];
+    TYPIFY `~(n=0)` ENOUGH_TO_SHOW_TAC;
+      BY(ARITH_TAC);
+    DISCH_TAC;
+    FIRST_X_ASSUM_ST `w = ITER n r v` MP_TAC;
+    ASM_REWRITE_TAC[ITER];
+    INTRO_TAC ejr_distinct [`V`;`E`;`FF`;`v`;`w`];
+    DISCH_THEN MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[CARD_CLAUSES;arith `x + 0 = x`];
+  DISCH_THEN SUBST1_TAC;
+  REWRITE_TAC[Geomdetail.CARD_SING];
+  TYPIFY `{j | n <= j /\  j < CARD V} = (n.. (CARD V - 1))` (C SUBGOAL_THEN SUBST1_TAC);
+    REWRITE_TAC[EXTENSION;IN_NUMSEG;IN_ELIM_THM];
+    BY(REPEAT (FIRST_X_ASSUM_ST `n < CARD V` MP_TAC) THEN ARITH_TAC);
+  REWRITE_TAC[CARD_NUMSEG];
+  BY(REPEAT (FIRST_X_ASSUM_ST `n < CARD V` MP_TAC) THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let aff_ge_INTER_aff_lt = prove_by_refinement(
+  `! (y:real^A). ~(y = vec 0) ==> aff_ge {vec 0} {y} INTER aff_lt {vec 0} {y} = {}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_SIMP_TAC[AFF_GE_1_1_0];
+  GMATCH_SIMP_TAC AFF_LT_1_1;
+  REWRITE_TAC[DISJOINT;IN_SING;EXTENSION;IN_INTER;IN_ELIM_THM;NOT_IN_EMPTY];
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[VECTOR_MUL_RZERO];
+  REWRITE_TAC[varith `a % y = vec 0 + t2 % (y:real^A) <=> (a - t2) % y = vec 0`];
+  ASM_REWRITE_TAC[VECTOR_MUL_EQ_0];
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let ejr_generic = prove_by_refinement(
+  `!V E FF v w.
+     convex_local_fan (V,E,FF) /\
+     v IN V /\
+     w IN V /\
+     (!u u1.
+          u IN {v, w} /\ u1 IN V /\ ~(u = u1) ==> ~collinear {vec 0, u, u1}) /\
+     (!e. e IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt e E) /\
+    generic V E
+  ==> generic (slicev E FF v w) (slicee E FF v w)`,
+
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[generic];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC ejr_distinct [`V`;`E`;`FF`;`v`;`w`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  TYPIFY `HS = hypermap (HYP (vec 0,V,E UNION {{v, w}}))` TYPED_ABBREV_TAC;
+  TYPIFY `fv = face HS (v,rho_node1 FF v)` TYPED_ABBREV_TAC;
+  TYPIFY `fw = face HS (w,rho_node1 FF w)` TYPED_ABBREV_TAC;
+  INTRO_TAC EJRCFJD_ALT [`V`;`E`;`FF`;`HS`;`fv`;`fw`;`v`;`w`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC (GSYM COMPATIBLE_BW_TWO_LEMMAS2_ALT) [`V`;`E`;`FF`;`HS`;`fv`;`fw`;`v`;`w`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  TYPIFY `local_fan (V,E,FF)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.CVX_LO_IMP_LO]);
+  TYPIFY `e_prime (E UNION {{v,w}}) fv SUBSET (E UNION {{v,w}})` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Wrgcvdr_cizmrrh.E_PRIME_SUBSET_E]);
+  TYPIFY `{v',w'} IN E \/ {v',w'} = {v,w}` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `x IN slicee E FF v w` MP_TAC;
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[SUBSET;IN_UNION;IN_SING];
+    BY(MESON_TAC[]);
+  FIRST_X_ASSUM (DISJ_CASES_TAC);
+    FIRST_X_ASSUM_ST `generic` MP_TAC;
+    REWRITE_TAC[generic];
+    DISCH_THEN MATCH_MP_TAC;
+    BY(ASM_MESON_TAC[V_PRIME_SUBSET_V;SUBSET]);
+  FIRST_X_ASSUM (fun t -> REPEAT (FIRST_X_ASSUM MP_TAC) THEN REWRITE_TAC[t]) THEN REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC Planarity.aff_ge_eq_aff_gt_union_aff_ge;
+  CONJ_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[IN_INSERT;NOT_IN_EMPTY]);
+  REWRITE_TAC[GSYM SUBSET_EMPTY];
+  MATCH_MP_TAC SUBSET_TRANS;
+  TYPIFY `(aff_gt {vec 0} {v,w} INTER aff_lt {vec 0} {u}) UNION (aff_ge {vec 0} {v} INTER aff_lt {vec 0} {u}) UNION (aff_ge {vec 0} {w} INTER aff_lt {vec 0} {u})` EXISTS_TAC;
+  CONJ_TAC;
+    BY(SET_TAC[]);
+  REWRITE_TAC[UNION_SUBSET;SUBSET_EMPTY];
+  TYPIFY `u IN V` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[V_PRIME_SUBSET_V;SUBSET]);
+  TYPIFY `~(v = vec 0) /\ ~(w = vec 0) /\ ~(u = vec 0)` (C SUBGOAL_THEN ASSUME_TAC);
+    RULE_ASSUM_TAC (REWRITE_RULE[local_fan;Fan_defs.FAN;Fan_defs.fan2;LET_DEF;LET_END_DEF]);
+    BY(ASM_MESON_TAC[]);
+  CONJ2_TAC;
+    CONJ_TAC;
+      PROOF_BY_CONTR_TAC;
+      TYPIFY `collinear {vec 0,u,v}` (C SUBGOAL_THEN ASSUME_TAC);
+        BY(ASM_MESON_TAC[Wrgcvdr_cizmrrh.AFF_GE_INTER_AFF_LT_IMP_NOT_EQ_COL]);
+      TYPIFY `u = v` ASM_CASES_TAC;
+        BY(ASM_MESON_TAC[aff_ge_INTER_aff_lt]);
+      BY(ASM_MESON_TAC[Collect_geom.PER_SET3;IN_INSERT]);
+    PROOF_BY_CONTR_TAC;
+    TYPIFY `collinear {vec 0,u,w}` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[Wrgcvdr_cizmrrh.AFF_GE_INTER_AFF_LT_IMP_NOT_EQ_COL]);
+    TYPIFY `u = w` ASM_CASES_TAC;
+      BY(ASM_MESON_TAC[aff_ge_INTER_aff_lt]);
+    BY(ASM_MESON_TAC[Collect_geom.PER_SET3;IN_INSERT]);
+  TYPIFY `aff_gt {vec 0} {v,w} SUBSET wedge_in_fan_gt (u,rho_node1 FF u) E /\ aff_lt {vec 0} {u} INTER wedge_in_fan_gt (u,rho_node1 FF u) E = {}` ENOUGH_TO_SHOW_TAC;
+    BY(SET_TAC[]);
+  CONJ_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_RHO_NODE_PROS]);
+  REWRITE_TAC[EXTENSION;NOT_IN_EMPTY;IN_INTER];
+  GEN_TAC;
+  GMATCH_SIMP_TAC Local_lemmas1.WEDGE_IN_FAN_LOFA_DETER2;
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  REWRITE_TAC[TAUT `~(a /\ b) <=> ( a ==> ~b)`];
+  ASM_SIMP_TAC[Nkezbfc_local.AFF_LT_1_1;IN_ELIM_THM;wedge];
+  REWRITE_TAC[VECTOR_MUL_RZERO;VECTOR_ADD_LID];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `collinear` MP_TAC;
+  ASM_REWRITE_TAC[];
+  ASM_SIMP_TAC[Local_lemmas.COLLINEAR_ONCE_VEC_0];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let LOFA_IMP_LT_CARD_SET_V_ALT = prove_by_refinement(
+  `!V E FF v. local_fan (V,E,FF) /\ v IN V
+         ==> {ITER n (rho_node1 FF) v | n < CARD V} = V`,
+  (* {{{ proof *)
+  [
+    BY(MESON_TAC[Local_lemmas.LOFA_IMP_LT_CARD_SET_V])
+  ]);;
+  (* }}} *)
+
+let HAFL_CIRCLE_FORM_LOCAL_FAN_ALT = prove_by_refinement(
+  `!V E FF v w HS fv. (local_fan (V,E,FF) /\
+      v IN V /\
+      w IN V /\
+      ~(v = w) /\
+      (!z t. z IN {v, w} /\ t IN V DIFF {z} ==> ~collinear {vec 0, z, t}) /\
+      (!x. x IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt x E)) /\
+     HS = hypermap (HYP (vec 0,V,E UNION {{v, w}})) /\
+     fv = face HS (v,rho_node1 FF v)
+     ==> local_fan (v_prime V fv,e_prime (E UNION {{v, w}}) fv,fv)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC (GEN_ALL Local_lemmas1.HAFL_CIRCLE_FORM_LOCAL_FAN) [];
+  DISCH_THEN MATCH_MP_TAC;
+  GEXISTL_TAC [`HS`;`FF`];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let HAFL_CIRCLE_FORM_LOCAL_FAN2_ALT = prove_by_refinement(
+  `!V E FF v w HS fv. (local_fan (V,E,FF) /\
+      v IN V /\
+      w IN V /\
+      ~(v = w) /\
+      (!z t. z IN {v, w} /\ t IN V DIFF {z} ==> ~collinear {vec 0, z, t}) /\
+      (!x. x IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt x E)) /\
+     HS = hypermap (HYP (vec 0,V,E UNION {{v, w}})) /\
+     fv = face HS (v,rho_node1 FF v) /\
+     fw = face HS (w,rho_node1 FF w)
+     ==> local_fan (v_prime V fv,e_prime (E UNION {{v, w}}) fv,fv) /\
+         local_fan (v_prime V fw,e_prime (E UNION {{w, v}}) fw,fw)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC (GEN_ALL Local_lemmas1.HAFL_CIRCLE_FORM_LOCAL_FAN2) [];
+  DISCH_THEN MATCH_MP_TAC;
+  GEXISTL_TAC [`HS`;`FF`];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+
+let ejr_sum = prove_by_refinement(
+  `!V E FF HS v w f fv fw.
+     convex_local_fan (V,E,FF) /\
+     v IN V /\
+     w IN V /\
+     hypermap (HYP (vec 0,V,E UNION {{v, w}})) = HS /\
+     face HS (v,rho_node1 FF v) = fv /\ 
+     face HS (w,rho_node1 FF w) = fw /\ 
+      (!u u1.
+          u IN {v, w} /\ u1 IN V /\ ~(u = u1) ==> ~collinear {vec 0, u, u1}) /\
+     (!e. e IN FF ==> aff_gt {vec 0} {v, w} SUBSET wedge_in_fan_gt e E)  // /\
+//     sum {i | i < CARD V}
+//     (\i. f (ITER i (rho_node1 FF) v) *
+//          interior_angle1 (vec 0) FF (ITER i (rho_node1 FF) v)) =
+//     sum {i | i < CARD V /\ ITER i (rho_node1 FF) v IN v_prime V fv}
+//     (\i. f (ITER i (rho_node1 FF) v) *
+//          interior_angle1 (vec 0) fv (ITER i (rho_node1 FF) v)) +
+//     sum {i | i < CARD V /\ ITER i (rho_node1 FF) v IN v_prime V fw}
+//     (\i. f (ITER i (rho_node1 FF) v) *
+//          interior_angle1 (vec 0) fw (ITER i (rho_node1 FF) v))
+     ==> sum FF (\e. f (FST e) * azim_in_fan e E) =
+         sum fv
+         (\e. f (FST e) * azim_in_fan e (e_prime (E UNION {{v, w}}) fv)) +
+         sum fw
+         (\e. f (FST e) * azim_in_fan e (e_prime (E UNION {{w, v}}) fw))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[generic];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC ejr_distinct [`V`;`E`;`FF`;`v`;`w`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  INTRO_TAC EJRCFJD_ALT [`V`;`E`;`FF`;`HS`;`fv`;`fw`;`v`;`w`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC (GSYM COMPATIBLE_BW_TWO_LEMMAS2_ALT) [`V`;`E`;`FF`;`HS`;`fv`;`fw`;`v`;`w`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  TYPIFY `local_fan (V,E,FF)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.CVX_LO_IMP_LO]);
+  TYPIFY `?n. n < CARD V /\ w = ITER n (rho_node1 FF) v` (C SUBGOAL_THEN MP_TAC);
+    MATCH_MP_TAC Polar_fan.LOCAL_FAN_ORBIT_MAP_EXPLICIT;
+    TYPIFY `E` EXISTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`(\i. f (ITER i (rho_node1 FF) v))`]);
+  REWRITE_TAC[];
+  COMMENT "replace first index set";
+  TYPIFY `{i | i < CARD V /\ ITER i (rho_node1 FF) v IN v_prime V fv } = {i | i < n + 1}` (C SUBGOAL_THEN SUBST1_TAC);
+    INTRO_TAC SLICEV_IMAGE [`V`;`E`;`FF`;`v`;`w`;`n`];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[]);
+    ASM_REWRITE_TAC[];
+    DISCH_THEN SUBST1_TAC;
+    REWRITE_TAC[IN_IMAGE;IN_ELIM_THM];
+    REWRITE_TAC[EXTENSION;IN_ELIM_THM];
+    X_GEN_TAC `i:num`;
+    REWRITE_TAC[Geomdetail.EQ_EXPAND];
+    CONJ2_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      SUBCONJ_TAC;
+        BY(REPEAT (FIRST_X_ASSUM_ST `(a:num) < b` MP_TAC) THEN ARITH_TAC);
+      DISCH_TAC;
+      TYPIFY `i` EXISTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `i = x'` ENOUGH_TO_SHOW_TAC;
+      BY(REPEAT (FIRST_X_ASSUM_ST `(a:num) < b` MP_TAC) THEN ARITH_TAC);
+    BY(ASM_MESON_TAC[ Local_lemmas1.LT_CARD_MONO_LOFA;arith `x' < n+1 /\ n < c ==> x' < c`]);
+  COMMENT "n not 0";
+  TYPIFY `~(n=0)` (C SUBGOAL_THEN ASSUME_TAC);
+    DISCH_TAC;
+    FIRST_X_ASSUM_ST `w = ITER n r v` MP_TAC;
+    BY(ASM_REWRITE_TAC[ITER]);
+  COMMENT "replace second index set";
+  TYPIFY `{i | i < CARD V /\ ITER i (rho_node1 FF) v IN v_prime V fw } = {i | i = 0 \/ n <= i /\ i < CARD V}` (C SUBGOAL_THEN SUBST1_TAC);
+    INTRO_TAC SLICEW_IMAGE [`V`;`E`;`FF`;`v`;`w`;`n`];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[]);
+    ASM_REWRITE_TAC[];
+    DISCH_THEN SUBST1_TAC;
+    REWRITE_TAC[IN_IMAGE;IN_ELIM_THM];
+    REWRITE_TAC[EXTENSION;IN_ELIM_THM];
+    X_GEN_TAC `i:num`;
+    REWRITE_TAC[Geomdetail.EQ_EXPAND];
+    CONJ2_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      SUBCONJ_TAC;
+        BY(REPLICATE_TAC 5 (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+      DISCH_TAC;
+      TYPIFY `i` EXISTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `i = x'` ENOUGH_TO_SHOW_TAC;
+      BY(REPEAT (FIRST_X_ASSUM_ST `(a:num) < b` MP_TAC) THEN ARITH_TAC);
+    TYPIFY `x' < CARD V` (C SUBGOAL_THEN MP_TAC);
+      BY(REPLICATE_TAC 5 (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+    BY(ASM_MESON_TAC[ Local_lemmas1.LT_CARD_MONO_LOFA]);
+  MATCH_MP_TAC (arith `(a = a' /\ b = b' /\ c = c') ==> (a = b + c ==> a' = b' + c')`);
+  COMMENT "match summands";
+  TYPIFY `!fu. ((\u. f u * interior_angle1 (vec 0) fu u) o (\i. ITER i (rho_node1 FF) v)) = (\i. f (ITER i (rho_node1 FF) v) *           interior_angle1 (vec 0) fu (ITER i (rho_node1 FF) v))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REWRITE_TAC[FUN_EQ_THM;o_THM]);
+  COMMENT "first sum";
+  CONJ_TAC;
+    TYPIFY `BIJ (\i. (ITER i (rho_node1 FF) v)) {i | i < CARD V} V` (C SUBGOAL_THEN ASSUME_TAC);
+      REWRITE_TAC[BIJ];
+      SUBCONJ2_TAC;
+        TYPIFY `IMAGE (\i.  (ITER i (rho_node1 FF) v)) {i | i < CARD V} = V` ENOUGH_TO_SHOW_TAC;
+          BY(MESON_TAC[Misc_defs_and_lemmas.IMAGE_SURJ]);
+        INTRO_TAC LOFA_IMP_LT_CARD_SET_V_ALT [`V`;`E`;`FF`;`v`];
+        ASM_REWRITE_TAC[EXTENSION;IN_ELIM_THM;IN_IMAGE];
+        BY(MESON_TAC[]);
+      REWRITE_TAC[SURJ;INJ];
+      DISCH_TAC;
+      ASM_REWRITE_TAC[];
+      ASM_REWRITE_TAC[IN_ELIM_THM];
+      BY(ASM_MESON_TAC[ Local_lemmas1.LT_CARD_MONO_LOFA]);
+    FIRST_X_ASSUM (MP_TAC o (MATCH_MP Basics.BIJ_SUM));
+    DISCH_THEN (C INTRO_TAC [`\u. f u * interior_angle1 (vec 0) FF u`]);
+    ASM_REWRITE_TAC[];
+    DISCH_THEN SUBST1_TAC;
+    TYPIFY `BIJ FST FF V` (C SUBGOAL_THEN ASSUME_TAC);
+      MATCH_MP_TAC WRGCVDR_BIJ;
+      BY(ASM_MESON_TAC[]);
+    FIRST_X_ASSUM (MP_TAC o (MATCH_MP Basics.BIJ_SUM));
+    DISCH_THEN (C INTRO_TAC [ `\u. f u * interior_angle1 (vec 0) FF u`]);
+    DISCH_THEN (SUBST1_TAC o GSYM);
+    MATCH_MP_TAC SUM_EQ;
+    REWRITE_TAC[o_THM];
+    GEN_TAC;
+    DISCH_TAC;
+    TYPIFY `FST x IN V` ENOUGH_TO_SHOW_TAC;
+      DISCH_TAC;
+      AP_TERM_TAC;
+      BY(ASM_MESON_TAC[Nkezbfc_local.CONVEX_LOFA_IMP_INANGLE_EQ_AZIM;Local_lemmas.LOCAL_FAN_RHO_NODE_PROS2]);
+    BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_IMP_IN_V2]);
+  COMMENT "prep for slice cases";
+  TYPIFY `local_fan (v_prime V fv,e_prime (E UNION {{v, w}}) fv,fv) /\ local_fan (v_prime V fw,e_prime (E UNION {{w, v}}) fw,fw)` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC HAFL_CIRCLE_FORM_LOCAL_FAN2_ALT;
+    GEXISTL_TAC [`FF`;`HS`];
+    ASM_REWRITE_TAC[IN_DIFF;IN_SING];
+    BY(ASM_MESON_TAC[]);
+  COMMENT "second sum";
+  CONJ_TAC;
+    INTRO_TAC SLICEV_BIJ [`V`;`E`;`FF`;`v`;`w`;`n`];
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    DISCH_TAC;
+    FIRST_X_ASSUM (MP_TAC o (MATCH_MP Basics.BIJ_SUM));
+    DISCH_THEN (C INTRO_TAC [`\u. f u * interior_angle1 (vec 0) fv u`]);
+    ASM_REWRITE_TAC[];
+    DISCH_THEN SUBST1_TAC;
+    TYPIFY `BIJ FST fv (v_prime V fv)` (C SUBGOAL_THEN ASSUME_TAC);
+      MATCH_MP_TAC WRGCVDR_BIJ;
+      BY(FIRST_X_ASSUM MP_TAC THEN MESON_TAC[]);
+    FIRST_X_ASSUM (MP_TAC o (MATCH_MP Basics.BIJ_SUM));
+    DISCH_THEN (C INTRO_TAC [ `\u. f u * interior_angle1 (vec 0) fv u`]);
+    DISCH_THEN (SUBST1_TAC o GSYM);
+    MATCH_MP_TAC SUM_EQ;
+    REWRITE_TAC[o_THM];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `FST x IN v_prime V fv` ENOUGH_TO_SHOW_TAC;
+      DISCH_TAC;
+      AP_TERM_TAC;
+      BY(ASM_MESON_TAC[Nkezbfc_local.CONVEX_LOFA_IMP_INANGLE_EQ_AZIM;Local_lemmas.LOCAL_FAN_RHO_NODE_PROS2]);
+    BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_IMP_IN_V2]);
+  COMMENT "last case";
+  INTRO_TAC SLICEW_BIJ [`V`;`E`;`FF`;`v`;`w`;`n`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  FIRST_X_ASSUM (MP_TAC o (MATCH_MP Basics.BIJ_SUM));
+  DISCH_THEN (C INTRO_TAC [`\u. f u * interior_angle1 (vec 0) fw u`]);
+  ASM_REWRITE_TAC[];
+  DISCH_THEN SUBST1_TAC;
+  TYPIFY `BIJ FST fw (v_prime V fw)` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC WRGCVDR_BIJ;
+    BY(FIRST_X_ASSUM MP_TAC THEN MESON_TAC[]);
+  FIRST_X_ASSUM (MP_TAC o (MATCH_MP Basics.BIJ_SUM));
+  DISCH_THEN (C INTRO_TAC [ `\u. f u * interior_angle1 (vec 0) fw u`]);
+  DISCH_THEN (SUBST1_TAC o GSYM);
+  MATCH_MP_TAC SUM_EQ;
+  REWRITE_TAC[o_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `FST x IN v_prime V fw` ENOUGH_TO_SHOW_TAC;
+    DISCH_TAC;
+    AP_TERM_TAC;
+    BY(ASM_MESON_TAC[Nkezbfc_local.CONVEX_LOFA_IMP_INANGLE_EQ_AZIM;Local_lemmas.LOCAL_FAN_RHO_NODE_PROS2]);
+  BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_IMP_IN_V2])
+  ]);;
+  (* }}} *)
 
 let EJRCFJD_ALT2 = prove_by_refinement(
  `!V E FF v w.
@@ -594,7 +1367,49 @@ ants
 art[]
 st/r
 art[]
+typ `CARD (v_prime V fv) < CARD V /\ CARD (v_prime V fw) < CARD V` (C gthen (unlist rt))
+rep 2 (fxast `v_prime` (sub1 o GSYM))
+conj
+mmp CARD_SLICEV_LT
+art[]
+mmp CARD_SLICEV_LT
+ort[Collect_geom.PER_SET2]
+art[]
+amt[Collect_geom.PER_SET3]
+typ `(generic V E  ==> generic (v_prime V fv) (e_prime (E UNION {{v, w}}) fv) /\      generic (v_prime V fw) (e_prime (E UNION {{w, v}}) fw))` (C gthen (unlist rt))
+dt
+conj
+ intro ejr_generic [`V`;`E`;`FF`;`v`;`w`]
+ants
+art[]
+amt[]
+ intro ejr_generic [`V`;`E`;`FF`;`w`;`v`]
+ants
+art[]
+ort[Collect_geom.PER_SET2]
+art[]
+amt[Collect_geom.PER_SET3]
+amt[]
+comment "now tau and sol"
 rt[sol_local;tau_fun]
+comment "tau sum"
+intro ejr_sum [`V`;` E`;` FF`;` HS`;` v`;` w`;`rho_fun o (norm: (real^3-> real))`;` fv`;` fw`]
+ants
+art[]
+rt[o_THM]
+dthen sub1
+conj
+mmp (arith `c1 = c2 + c3 ==> ((a + b) - c1 >= a - c2 + b - c3)`)
+rt[arith `a * b + a * c = a * (b + c)`]
+apterm
+fyn
+fyn
+typ `2 <= CARD FF /\ 2 <= CARD fv /\ 2 <= CARD fw /\ CARD FF + 2 = CARD fv + CARD fw` ets
+ARITH_TAC
+
+(* to here , next generic ==> generic. *)
+
+
   #
   ]);;
   (* }}} *)

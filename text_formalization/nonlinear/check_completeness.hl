@@ -4,6 +4,7 @@
 (* Chapter: Local Fan                                                         *)
 (* Author: Thomas C. Hales                                                    *)
 (* Date: 2012-05-05                                                           *)
+(* Date: 2013-02-23: build a certified version of check_completeness.hl       *)
 (* ========================================================================== *)
 
 (* 
@@ -411,6 +412,7 @@ let attr_free cs =
 
 let zero_diag a xs = forall (fun i -> ((=) zero) (a i i)) xs;;
 
+(*
 let is_stable cs =
   let f (i,j) = 
     (i = j) or (2.0 <= cs.a_cs i j) in
@@ -439,13 +441,29 @@ let is_tri_stable cs =
     (sqrt8 = cs.a_cs i j && cs.b_cs i j = cstab) in
   let bj = forall fj k2s or failwith "ts:bj" in 
     bk && bm && bs && bs' && bj;;
+*)
+
+let is_stable cs =
+  let f (i,j) = 
+    (i = j) or (2.0 <= cs.a_cs i j) in
+  let ks =  ks_cs cs in 
+  let k2s = cart2 ks in
+  let bm = forall f k2s or failwith "is_st:bm" in 
+  let bs = zero_diag cs.a_cs ks or failwith "is_st:bs" in 
+  let b_edge i = cs.b_cs i (inc cs i) in
+  let g i = if (cs.k_cs > 3) then (b_edge i <= cstab) else (b_edge i < four) in
+  let bs' = forall g ks or failwith "is_st:bs'" in 
+  let fj (i,j) = not(memj cs (i,j)) or 
+    (sqrt8 = cs.a_cs i j && cs.b_cs i j = cstab) in
+  let bj = forall fj k2s or failwith "is_st:bj" in 
+    bm && bs && bs' && bj;;
 
 let is_aug_cs cs = 
   let bc = is_cs cs in
-  let bs = false_on_fail is_tri_stable  cs or is_stable  cs in
+  let bs = false_on_fail is_stable  cs in
   let bd = (cs.d_cs < 0.9) or failwith "aug:bd" in
   let k2s = ks_cart cs in
-  let edge (i,j) = (j = inc cs i) or (i = inc cs i) in
+  let edge (i,j) = (j = inc cs i) or (i = inc cs j) in  (* bug corrected 2/23/2013, was (i = inc c i) *)
   let fm (i,j) = edge(i,j) && (i < j) && (two < cs.a_cs i j or twoh0< cs.b_cs i j) in
   let m = length (filter fm k2s) in
   let bm = (m + cs.k_cs <= 6) or failwith "aug:bm" in
@@ -1043,9 +1061,6 @@ let slice_aux cs p q dv =
    This inequality is to be used when every edge has bounds in
    one of the three intervals [2,2h0], [2h0,sqrt8], [sqrt8,3.01] *)
 
-
-
-
 let slice_dstd_aux cs p q = 
   let k = cs.k_cs in
   let p = p mod k in
@@ -1094,7 +1109,6 @@ let sort_slice_order cs p q =
     let p1 = inc cs p in
     let _ = (inc cs p1 = q) or  failwith "sso:not a diag" in
       (if (edge1(p,p1) && edge1(p1,q)) then (p,q,false) else (q,p,true));;
-
   
 let slice_dstd cs p q = 
   let k = cs.k_cs in

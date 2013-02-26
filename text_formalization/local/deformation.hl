@@ -16,6 +16,7 @@ module Deformation = struct
   open Fan;;
   open Local_lemmas1;;
   open Ckqowsa_4_points;;
+  open Hales_tactic;;
 
 let COMPACT_SPHERE_0 = prove
  (`!a. compact {x | norm x = a}`,
@@ -1006,5 +1007,34 @@ let FAN7_SMALL_DEFORMATION = prove
    [CONJ_TAC THENL [ALL_TAC; ASM_MESON_TAC[]] THEN
     REWRITE_TAC[UNIONS_SUBSET; FORALL_IN_IMAGE] THEN ASM SET_TAC[];
     DISCH_THEN SUBST1_TAC THEN ASM_MESON_TAC[]]);;
+
+let XRECQNS = prove_by_refinement(
+  `!a b V E f.
+    deformation f V (a,b) /\ FAN (vec 0,V,E) ==>
+     (?e. &0 < e /\ (!t. --e < t /\ t < e ==>
+        FAN(vec 0,
+	    IMAGE (\v. f (v:real^3) t) V,
+                               IMAGE (IMAGE (\v. f v t)) E)))`,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+  REWRITE_TAC[Fan.FAN];
+  INTRO_TAC Localization.ALL_TO_THE_NONPARALLEL_PART_ALT [`a`;`b`;`V`;`E`;`f`];
+  ASM_REWRITE_TAC[];
+  REPEAT STRIP_TAC;
+  INTRO_TAC FAN7_SMALL_DEFORMATION [`V`;`E`;`a`;`b`;`f`];
+  ASM_REWRITE_TAC[];
+  REPEAT STRIP_TAC;
+  TYPIFY `if (e < e') then e else e'` EXISTS_TAC;
+  COND_CASES_TAC;
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    BY(ASM_MESON_TAC[arith `&0 < e /\ e < e' /\ -- e < t /\ t < e ==> -- e' < t /\ t < e'`]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  BY(ASM_MESON_TAC[arith `&0 < e' /\ ~(e < e') /\ -- e' < t /\ t < e' ==> -- e < t /\ t < e`])
+  ]);;
+  (* }}} *)
+
 
 end;;

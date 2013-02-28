@@ -1,0 +1,132 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(* Section: Conclusions                                                       *)
+(* Chapter: Local Fan                                                         *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2013-02-26                                                           *)
+(* ========================================================================== *)
+
+(*
+remaining conclusions from non-appendix sections of Local Fan chapter
+*)
+
+open Hales_tactic;;
+
+let MHAEYJN_concl = 
+`!a b V E FF f v w u.
+     convex_local_fan (V,E,FF) /\
+     lunar (v,w) V E /\
+     deformation f V (a,b) /\
+     interior_angle1 (vec 0) FF v < pi /\
+     u IN V /\
+     ~(u = v) /\
+     ~(u = w) /\
+     (!u' t. u IN V /\ ~(u = u') /\ t IN real_interval (a,b) ==> f u' t = u') /\
+     (!t. t IN real_interval (a,b) ==> f u t IN affine hull {vec 0, v, w, u})
+     ==> (?e. &0 < e /\
+              (!t. --e < t /\ t < e
+                   ==> convex_local_fan
+                       (IMAGE (\v. f v t) V,
+                        IMAGE (IMAGE (\v. f v t)) E,
+                        IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF) /\
+                       lunar (v,w) (IMAGE (\v. f v t) V)
+                       (IMAGE (IMAGE (\v. f v t)) E)))`;;
+
+
+let ZLZTHIC_concl = 
+`!a b V E FF f.
+     convex_local_fan (V,E,FF) /\
+     generic V E /\
+     deformation f V (a,b) /\
+     (!v t. v IN V /\ interior_angle1 (vec 0) FF v = pi ==>
+	 interior_angle1 (vec 0) ( IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF) (f v t) <= pi)
+     ==> (?e. &0 < e /\
+              (!t. --e < t /\ t < e
+                   ==> convex_local_fan
+                       (IMAGE (\v. f v t) V,
+                        IMAGE (IMAGE (\v. f v t)) E,
+                        IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF) /\
+                       generic (IMAGE (\v. f v t) V)
+                       (IMAGE (IMAGE (\v. f v t)) E)))`;;
+
+let rho_rho_fun = prove_by_refinement(
+  `!y. rho_fun y = rho y`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.rho;rho_fun;Sphere.const1;Sphere.ly;Sphere.interp];
+  REWRITE_TAC[GSYM Nonlinear_lemma.sol0_EQ_sol_y;Sphere.h0];
+  REWRITE_TAC[arith `a + b = a + c <=> c = b`];
+  GEN_TAC;
+  MATCH_MP_TAC (arith `(sol0/pi)*(&1 - a) = (sol0/pi)*(c*e) ==> sol0/pi - sol0/pi * a = c * inv pi * sol0 * e`);
+  AP_TERM_TAC;
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let cstab=new_definition ` cstab= #3.01`;;
+
+let rho_fun = new_definition `rho_fun y =  &1 + (inv (&2 * h0 - &2)) * (inv pi) * sol0 * (y - &2)`;;
+
+
+let tau_fun = new_definition `tau_fun V E f =  sum (f) (\e. rho_fun(norm(FST e)) * (azim_in_fan e E)) - (pi + sol0) * &(CARD f -2)`;;
+
+let standard = new_definition
+` standard v w <=> &2 <= norm(v-w) /\  norm (v-w) <= &2 *h0 `;;
+
+let protracted = new_definition
+` protracted v w <=> &2 * h0 <= norm(v-w) /\  norm (v-w) <= sqrt (&8) `;;
+
+let diagonal0 = new_definition
+` (diagonal0 (E:(real^3->bool)->bool) (v:real^3) (w:real^3))  <=> ~(v = w) /\ ~({v,w} IN E) `;;
+
+let diagonal1 = new_definition
+` diagonal1 (V,E)  <=> !v w. ~(v = w) /\ v IN V /\ w IN V /\ ~({v,w} IN E)
+==> &2 * h0 <= norm(v-w) `;;
+
+let main_estimate= new_definition
+` main_estimate(V,E,f) <=>
+ convex_local_fan(V,E,f) /\
+packing V /\
+V SUBSET ball_annulus /\
+diagonal1(V,E) /\
+ CARD E= CARD f /\
+3<= CARD E /\
+CARD E <= 6`;;
+
+let torsor = new_definition
+` torsor (s:A->bool) k (f:A->A) <=> (!x. x IN s ==> (f x) IN s) /\ (!x1 x2. x1 IN s /\ x2 IN s /\ f x1 = f x2 ==> x1=x2) /\ (!i x. 0 < i /\ i < k /\ x IN s ==> ~((f POWER i) x = x)) /\ (!x. x IN s==> (f POWER k) x = x)
+/\ s HAS_SIZE k`;;
+
+let d_tame = new_definition `d_tame n = 
+     if n = 3 then &0 else 
+     if n = 4 then #0.206 else
+     if n = 5 then #0.4819 else 
+     if n = 6 then #0.712 else tgt`;;  
+
+let JEJTVGB1_concl = 
+  `!V E FF. 
+    convex_local_fan (V,E,FF) /\
+    packing V /\
+    V SUBSET ball_annulus /\
+    4 <= CARD V /\ CARD V <= 6 /\
+    (!v w. ~(v = w) /\ v IN V /\ w IN V /\ ~({v,w} IN E) ==> &2 * h0 <= dist(v,w)) /\
+    (!v w. {v,w} IN E ==> &2 <= dist(v,w) /\ dist(v,w) <= &2 * h0) ==>
+    d_tame (CARD V) <= tau_fun V E FF`;;
+
+(* to here *)
+
+let JEJTVGB2_concl = 
+  `!V E FF f0. 
+    main_estimate (V,E,FF) /\
+    5 <= CARD FF /\
+    f0 IN FF /\ protracted (FST f0) (SND f0) /\
+    (!f. f IN FF /\ ~(f = f0) ==> standard (FST f) (SND f)) ==>
+    #0.616 <= tau_fun V E FF`;;
+
+let JEJTVGB3_concl = 
+  `!V E FF f0. 
+    main_estimate (V,E,FF) /\
+    5 <= CARD FF /\
+    f0 IN FF /\ protracted (FST f0) (SND f0) /\
+    (!f. f IN FF /\ ~(f = f0) ==> standard (FST f) (SND f)) ==>
+    #0.616 <= tau_fun V E FF`;;

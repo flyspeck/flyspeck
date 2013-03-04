@@ -4,7 +4,7 @@
 (* Chapter: Local Fan                                                         *)
 (* Author: Thomas C. Hales                                                    *)
 (* Date: 2012-05-05                                                           *)
-(* Date: 2013-02-23: build a certified version of check_completeness.hl       *)
+(* Date: 2013-03, revised                                                     *)
 (* ========================================================================== *)
 
 (* 
@@ -49,6 +49,8 @@ BASICS
 
 let false_on_fail b x = try (b x) with _ -> false;;
 
+let fail_on_false b x s = (b x or failwith "s");;
+
 let filter_some xs = 
   mapfilter (function |Some x -> x |None -> failwith "none" ) xs;;
 
@@ -70,6 +72,7 @@ let rec cart a b =
     | a::rest -> (map (fun x -> (a,x)) b) @ cart rest b;;
 
 let cart2 a = cart a a;;
+
 
 
 (* from parse_ineq *)
@@ -116,14 +119,11 @@ let target = 1.541;;
 let two = 2.0;;
 let twoh0 = 2.52;;
 let sqrt1553 = sqrt(15.53);;
-  let arc1553 = arc two two (sqrt1553);;
+let arc1553 = arc two two sqrt1553;;
 let three = 3.0;;
 let four = 4.0;;
 let fourh0 = 2.0 *. twoh0;;
 let upperbd = 6.0;;  (* 6.0 > 4 * h0, upper bound on diags in BB *)
-
-
-
 
 let tame_table_d0 i = 
   if (i <= 3) then zero
@@ -148,8 +148,8 @@ and such that index(v) is minimized among global minimum points in Bs.
 Call this set MM(s) (index-minimizers).
 
 The semantics that guide us will be counterexample propagation;
-if an augmented constraint system contains a point, does the
-output of the function contain a nonempty augmented constraint system?
+if a stable constraint system contains a point, does the
+output of the function contain a nonempty stable constraint system?
 
 Formally, we will prove statements of the form for various 
 f:ACS -> (ACS) list
@@ -209,9 +209,6 @@ let pp_print_cs f cs = pp_print_string f (string_of_cs cs);;
 (* report(string_of_cs quad_std_cs);; *)
 (* #install_printer pp_print_cs;; *)
 
-let ks_cs cs = (0-- (cs.k_cs -1));;
-
-let ks_cart cs = cart2 (ks_cs cs);;
 
 
 let extensional_equality cs cs' = 
@@ -282,19 +279,19 @@ MORE BASIC OPERATIONS
 
 
 (*
-There are B-fields and M-fields.
-The B-fields define the domain of the constraint system s.
+There are B-fields (hard constraints) and M-fields (soft constraints).
+The B-fields define the domain of the constraint system s.  
 The M-fields partition the minimizers in B_s.
 
 k,a,b, are the primary B-fields
 d,j are secondary B-fields that define the function tau.
 
-lo,hi,str,ma,mb are M-fields.
+lo,hi,str,am,bm are M-fields.
 
 js represented as pairs (i,j) with i<j and adjacent.
 a,b are bounds defining BB_s.
 
-ma,mb do not affect the augmented constraint system s.
+ma,mb do not affect the stable constraint system s.
 The deformation lemmas are all partitioning the M-fields.
 
 Subdivision partitions the B-fields.
@@ -325,12 +322,12 @@ let hist cs s = modify_cs cs ~h:(s::cs.history_cs) ();;
 
 (* usage : modify_cs hex_std_cs ~k:4 ();; *)
 
-let reset_attr cs = 
+let reset_to_unadorned cs = 
   modify_cs cs ~am:cs.a_cs ~bm:cs.b_cs ~lo:[] ~str:[] ();;
 
-(* changes B-field, M remains a minimizer on smaller domain *)
+(* changes B-field, M remains a minimizer on smaller domain. Type 1 restriction. *)
 
-let restrict_to_low cs = 
+let restrict_b_to_bm cs = 
   (modify_cs cs ~b:cs.bm_cs ());;
 
 let ink k i = (i+1) mod k;;
@@ -348,17 +345,18 @@ let mk_j cs i = psort (i,inc cs i);;
 
 let memj cs (i,j) = mem (psort (i,j)) cs.js_cs;;
 
-
 let compact u = length (sortuniq u) = length u;;
 
+let ks_cs cs = (0-- (cs.k_cs -1));;
+
+let ks_cart cs = cart2 (ks_cs cs);;
+
 let alldiag cs =   
-  let ks = ks_cs cs in
   filter (fun (i,j) -> (i<j) && not (inc cs i = j) && not (inc cs j = i))
-    (cart2 ks);;
+    (ks_cart cs);;
 
 let allpair cs = 
-  let ks = ks_cs cs in
-  filter (fun (i,j) -> (i<j)) (cart2 ks);;
+  filter (fun (i,j) -> (i<j)) (ks_cart cs);;
 
 let alledge cs = 
   let ks = ks_cs cs in
@@ -381,36 +379,6 @@ let arcmax cs (i,j) = arc htmin htmin (cs.bm_cs i j);;
 BASIC OPS ON CONSTRAINT SYSTEMS
 ****************************************
 *)
-
-let is_cs cs = 
-  let f (i,j) = 
-    (cs.a_cs i j = cs.a_cs j i) &&
-      (cs.b_cs i j = cs.b_cs j i) &&
-    (cs.am_cs i j = cs.am_cs j i) &&
-      (cs.bm_cs i j = cs.bm_cs j i) &&
-      (cs.a_cs i j <= cs.am_cs i j) &&
-      (cs.am_cs i j <= cs.bm_cs i j) &&
-      (cs.bm_cs i j <= cs.b_cs i j) in
-  let ks = ks_cs cs in
-  let k2s = cart2 ks in
-  let bm = forall f k2s or failcs( cs, "is_cs: bm") in
-  let bs = ((cs.k_cs <= 6) && (cs.k_cs >= 3)) or failcs(cs, "is_cs:bs") in
-  let bj = (length cs.js_cs + cs.k_cs <= 6) or failwith "is_cs:bj" in
-  let bj' = (compact cs.js_cs) or failwith "is_cs:bj'" in 
-  let fj (i,j) = (i < j) && ((inc cs i = j) or (inc cs j = i)) in
-  let bj'' = (forall fj cs.js_cs) or failwith "is_cs:bj''" in 
-  let ls =  cs.lo_cs @  cs.str_cs in
-    bm && bs && bj && bj' && bj'' && 
-      subset ls ks && subset cs.js_cs k2s ;;  
-
-let attr_free cs = 
-  let f (i,j) = (cs.a_cs i j = cs.am_cs i j) && (cs.b_cs i j = cs.bm_cs i j) in
-  let ks = ks_cs cs in
-  let k2s = cart2 ks in
-  let bm = forall f k2s or failwith "attr_free" in
-    bm && (cs.lo_cs=[]) && (cs.str_cs=[]);;
-
-let zero_diag a xs = forall (fun i -> ((=) zero) (a i i)) xs;;
 
 (*
 let is_stable cs =
@@ -443,31 +411,61 @@ let is_tri_stable cs =
     bk && bm && bs && bs' && bj;;
 *)
 
-let is_stable cs =
-  let f (i,j) = 
-    (i = j) or (2.0 <= cs.a_cs i j) in
-  let ks =  ks_cs cs in 
-  let k2s = cart2 ks in
-  let bm = forall f k2s or failwith "is_st:bm" in 
-  let bs = zero_diag cs.a_cs ks or failwith "is_st:bs" in 
-  let b_edge i = cs.b_cs i (inc cs i) in
-  let g i = if (cs.k_cs > 3) then (b_edge i <= cstab) else (b_edge i < four) in
-  let bs' = forall g ks or failwith "is_st:bs'" in 
-  let fj (i,j) = not(memj cs (i,j)) or 
-    (sqrt8 = cs.a_cs i j && cs.b_cs i j = cstab) in
-  let bj = forall fj k2s or failwith "is_st:bj" in 
-    bm && bs && bs' && bj;;
-
-let is_aug_cs cs = 
-  let bc = is_cs cs in
-  let bs = false_on_fail is_stable  cs in
-  let bd = (cs.d_cs < 0.9) or failwith "aug:bd" in
+let is_unadorned cs = 
+  let f (i,j) = (cs.a_cs i j = cs.am_cs i j) && (cs.b_cs i j = cs.bm_cs i j) in
   let k2s = ks_cart cs in
+  let bm = forall f k2s (* or failwith "unadorned" *) in
+    bm && (cs.lo_cs=[]) && (cs.str_cs=[]);;
+
+let zero_diag a xs = forall (fun i -> ((=) zero) (a i i)) xs;;
+
+let stable_constraint_system_test1 cs = 
+  let ks = ks_cs cs in
+  let k2s = ks_cart cs in
+  let f (i,j) = 
+    (cs.a_cs i j = cs.a_cs j i) &&
+      (cs.b_cs i j = cs.b_cs j i) &&
+      (cs.am_cs i j = cs.am_cs j i) &&
+      (cs.bm_cs i j = cs.bm_cs j i) &&
+      (cs.a_cs i j <= cs.am_cs i j) &&
+      (cs.am_cs i j <= cs.bm_cs i j) &&
+      (cs.bm_cs i j <= cs.b_cs i j) in
+  let fj (i,j) = (i < j) && ((inc cs i = j) or (inc cs j = i)) in
+  let ls =  cs.lo_cs @  cs.str_cs in
+  let _ = ((3 <= cs.k_cs) && (cs.k_cs <= 6) ) or failwith ( "test1:k_bound") in
+  let _ =  (subset ls ks && subset cs.js_cs k2s) or failwith "test1:I_lo, I_str, J" in
+  let _ = (cs.d_cs < 0.9) or failwith "test1:d_bound" in
+  let _ = forall f k2s or failwith ("test1:ab_relations") in
+  let _ = (compact cs.js_cs) or failwith "test1:J set" in 
+  let _ = (forall fj cs.js_cs) or failwith "test1:J edge" in 
+  let _ = (length cs.js_cs + cs.k_cs <= 6) or failwith "test1:card_J" in
+    ();;  
+
+let stable_constraint_system_test2 cs =
+  let ks =  ks_cs cs in 
+  let k2s = ks_cart cs in
+  let f2 (i,j) = 
+    (i = j) or (2.0 <= cs.a_cs i j) in
+  let _ = forall f2 k2s or failwith "test2:a packing" in 
+  let _ = zero_diag cs.a_cs ks or failwith "test2:a diagonal" in 
+  let b_edge i = cs.b_cs i (inc cs i) in
+  let b_bound i = if (cs.k_cs > 3) then (b_edge i <= cstab) else (b_edge i < four) in
+  let _ = forall b_bound ks or failwith "test2:b edge bounds" in 
+  let j_bound (i,j) = not(memj cs (i,j)) or 
+    (sqrt8 = cs.a_cs i j && cs.b_cs i j = cstab) in
+  let _ = forall j_bound k2s or failwith "test2:J bounds" in 
   let edge (i,j) = (j = inc cs i) or (i = inc cs j) in  (* bug corrected 2/23/2013, was (i = inc c i) *)
   let fm (i,j) = edge(i,j) && (i < j) && (two < cs.a_cs i j or twoh0< cs.b_cs i j) in
   let m = length (filter fm k2s) in
-  let bm = (m + cs.k_cs <= 6) or failwith "aug:bm" in
-    bc && bs && bd && bm;;
+  let _ = (m + cs.k_cs <= 6) or failwith "test2:m" in
+    ();;
+
+let assert_stable_cs cs = 
+  try 
+    stable_constraint_system_test1 cs;
+    stable_constraint_system_test2 cs
+  with Failure s -> failcs(cs,s);;
+
 
 (* f is an edge preserving map *)
 
@@ -499,11 +497,11 @@ let rotate_cs cs = map_cs (inc cs) (dec cs) cs;;
 let rec rotatek_cs k cs = 
   funpow k rotate_cs cs;;
 
-(* attribute free iso *)
+(* anadorned isomorphisms  *)
 
-let reset_iso_strict_cs cs cs' = 
-  let cs = reset_attr cs in
-  let cs' = reset_attr cs' in
+let unadorned_iso_strict_cs cs cs' = 
+  let cs = reset_to_unadorned cs in
+  let cs' = reset_to_unadorned cs' in
   let bk = cs.k_cs = cs'.k_cs in
   let bd = cs.d_cs = cs'.d_cs in
   let m r r' = forall (fun (i,j) -> r i j = r' i j) (ks_cart cs) in
@@ -513,13 +511,12 @@ let reset_iso_strict_cs cs cs' =
   let bj = set_eq (ps cs.js_cs) (ps cs'.js_cs) in
     bk && bd && ba && bb && bj;;
 
+let unadorned_iso_proper_cs cs cs' = 
+  Lib.exists (fun i -> unadorned_iso_strict_cs (rotatek_cs i cs) cs') (ks_cs cs);;
 
-let proper_reset_iso_cs cs cs' = 
-  Lib.exists (fun i -> reset_iso_strict_cs (rotatek_cs i cs) cs') (ks_cs cs);;
-
-let reset_iso_cs cs cs' = 
+let unadorned_iso_cs cs cs' = 
   (cs.k_cs = cs'.k_cs) && 
- (  proper_reset_iso_cs cs cs' or proper_reset_iso_cs (opposite_cs cs) cs');;
+ (  unadorned_iso_proper_cs cs cs' or unadorned_iso_proper_cs (opposite_cs cs) cs');;
 
 
 
@@ -636,8 +633,8 @@ let init_cs = [
   quad_pro_cs ;
 ];;
 
-forall is_aug_cs init_cs;;
-forall attr_free init_cs;;
+map assert_stable_cs init_cs;;
+(forall is_unadorned init_cs) or failwith "init_cs:unadorned";;
 
 (* now for the terminal cases done by interval computer calculation *)
 
@@ -779,7 +776,6 @@ let ear_stab = mk_cs(
 );;
 
 let terminal_ear_3603097872 = ear_cs;;
-
 
 let terminal_tri_5405130650 = 
 {
@@ -944,11 +940,11 @@ let terminal_cs = [
 
 let filter_terminal f = filter f terminal_cs;;
 
-forall ( is_aug_cs) (filter_terminal all);;
-forall ( attr_free) (filter_terminal all);;
+map ( assert_stable_cs) (filter_terminal all);;
+(forall ( is_unadorned) (filter_terminal all)) or failwith "terminal_cs:unadorned";;
 
 let is_ear cs = 
-  (cs.k_cs = 3) && (length cs.js_cs = 1) && (reset_iso_cs cs  ear_cs);;
+  (cs.k_cs = 3) && (length cs.js_cs = 1) && (unadorned_iso_cs cs  ear_cs);;
 
 
 (*
@@ -974,7 +970,7 @@ let transfer_to =
     subset cs'.lo_cs cs.lo_cs && 
       subset cs'.str_cs cs.str_cs in
     fun cs cs' -> 
-      attr_free cs' && 
+      is_unadorned cs' && 
       b1 cs cs' && b2 cs cs' && b3 cs cs' && b4 cs cs' ;;
 
 let proper_transfer_cs cs cs' = 
@@ -1001,7 +997,7 @@ let rec transfer_union a b =
 
 let x_equi_transfer_to_list terms = 
   let machine_eps = 1e-08 in
-  let _ = not (can (Lib.find (not o attr_free)) terms) or failwith "eq:attr" in
+  let _ = not (can (Lib.find (not o is_unadorned)) terms) or failwith "eq:unadorned" in
   let has_ear = exists is_ear terms in
   let rotates cs = map (fun i -> rotatek_cs i cs) (ks_cs cs) in
   let orotates cs = map (fun i -> rotatek_cs i (opposite_cs cs)) (ks_cs cs) in
@@ -1142,6 +1138,14 @@ let slice_std cs p q =
   let rv = slice_cs cs p q dvpq dvqp mk_ear in
   let _ = forall (fun cs' -> cs'.k_cs < cs.k_cs) rv in
     rv;;
+
+
+(*
+****************************************
+DEFORMATIONS
+****************************************
+*)
+
 
 (* deformation acts on M-fields, keeping the domain fixed. *)
 
@@ -1354,7 +1358,7 @@ deforming, we are listing the constraints that prevent deformation.
 The deformation might be a diagonal at its lower bound,
 a straight node at p1, or an edge (p1,p2) at its lower bound.
 
-If there are other conditions in the aug. constraint system, that is ok.
+If there are other conditions in the stable constraint system, that is ok.
 If mem p2 cs.str_cs, then we don't need to eliminate it, because
 we never deform it.  We are just saying that if an element of M_s
 has a straight node at p2, then it must also have some other constraint
@@ -1554,7 +1558,7 @@ let deform_684_quadB p1 cs =
 let deformations postfilter k = 
   let r f p cs = filter postfilter (f p cs) in
   let m d = map (r d) (0--(k-1)) in
-  let rtl d cs = map restrict_to_low (d cs) in 
+  let rtl d cs = map restrict_b_to_bm (d cs) in 
   let u =   [deform_ODXLSTC_cs;
 	     deform_IMJXPHR_cs;
 	     deform_NUXCOEA_cs;
@@ -1581,13 +1585,13 @@ let name_of_deformation k i =
 
 (*
 ****************************************
- subdivison
+ SUBDIVISON
 ****************************************
 *)
 
 (* division acts on B-fields, shrinks domain.
    The global minima Ms remain global minima on smaller domain.
-   We can keep attributes.
+   We can keep adornments.
    Avoid Unchanged.  Pass through if c is out of range. 
    Restricts the domain if possible. *)
 
@@ -1678,7 +1682,7 @@ HEXAGONS
    apply deformations,
      in cyclic repetition.
       setting aside all cs st ?bm diag <= stab.
-   checking they are is_aug_cs.
+   checking they are assert_stable_cs.
       
 *)
 
@@ -1717,9 +1721,7 @@ let ok_for_more_hex =
   let terminals = filter_terminal is_hex in
     fun cs ->
       let _ = (cs.k_cs = 6) or failwith "ok:6" in
-      let _ = 
-	try is_aug_cs cs 
-	with Failure s -> report_cs cs; failwith s in
+      let _ = assert_stable_cs cs  in
       let bstr = 3 + length (cs.str_cs) <= cs.k_cs in
       let generic_at i = 
 	let p0 = i in
@@ -1794,9 +1796,7 @@ let ok_for_more_pent =
   let terminals = filter_terminal (fun cs -> cs.k_cs = 5) in
     fun cs ->
       let _ = (cs.k_cs = 5) or failwith "ok:5" in
-      let _ = 
-	try is_aug_cs cs 
-	with Failure s -> report_cs cs; failwith s in
+      let _ = assert_stable_cs cs in
       let bstr = 3 + length (cs.str_cs) <= cs.k_cs in
       let sph_tri_ineq i = 
 	if (length cs.str_cs < 2) then true
@@ -2154,9 +2154,7 @@ let ok_for_more_tri_quad assumptions =
       else
 	cs.am_cs p0 p1 < cs.bm_cs p0 p3 or
 	  cs.am_cs p1 p2 < cs.bm_cs p2 p3 in 
-  let _ = 
-    try is_aug_cs cs 
-    with Failure s -> report_cs cs; failwith s in
+  let _ = assert_stable_cs cs in
   let bstr = 3 + length (cs.str_cs) <= cs.k_cs in
   let bunfinished = not (terminal_transfer cs) in
     bstr && b4a && bunfinished && b467_2485876245a && 

@@ -1,0 +1,334 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(* Section: Conclusions                                                       *)
+(* Chapter: Local Fan                                                         *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2013-02-26                                                           *)
+(* ========================================================================== *)
+
+(*
+remaining conclusions from non-appendix sections of Local Fan chapter
+*)
+
+open Hales_tactic;;
+
+let MHAEYJN_concl = 
+`!a b V E FF f v w u.
+     convex_local_fan (V,E,FF) /\
+     lunar (v,w) V E /\
+     deformation f V (a,b) /\
+     interior_angle1 (vec 0) FF v < pi /\
+     u IN V /\
+     ~(u = v) /\
+     ~(u = w) /\
+     (!u' t. u IN V /\ ~(u = u') /\ t IN real_interval (a,b) ==> f u' t = u') /\
+     (!t. t IN real_interval (a,b) ==> f u t IN affine hull {vec 0, v, w, u})
+     ==> (?e. &0 < e /\
+              (!t. --e < t /\ t < e
+                   ==> convex_local_fan
+                       (IMAGE (\v. f v t) V,
+                        IMAGE (IMAGE (\v. f v t)) E,
+                        IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF) /\
+                       lunar (v,w) (IMAGE (\v. f v t) V)
+                       (IMAGE (IMAGE (\v. f v t)) E)))`;;
+
+
+let ZLZTHIC_concl = 
+`!a b V E FF f.
+     convex_local_fan (V,E,FF) /\
+     generic V E /\
+     deformation f V (a,b) /\
+     (!v t. v IN V /\ interior_angle1 (vec 0) FF v = pi ==>
+	 interior_angle1 (vec 0) ( IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF) (f v t) <= pi)
+     ==> (?e. &0 < e /\
+              (!t. --e < t /\ t < e
+                   ==> convex_local_fan
+                       (IMAGE (\v. f v t) V,
+                        IMAGE (IMAGE (\v. f v t)) E,
+                        IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF) /\
+                       generic (IMAGE (\v. f v t) V)
+                       (IMAGE (IMAGE (\v. f v t)) E)))`;;
+
+
+let cstab=new_definition ` cstab= #3.01`;;
+
+let rho_fun = new_definition `rho_fun y =  &1 + (inv (&2 * h0 - &2)) * (inv pi) * sol0 * (y - &2)`;;
+
+let rho_rho_fun = prove_by_refinement(
+  `!y. rho_fun y = rho y`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.rho;rho_fun;Sphere.const1;Sphere.ly;Sphere.interp];
+  REWRITE_TAC[GSYM Nonlinear_lemma.sol0_EQ_sol_y;Sphere.h0];
+  REWRITE_TAC[arith `a + b = a + c <=> c = b`];
+  GEN_TAC;
+  MATCH_MP_TAC (arith `(sol0/pi)*(&1 - a) = (sol0/pi)*(c*e) ==> sol0/pi - sol0/pi * a = c * inv pi * sol0 * e`);
+  AP_TERM_TAC;
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let tau_fun = new_definition `tau_fun V E f =  sum (f) (\e. rho_fun(norm(FST e)) * (azim_in_fan e E)) - (pi + sol0) * &(CARD f -2)`;;
+
+let tau3 = new_definition `tau3 (v1:real^3) v2 v3 = 
+  rho (norm v1) * dihV (vec 0) v1 v2 v3 + rho(norm v2) * dihV (vec 0) v2 v3 v1 +
+    rho(norm v3) * dihV (vec 0) v3 v1 v2 - (pi + sol0)`;;
+
+(*
+let standard = new_definition
+` standard v w <=> &2 <= norm(v-w) /\  norm (v-w) <= &2 *h0 `;;
+
+let protracted = new_definition
+` protracted v w <=> &2 * h0 <= norm(v-w) /\  norm (v-w) <= sqrt (&8) `;;
+
+let diagonal0 = new_definition
+` (diagonal0 (E:(real^3->bool)->bool) (v:real^3) (w:real^3))  <=> ~(v = w) /\ ~({v,w} IN E) `;;
+
+let diagonal1 = new_definition
+` diagonal1 (V,E)  <=> !v w. ~(v = w) /\ v IN V /\ w IN V /\ ~({v,w} IN E)
+==> &2 * h0 <= norm(v-w) `;;
+
+let main_estimate= new_definition
+` main_estimate(V,E,f) <=>
+ convex_local_fan(V,E,f) /\
+packing V /\
+V SUBSET ball_annulus /\
+diagonal1(V,E) /\
+ CARD E= CARD f /\
+3<= CARD E /\
+CARD E <= 6`;;
+*)
+
+let torsor = new_definition
+` torsor (s:A->bool) k (f:A->A) <=> (!x. x IN s ==> (f x) IN s) /\ (!x1 x2. x1 IN s /\ x2 IN s /\ f x1 = f x2 ==> x1=x2) /\ (!i x. 0 < i /\ i < k /\ x IN s ==> ~((f POWER i) x = x)) /\ (!x. x IN s==> (f POWER k) x = x)
+/\ s HAS_SIZE k`;;
+
+let d_tame = new_definition `d_tame n = 
+     if n = 3 then &0 else 
+     if n = 4 then #0.206 else
+     if n = 5 then #0.4819 else 
+     if n = 6 then #0.712 else tgt`;;  
+
+let JEJTVGB_std_concl = 
+  `!V E FF. 
+    convex_local_fan (V,E,FF) /\
+    packing V /\
+    V SUBSET ball_annulus /\
+    4 <= CARD V /\ CARD V <= 6 /\
+    (!v w. ~(v = w) /\ v IN V /\ w IN V /\ ~({v,w} IN E) ==> &2 * h0 <= dist(v,w)) /\
+    (!v w. {v,w} IN E ==> &2 <= dist(v,w) /\ dist(v,w) <= &2 * h0) ==>
+    d_tame (CARD V) <= tau_fun V E FF`;;
+
+let JEJTVGB_pent_diag_concl = 
+  `!V E FF. 
+    convex_local_fan (V,E,FF) /\
+    packing V /\
+    V SUBSET ball_annulus /\
+    CARD V = 5 /\
+    (!v w. ~(v = w) /\ v IN V /\ w IN V /\ ~({v,w} IN E) ==> sqrt8 <= dist(v,w)) /\
+    (!v w. {v,w} IN E ==> &2 <= dist(v,w) /\ dist(v,w) <= &2 * h0) ==>
+    #0.616 <= tau_fun V E FF`;;
+
+let JEJTVGB_pent_pro_concl = 
+  `!V E FF. 
+    convex_local_fan (V,E,FF) /\
+    packing V /\
+    V SUBSET ball_annulus /\
+    CARD V = 5 /\ 
+    (!v w. ~(v = w) /\ v IN V /\ w IN V /\ ~({v,w} IN E) ==> &2 * h0 <= dist(v,w)) /\
+    (?v0 w0.
+       (!v w. {v,w} IN E /\ ~({v,w} = {v0,w0}) ==> &2 <= dist(v,w) /\ dist(v,w) <= &2 * h0) /\
+       {v0,w0} IN E /\
+       &2 *h0 <= dist(v0,w0) /\ dist(v0,w0) <= sqrt8)
+     ==>
+    #0.616 <= tau_fun V E FF`;;
+
+let JEJTVGB_quad_pro_concl = 
+  `!V E FF. 
+    convex_local_fan (V,E,FF) /\
+    packing V /\
+    V SUBSET ball_annulus /\
+    CARD V = 4 /\ 
+    (!v w. ~(v = w) /\ v IN V /\ w IN V /\ ~({v,w} IN E) ==> sqrt8 <= dist(v,w)) /\
+    (?v0 w0.
+       (!v w. {v,w} IN E /\ ~({v,w} = {v0,w0}) ==> &2 <= dist(v,w) /\ dist(v,w) <= &2 * h0) /\
+       {v0,w0} IN E /\
+       &2 *h0 <= dist(v0,w0) /\ dist(v0,w0) <= sqrt8)
+     ==>
+    #0.477 <= tau_fun V E FF`;;
+
+let JEJTVGB_quad_diag_concl = 
+  `!V E FF. 
+    convex_local_fan (V,E,FF) /\
+    packing V /\
+    V SUBSET ball_annulus /\
+    CARD V = 4 /\
+    (!v w. ~(v = w) /\ v IN V /\ w IN V /\ ~({v,w} IN E) ==> &3 <= dist(v,w)) /\
+    (!v w. {v,w} IN E ==> &2 <= dist(v,w) /\ dist(v,w) <= &2 * h0) ==>
+    #0.567 <= tau_fun V E FF`;;
+
+let JEJTVGB_concl = 
+  let co = [JEJTVGB_std_concl;JEJTVGB_pent_diag_concl;JEJTVGB_pent_pro_concl;
+				      JEJTVGB_quad_pro_concl;JEJTVGB_quad_diag_concl] in
+    list_mk_conj co;;
+
+let JEJTVGB_assume =  new_definition (mk_eq (`JEJTVGB_assume:bool`,JEJTVGB_concl));;
+
+(* I'll use periodic functions to SCSs for now *)
+
+let peropp = new_definition `peropp (f:num->A) k i = f (k - SUC(i MOD k))`;;
+
+let peropp_periodic = prove_by_refinement(
+  `!(f:num->A) k.      periodic (peropp f k) k`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Oxl_def.periodic;peropp];
+  ONCE_REWRITE_TAC[arith `i + k = 1 * k + i`];
+  BY(REWRITE_TAC[MOD_MULT_ADD])
+  ]);;
+  (* }}} *)
+
+`(k:num,d:real,a,b,alpha,beta,J,lo,hi)`;;
+
+let scs_exists =  MESON[]   `?(x: ( 
+				 (num) #
+				 (real) #
+				   (num->num -> real) #
+				   (num->num -> real) #
+				   (num-> num-> real) #
+				   (num -> num -> real) #
+				   (num -> num -> bool) #
+				   (num -> bool) #
+				   (num -> bool))). T`;;
+
+let scs_v3 = REWRITE_RULE[] (new_type_definition "scs_v3" ("scs_v3", "dest_scs_v3") scs_exists);;
+
+let scs_k_v3 = new_definition `scs_k_v3 s = part0 (dest_scs_v3 s)`;;
+let scs_d_v3 = new_definition `scs_d_v3 s = part1 (dest_scs_v3 s)`;;
+
+let scs_a_v3 = new_definition `scs_a_v3 s = part2 (dest_scs_v3 s)`;;
+let scs_am_v3 = new_definition `scs_am_v3 s = part3 (dest_scs_v3 s)`;;
+let scs_bm_v3 = new_definition `scs_bm_v3 s = part4 (dest_scs_v3 s)`;;
+let scs_b_v3 = new_definition `scs_b_v3 s = part5 (dest_scs_v3 s)`;;
+
+
+let scs_J_v3 = new_definition `scs_J_v3 s = part6 (dest_scs_v3 s)`;;
+let scs_lo_v3 = new_definition `scs_lo_v3 s = part7 (dest_scs_v3 s)`;;
+let scs_str_v3 = new_definition `scs_str_v3 s = drop3(drop3 (dest_scs_v3 s))`;;
+
+(*
+let scs_parts = prove_by_refinement(
+  `!k d a am bm b J lo str. scs_k_v3 (scs_v3(k,d,a,am,bm,b,J,lo,str)) = k`,
+  (* {{{ proof *)
+  [
+  
+  ]);;
+  (* }}} *)
+*)
+
+let periodic2 = new_definition `periodic2 (f:num->num->A) k = (!i j. f (i + k) j = f i j /\ f i (j + k) = f i j)`;;
+
+let is_scs_v3 = new_definition `is_scs_v3 s = (
+  scs_d_v3 s < #0.9 /\
+    3 <= scs_k_v3 s /\
+    scs_k_v3 s <= 6 /\
+    periodic (scs_lo_v3 s) (scs_k_v3 s) /\
+    periodic (scs_str_v3 s) (scs_k_v3 s) /\
+    periodic (scs_str_v3 s) (scs_k_v3 s) /\
+    periodic2 (scs_a_v3 s) (scs_k_v3 s) /\
+    periodic2 (scs_am_v3 s) (scs_k_v3 s) /\
+    periodic2 (scs_bm_v3 s) (scs_k_v3 s) /\
+    periodic2 (scs_b_v3 s) (scs_k_v3 s) /\
+    periodic2 (scs_J_v3 s) (scs_k_v3 s) /\
+    (!i j. (scs_a_v3 s i j = scs_a_v3 s j i /\ scs_am_v3 s i j = scs_am_v3 s j i /\ 
+	 scs_bm_v3 s i j = scs_bm_v3 s j i /\ scs_b_v3 s i j = scs_b_v3 s j i)) /\
+    (!i j. scs_a_v3 s i j <= scs_am_v3 s i j /\ scs_am_v3 s i j <= scs_bm_v3 s i j /\ 
+       scs_bm_v3 s i j <= scs_b_v3 s i j) /\
+    (!i. scs_a_v3 s i i = &0) /\
+    (!i j. (i < scs_k_v3 s) /\ (j < scs_k_v3 s) /\ ~(i = j) ==> &2 <= scs_a_v3 s i j) /\
+    (!i. (scs_k_v3 s = 3) ==> (scs_b_v3 s i (SUC i) < &4)) /\
+    (!i. (3 < scs_k_v3 s) ==> (scs_b_v3 s i (SUC i) < cstab)) /\
+    (!i j. scs_J_v3 s i j ==> scs_a_v3 s i j = sqrt8 /\ scs_b_v3 s i j = cstab) /\
+    CARD { i | i < scs_k_v3 s /\ (&2 * h0 < scs_b_v3 s i (SUC i) \/ &2 < scs_a_v3 s i (SUC i)) } + scs_k_v3 s <= 6)`;;
+
+let unadorned_v3 = new_definition `unadorned_v3 s = 
+  (scs_lo_v3 s = {} /\ scs_str_v3 s = {} /\ scs_a_v3 s = scs_am_v3 s /\ scs_b_v3 s = scs_bm_v3 s)`;;
+
+let is_ear_v3 = new_definition `is_ear_v3 s <=> 
+  is_scs_v3 s /\
+    unadorned_v3 s /\
+    scs_k_v3 s = 3 /\
+  scs_d_v3 s = #0.11 /\
+  (!i. scs_b_v3 s i i = &0) /\
+  (?i. {i | i < 3 /\ scs_J_v3 s i (SUC i)} = {i} /\
+      scs_a_v3 s i (SUC i) = sqrt8 /\ scs_b_v3 s i (SUC i) = cstab /\
+      (!j. j < 3 /\ ~(j = i) ==> scs_a_v3 s j (SUC j) = &2 /\ scs_b_v3 s j (SUC j) = &2 * h0))`;;
+      
+let BBs_v3 = new_definition `BBs_v3 s vv =
+  (let V = IMAGE vv (:num) in
+  let E = IMAGE (\i. {vv i, vv (SUC i)}) (:num) in
+  let FF = IMAGE (\i. (vv i,vv (SUC i))) (:num) in
+    ((!i j. scs_a_v3 s i j <= dist(vv i,vv j) /\ dist(vv i,vv j) <= scs_b_v3 s i j) /\
+       (scs_k_v3 s <= 3 \/ (convex_local_fan (V,E,FF)))))`;;
+
+let dsv_v3 = new_definition `dsv_v3 s (vv:num->real^3) = 
+  scs_d_v3 s + #0.1 * (if (is_ear_v3 s) then &1 else -- &1) * 
+    sum {i | i < scs_k_v3 s /\ scs_J_v3 s i (SUC i)} (\i. cstab - dist(vv i,vv (SUC i)))`;;
+
+let dsv_J_empty = prove_by_refinement(
+  `!s vv. scs_J_v3 s = (\i j. F) ==> dsv_v3 s vv = scs_d_v3 s`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[dsv_v3;EMPTY_GSPEC;SUM_CLAUSES];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let taustar_v3 = new_definition `taustar_v3 s vv = 
+  (let V = IMAGE vv (:num) in
+  let E = IMAGE (\i. {vv i, vv (SUC i)}) (:num) in
+  let FF = IMAGE (\i. (vv i,vv (SUC i))) (:num) in
+    (if (scs_k_v3 s <= 3) then tau3 (vv 0) (vv 1) (vv 2) - dsv_v3 s vv
+  else tau_fun V E FF - dsv_v3 s vv))`;;
+
+let s_init_list_v3 = new_definition `s_init_list_v3 = 
+  let upperbd = &6 in
+  let mk_unadorned = (\k d a b. scs_v3(k,d,a,a,b,b,(\i j. F),{},{})) in
+  let cs_adj = (\k a1 a2 i j. (if (i MOD k = j MOD k) then &0
+			       else (if (j MOD k = SUC i MOD k) \/ (SUC j MOD k = i MOD k) then a1 else a2))) in
+  let a_pro = (\k p a1 a2 i j. (if (i MOD k = j MOD k) then &0
+				else (if {i,j}={0,1} then p
+				      else (if (j MOD k = SUC i MOD k) \/ (SUC j MOD k = i MOD k) then a1 else a2)))) in
+    [mk_unadorned 6 (d_tame 6) (cs_adj 6 (&2) (&2 * h0)) (cs_adj 6 (&2 * h0) upperbd);
+     mk_unadorned 5 (d_tame 5) (cs_adj 5 (&2) (&2 * h0)) (cs_adj 5 (&2 * h0) upperbd);
+     mk_unadorned 4 (d_tame 4) (cs_adj 4 (&2) (&2 * h0)) (cs_adj 4 (&2 * h0) upperbd);
+     mk_unadorned 3 (d_tame 3) (cs_adj 3 (&2) (&2 * h0)) (cs_adj 3 (&2 * h0) upperbd);
+     mk_unadorned 5 (#0.616) (cs_adj 5 (&2) (sqrt8)) (cs_adj 5 (&2 * h0) upperbd);     
+     mk_unadorned 4 (#0.616) (cs_adj 4 (&2) (&3)) (cs_adj 4 (&2 * h0) upperbd);     
+     mk_unadorned 5 (#0.616) (a_pro 5 (&2 * h0) (&2) (&2 * h0)) (a_pro 5 sqrt8 (&2 * h0) upperbd);
+     mk_unadorned 4 (#0.477) (a_pro 4 (&2 * h0) (&2) sqrt8) (a_pro 4 sqrt8 (&2 * h0) upperbd)
+    ]`;;
+
+let LENGTH_s_init_list = prove_by_refinement(
+  `LENGTH s_init_list_v3 = 8`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[s_init_list_v3;LET_DEF;LET_END_DEF;LENGTH];
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
+let ZITHLQN = prove_by_refinement(
+  `(!s vv. s IN set_of_list s_init_v3 /\ vv IN BBs_v3 s ==> &0 <= taustar_v3 s vv)  ==> JEJTVGB_assume`,
+  (* {{{ proof *)
+  [
+  rt[s_init_list_v3;set_of_list;JEJTVGB_assume]
+st/r
+conj
+st/r
+  ]);;
+  (* }}} *)
+

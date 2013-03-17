@@ -1,0 +1,229 @@
+"needs \"../formal_lp/hypermap/ssreflect/list_hypermap-compiled.hl\"".
+"needs \"../formal_lp/hypermap/ssreflect/add_triangle-compiled.hl\"".
+
+Module List_hypermap_iso.
+
+"open Ssrbool".
+"open Ssrnat".
+"open Seq".
+"open Hypermap_and_fan".
+"open Fan_defs".
+"open List_hypermap".
+"open Add_triangle".
+"open Hypermap_iso".
+
+
+
+Section MoreFan.
+
+Variable V : `:real^3->bool`.
+Variable E : `:(real^3->bool)->bool`.
+
+(* TODO: move to HypermapAndFan.hl *)
+Lemma fst_node_hypermap_of_fan x y: `FAN (vec 0, V, E) /\ x IN node (hypermap_of_fan (V,E)) y
+	==> FST x = FST y`.
+Proof.
+move => [fanV x_in].
+apply: (FAN_NODE_EQ_lemma fanV).
+by rewrite EQ_SYM_EQ; apply Hypermap.lemma_node_identity.
+Qed.
+
+
+Lemma e_fan_pair_ext_explicit v w: `(v,w) IN dart_of_fan (V,E)
+	==> e_fan_pair_ext (V,E) (v,w) = (w,v)`.
+Proof.
+rewrite dart_of_fan_eq IN_UNION IN_ELIM_THM e_fan_pair_ext /=.
+case vw_in: `v,w IN _` => /=; first by rewrite e_fan_pair.
+by move => [z] [_]; rewrite PAIR_EQ => [] [-> ->].
+Qed.
+
+
+End MoreFan.
+
+
+(* res_inv *)
+Section MoreResInv.
+
+Lemma inj_res_inv_left f s t x: `INJ f s t /\ x IN s ==> res_inv f s (f x) = x`.
+Proof. by rewrite INJ => [] h; rewrite res_inv_left //. Qed.
+
+Lemma surj_res_inv_right f s t y: `SURJ f s t /\ y IN t ==>
+	f (res_inv f s y) = y /\ res_inv f s y IN s`.
+Proof. by rewrite SURJ => h; rewrite !(res_inv_right f s t) //. Qed.
+
+End MoreResInv.
+
+
+Lemma iso_fan_list_explicit V E L f: `FAN (vec 0,V,E) /\ good_list L
+	/\ hyp_iso f (hypermap_of_fan (V,E), hypermap_of_list L)
+	==> ?h. !d. d IN dart_of_fan (V,E) ==> f d = (h (FST d), h (SND d))`.
+Proof.
+move => [fanV] [goodL] isoVL.
+have [dartH mapsH] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+have [dartG mapsG] := components_hypermap_of_list goodL.
+set H := `hypermap_of_fan (V,E)`.
+set G := `hypermap_of_list L`.
+have f_in d: `d IN dart_of_fan (V,E) ==> f d IN darts_of_list L`.
+  by rewrite -dartH -dartG => d_in; rewrite (hyp_iso_dart isoVL).
+set h := `\v. FST (f (v, if (v,v) IN dart_of_fan (V,E) then v else CHOICE (set_of_edge v V E)))`.
+exists h.
+have [g f_eq]: `?g. !v w. (v,w) IN dart_of_fan (V,E) ==> f(v,w) = (h v:A, g (v,w):A)`.
+  exists `\d. SND (f d)`.
+  move => v w vw_in; rewrite {1}(pair_expand `f (v,w)`) PAIR_EQ /= -h_def /=.
+  case vv_in: `v,v IN _` => /=.
+    have set_empty: `set_of_edge v V E = {}`.
+      move: vv_in; rewrite dart_of_fan_eq IN_UNION IN_ELIM_THM /= PAIR_EQ.
+      case; first by move/(PAIR_IN_DART1_OF_FAN_IMP_NOT_EQ fanV).
+      by move => [u] [] h ->.
+    move: vw_in; rewrite dart_of_fan_eq IN_UNION IN_ELIM_THM /= PAIR_EQ.
+    case; first by move/(PAIR_IN_DART1_OF_FAN fanV); rewrite set_empty NOT_IN_EMPTY.
+    by move => [u] [_] [-> ->].
+  have vw_in1: `v,w IN dart1_of_fan (V,E)`.
+    move: (vw_in); rewrite dart_of_fan_eq IN_UNION IN_ELIM_THM /= PAIR_EQ.
+    case => // [u] [_] eq.
+    by move: vw_in vv_in; rewrite !eq /=.
+  set w' := `CHOICE _`.
+  suff: `f (v,w') IN node G (f (v,w))`.
+    rewrite Hypermap.node Hypermap.orbit_map IN_ELIM_THM /= mapsG.
+    move => [n] [_] ->.
+    rewrite {2}pair_expand fst_n_list_ext_power //.
+    by rewrite -pair_expand -dartG (hyp_iso_dart isoVL).
+  rewrite (iso_components isoVL) ?dartH // FUN_IN_IMAGE.
+  rewrite -H_def NODE_HYPERMAP_OF_FAN_ALT // IN_ELIM_THM /=.
+  exists w'; split => //; rewrite -w'_def CHOICE_DEF -Ssrbool.implybF => eq.
+  have := PAIR_IN_DART1_OF_FAN fanV vw_in1.
+  by rewrite eq NOT_IN_EMPTY.
+move => d d_in.
+move: (IN_DART_OF_FAN fanV d_in) => [v] [w] [->] vw_in.
+rewrite f_eq // FST SND PAIR_EQ /=.
+move: (hyp_iso_comm isoVL `v,w`); rewrite dartH vw_in /=.
+rewrite mapsG mapsH e_fan_pair_ext_explicit // e_list_ext res.
+rewrite -dartG (hyp_iso_dart isoVL) ?dartH //=.
+by rewrite !f_eq // 1?dart_switch // e_list SND PAIR_EQ => ->.
+Qed.
+
+
+
+
+(* MoreSeq *)
+Section MoreSeq.
+
+
+"let zip = GEN_ALL Seq.zip".
+"let take = GEN_ALL Seq.take".
+"let MEM = GEN_ALL MEM".
+
+Lemma take_zip s1 s2 n: `take n (zip s1 s2) = zip (take n s1) (take n s2)`.
+Proof.
+elim: s1 s2 n => [| h1 t1 Ih1] [|h2 t2]; rewrite ?take zip ?take ?zip //.
+by case => [|n]; rewrite !take zip.
+Qed.
+
+Lemma drop_zip s1 s2 n: `dropl n (zip s1 s2) = zip (dropl n s1) (dropl n s2)`.
+Proof.
+elim: s1 s2 n => [| h1 t2 Ih1] [|h2 t2]; rewrite ?drop zip ?drop ?zip //.
+by case => [|n]; rewrite !drop ?zip.
+Qed.
+
+Lemma rot_zip s1 s2 n: `sizel s1 = sizel s2
+	==> rot n (zip s1 s2) = zip (rot n s1) (rot n s2)`.
+Proof.
+move => size_eq.
+by rewrite rot drop_zip take_zip -zip_cat -?rot // !size_drop size_eq.
+Qed.
+
+Lemma rotr_zip s1 s2 n: `sizel s1 = sizel s2
+	==> rotr n (zip s1 s2) = zip (rotr n s1) (rotr n s2)`.
+Proof.
+move => size_eq.
+by rewrite !rotr size1_zip size_eq ?leqnn // rot_zip.
+Qed.
+
+
+End MoreSeq.
+
+
+(* Main definitions *)
+(* Given a list [1;2;3;4;...;n], yields two lists [[1;2;3]; [1;4;...;n]] *)
+"let split_list_face = new_definition
+	`split_list_face f = if sizel f <= 3 then [f] else [take 3 f; HD f :: dropl 2 f]`".
+
+"let split_list_hyp = (GEN_ALL o define) 
+	`split_list_hyp [] d = [] /\
+	 split_list_hyp (f :: t) d = 
+		if MEM d (list_pairs f) then
+			split_list_face (rotr 1 (rot (indexl d (list_pairs f)) f)) ++ t
+		else
+			f :: split_list_hyp t d`".
+
+
+"let list_diag = new_definition `list_diag L d = (SND d, FST (inverse (f_list_ext L) d))`".
+
+(* SplitListHyp *)
+Section SplitListHyp.
+
+Implicit Type d: `:A#A`.
+
+
+Lemma list_of_darts_nil: `list_of_darts [] = []`.
+Proof. by rewrite list_of_darts "GEN_ALL foldr". Qed.
+
+Lemma list_of_darts_cons h t: `list_of_darts (h :: t) = list_pairs h ++ list_of_darts t`.
+Proof. by rewrite list_of_darts "GEN_ALL foldr" /= -list_of_darts. Qed.
+
+Lemma list_of_darts_cat s1 s2: `list_of_darts (s1 ++ s2) = list_of_darts s1 ++ list_of_darts s2`.
+Proof.
+elim: s1 => [|h t Ih]; rewrite cat ?(list_of_darts_nil, list_of_darts_cons) ?cat //.
+by rewrite Ih catA.
+Qed.
+
+
+Lemma split_list_hyp_alt L d: `MEM d (list_of_darts L)
+	==> (let f = find_pair_list d L and
+	         n = indexl (find_pair_list d L) L in
+	split_list_hyp L d = take n L ++ 
+		(split_list_face (rotr 1 (rot (indexl d (list_pairs f)) f))) ++ dropl (n + 1) L)`.
+Proof.
+move => mem_d; "CONV_TAC let_CONV"; move: mem_d.
+elim: L => [|h t Ih]; first by rewrite list_of_darts_nil MEM.
+rewrite list_of_darts_cons mem_cat find_pair_list.
+case mem_d: `MEM d _` => /=.
+  rewrite Seq.index_head take cat add0n drop1 behead.
+  by rewrite split_list_hyp mem_d.
+move => mem_dt.
+rewrite split_list_hyp mem_d /= Ih //.
+set n := `indexl _1 _2`.
+set m := `indexl _1 (CONS h t)`.
+suff ->: `m = SUC n` by rewrite take cat addSn drop.
+rewrite -m_def Seq2.index_cons n_def.
+case eq: `_ = h` => /=.
+by move: mem_dt; rewrite dart_in_find_pair_list eq mem_d.
+Qed.
+
+
+Lemma d_not_in_dart_split_eq L d: `~(MEM d (list_of_darts L)) ==> split_list_hyp L d = L`.
+Proof.
+rewrite mem_list_of_darts NOT_EXISTS_THM negb_and.
+elim: L => [|h t Ih]; rewrite split_list_hyp // => mem_d.
+move: (mem_d h); rewrite "GEN_ALL MEM" /= Ih // => x.
+move: (mem_d x); rewrite "GEN_ALL MEM" negb_or.
+by case => ->.
+Qed.
+
+
+
+Lemma darts_of_list_split L d: `3 < sizel (find_pair_list d L)
+	==> perm_eq (list_of_darts (split_list_hyp L d))
+		   ([list_diag L d; e_list L (list_diag L d)] ++ list_of_darts L)`.
+
+darts_of_list (split
+
+
+Lemma good_list_split L d: `~(MEM (SND d, FST (inverse (f_list_ext L) d)) (list_of_darts L))
+	/\ good_list L
+	==> good_list (split_list_hyp L d)`.
+Proof.
+move => [n_mem] goodL.
+move: (goodL); rewrite !good_list => [] [uniqL] [allL] symL.
+
+

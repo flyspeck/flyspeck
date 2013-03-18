@@ -139,6 +139,47 @@ move => size_eq.
 by rewrite !rotr size1_zip size_eq ?leqnn // rot_zip.
 Qed.
 
+Lemma size1 x: `sizel [x] = 1`.
+Proof. by rewrite size_cons size_nil ONE. Qed.
+
+Lemma nth_rot x0 s k i: `k < sizel s /\ i < sizel s
+	==> nth x0 (rot k s) i = nth x0 s ((k + i) MOD sizel s)`.
+Proof.
+move => ineqs.
+rewrite rot nth_cat size_drop.
+case i_lt: `i:num < _` => /=.
+  by rewrite nth_drop MOD_LT //; move: i_lt ineqs; arith.
+have ->: `i - (sizel s - k) = (k + i) - sizel s` by move: i_lt ineqs; arith.
+rewrite nth_take; first by move: i_lt ineqs; arith.
+have {2}->: `k + i = 1 * sizel s + ((k + i) - sizel s)` by move: i_lt ineqs; arith.
+rewrite MOD_MULT_ADD MOD_LT //.
+by move: ineqs; arith.
+Qed.
+
+Lemma head_belast x0 x s: `0 < sizel s ==> headl x0 (belast x s) = x`.
+Proof.
+case: s => [|h t _]; first by rewrite size_nil ltn0.
+by rewrite belast head.
+Qed.
+
+Lemma nth_belast x0 s x i: `i < sizel s ==> 
+	nth x0 (belast x s) i = if i = 0 then x else nth x0 s (i - 1)`.
+Proof.
+elim: s i x => [|h t Ih] [|i x]; rewrite ?size_nil ?ltn0 //.
+  by move => x lt; rewrite nth0 head_belast.
+rewrite size_cons ltSS eqS0 /= => i_lt.
+rewrite belast nth Ih // succnK.
+by case: i => [|j] /=; rewrite nth // succnK eqS0.
+Qed.
+
+Lemma take_belast s x n: `n < sizel s /\ 0 < n ==> take n (belast x s) = x :: take (n - 1) s`.
+Proof.
+elim: s n x => [|h t Ih] [|n x]; rewrite ?size_nil ?ltn0 //.
+rewrite belast take size_cons ltSS => ineqs.
+case: n ineqs => [_|n ineqs]; first by rewrite -ONE subnn !take.
+by rewrite Ih ?succnK ?take // gtS0.
+Qed.
+
 
 End MoreSeq.
 
@@ -157,7 +198,7 @@ End MoreSeq.
 			f :: split_list_hyp t d`".
 
 
-"let list_diag = new_definition `list_diag L d = (SND d, FST (inverse (f_list_ext L) d))`".
+"let list_hyp_diag = new_definition `list_hyp_diag L d = (SND d, FST (prev_el (find_face d L) d))`".
 
 (* SplitListHyp *)
 Section SplitListHyp.
@@ -176,6 +217,9 @@ Proof.
 elim: s1 => [|h t Ih]; rewrite cat ?(list_of_darts_nil, list_of_darts_cons) ?cat //.
 by rewrite Ih catA.
 Qed.
+
+Lemma list_pairs_rot s n: `perm_eq (list_pairs (rot n s)) (list_pairs s)`.
+Proof. by rewrite list_pairs rot_rot -rot_zip ?size_rot // -list_pairs perm_eq_rot. Qed.
 
 
 Lemma split_list_hyp_alt L d: `MEM d (list_of_darts L)
@@ -211,12 +255,109 @@ by case => ->.
 Qed.
 
 
+Lemma find_pair_list_empty L d: `find_pair_list d L = [] <=> ~(MEM d (list_of_darts L))`.
+Proof.
+elim: L => [| h t Ih]; rewrite find_pair_list ?list_of_darts_nil ?MEM //.
+rewrite list_of_darts_cons mem_cat negb_or.
+case mem_d: `MEM d _` => /=; last by rewrite Ih.
+rewrite -implybF => h_eq.
+by move: mem_d; rewrite h_eq list_pairs zip MEM.
+Qed.
+
+
+Lemma list_eq_cat_find_pair_list L d: `MEM d (list_of_darts L)
+	==> (let f = find_pair_list d L and
+	         n = indexl (find_pair_list d L) L in
+	L = take n L ++ [f] ++ dropl (n + 1) L)`.
+Proof.
+move => mem_d; "CONV_TAC let_CONV"; move: mem_d.
+elim: L => [|h t Ih]; first by rewrite list_of_darts_nil MEM.
+rewrite list_of_darts_cons mem_cat find_pair_list.
+case mem_d: `MEM d _` => /=.
+  by rewrite Seq.index_head take cat add0n drop1 behead cat1s.
+move => mem_dt; rewrite {1}Ih //.
+set n := `indexl _1 _2`.
+set m := `indexl _1 (CONS h t)`.
+suff ->: `m = SUC n` by rewrite take cat addSn drop !cat.
+rewrite -m_def Seq2.index_cons n_def.
+case eq: `_ = h` => /=.
+by move: mem_dt; rewrite dart_in_find_pair_list eq mem_d.
+Qed.
+
 
 Lemma darts_of_list_split L d: `3 < sizel (find_pair_list d L)
 	==> perm_eq (list_of_darts (split_list_hyp L d))
-		   ([list_diag L d; e_list L (list_diag L d)] ++ list_of_darts L)`.
-
-darts_of_list (split
+		   ([list_hyp_diag L d; e_list L (list_hyp_diag L d)] ++ list_of_darts L)`.
+Proof.
+move => f_size; rewrite perm_eq_sym.
+have mem_d: `MEM d (list_of_darts L)`.
+  by apply: contraLR f_size; rewrite -find_pair_list_empty => ->; rewrite size_nil; arith.
+rewrite "let_RULE split_list_hyp_alt" // {4}("let_RULE list_eq_cat_find_pair_list" L d) //.
+set f := `find_pair_list d L`.
+set n := `indexl f L`.
+set f' := `rotr 1 _`.
+rewrite !list_of_darts_cat perm_catCA perm_cat2l catA perm_cat2r.
+rewrite split_list_face -{1}f'_def size_rotr size_rot leqNgt f_size /=.
+rewrite list_hyp_diag e_list SND FST find_face_alt f_def.
+set y := `FST _`.
+set k := `indexl d (list_pairs f)`.
+have mem_d2: `MEM d (list_pairs f)` by rewrite -f_def -dart_in_find_pair_list.
+have k_lt: `k < sizel f` by rewrite -size_list_pairs -k_def index_mem.
+have rot_f_eq: `rot k f = [FST d] ++ belast (SND d) (dropl 2 (rot k f)) ++ [y]`.
+  apply: (eq_from_nth y); rewrite size_rot !size_cat !size1 size_belast size_drop size_rot.
+  split => [|i]; first by move: f_size; arith.
+  have size_ineqs: `2 < sizel f /\ 1 < sizel f /\ 0 < sizel f /\ k < sizel f /\ 0 < sizel f - 2`.
+    by move: k_lt f_size; arith.
+  case: i => [_ | i].
+    rewrite nth_rot // addn0 MOD_LT // cat1s nth.
+    move: (nth_index `y,y` mem_d2).
+    by rewrite k_def list_pairs nth_zip ?size_rot // {1}(pair_expand d) PAIR_EQ => ->.
+  case: i => [_ | i].
+    rewrite cat1s nth -ONE nth_rot // nth_cat size_belast size_drop size_rot size_ineqs /=.
+    rewrite nth0 head_belast ?size_drop ?size_rot //.
+    move: (nth_index `y,y` mem_d2).
+    rewrite k_def list_pairs nth_zip ?size_rot // {1}(pair_expand d) PAIR_EQ => <-.
+    by rewrite addnC nth_rot.
+  move => i_lt; rewrite cat1s nth.
+  case i_lt2: `SUC i < sizel f - 2` => /=.
+    rewrite -{1}(cat_take_drop `2`) nth_cat size_take size_rot size_ineqs /=.
+    have -> /=: `SUC (SUC i) < 2 <=> F` by arith.
+    have ->: `SUC (SUC i) - 2 = i` by arith.
+    rewrite nth_cat size_belast size_drop size_rot i_lt2 /=.
+    by rewrite nth_belast ?succnK ?eqS0 // size_drop size_rot.
+  have ->: `SUC i = sizel f - 2` by move: i_lt2 i_lt; arith.
+  rewrite nth_cat size_belast size_drop size_rot ltnn /= subnn nth.
+  rewrite -{2}y_def (prev_el_alt `y,y`) // k_def rotr.
+  rewrite !nth_rot ?size_list_pairs; try (move: size_ineqs; arith).
+  rewrite list_pairs nth_zip ?size_rot // FST.
+  by have ->: `k + SUC (sizel f - 2) = sizel f - 1 + k` by move: f_size; arith.
+have f'_eq: `f' = cat [y; FST d] (belast (SND d) (dropl 2 (rot k f)))`.
+  by rewrite -f'_def {1}rot_f_eq catA cats1 rotr1_rcons !cat.
+rewrite !list_of_darts !"GEN_ALL foldr" /= !cats0.
+have ->: `take 3 f' = [y; FST d; SND d]`.
+  rewrite f'_eq take_cat !size_cons size_nil.
+  have -> /=: `3 < SUC (SUC 0) <=> F` by arith.
+  have ->: `3 - SUC (SUC 0) = 1` by arith.
+  rewrite take_belast ?size_drop ?size_rot; first by move: f_size; arith.
+  by rewrite subnn take cats1 !rcons.
+have ->: `(HD f' :: dropl 2 f') = (y :: belast (SND d) (dropl 2 (rot k f)))`.
+  by rewrite f'_eq {1}cat "GEN_ALL HD" drop_size_cat // !size_cons size_nil -ONE -TWO.
+set X := `belast _1 _2`.
+set R := `dropl 1 X`.
+have X_eq: `X = SND d :: R`.
+  rewrite -R_def -{1}(cat_take_drop `1` X) -{1}X_def.
+  rewrite take_belast ?size_drop ?size_rot; first by move: f_size; arith.
+  by rewrite subnn take cat1s.
+rewrite perm_eq_sym 2!list_pairs !rot1_cons !rcons !zip.
+rewrite perm_catC -cats1 X_eq cat zip cats1 -cat1s.
+rewrite perm_eq_sym -cat1s -!catA perm_catCA perm_cat2l.
+rewrite perm_eq_sym perm_catC -cat1s perm_catAC perm_catC -cat1s perm_catAC perm_catC perm_cat2l.
+apply: (perm_eq_trans `list_pairs (rot k f)`).
+rewrite list_pairs_rot andbT rot_f_eq perm_eq_sym.
+rewrite list_pairs cat1s cats1 rot1_cons X_eq !rcons zip.
+rewrite -cat1s perm_cat2l -!cats1 -cat1s catA zip_cat ?size_cat ?size_cons 1?addnC //.
+by rewrite !zip perm_catC (cat1s `SND d`) perm_eq_refl.
+Qed.
 
 
 Lemma good_list_split L d: `~(MEM (SND d, FST (inverse (f_list_ext L) d)) (list_of_darts L))

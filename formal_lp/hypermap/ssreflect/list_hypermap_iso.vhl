@@ -54,55 +54,6 @@ Proof. by rewrite SURJ => h; rewrite !(res_inv_right f s t) //. Qed.
 End MoreResInv.
 
 
-Lemma iso_fan_list_explicit V E L f: `FAN (vec 0,V,E) /\ good_list L
-	/\ hyp_iso f (hypermap_of_fan (V,E), hypermap_of_list L)
-	==> ?h. !d. d IN dart_of_fan (V,E) ==> f d = (h (FST d), h (SND d))`.
-Proof.
-move => [fanV] [goodL] isoVL.
-have [dartH mapsH] := COMPONENTS_HYPERMAP_OF_FAN fanV.
-have [dartG mapsG] := components_hypermap_of_list goodL.
-set H := `hypermap_of_fan (V,E)`.
-set G := `hypermap_of_list L`.
-have f_in d: `d IN dart_of_fan (V,E) ==> f d IN darts_of_list L`.
-  by rewrite -dartH -dartG => d_in; rewrite (hyp_iso_dart isoVL).
-set h := `\v. FST (f (v, if (v,v) IN dart_of_fan (V,E) then v else CHOICE (set_of_edge v V E)))`.
-exists h.
-have [g f_eq]: `?g. !v w. (v,w) IN dart_of_fan (V,E) ==> f(v,w) = (h v:A, g (v,w):A)`.
-  exists `\d. SND (f d)`.
-  move => v w vw_in; rewrite {1}(pair_expand `f (v,w)`) PAIR_EQ /= -h_def /=.
-  case vv_in: `v,v IN _` => /=.
-    have set_empty: `set_of_edge v V E = {}`.
-      move: vv_in; rewrite dart_of_fan_eq IN_UNION IN_ELIM_THM /= PAIR_EQ.
-      case; first by move/(PAIR_IN_DART1_OF_FAN_IMP_NOT_EQ fanV).
-      by move => [u] [] h ->.
-    move: vw_in; rewrite dart_of_fan_eq IN_UNION IN_ELIM_THM /= PAIR_EQ.
-    case; first by move/(PAIR_IN_DART1_OF_FAN fanV); rewrite set_empty NOT_IN_EMPTY.
-    by move => [u] [_] [-> ->].
-  have vw_in1: `v,w IN dart1_of_fan (V,E)`.
-    move: (vw_in); rewrite dart_of_fan_eq IN_UNION IN_ELIM_THM /= PAIR_EQ.
-    case => // [u] [_] eq.
-    by move: vw_in vv_in; rewrite !eq /=.
-  set w' := `CHOICE _`.
-  suff: `f (v,w') IN node G (f (v,w))`.
-    rewrite Hypermap.node Hypermap.orbit_map IN_ELIM_THM /= mapsG.
-    move => [n] [_] ->.
-    rewrite {2}pair_expand fst_n_list_ext_power //.
-    by rewrite -pair_expand -dartG (hyp_iso_dart isoVL).
-  rewrite (iso_components isoVL) ?dartH // FUN_IN_IMAGE.
-  rewrite -H_def NODE_HYPERMAP_OF_FAN_ALT // IN_ELIM_THM /=.
-  exists w'; split => //; rewrite -w'_def CHOICE_DEF -Ssrbool.implybF => eq.
-  have := PAIR_IN_DART1_OF_FAN fanV vw_in1.
-  by rewrite eq NOT_IN_EMPTY.
-move => d d_in.
-move: (IN_DART_OF_FAN fanV d_in) => [v] [w] [->] vw_in.
-rewrite f_eq // FST SND PAIR_EQ /=.
-move: (hyp_iso_comm isoVL `v,w`); rewrite dartH vw_in /=.
-rewrite mapsG mapsH e_fan_pair_ext_explicit // e_list_ext res.
-rewrite -dartG (hyp_iso_dart isoVL) ?dartH //=.
-by rewrite !f_eq // 1?dart_switch // e_list SND PAIR_EQ => ->.
-Qed.
-
-
 
 
 (* MoreSeq *)
@@ -773,3 +724,162 @@ rewrite !ALL2_cat // ?size_cons // !all2_refl /= !ALL2 /= rotr.
 set i := `sizel _ - 1`; set j := `indexl d _`.
 by move: (rot_rot_eq_rot i j f) => [k] ->; exists k.
 Qed.
+
+
+
+--End SplitListHyp.
+
+(* MoreIso *)
+Section MoreIso.
+
+Variable H: `:(A)hypermap`.
+Variable G: `:(B)hypermap`.
+Variable f: `:A->B`.
+
+Lemma hyp_iso_edge_face: `hyp_iso f (H,G) <=> BIJ f (dart H) (dart G) /\
+	(!x. x IN dart H ==> edge_map G (f x) = f (edge_map H x)
+			 /\ face_map G (f x) = f (face_map H x))`.
+Proof.
+rewrite hyp_iso; apply: andb_id2l => _; split => eq x x_in; rewrite !eq //=.
+rewrite Hypermap.inverse2_hypermap_maps o_THM.
+have hypG := Hypermap.hypermap_lemma G.
+rewrite (PERMUTES_INVERSE_EQ `dart G`) // eq ?Hypermap.lemma_dart_invariant //.
+rewrite EQ_SYM_EQ (PERMUTES_INVERSE_EQ `dart G`) // eq ?Hypermap.lemma_dart_invariant //.
+by rewrite -(o_THM `edge_map H`) -(o_THM `face_map H`) Hypermap.hypermap_cyclic I_THM.
+Qed.
+
+
+Lemma hyp_iso_edge_node: `hyp_iso f (H,G) <=> BIJ f (dart H) (dart G) /\
+	(!x. x IN dart H ==> edge_map G (f x) = f (edge_map H x)
+			 /\ node_map G (f x) = f (node_map H x))`.
+Proof.
+rewrite hyp_iso; apply: andb_id2l => _; split => eq x x_in; rewrite !eq //=.
+rewrite Hypermap.inverse2_hypermap_maps o_THM.
+have hypG := Hypermap.hypermap_lemma G.
+rewrite (PERMUTES_INVERSE_EQ `dart G`) // eq ?Hypermap.lemma_dart_invariant //.
+rewrite EQ_SYM_EQ (PERMUTES_INVERSE_EQ `dart G`) // eq ?Hypermap.lemma_dart_invariant //.
+by rewrite -(o_THM `node_map H`) -(o_THM `edge_map H`) Hypermap.hypermap_lemma I_THM.
+Qed.
+
+
+Hypothesis f_iso: `hyp_iso f (H,G)`.
+
+Lemma hyp_iso_inverse_comm x: `x IN dart H
+	==> inverse (edge_map G) (f x) = f (inverse (edge_map H) x)
+	 /\ inverse (node_map G) (f x) = f (inverse (node_map H) x)
+	 /\ inverse (face_map G) (f x) = f (inverse (face_map H) x)`.
+Proof.
+move => x_in.
+rewrite !(PERMUTES_INVERSE_EQ `dart G`) ?Hypermap.hypermap_lemma //.
+rewrite !(hyp_iso_comm f_iso) ?Hypermap.lemma_dart_inveriant_under_inverse_maps //.
+by rewrite !(PERMUTES_INVERSES `dart H`) ?Hypermap.hypermap_lemma.
+Qed.
+
+
+End MoreIso.
+
+
+
+(* Fan and list *)
+Section FanAndList.
+
+
+Lemma set_of_edge_subset V E E' x: `E SUBSET E' ==> set_of_edge x V E SUBSET set_of_edge x V E'`.
+Proof. by rewrite !SUBSET !set_of_edge !inE => subE y [/subE] -> ->. Qed.
+
+
+"let fan_list_iso = new_definition `fan_list_iso (f, (V,E)) (v,w) = 
+	 (let h = \x. FST (f (x, if set_of_edge x V E = {} then x else CHOICE (set_of_edge x V E))) in
+		h v, h w)`".
+
+Lemma fan_list_iso_invariant F1 F2 f: 
+	`fan_list_iso (fan_list_iso (f, F1), F2) = fan_list_iso (f, F1)`.
+Proof.
+move: F1 F2 => [V E] [V' E']; rewrite FUN_EQ_THM => [] [v w].
+by rewrite !fan_list_iso; "CONV_TAC (DEPTH_CONV let_CONV)".
+Qed.
+
+
+Variable V: `:real^3->bool`.
+Variable E: `:(real^3->bool)->bool`.
+Variable L: `:((A)list)list`.
+Variable f: `:real^3#real^3 -> A#A`.
+
+Hypothesis fanV: `FAN (vec 0,V,E)`.
+Hypothesis goodL: `good_list L`.
+Hypothesis f_iso: `hyp_iso f (hypermap_of_fan (V,E), hypermap_of_list L)`.
+
+Lemma hyp_iso_eq_fan_list_iso y: `y IN dart_of_fan (V,E) ==> f y = fan_list_iso (f, (V,E)) y`.
+Proof.
+have [dartH mapsH] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+have [dartG mapsG] := components_hypermap_of_list goodL.
+set H := `hypermap_of_fan (V,E)`.
+set G := `hypermap_of_list L`.
+have f_in d: `d IN dart_of_fan (V,E) ==> f d IN darts_of_list L`.
+  by rewrite -dartH -dartG => d_in; rewrite (hyp_iso_dart f_iso).
+case: y => [a b] ab_in.
+rewrite fan_list_iso; "CONV_TAC (DEPTH_CONV let_CONV)".
+set h := `\x. _ x`.
+suff [g f_eq]: `?g. !v w. (v,w) IN dart_of_fan (V,E) ==> f(v,w) = (h v:A, g (v,w):A)`.
+  move: (IN_DART_OF_FAN fanV ab_in) => [v] [w] [vw_eq] vw_in.
+  rewrite f_eq // PAIR_EQ /=.
+  move: (hyp_iso_comm f_iso `a,b`); rewrite dartH ab_in /=.
+  rewrite mapsG mapsH e_fan_pair_ext_explicit // e_list_ext res.
+  rewrite -dartG (hyp_iso_dart f_iso) ?dartH //=.
+  by rewrite !f_eq // 1?dart_switch // e_list SND PAIR_EQ => ->.
+exists `\d. SND (f d)`.
+move => v w vw_in; rewrite {1}(pair_expand `f (v,w)`) PAIR_EQ /= -h_def /=.
+case set_empty: `set_of_edge v V E = {}` => /=.
+  move: vw_in; rewrite dart_of_fan_eq IN_UNION IN_ELIM_THM /= PAIR_EQ.
+  case; first by move/(PAIR_IN_DART1_OF_FAN fanV); rewrite set_empty NOT_IN_EMPTY.
+  by move => [u] [_] [eq1 eq2].
+have vw_in1: `v,w IN dart1_of_fan (V,E)`.
+  move: (vw_in); rewrite dart_of_fan_eq IN_UNION IN_ELIM_THM /= PAIR_EQ.
+  case => // [u] [empty] eq.
+  by move: empty; rewrite -eq set_empty.
+set w' := `CHOICE _`.
+suff: `f (v,w') IN node G (f (v,w))`.
+  rewrite Hypermap.node Hypermap.orbit_map IN_ELIM_THM /= mapsG.
+  move => [n] [_] ->.
+  rewrite {2}pair_expand fst_n_list_ext_power //.
+  by rewrite -pair_expand -dartG (hyp_iso_dart f_iso).
+rewrite (iso_components f_iso) ?dartH // FUN_IN_IMAGE.
+rewrite -H_def NODE_HYPERMAP_OF_FAN_ALT // IN_ELIM_THM /=.
+exists w'; split => //; rewrite -w'_def CHOICE_DEF -Ssrbool.implybF => eq.
+have := PAIR_IN_DART1_OF_FAN fanV vw_in1.
+by rewrite eq NOT_IN_EMPTY.
+Qed.
+
+
+Lemma fan_list_diag_eq v w: `(v,w) IN dart1_of_fan (V,E)
+	==> fan_list_iso (f,(V,E)) (w, sigma_fan (vec 0) V E v w) = list_hyp_diag L (f (v,w))`.
+Proof.
+rewrite list_hyp_diag => vw_in1.
+move: (goodL); rewrite good_list => [] [uniqL] _.
+have vw_in: `v,w IN dart_of_fan (V,E)`.
+  by rewrite dart_of_fan_eq IN_UNION vw_in1.
+have fan_hyp := COMPONENTS_HYPERMAP_OF_FAN fanV.
+have list_hyp := components_hypermap_of_list goodL.
+have f_eq := hyp_iso_eq_fan_list_iso.
+set H := `hypermap_of_fan (V,E)`.
+set G := `hypermap_of_list L`.
+set y := `FST _`.
+have y_eq: `y = FST (inverse (face_map G) (f (v,w)))`.
+  by rewrite list_hyp f_list_ext_inverse // res -list_hyp (hyp_iso_dart f_iso) ?fan_hyp.
+rewrite f_eq //.
+rewrite !fan_list_iso; "CONV_TAC (DEPTH_CONV let_CONV)"; set h := `\x. _ x`.
+rewrite SND PAIR_EQ /= y_eq.
+rewrite (hyp_iso_inverse_comm f_iso) fan_hyp //.
+rewrite Hypermap_and_fan.INVERSE_F_FAN_PAIR_EXT_EXPLICIT // res vw_in1 /=.
+set w' := `sigma_fan _ V E v w`.
+rewrite f_eq; first by rewrite dart_switch in_dart1_in_dart -w'_def sigma_in_dart1.
+by rewrite fan_list_iso; "CONV_TAC (DEPTH_CONV let_CONV)"; rewrite h_def FST.
+Qed.
+
+
+
+
+Hypothesis f_surr: `fully_surrounded (V,E)`.
+
+
+

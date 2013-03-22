@@ -23,6 +23,7 @@ Module List_hypermap.
   if (indexl x list = 0) then (last x list) else (nth x list (indexl x list - 1))`".
 
 
+(* directed edges *)
 "let hyp_edge_pairs = new_definition `hyp_edge_pairs H = {x, edge_map H x | x | x IN dart H}`".
 
 (* list_pairs [1;2;3] = {(1,2), (2,3), (3,1)} *)
@@ -33,8 +34,9 @@ Module List_hypermap.
 
 "let darts_of_list = new_definition `darts_of_list ll = set_of_list (list_of_darts ll)`".
 
-"let list_of_edges = new_definition 
-	`list_of_edges ll = MAP (\d:A#A. d, (SND d,FST d)) (list_of_darts ll)`".
+(* list of directed edges *)
+"let list_of_d_edges = new_definition 
+	`list_of_d_edges ll = MAP (\d:A#A. d, (SND d,FST d)) (list_of_darts ll)`".
 
 "let list_of_faces = new_definition `list_of_faces ll = MAP list_pairs ll`".
 
@@ -1137,14 +1139,265 @@ by rewrite uniq_find_face.
 Qed.
 
 
-Lemma set_list_of_edges ll: `good_list ll
-	==> hyp_edge_pairs (hypermap_of_list ll) = set_of_list (list_of_edges ll)`.
+Lemma set_list_of_d_edges ll: `good_list ll
+	==> hyp_edge_pairs (hypermap_of_list ll) = set_of_list (list_of_d_edges ll)`.
 Proof.
-rewrite hyp_edge_pairs list_of_edges => good_s.
+rewrite hyp_edge_pairs list_of_d_edges => good_s.
 rewrite !components_hypermap_of_list //.
 rewrite e_list_ext res e_list darts_of_list IN_SET_OF_LIST.
 rewrite EXTENSION IN_SET_OF_LIST !IN_ELIM_THM /= MEM_MAP /= => e.
 by split => [] [d] [mem_d] ->; exists d.
+Qed.
+
+
+Lemma list_of_darts_nil: `list_of_darts [] = []`.
+Proof. by rewrite list_of_darts "GEN_ALL foldr". Qed.
+
+
+Lemma list_of_darts_cons h t: `list_of_darts (h :: t) = list_pairs h ++ list_of_darts t`.
+Proof. by rewrite list_of_darts "GEN_ALL foldr" /= -list_of_darts. Qed.
+
+
+Lemma list_of_darts_cat s1 s2: `list_of_darts (s1 ++ s2) = list_of_darts s1 ++ list_of_darts s2`.
+Proof.
+elim: s1 => [|h t Ih]; rewrite cat ?(list_of_darts_nil, list_of_darts_cons) ?cat //.
+by rewrite Ih catA.
+Qed.
+
+
+Lemma good_list_uniq L: `good_list L ==> uniq L`.
+Proof.
+rewrite good_list => [] [uniqL] [allL] _.
+elim: L allL uniqL => [|h t Ih]; rewrite "GEN_ALL uniq" //.
+rewrite all /= list_of_darts_cons cat_uniq -hasPn /= => [] [h_neq] all_t [_] [mem_h] uniq_t.
+rewrite Ih // andbT.
+have [d mem_d]: `?d. MEM d (list_pairs h)`.
+  case eq: `list_pairs h` => [|h' t']; last by exists h'; rewrite MEM.
+  by move: eq; rewrite -size_eq0 size_list_pairs size_eq0 h_neq.
+apply: contraL mem_h; rewrite NOT_FORALL_THM negb_imply negbK => mem_h.
+exists d; rewrite mem_d andbT.
+by rewrite mem_list_of_darts; exists h.
+Qed.
+
+
+Lemma list_pairs_inj s1 s2: `list_pairs s1 = list_pairs s2 ==> s1 = s2`.
+Proof.
+rewrite !list_pairs => /(congr1 `unzip1`).
+by rewrite !unzip1_zip // size_rot leqnn.
+Qed.
+
+
+Lemma uniq_list_of_faces L: `good_list L ==> uniq (list_of_faces L)`.
+Proof.
+rewrite list_of_faces => goodL.
+by rewrite -map_MAP map_inj_uniq ?good_list_uniq // => x y /list_pairs_inj.
+Qed.
+
+
+Lemma uniq_faces_of_list L: `good_list L ==> uniq (faces_of_list L)`.
+Proof.
+rewrite faces_of_list => goodL.
+rewrite -map_MAP map_inj_in_uniq ?uniq_list_of_faces // => f1 f2 [] [mem1 mem2] eq.
+have [d] := mem_face_lemma goodL mem1.
+rewrite dart_in_face => [] [mem_d] f1_eq.
+apply: (uniq_face_unique mem1 mem2 d).
+rewrite f1_eq mem_d /=; split; first by move: goodL; rewrite good_list => ->.
+by rewrite -IN_SET_OF_LIST -eq IN_SET_OF_LIST f1_eq.
+Qed.
+
+
+Lemma card_faces_of_list L: `good_list L
+	==> CARD (face_set (hypermap_of_list L)) = sizel (list_of_faces L)`.
+Proof.
+move => goodL; rewrite face_set_eq_list //.
+rewrite card_set_of_list_uniq ?uniq_faces_of_list //.
+by rewrite faces_of_list -map_MAP size_map.
+Qed.
+
+
+Lemma card_darts_of_list L: `good_list L 
+	==> CARD (dart (hypermap_of_list L)) = sizel (list_of_darts L)`.
+Proof.
+move => goodL.
+rewrite components_hypermap_of_list // darts_of_list card_set_of_list_uniq //.
+by move: goodL; rewrite good_list => ->.
+Qed.
+
+
+Lemma uniq_list_of_elements L: `uniq (list_of_elements L)`.
+Proof. by rewrite list_of_elements undup_uniq. Qed.
+
+
+Lemma uniq_list_of_nodes L: `uniq (list_of_nodes L)`.
+Proof.
+rewrite list_of_nodes -map_MAP map_inj_in_uniq ?uniq_list_of_elements //= => a b.
+rewrite !mem_list_of_elements => [] [] [] [c mem_a] [d mem_b].
+by move/(congr1 `MEM (a,c)`) => /EQ_IMP; rewrite !mem_filter /= mem_a.
+Qed.
+
+
+Lemma mem_not_nil s: `~(s = []) <=> (?x. MEM x s)`.
+Proof. by case: s => [|h t]; rewrite MEM /= NOT_CONS_NIL /=; exists h. Qed.
+
+
+Lemma node_of_list_not_nil L n: `MEM n (list_of_nodes L) ==> ~(n = [])`.
+Proof.
+rewrite list_of_nodes -map_MAP mapP mem_list_of_elements => [] [a] [] [b] mem_ab ->.
+rewrite mem_not_nil /=; exists `a,b`.
+by rewrite mem_filter /= mem_ab.
+Qed.
+
+
+Lemma nodes_of_list_eq L n1 n2 a: `MEM n1 (list_of_nodes L) /\ MEM n2 (list_of_nodes L) /\
+	MEM a n1 /\ MEM a n2 ==> n1 = n2`.
+Proof.
+rewrite list_of_nodes /= -map_MAP !mapP /= mem_list_of_elements.
+move => [] [x] [] [y] mem_xy -> [] [u] [] [v] mem_uv ->.
+by rewrite !mem_filter /= => [] [] <- <-.
+Qed.
+
+
+Lemma uniq_nodes_of_list L: `uniq (nodes_of_list L)`.
+Proof.
+rewrite nodes_of_list -map_MAP map_inj_in_uniq ?uniq_list_of_nodes // => n1 n2 [] [mem1 mem2] eq.
+have [d d_in]: `?d. d IN set_of_list n1`.
+  by rewrite IN_SET_OF_LIST -mem_not_nil (node_of_list_not_nil mem1).
+by apply: (nodes_of_list_eq mem1 mem2); exists d; rewrite -!IN_SET_OF_LIST -eq.
+Qed.
+
+
+Lemma size_list_of_nodes L: `sizel (list_of_nodes L) = sizel (list_of_elements L)`.
+Proof. by rewrite list_of_nodes -map_MAP size_map. Qed.
+
+
+Lemma card_nodes_of_list L: `CARD (set_of_list (nodes_of_list L)) = sizel (list_of_elements L)`.
+Proof.
+rewrite card_set_of_list_uniq ?uniq_nodes_of_list //.
+by rewrite nodes_of_list -map_MAP size_map size_list_of_nodes.
+Qed.
+
+
+Lemma surj_delete f s t a b: `SURJ f s t /\ f a = f b /\ a IN s /\ b IN s /\ ~(a = b)
+	==> SURJ f (s DELETE a) t`.
+Proof.
+rewrite !SURJ !IN_DELETE => [] [] [f_in f_surj] [eq] [a_in] [b_in] neq; split.
+  by move => x [/f_in] ->.
+move => x /f_surj [y] [y_in] f_eq.
+case y_eq: `y = a` => /=; last by exists y.
+by exists b; rewrite b_in -neq -eq -y_eq f_eq.
+Qed.
+
+
+Lemma fst_node_hypermap_of_list L d: `good_list L
+	==> (!x. x IN node (hypermap_of_list L) d ==> FST x = FST d)`.
+Proof.
+move: d => [a b] goodL x.
+have hypL := components_hypermap_of_list goodL.
+set H := `hypermap_of_list L`.
+case ab_in: `a,b IN darts_of_list L` => /=; last first.
+  by rewrite lemma_node_exception ?hypL // IN_SING => ->.
+rewrite node orbit_map IN_ELIM_THM /= => [] [k] [_] ->.
+by rewrite hypL fst_n_list_ext_power.
+Qed.
+
+
+Lemma fst_choice_node_hypermap_of_list L d: `good_list L
+	==> FST (CHOICE (node (hypermap_of_list L) d)) = FST d`.
+Proof.
+move => goodL; apply: (fst_node_hypermap_of_list goodL).
+rewrite CHOICE_DEF -MEMBER_NOT_EMPTY.
+by exists d; rewrite node_refl.
+Qed.
+
+
+Lemma pair_expand p: `p = FST p, SND p`. Proof. by []. Qed.
+
+
+Lemma surj_fst_nodes_hypermap_of_list L: `good_list L
+	==> SURJ (\n. FST (CHOICE n)) (node_set (hypermap_of_list L)) (elements_of_list L)`.
+Proof.
+rewrite SURJ elements_of_list !IN_SET_OF_LIST => goodL.
+have hypL := components_hypermap_of_list goodL.
+set H := `hypermap_of_list L`.
+split => [x /lemma_node_representation [d] [d_in] -> | a] /=.
+  rewrite -H_def fst_choice_node_hypermap_of_list // mem_list_of_elements.
+  by exists `SND d`; rewrite -IN_SET_OF_LIST -darts_of_list -hypL -pair_expand.
+rewrite mem_list_of_elements => [] [b].
+rewrite -IN_SET_OF_LIST -darts_of_list -hypL => ab_in.
+exists `node H (a,b)`.
+rewrite -H_def (fst_choice_node_hypermap_of_list goodL) /= H_def.
+by rewrite -lemma_in_node_set.
+Qed.
+
+
+Lemma good_list_nodes_condition L: `good_list L
+   ==> (good_list_nodes L <=> CARD (node_set (hypermap_of_list L)) = sizel (list_of_elements L))`.
+Proof.
+rewrite good_list_nodes => goodL; split => eq; first by rewrite eq card_nodes_of_list.
+rewrite -SUBSET_CARD_EQ ?card_nodes_of_list // FINITE_SET_OF_LIST andTb SUBSET => n.
+have hypL := components_hypermap_of_list goodL.
+set H := `hypermap_of_list L`.
+move/lemma_node_representation => [r] [r_in] n_eq.
+have mem_r: `MEM r (list_of_darts L)` by rewrite -IN_SET_OF_LIST -darts_of_list -hypL.
+rewrite IN_SET_OF_LIST nodes_of_list -map_MAP mapP.
+exists `filter (\y. FST y = FST r) (list_of_darts L)`; split.
+  rewrite list_of_nodes -map_MAP mapP.
+  exists `FST r` => /=; rewrite mem_list_of_elements.
+  by exists `SND r`; rewrite -pair_expand.
+set s := `set_of_list _`.
+apply: contraLR eq => neq.
+have: `n PSUBSET s`.
+  rewrite PSUBSET neq /= SUBSET n_eq -s_def -H_def => x x_in.
+  rewrite IN_SET_OF_LIST mem_filter /= -IN_SET_OF_LIST -darts_of_list -hypL.
+  rewrite (fst_node_hypermap_of_list goodL x_in) /=.
+  apply IN_TRANS; exists `node H r`.
+  by rewrite lemma_node_subset // -H_def.
+rewrite PSUBSET_ALT => [] [_] [a] [a_in] a_n_in.
+have size_gt0: `~(sizel (list_of_elements L) = 0)`.
+  rewrite size_eq0 mem_not_nil.
+  exists `FST r`; rewrite mem_list_of_elements.
+  by exists `SND r`; rewrite -pair_expand.
+suff: `sizel (list_of_elements L) <= CARD (node_set H DELETE n) `.
+  rewrite CARD_DELETE ?FINITE_HYPERMAP_ORBITS // n_eq -lemma_in_node_set r_in /=.
+  by move: size_gt0; arith.
+rewrite -card_set_of_list_uniq ?uniq_list_of_elements // -elements_of_list.
+apply (Fnjlbxs.surj_imp_card_le `\x. FST (CHOICE x)`).
+rewrite FINITE_DELETE FINITE_HYPERMAP_ORBITS andTb.
+apply surj_delete; exists `node H a` => /=.
+rewrite -{1 2}H_def surj_fst_nodes_hypermap_of_list // andTb fst_choice_node_hypermap_of_list //.
+have a_in2: `a IN dart H`.
+  rewrite hypL darts_of_list IN_SET_OF_LIST.
+  by move: a_in; rewrite -s_def IN_SET_OF_LIST mem_filter => ->.
+rewrite n_eq -!lemma_in_node_set a_in2 r_in /= -{1}H_def fst_choice_node_hypermap_of_list //.
+rewrite -lemma_different_nodes -?n_eq //=.
+by move: a_in; rewrite -s_def IN_SET_OF_LIST mem_filter /=.
+Qed.
+
+
+Lemma plain_hypermap_of_list L: `good_list L ==> plain_hypermap (hypermap_of_list L)`.
+Proof.
+move => goodL; have hypL := components_hypermap_of_list goodL.
+by rewrite plain_hypermap hypL e_list_ext_involution.
+Qed.
+
+
+Lemma good_list_nodes_size_condition L: `good_list L /\ planar_hypermap (hypermap_of_list L)
+	/\ connected_hypermap (hypermap_of_list L) /\ is_edge_nondegenerate (hypermap_of_list L)
+	==> (good_list_nodes L <=> 
+		2 * (sizel (list_of_elements L) + sizel (list_of_faces L)) =
+			sizel (list_of_darts L) + 4)`.
+Proof.
+move => [goodL] [planarL] [connL] nondL.
+rewrite good_list_nodes_condition //.
+set H := `hypermap_of_list L`.
+rewrite -number_of_nodes -(eqn_pmul2l `2`); first by arith.
+move: connL planarL; rewrite planar_hypermap connected_hypermap => ->.
+rewrite -(eqn_pmul2l `2`); first by arith.
+rewrite !muln_addr -Tame_opposite.edge_CARD_dart.
+  by rewrite -{1}H_def plain_hypermap_of_list.
+rewrite -card_faces_of_list // H_def -number_of_faces.
+rewrite -card_darts_of_list // H_def.
+by arith.
 Qed.
 
 

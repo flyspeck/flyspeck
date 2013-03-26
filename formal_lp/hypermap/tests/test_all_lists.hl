@@ -1,0 +1,147 @@
+needs "../formal_lp/hypermap/tests/Tri2.ml";;
+needs "../formal_lp/hypermap/tests/Quad2.ml";;
+needs "../formal_lp/hypermap/tests/Pent2.ml";;
+needs "../formal_lp/hypermap/tests/Hex2.ml";;
+
+(* 18762 *)
+length pent + length hex + length tri + length quad;;
+
+
+
+open List;;
+
+(* undup *)
+let rec undup s =
+  match s with
+      [] -> []
+    | h :: t -> if mem h t then undup t else h :: undup t;;
+
+
+(* uniq *)
+let rec uniq_test s =
+  match s with
+      [] -> true
+    | h :: t -> if mem h t then false else uniq_test t;;
+
+
+(* list_of_elements *)
+let list_of_elements hyp = undup (flatten hyp);;
+
+
+(* list_pairs *)
+let list_pairs s =
+  let head = hd s in
+  let rec list_pairs_head s =
+    match s with
+	[] -> failwith "list_pairs"
+      | [h] -> [h,head]
+      | h1 :: h2 :: t -> (h1,h2) :: list_pairs_head (h2 :: t) in
+    list_pairs_head s;;
+
+
+(* list_of_faces *)
+let list_of_faces hyp =
+  map list_pairs hyp;;
+
+
+(* list_of_darts *)
+let list_of_darts hyp = flatten (list_of_faces hyp);;
+
+
+(* find_pair_list *)
+let rec find_pair_list hyp d =
+  match hyp with
+      [] -> []
+    | f :: t -> if mem d (list_pairs f) then f else find_pair_list t d;;
+
+
+(* find_face *)
+let find_face hyp d = list_pairs (find_pair_list hyp d);;
+
+
+(* next_el *)
+let next_el s d =
+  let head = hd s in
+  let rec next s =
+    match s with
+	[] -> failwith "next_el"
+      | [h] -> if Pervasives.compare h d = 0 then head else next []
+      | h1 :: h2 :: t -> if Pervasives.compare h1 d = 0 then h2 else next (h2 :: t) in
+    next s;;
+
+
+(* prev_el *)
+let prev_el s d =
+  let rec prev_rec prev s =
+    match s with
+	[] -> failwith "prev_el"
+      | h :: t -> if Pervasives.compare h d = 0 then prev else prev_rec h t in
+    prev_rec (last s) s;;
+
+
+(* e_list *)
+let e_list (d1,d2) = d2,d1;;
+
+
+(* f_list *)
+let f_list hyp d = next_el (find_face hyp d) d;;
+
+
+(* n_list *)
+let n_list hyp d = e_list (prev_el (find_face hyp d) d);;
+
+
+(* orbit *)
+let orbit f d =
+  let rec orbit_acc acc x =
+    let next = f x in
+      if mem next acc then acc else orbit_acc (next :: acc) next in
+    rev (orbit_acc [d] d);;
+
+
+(* orbits *)
+let orbits f set =
+  let rec orbits_rec set =
+    match set with
+	[] -> []
+      | h :: t ->
+	  let x = orbit f h in
+	    x :: orbits_rec (subtract set x) in
+    orbits_rec set;;
+
+
+(* good_list *)
+let good_list hyp =
+  let darts = list_of_darts hyp in
+  let c1 = uniq_test darts in
+  let c2 = for_all (fun l -> l <> []) hyp in
+  let c3 = for_all (fun (d1,d2) -> mem (d2,d1) darts) darts in
+    c1 & c2 & c3;;
+
+
+(* good_list_nodes *)
+let good_list_nodes hyp =
+  let darts = list_of_darts hyp in
+  let n0 = length (list_of_elements hyp) in
+  let n1 = length (orbits (n_list hyp) darts) in
+    n0 = n1;;
+
+
+
+let tm = hd hex;;
+good_list tm;;
+good_list_nodes tm;;
+
+let good_test = fold_left (fun l h -> l & good_list h) true;;
+let good_nodes_test = fold_left (fun l h -> l & good_list_nodes h) true;;
+
+let tri_test = good_test tri;;
+let quad_test = good_test quad;;
+let pent_test = good_test pent;;
+let hex_test = good_test hex;;
+
+
+let tri_test2 = good_nodes_test tri;;
+let quad_test2 = good_nodes_test quad;;
+let pent_test2 = good_nodes_test pent;;
+let hex_test2 = good_nodes_test hex;;

@@ -45,14 +45,14 @@ let list_of_darts4 = new_definition `list_of_darts4 (L:((A)list)list) =
   flatten (list_of_faces4 L)`;;
 let list_of_dartsX = new_definition `list_of_dartsX (L:((A)list)list) =
   flatten (list_of_faces456 L)`;;
-let find_list = define `find_list x [] = []
-	/\ find_list x (CONS h t) = if (MEM x h) then h else find_list x t`;;
-let find_pair_list = define `find_pair_list d [] = [] 
-	/\ find_pair_list d (CONS h t) = if (MEM d (list_pairs h)) then h else find_pair_list d t`;;
-let find_face = new_definition `find_face d ll = find_list d (list_of_faces ll)`;;
-let f_list = new_definition `f_list ll d = next_el (find_face d ll) d`;;
-let e_list = new_definition `e_list ll d = (SND d, FST d)`;;
-let n_list = new_definition `n_list ll d = e_list ll (prev_el (find_face d ll) d)`;;
+let find_list = define `find_list [] x = []
+	/\ find_list (CONS h t) x = if (MEM x h) then h else find_list t x`;;
+let find_pair_list = define `find_pair_list [] d = [] 
+	/\ find_pair_list (CONS h t) d = if (MEM d (list_pairs h)) then h else find_pair_list t d`;;
+let find_face = new_definition `find_face L d = find_list (list_of_faces L) d`;;
+let f_list = new_definition `f_list L d = next_el (find_face L d) d`;;
+let e_list = new_definition `e_list L d = (SND d, FST d)`;;
+let n_list = new_definition `n_list L d = e_list L (prev_el (find_face L d) d)`;;
 let f_list_ext = new_definition `f_list_ext ll = res (f_list ll) (darts_of_list ll)`;;
 let e_list_ext = new_definition `e_list_ext ll = res (e_list ll) (darts_of_list ll)`;;
 let n_list_ext = new_definition `n_list_ext ll = res (n_list ll) (darts_of_list ll)`;;
@@ -299,11 +299,11 @@ let find_list = GEN_ALL find_list;;
 let find_pair_list = GEN_ALL find_pair_list;;
 
 (* Lemma find_face_alt *)
-let find_face_alt = section_proof ["d";"ll"]
-`find_face d ll = list_pairs (find_pair_list d ll)`
+let find_face_alt = section_proof ["L";"d"]
+`find_face L d = list_pairs (find_pair_list L d)`
 [
    ((((use_arg_then2 ("find_face", [find_face]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("list_of_faces", [list_of_faces]))(thm_tac (new_rewrite [] [])))));
-   ((THENL) (((use_arg_then2 ("ll", [])) (disch_tac [])) THEN (clear_assumption "ll") THEN elim) [ALL_TAC; ((move ["h"]) THEN (move ["t"]) THEN (move ["Ih"]))]);
+   ((THENL) (((use_arg_then2 ("L", [])) (disch_tac [])) THEN (clear_assumption "L") THEN elim) [ALL_TAC; ((move ["h"]) THEN (move ["t"]) THEN (move ["Ih"]))]);
    (((((use_arg_then2 ("MAP", [MAP]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("find_list", [find_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("find_pair_list", [find_pair_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("list_pairs", [list_pairs]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("zip", [zip]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
    ((((use_arg_then2 ("MAP", [MAP]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("find_pair_list", [find_pair_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("find_list", [find_list]))(thm_tac (new_rewrite [] [])))));
    ((((fun arg_tac -> arg_tac (Arg_term (`MEM d _`))) (disch_eq_tac "mem_d" [])) THEN case THEN (simp_tac) THEN (process_fst_eq_tac)) THEN (((use_arg_then2 ("Ih", []))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
@@ -311,7 +311,7 @@ let find_face_alt = section_proof ["d";"ll"]
 
 (* Lemma mem_find_list *)
 let mem_find_list = section_proof ["x";"ll"]
-`MEM x (flatten ll) ==> MEM (find_list x ll) ll`
+`MEM x (flatten ll) ==> MEM (find_list ll x) ll`
 [
    ((((use_arg_then2 ("mem_flatten", [mem_flatten]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN (move ["l"])));
    (((THENL) (((use_arg_then2 ("ll", [])) (disch_tac [])) THEN (clear_assumption "ll") THEN elim) [ALL_TAC; ((move ["h"]) THEN (move ["t"]) THEN (move ["Ih"]))]) THEN ((((use_arg_then2 ("MEM", [MEM]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("find_list", [find_list]))(thm_tac (new_rewrite [] []))))));
@@ -322,7 +322,7 @@ let mem_find_list = section_proof ["x";"ll"]
 (* Lemma mem_find_face *)
 let mem_find_face = section_proof ["d";"ll"]
 `MEM d (list_of_darts ll) 
-	==> MEM (find_face d ll) (list_of_faces ll)`
+	==> MEM (find_face ll d) (list_of_faces ll)`
 [
    ((((use_arg_then2 ("list_of_darts_alt", [list_of_darts_alt]))(thm_tac (new_rewrite [] [])))) THEN (move ["h"]));
    (((((use_arg_then2 ("find_face", [find_face]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("mem_find_list", [mem_find_list]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
@@ -330,7 +330,7 @@ let mem_find_face = section_proof ["d";"ll"]
 
 (* Lemma find_list_empty *)
 let find_list_empty = section_proof ["d";"ll"]
-`find_list d ll = [] <=> ~(MEM d (flatten ll))`
+`find_list ll d = [] <=> ~(MEM d (flatten ll))`
 [
    ((((use_arg_then2 ("mem_flatten", [mem_flatten]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("NOT_EXISTS_THM", [NOT_EXISTS_THM]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("negb_and", [negb_and]))(thm_tac (new_rewrite [] [])))));
    (((THENL) (((use_arg_then2 ("ll", [])) (disch_tac [])) THEN (clear_assumption "ll") THEN elim) [ALL_TAC; ((move ["h"]) THEN (move ["t"]) THEN (move ["Ih"]))]) THEN ((((use_arg_then2 ("MEM", [MEM]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("find_list", [find_list]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))));
@@ -345,7 +345,7 @@ let find_list_empty = section_proof ["d";"ll"]
 (* Lemma mem_find_list_nonempty *)
 let mem_find_list_nonempty = section_proof ["x";"ll"]
 `all (\l. ~(l = [])) ll
-	==> (MEM x (flatten ll) <=> MEM (find_list x ll) ll)`
+	==> (MEM x (flatten ll) <=> MEM (find_list ll x) ll)`
 [
    (((((use_arg_then2 ("allP", [allP]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (simp_tac)) THEN (move ["h1"]));
    ((THENL_FIRST) ((THENL) (split_tac) [ALL_TAC; (move ["h2"])]) (((use_arg_then2 ("mem_find_list", [mem_find_list])) (thm_tac apply_tac)) THEN (done_tac)));
@@ -355,7 +355,7 @@ let mem_find_list_nonempty = section_proof ["x";"ll"]
 (* Lemma mem_find_face_nonempty *)
 let mem_find_face_nonempty = section_proof ["d";"ll"]
 `all (\l. ~(l = [])) ll
-	==> (MEM d (list_of_darts ll) <=> MEM (find_face d ll) (list_of_faces ll))`
+	==> (MEM d (list_of_darts ll) <=> MEM (find_face ll d) (list_of_faces ll))`
 [
    (BETA_TAC THEN (move ["h1"]));
    ((((use_arg_then2 ("find_face", [find_face]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("mem_find_list_nonempty", [mem_find_list_nonempty]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("list_of_darts_alt", [list_of_darts_alt]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
@@ -405,7 +405,7 @@ let dart_in_darts = section_proof ["d";"l";"ll"]
 
 (* Lemma mem_find_pair_list *)
 let mem_find_pair_list = section_proof ["d";"ll"]
-`MEM d (list_of_darts ll) ==> MEM (find_pair_list d ll) ll`
+`MEM d (list_of_darts ll) ==> MEM (find_pair_list ll d) ll`
 [
    (((THENL) (((use_arg_then2 ("ll", [])) (disch_tac [])) THEN (clear_assumption "ll") THEN elim) [ALL_TAC; ((move ["h"]) THEN (move ["t"]) THEN (move ["Ih"]))]) THEN ((((use_arg_then2 ("list_of_darts", [list_of_darts]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("foldr", [foldr]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("MEM", [MEM]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("find_pair_list", [find_pair_list]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)));
    (((fun arg_tac -> arg_tac (Arg_term (`MEM d (list_pairs h)`))) (disch_eq_tac "mem_d" [])) THEN case THEN (simp_tac) THEN (process_fst_eq_tac));
@@ -414,7 +414,7 @@ let mem_find_pair_list = section_proof ["d";"ll"]
 
 (* Lemma dart_in_find_pair_list *)
 let dart_in_find_pair_list = section_proof ["d";"ll"]
-`MEM d (list_of_darts ll) <=> MEM d (list_pairs (find_pair_list d ll))`
+`MEM d (list_of_darts ll) <=> MEM d (list_pairs (find_pair_list ll d))`
 [
    (((THENL) (((use_arg_then2 ("ll", [])) (disch_tac [])) THEN (clear_assumption "ll") THEN elim) [ALL_TAC; ((move ["h"]) THEN (move ["t"]) THEN (move ["Ih"]))]) THEN ((((use_arg_then2 ("list_of_darts", [list_of_darts]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("find_pair_list", [find_pair_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("foldr", [foldr]))(thm_tac (new_rewrite [] []))))));
    (((((use_arg_then2 ("list_pairs", [list_pairs]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("zip", [zip]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
@@ -424,7 +424,7 @@ let dart_in_find_pair_list = section_proof ["d";"ll"]
 
 (* Lemma dart_in_face *)
 let dart_in_face = section_proof ["d";"ll"]
-`MEM d (list_of_darts ll) <=> MEM d (find_face d ll)`
+`MEM d (list_of_darts ll) <=> MEM d (find_face ll d)`
 [
    (((((use_arg_then2 ("find_face_alt", [find_face_alt]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("dart_in_find_pair_list", [dart_in_find_pair_list]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
 ];;
@@ -457,7 +457,7 @@ let uniq_imp_unique_list = section_proof ["l1";"l2";"d";"ll"]
 (* Lemma find_pair_list_unique *)
 let find_pair_list_unique = section_proof ["l";"d";"ll"]
 `uniq (list_of_darts ll) /\ MEM l ll /\ MEM d (list_pairs l) 
-	==> l = find_pair_list d ll`
+	==> l = find_pair_list ll d`
 [
    (BETA_TAC THEN (case THEN (move ["uniq_darts"])) THEN (case THEN (move ["l_ll"])) THEN (move ["mem_d"]));
    (((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("uniq_imp_unique_list", [uniq_imp_unique_list])) (fun fst_arg -> (use_arg_then2 ("uniq_darts", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("mem_d", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac));
@@ -466,7 +466,7 @@ let find_pair_list_unique = section_proof ["l";"d";"ll"]
 
 (* Lemma uniq_find_face *)
 let uniq_find_face = section_proof ["d";"ll"]
-`uniq (list_of_darts ll) ==> uniq (find_face d ll)`
+`uniq (list_of_darts ll) ==> uniq (find_face ll d)`
 [
    (((THENL) (((use_arg_then2 ("ll", [])) (disch_tac [])) THEN (clear_assumption "ll") THEN elim) [ALL_TAC; ((move ["h"]) THEN (move ["t"]) THEN (move ["Ih"]))]) THEN ((((use_arg_then2 ("list_of_darts", [list_of_darts]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("foldr", [foldr]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("find_face", [find_face]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("list_of_faces", [list_of_faces]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("MAP", [MAP]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("find_list", [find_list]))(thm_tac (new_rewrite [] [])))) THEN ((simp_tac THEN TRY done_tac))));
    (((((use_arg_then2 ("list_of_darts", [list_of_darts]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("list_of_faces", [list_of_faces]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("find_face", [find_face]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("cat_uniq", [cat_uniq]))(thm_tac (new_rewrite [] []))))) THEN ALL_TAC THEN (case THEN (move ["uniq_h"])) THEN (case THEN (move ["_"])) THEN (move ["uniq_t"]));
@@ -489,7 +489,7 @@ let mem_list_pairs = section_proof ["x";"y";"l"]
 
 (* Lemma mem_f_list *)
 let mem_f_list = section_proof ["d";"ll"]
-`MEM d (list_of_darts ll) ==> MEM (f_list ll d) (find_face d ll)`
+`MEM d (list_of_darts ll) ==> MEM (f_list ll d) (find_face ll d)`
 [
    ((BETA_TAC THEN (move ["mem_d"])) THEN ((((use_arg_then2 ("f_list", [f_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("mem_next_el", [mem_next_el]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("dart_in_face", [dart_in_face]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac));
 ];;
@@ -584,19 +584,19 @@ let prev_el_list_pairs = section_proof ["x";"y";"s"]
 (* Lemma f_list_inverse *)
 let f_list_inverse = section_proof ["d";"ll"]
 `uniq (list_of_darts ll) /\ MEM d (list_of_darts ll)
-	==> f_list ll (prev_el (find_face d ll) d) = d 
-	/\ prev_el (find_face (f_list ll d) ll) (f_list ll d) = d`
+	==> f_list ll (prev_el (find_face ll d) d) = d 
+	/\ prev_el (find_face ll (f_list ll d)) (f_list ll d) = d`
 [
    ((BETA_TAC THEN (case THEN ((move ["uniq_s"]) THEN (move ["mem_d"])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("f_list", [f_list]))(thm_tac (new_rewrite [] []))))) THEN (split_tac));
-   ((fun arg_tac -> arg_tac (Arg_term (`find_face d ll`))) (term_tac (set_tac "f")));
-   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`find_face (prev_el f d) ll = f`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))))));
+   ((fun arg_tac -> arg_tac (Arg_term (`find_face ll d`))) (term_tac (set_tac "f")));
+   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`find_face ll (prev_el f d) = f`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))))));
    (((((use_arg_then2 ("next_prev_id", [next_prev_id]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("f_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("uniq_find_face", [uniq_find_face]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("dart_in_face", [dart_in_face]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac));
    (((((use_arg_then2 ("f_def", []))(gsym_then (thm_tac (new_rewrite [2] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("find_face_alt", [find_face_alt]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("eq_sym", [eq_sym]))(thm_tac (new_rewrite [] []))))) THEN ((congr_tac (`_1 _2`)) THEN ((TRY done_tac))));
    (((fun arg_tac -> (use_arg_then2 ("find_pair_list_unique", [find_pair_list_unique])) (fun fst_arg -> (use_arg_then2 ("uniq_s", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac));
    ((((use_arg_then2 ("mem_find_pair_list", [mem_find_pair_list]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("find_face_alt", [find_face_alt]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("f_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("mem_prev_el", [mem_prev_el]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)));
    (((((use_arg_then2 ("f_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("dart_in_face", [dart_in_face]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac));
-   ((fun arg_tac -> arg_tac (Arg_term (`find_face d ll`))) (term_tac (set_tac "f")));
-   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`find_face (next_el f d) ll = f`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))))));
+   ((fun arg_tac -> arg_tac (Arg_term (`find_face ll d`))) (term_tac (set_tac "f")));
+   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`find_face ll (next_el f d) = f`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))))));
    (((((use_arg_then2 ("prev_next_id", [prev_next_id]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("f_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("uniq_find_face", [uniq_find_face]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("dart_in_face", [dart_in_face]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac));
    (((((use_arg_then2 ("f_def", []))(gsym_then (thm_tac (new_rewrite [2] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("find_face_alt", [find_face_alt]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("eq_sym", [eq_sym]))(thm_tac (new_rewrite [] []))))) THEN ((congr_tac (`_1 _2`)) THEN ((TRY done_tac))));
    (((fun arg_tac -> (use_arg_then2 ("find_pair_list_unique", [find_pair_list_unique])) (fun fst_arg -> (use_arg_then2 ("uniq_s", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac));
@@ -607,7 +607,7 @@ let f_list_inverse = section_proof ["d";"ll"]
 (* Lemma find_face_f_list *)
 let find_face_f_list = section_proof ["d";"ll"]
 `uniq (list_of_darts ll) /\ MEM d (list_of_darts ll)
-	==> find_face (f_list ll d) ll = find_face d ll`
+	==> find_face ll (f_list ll d) = find_face ll d`
 [
    (BETA_TAC THEN (case THEN ((move ["uniq_s"]) THEN (move ["mem_d"]))));
    (((repeat_tactic 1 9 (((use_arg_then2 ("find_face_alt", [find_face_alt]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("eq_sym", [eq_sym]))(thm_tac (new_rewrite [] []))))) THEN ((congr_tac (`_1 _2`)) THEN ((TRY done_tac))));
@@ -627,10 +627,10 @@ let f_list_ext_permutes_darts = section_proof ["ll"]
    ((THENL_ROT (-1)) ((THENL) (split_tac) [((move ["d"]) THEN (move ["mem_d"])); ((move ["d1"]) THEN (move ["d2"]) THEN (case THEN (move ["mem_d1"])) THEN (case THEN (move ["mem_d2"])) THEN (move ["eq"]))]));
    ((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("f_list_inverse", [f_list_inverse])) (fun fst_arg -> (use_arg_then2 ("uniq_s", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("mem_d1", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (case THEN ((move ["_"]) THEN (((conv_thm_tac DISCH_THEN)(gsym_then (thm_tac (new_rewrite [] [])))))))));
    (((((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("f_list_inverse", [f_list_inverse])) (fun fst_arg -> (use_arg_then2 ("uniq_s", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("mem_d2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
-   ((fun arg_tac -> arg_tac (Arg_term (`prev_el (find_face d ll) d`))) (term_tac exists_tac));
+   ((fun arg_tac -> arg_tac (Arg_term (`prev_el (find_face ll d) d`))) (term_tac exists_tac));
    ((((use_arg_then2 ("f_list_inverse", [f_list_inverse]))(thm_tac (new_rewrite [] [])))) THEN ((simp_tac THEN TRY done_tac)) THEN (((use_arg_then2 ("dart_in_face", [dart_in_face]))(thm_tac (new_rewrite [] [])))));
-   ((fun arg_tac -> arg_tac (Arg_term (`find_face d ll`))) (term_tac (set_tac "f")));
-   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`find_face (prev_el f d) ll = f`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))))));
+   ((fun arg_tac -> arg_tac (Arg_term (`find_face ll d`))) (term_tac (set_tac "f")));
+   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`find_face ll (prev_el f d) = f`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))))));
    (((((use_arg_then2 ("mem_prev_el", [mem_prev_el]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("f_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("dart_in_face", [dart_in_face]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac));
    (((((use_arg_then2 ("f_def", []))(gsym_then (thm_tac (new_rewrite [2] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("find_face_alt", [find_face_alt]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("eq_sym", [eq_sym]))(thm_tac (new_rewrite [] []))))) THEN ((congr_tac (`_1 _2`)) THEN ((TRY done_tac))));
    (((fun arg_tac -> (use_arg_then2 ("find_pair_list_unique", [find_pair_list_unique])) (fun fst_arg -> (use_arg_then2 ("uniq_s", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac));
@@ -640,15 +640,15 @@ let f_list_ext_permutes_darts = section_proof ["ll"]
 
 (* Lemma find_face_empty *)
 let find_face_empty = section_proof ["d";"ll"]
-`find_face d ll = [] <=> ~MEM d (list_of_darts ll)`
+`find_face ll d = [] <=> ~MEM d (list_of_darts ll)`
 [
    (((((use_arg_then2 ("find_face", [find_face]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("find_list_empty", [find_list_empty]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("list_of_darts_alt", [list_of_darts_alt]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
 ];;
 
 (* Lemma mem_find_face_imp_faces_eq *)
 let mem_find_face_imp_faces_eq = section_proof ["d1";"d2";"ll"]
-`uniq (list_of_darts ll) /\ MEM d1 (find_face d2 ll)
-	==> find_face d1 ll = find_face d2 ll`
+`uniq (list_of_darts ll) /\ MEM d1 (find_face ll d2)
+	==> find_face ll d1 = find_face ll d2`
 [
    (BETA_TAC THEN (case THEN ((move ["uniq_s"]) THEN (move ["mem_d1"]))));
    (((repeat_tactic 1 9 (((use_arg_then2 ("find_face_alt", [find_face_alt]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("eq_sym", [eq_sym]))(thm_tac (new_rewrite [] []))))) THEN ((congr_tac (`_1 _2`)) THEN ((TRY done_tac))));
@@ -660,7 +660,7 @@ let mem_find_face_imp_faces_eq = section_proof ["d1";"d2";"ll"]
 
 (* Lemma mem_find_face_imp_mem_darts *)
 let mem_find_face_imp_mem_darts = section_proof ["d";"y";"ll"]
-`MEM d (find_face y ll) ==> MEM d (list_of_darts ll)`
+`MEM d (find_face ll y) ==> MEM d (list_of_darts ll)`
 [
    (((THENL) (((use_arg_then2 ("ll", [])) (disch_tac [])) THEN (clear_assumption "ll") THEN elim) [ALL_TAC; ((move ["h"]) THEN (move ["t"]) THEN (move ["Ih"]))]) THEN ((((use_arg_then2 ("find_face", [find_face]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("list_of_darts", [list_of_darts]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("foldr", [foldr]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("list_of_faces", [list_of_faces]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("MAP", [MAP]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("find_list", [find_list]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))));
    ((((use_arg_then2 ("list_of_darts", [list_of_darts]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (simp_tac) THEN (((use_arg_then2 ("mem_cat", [mem_cat]))(thm_tac (new_rewrite [] [])))));
@@ -671,7 +671,7 @@ let mem_find_face_imp_mem_darts = section_proof ["d";"y";"ll"]
 (* Lemma f_list_ext_inverse *)
 let f_list_ext_inverse = section_proof ["ll"]
 `uniq (list_of_darts ll)
-	==> inverse (f_list_ext ll) = res (\d. prev_el (find_face d ll) d) (darts_of_list ll)`
+	==> inverse (f_list_ext ll) = res (\d. prev_el (find_face ll d) d) (darts_of_list ll)`
 [
    ((((use_arg_then2 ("FUN_EQ_THM", [FUN_EQ_THM]))(thm_tac (new_rewrite [] [])))) THEN (move ["uniq_s"]) THEN (move ["d"]));
    (((fun arg_tac -> (use_arg_then2 ("PERMUTES_INVERSE_EQ", [PERMUTES_INVERSE_EQ])) (fun fst_arg -> (fun arg_tac -> (use_arg_then2 ("f_list_ext_permutes_darts", [f_list_ext_permutes_darts])) (fun fst_arg -> (use_arg_then2 ("uniq_s", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))));
@@ -847,15 +847,15 @@ let ORBIT_MAP_RES = prove(`!f (x:A) s. x IN s /\ (res f s) permutes s
 (* Lemma f_list_ext_orbit *)
 let f_list_ext_orbit = section_proof ["ll";"x"]
 `MEM x (list_of_darts ll) /\ uniq (list_of_darts ll)
-	==> orbit_map (f_list_ext ll) x = set_of_list (find_face x ll)`
+	==> orbit_map (f_list_ext ll) x = set_of_list (find_face ll x)`
 [
    (BETA_TAC THEN (case THEN ((move ["mem_x"]) THEN (move ["uniq_l"]))));
    ((((use_arg_then2 ("f_list_ext", [f_list_ext]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("ORBIT_MAP_RES", [ORBIT_MAP_RES]))(thm_tac (new_rewrite [] [])))));
    (((((use_arg_then2 ("f_list_ext", [f_list_ext]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("f_list_ext_permutes_darts", [f_list_ext_permutes_darts]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("darts_of_list", [darts_of_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_SET_OF_LIST", [IN_SET_OF_LIST]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
-   ((THENL_FIRST) ((fun arg_tac -> arg_tac (Arg_term (`MEM x (find_face x ll)`))) (term_tac (have_gen_tac [](move ["x_in_face"])))) ((((use_arg_then2 ("dart_in_face", [dart_in_face]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (done_tac)));
-   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`orbit_map (f_list ll) x = orbit_map (next_el (find_face x ll)) x`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))))));
+   ((THENL_FIRST) ((fun arg_tac -> arg_tac (Arg_term (`MEM x (find_face ll x)`))) (term_tac (have_gen_tac [](move ["x_in_face"])))) ((((use_arg_then2 ("dart_in_face", [dart_in_face]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (done_tac)));
+   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`orbit_map (f_list ll) x = orbit_map (next_el (find_face ll x)) x`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))))));
    (((((use_arg_then2 ("next_el_orbit", [next_el_orbit]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("uniq_find_face", [uniq_find_face]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
-   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`(f_list ll POWER n) x = (next_el (find_face x ll) POWER n) x`))) (term_tac (have_gen_tac ["n"](move ["eq"])))));
+   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`(f_list ll POWER n) x = (next_el (find_face ll x) POWER n) x`))) (term_tac (have_gen_tac ["n"](move ["eq"])))));
    (((repeat_tactic 1 9 (((use_arg_then2 ("Hypermap.orbit_map", [Hypermap.orbit_map]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
    ((THENL_FIRST) ((THENL) (((use_arg_then2 ("n", [])) (disch_tac [])) THEN (clear_assumption "n") THEN elim) [ALL_TAC; ((move ["n"]) THEN (move ["Ih"]))]) ((repeat_tactic 1 9 (((use_arg_then2 ("POWER_0", [POWER_0]))(thm_tac (new_rewrite [] []))))) THEN (done_tac)));
    ((repeat_tactic 1 9 (((use_arg_then2 ("Hypermap.COM_POWER", [Hypermap.COM_POWER]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("o_THM", [o_THM]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("Ih", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("f_list", [f_list]))(thm_tac (new_rewrite [] [])))));
@@ -919,7 +919,7 @@ let uniq_face_unique = section_proof ["f1";"f2";"d";"ll"]
 (* Lemma mem_face_lemma *)
 let mem_face_lemma = section_proof ["f";"ll"]
 `good_list ll /\ MEM f (list_of_faces ll)
-	==> ?d. MEM d (list_of_darts ll) /\ f = find_face d ll`
+	==> ?d. MEM d (list_of_darts ll) /\ f = find_face ll d`
 [
    ((((use_arg_then2 ("good_list", [good_list]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN ALL_TAC) THEN (case THEN (move ["uniq_s"])) THEN (case THEN (move ["all_n0"])) THEN (move ["_"]) THEN (move ["mem_f"]));
    ((fun arg_tac -> arg_tac (Arg_term (`HD f`))) (term_tac exists_tac));
@@ -932,7 +932,7 @@ let mem_face_lemma = section_proof ["f";"ll"]
    ((fun arg_tac -> arg_tac (Arg_term (`MEM (HD f) f`))) (term_tac (have_gen_tac [](move ["mem_hd"]))));
    ((((use_arg_then2 ("f_n0", [])) (disch_tac [])) THEN (clear_assumption "f_n0") THEN ((use_arg_then2 ("f", [])) (disch_tac [])) THEN (clear_assumption "f") THEN case THEN ((TRY done_tac)) THEN (move ["h"]) THEN (move ["t"])) THEN ((((use_arg_then2 ("HD", [HD]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("MEM", [MEM]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
    (((use_arg_then2 ("dart_in_face", [dart_in_face]))(thm_tac (new_rewrite [] []))));
-   ((THENL_FIRST) (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`find_face (HD f) ll = f`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))))))) ((ALL_TAC) THEN (done_tac)));
+   ((THENL_FIRST) (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`find_face ll (HD f) = f`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))))))) ((ALL_TAC) THEN (done_tac)));
    (((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("uniq_face_unique", [uniq_face_unique])) (fun fst_arg -> (use_arg_then2 ("uniq_s", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`HD f`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac));
    (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`MEM (HD f) (list_of_darts ll)`))) (term_tac (have_gen_tac [](move ["mem_hd2"])))));
    (((((use_arg_then2 ("mem_find_face", [mem_find_face]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("dart_in_face", [dart_in_face]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac));
@@ -950,7 +950,7 @@ let face_set_eq_list = section_proof ["ll"]
    ((((use_arg_then2 ("darts_of_list", [darts_of_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_SET_OF_LIST", [IN_SET_OF_LIST]))(thm_tac (new_rewrite [] [])))));
    ((THENL) (split_tac) [((case THEN (move ["d"])) THEN (case THEN (move ["mem_d"])) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))); ALL_TAC]);
    ((((use_arg_then2 ("f_list_ext_orbit", [f_list_ext_orbit]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("faces_of_list", [faces_of_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("MEM_MAP", [MEM_MAP]))(thm_tac (new_rewrite [] [])))));
-   (((fun arg_tac -> arg_tac (Arg_term (`find_face d ll`))) (term_tac exists_tac)) THEN (((use_arg_then2 ("mem_find_face", [mem_find_face]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   (((fun arg_tac -> arg_tac (Arg_term (`find_face ll d`))) (term_tac exists_tac)) THEN (((use_arg_then2 ("mem_find_face", [mem_find_face]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
    (((((use_arg_then2 ("faces_of_list", [faces_of_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("MEM_MAP", [MEM_MAP]))(thm_tac (new_rewrite [] []))))) THEN ALL_TAC THEN (case THEN (move ["ff"])) THEN (case THEN (move ["mem_ff"])) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))));
    ((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("mem_face_lemma", [mem_face_lemma])) (fun fst_arg -> (use_arg_then2 ("good_s", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("mem_ff", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (case THEN ((move ["d"]) THEN (case THEN (move ["mem_d"])) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))))));
    (((use_arg_then2 ("d", [])) (term_tac exists_tac)) THEN (((use_arg_then2 ("f_list_ext_orbit", [f_list_ext_orbit]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
@@ -1469,7 +1469,7 @@ let good_list_nodes_size_condition = section_proof ["L"]
 (* Lemma face_of_list *)
 let face_of_list = section_proof ["ll";"d"]
 `good_list ll /\ MEM d (list_of_darts ll)
-	==> face (hypermap_of_list ll) d = set_of_list (find_face d ll)`
+	==> face (hypermap_of_list ll) d = set_of_list (find_face ll d)`
 [
    (BETA_TAC THEN (case THEN ((move ["good_s"]) THEN (move ["mem_d"]))));
    ((fun arg_tac -> (use_arg_then2 ("face_set_eq_list", [face_set_eq_list])) (fun fst_arg -> (use_arg_then2 ("good_s", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN ALL_TAC));
@@ -1488,7 +1488,7 @@ let face_of_list = section_proof ["ll";"d"]
 (* Lemma card_face_of_list *)
 let card_face_of_list = section_proof ["ll";"d"]
 `good_list ll /\ MEM d (list_of_darts ll)
-	==> CARD (face (hypermap_of_list ll) d) = sizel (find_face d ll)`
+	==> CARD (face (hypermap_of_list ll) d) = sizel (find_face ll d)`
 [
    (BETA_TAC THEN (case THEN ((move ["good_s"]) THEN (move ["mem_d"]))));
    ((((use_arg_then2 ("face_of_list", [face_of_list]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("card_set_of_list_uniq", [card_set_of_list_uniq]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("uniq_find_face", [uniq_find_face]))(thm_tac (new_rewrite [] [])))));
@@ -1506,7 +1506,7 @@ let list_of_faces_n = section_proof ["ll";"n"]
    ((((use_arg_then2 ("components_hypermap_of_list", [components_hypermap_of_list]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("darts_of_list", [darts_of_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_SET_OF_LIST", [IN_SET_OF_LIST]))(thm_tac (new_rewrite [] [])))));
    (((((use_arg_then2 ("EXTENSION", [EXTENSION]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_ELIM_THM", [IN_ELIM_THM]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_SET_OF_LIST", [IN_SET_OF_LIST]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (((use_arg_then2 ("MEM_MAP", [MEM_MAP]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("mem_filter", [mem_filter]))(thm_tac (new_rewrite [] []))))) THEN (move ["f"]) THEN (simp_tac));
    ((THENL) (split_tac) [((case THEN (move ["g"])) THEN (case THEN ALL_TAC) THEN (case THEN ALL_TAC) THEN (case THEN (move ["d"])) THEN (case THEN (move ["mem_d"])) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))) THEN (move ["card_eq"]) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))); ((case THEN (move ["g"])) THEN (case THEN ALL_TAC) THEN (case THEN (move ["size_g"])) THEN (move ["mem_g"]) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))))]);
-   ((fun arg_tac -> arg_tac (Arg_term (`find_face d ll`))) (term_tac exists_tac));
+   ((fun arg_tac -> arg_tac (Arg_term (`find_face ll d`))) (term_tac exists_tac));
    (((((use_arg_then2 ("mem_find_face", [mem_find_face]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("face_of_list", [face_of_list]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("card_face_of_list", [card_face_of_list]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac));
    ((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("mem_face_lemma", [mem_face_lemma])) (fun fst_arg -> (use_arg_then2 ("good_s", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("mem_g", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (case THEN ((move ["d"]) THEN (case THEN (move ["mem_d"])) THEN (move ["g_eq"])))));
    ((((fun arg_tac -> arg_tac (Arg_term (`set_of_list g`))) (term_tac exists_tac)) THEN (simp_tac)) THEN (split_tac));

@@ -82,23 +82,23 @@ Module List_hypermap.
 
 (* Faces *)
 
-"let find_list = define `find_list x [] = []
-	/\ find_list x (CONS h t) = if (MEM x h) then h else find_list x t`".
+"let find_list = define `find_list [] x = []
+	/\ find_list (CONS h t) x = if (MEM x h) then h else find_list t x`".
 
-"let find_pair_list = define `find_pair_list d [] = [] 
-	/\ find_pair_list d (CONS h t) = if (MEM d (list_pairs h)) then h else find_pair_list d t`".
+"let find_pair_list = define `find_pair_list [] d = [] 
+	/\ find_pair_list (CONS h t) d = if (MEM d (list_pairs h)) then h else find_pair_list t d`".
 
-"let find_face = new_definition `find_face d ll = find_list d (list_of_faces ll)`".
+"let find_face = new_definition `find_face L d = find_list (list_of_faces L) d`".
 
 
 (* Hypermap maps *)
 
-"let f_list = new_definition `f_list ll d = next_el (find_face d ll) d`".
+"let f_list = new_definition `f_list L d = next_el (find_face L d) d`".
 
-"let e_list = new_definition `e_list ll d = (SND d, FST d)`".
+"let e_list = new_definition `e_list L d = (SND d, FST d)`".
 
 (* let n_list = new_definition `n_list ll d = (FST d, PREV_EL (FST d) (find_pair_list d ll))`;; *)
-"let n_list = new_definition `n_list ll d = e_list ll (prev_el (find_face d ll) d)`".
+"let n_list = new_definition `n_list L d = e_list L (prev_el (find_face L d) d)`".
 
 
 (* Hypermap definition *)
@@ -332,16 +332,16 @@ Qed.
 "let find_list = GEN_ALL find_list".
 "let find_pair_list = GEN_ALL find_pair_list".
 
-Lemma find_face_alt d ll: `find_face d ll = list_pairs (find_pair_list d ll)`.
+Lemma find_face_alt L d: `find_face L d = list_pairs (find_pair_list L d)`.
 Proof.
 rewrite find_face list_of_faces.
-elim: ll => [| h t Ih].
+elim: L => [| h t Ih].
   by rewrite MAP find_list find_pair_list list_pairs zip.
 rewrite MAP find_pair_list find_list.
 by case mem_d: `MEM d _` => /=; rewrite Ih.
 Qed.
 
-Lemma mem_find_list x ll: `MEM x (flatten ll) ==> MEM (find_list x ll) ll`.
+Lemma mem_find_list x ll: `MEM x (flatten ll) ==> MEM (find_list ll x) ll`.
 Proof.
 rewrite mem_flatten => [] [l].
 elim: ll => [|h t Ih]; rewrite MEM // find_list.
@@ -350,13 +350,13 @@ by case xh: `MEM x h` => /=; rewrite MEM // Ih.
 Qed.
 
 Lemma mem_find_face d ll: `MEM d (list_of_darts ll) 
-	==> MEM (find_face d ll) (list_of_faces ll)`.
+	==> MEM (find_face ll d) (list_of_faces ll)`.
 Proof.
 rewrite list_of_darts_alt => h.
 by rewrite find_face mem_find_list.
 Qed.
 
-Lemma find_list_empty d ll: `find_list d ll = [] <=> ~(MEM d (flatten ll))`.
+Lemma find_list_empty d ll: `find_list ll d = [] <=> ~(MEM d (flatten ll))`.
 Proof.
 rewrite mem_flatten NOT_EXISTS_THM negb_and.
 elim: ll => [|h t Ih]; rewrite MEM find_list //.
@@ -370,7 +370,7 @@ Qed.
 
 
 Lemma mem_find_list_nonempty x ll: `all (\l. ~(l = [])) ll
-	==> (MEM x (flatten ll) <=> MEM (find_list x ll) ll)`.
+	==> (MEM x (flatten ll) <=> MEM (find_list ll x) ll)`.
 rewrite -allP /= => h1.
 split => [|h2]; first by apply mem_find_list.
 by move: (h1 h2); rewrite find_list_empty negbK.
@@ -378,7 +378,7 @@ Qed.
 
 
 Lemma mem_find_face_nonempty d ll: `all (\l. ~(l = [])) ll
-	==> (MEM d (list_of_darts ll) <=> MEM (find_face d ll) (list_of_faces ll))`.
+	==> (MEM d (list_of_darts ll) <=> MEM (find_face ll d) (list_of_faces ll))`.
 Proof.
 move => h1.
 rewrite find_face -mem_find_list_nonempty ?list_of_darts_alt //.
@@ -433,7 +433,7 @@ by exists `list_pairs l`; rewrite h andbT; exists l.
 Qed.
 
 
-Lemma mem_find_pair_list d ll: `MEM d (list_of_darts ll) ==> MEM (find_pair_list d ll) ll`.
+Lemma mem_find_pair_list d ll: `MEM d (list_of_darts ll) ==> MEM (find_pair_list ll d) ll`.
 Proof.
 elim: ll => [|h t Ih]; rewrite list_of_darts foldr MEM // find_pair_list /=.
 case mem_d: `MEM d (list_pairs h)` => /=.
@@ -442,7 +442,7 @@ Qed.
 
 
 Lemma dart_in_find_pair_list d ll: 
-	`MEM d (list_of_darts ll) <=> MEM d (list_pairs (find_pair_list d ll))`.
+	`MEM d (list_of_darts ll) <=> MEM d (list_pairs (find_pair_list ll d))`.
 Proof.
 elim: ll => [|h t Ih]; rewrite list_of_darts find_pair_list foldr.
   by rewrite list_pairs zip.
@@ -451,7 +451,7 @@ by rewrite -list_of_darts Ih.
 Qed.
 
 
-Lemma dart_in_face d ll: `MEM d (list_of_darts ll) <=> MEM d (find_face d ll)`.
+Lemma dart_in_face d ll: `MEM d (list_of_darts ll) <=> MEM d (find_face ll d)`.
 Proof. by rewrite find_face_alt dart_in_find_pair_list. Qed.
 
 Lemma mem_imp_not_uniq_cat x l1 l2: `MEM x l1 /\ MEM x l2 ==> ~(uniq (cat l1 l2))`.
@@ -479,7 +479,7 @@ Qed.
 
 
 Lemma find_pair_list_unique l d ll: `uniq (list_of_darts ll) /\ MEM l ll /\ MEM d (list_pairs l) 
-	==> l = find_pair_list d ll`.
+	==> l = find_pair_list ll d`.
 Proof.
 move => [uniq_darts] [l_ll] mem_d.
 apply: (uniq_imp_unique_list uniq_darts mem_d).
@@ -487,7 +487,7 @@ by rewrite l_ll -find_face_alt -dart_in_face mem_find_pair_list (dart_in_darts m
 Qed.
 
 
-Lemma uniq_find_face d ll: `uniq (list_of_darts ll) ==> uniq (find_face d ll)`.
+Lemma uniq_find_face d ll: `uniq (list_of_darts ll) ==> uniq (find_face ll d)`.
 Proof.
 elim: ll => [|h t Ih]; rewrite list_of_darts foldr find_face list_of_faces MAP find_list //=.
 rewrite -list_of_darts -list_of_faces -find_face cat_uniq => [] [uniq_h] [_] uniq_t.
@@ -501,7 +501,7 @@ Proof. by rewrite list_pairs size1_zip // size_rot leqnn. Qed.
 Lemma mem_list_pairs x y l: `MEM (x,y) (list_pairs l) ==> MEM x l /\ MEM y l`.
 Proof. by rewrite list_pairs => /mem_zip; rewrite mem_rot. Qed.
 
-Lemma mem_f_list d ll: `MEM d (list_of_darts ll) ==> MEM (f_list ll d) (find_face d ll)`.
+Lemma mem_f_list d ll: `MEM d (list_of_darts ll) ==> MEM (f_list ll d) (find_face ll d)`.
 Proof. by move => mem_d; rewrite f_list mem_next_el -dart_in_face. Qed.
 
 Lemma nth_list_pairs x0 i s: `i < sizel s
@@ -585,19 +585,19 @@ Qed.
 
 
 Lemma f_list_inverse d ll: `uniq (list_of_darts ll) /\ MEM d (list_of_darts ll)
-	==> f_list ll (prev_el (find_face d ll) d) = d 
-	/\ prev_el (find_face (f_list ll d) ll) (f_list ll d) = d`.
+	==> f_list ll (prev_el (find_face ll d) d) = d 
+	/\ prev_el (find_face ll (f_list ll d)) (f_list ll d) = d`.
 Proof.
 move => [uniq_s mem_d]; rewrite !f_list; split.
-  set f := `find_face d ll`.
-  suff ->: `find_face (prev_el f d) ll = f`.
+  set f := `find_face ll d`.
+  suff ->: `find_face ll (prev_el f d) = f`.
     by rewrite next_prev_id // -f_def uniq_find_face // -dart_in_face.
   rewrite -{2}f_def !find_face_alt eq_sym; congr `_1 _2` => //.
   apply: (find_pair_list_unique uniq_s).
   rewrite mem_find_pair_list // -find_face_alt f_def mem_prev_el //.
   by rewrite -f_def -dart_in_face.
-set f := `find_face d ll`.
-suff ->: `find_face (next_el f d) ll = f`.
+set f := `find_face ll d`.
+suff ->: `find_face ll (next_el f d) = f`.
   by rewrite prev_next_id // -f_def uniq_find_face // -dart_in_face.
 rewrite -{2}f_def !find_face_alt eq_sym; congr `_1 _2` => //.
 apply: (find_pair_list_unique uniq_s).
@@ -607,7 +607,7 @@ Qed.
 
 
 Lemma find_face_f_list d ll: `uniq (list_of_darts ll) /\ MEM d (list_of_darts ll)
-	==> find_face (f_list ll d) ll = find_face d ll`.
+	==> find_face ll (f_list ll d) = find_face ll d`.
 Proof.
 move => [uniq_s mem_d].
 rewrite !find_face_alt eq_sym; congr `_1 _2` => //.
@@ -626,10 +626,10 @@ split => [d mem_d | ].
 split => [d mem_d | d1 d2 [mem_d1] [mem_d2] eq]; last first.
   have [_ <-] := f_list_inverse uniq_s mem_d1.
   by rewrite eq (f_list_inverse uniq_s mem_d2).
-exists `prev_el (find_face d ll) d`.
+exists `prev_el (find_face ll d) d`.
 rewrite f_list_inverse //= dart_in_face.
-set f := `find_face d ll`.
-suff ->: `find_face (prev_el f d) ll = f`.
+set f := `find_face ll d`.
+suff ->: `find_face ll (prev_el f d) = f`.
   by rewrite mem_prev_el // -f_def -dart_in_face.
 rewrite -{2}f_def !find_face_alt eq_sym; congr `_1 _2` => //.
 apply: (find_pair_list_unique uniq_s).
@@ -640,12 +640,12 @@ Qed.
 
 (* e o n o f = I *)
 
-Lemma find_face_empty d ll: `find_face d ll = [] <=> ~MEM d (list_of_darts ll)`.
+Lemma find_face_empty d ll: `find_face ll d = [] <=> ~MEM d (list_of_darts ll)`.
 Proof. by rewrite find_face find_list_empty list_of_darts_alt. Qed.
 
 
-Lemma mem_find_face_imp_faces_eq d1 d2 ll: `uniq (list_of_darts ll) /\ MEM d1 (find_face d2 ll)
-	==> find_face d1 ll = find_face d2 ll`.
+Lemma mem_find_face_imp_faces_eq d1 d2 ll: `uniq (list_of_darts ll) /\ MEM d1 (find_face ll d2)
+	==> find_face ll d1 = find_face ll d2`.
 Proof.
 move => [uniq_s mem_d1].
 rewrite !find_face_alt eq_sym; congr `_1 _2` => //.
@@ -656,7 +656,7 @@ by rewrite -find_face_empty => ->; rewrite MEM.
 Qed.
 
 
-Lemma mem_find_face_imp_mem_darts d y ll: `MEM d (find_face y ll) ==> MEM d (list_of_darts ll)`.
+Lemma mem_find_face_imp_mem_darts d y ll: `MEM d (find_face ll y) ==> MEM d (list_of_darts ll)`.
 Proof.
 elim: ll => [| h t Ih]; rewrite find_face list_of_darts foldr list_of_faces MAP find_list //.
 rewrite -list_of_darts /= mem_cat.
@@ -666,7 +666,7 @@ Qed.
 
 
 Lemma f_list_ext_inverse ll: `uniq (list_of_darts ll)
-	==> inverse (f_list_ext ll) = res (\d. prev_el (find_face d ll) d) (darts_of_list ll)`.
+	==> inverse (f_list_ext ll) = res (\d. prev_el (find_face ll d) d) (darts_of_list ll)`.
 Proof.
 rewrite FUN_EQ_THM => uniq_s d.
 rewrite (PERMUTES_INVERSE_EQ (f_list_ext_permutes_darts uniq_s)).
@@ -843,15 +843,15 @@ Qed.
 
 
 Lemma f_list_ext_orbit ll x: `MEM x (list_of_darts ll) /\ uniq (list_of_darts ll)
-	==> orbit_map (f_list_ext ll) x = set_of_list (find_face x ll)`.
+	==> orbit_map (f_list_ext ll) x = set_of_list (find_face ll x)`.
 Proof.
 move => [mem_x uniq_l].
 rewrite f_list_ext ORBIT_MAP_RES.
   by rewrite -f_list_ext f_list_ext_permutes_darts // darts_of_list IN_SET_OF_LIST.
-have x_in_face: `MEM x (find_face x ll)` by rewrite -dart_in_face.
-suff ->: `orbit_map (f_list ll) x = orbit_map (next_el (find_face x ll)) x`.
+have x_in_face: `MEM x (find_face ll x)` by rewrite -dart_in_face.
+suff ->: `orbit_map (f_list ll) x = orbit_map (next_el (find_face ll x)) x`.
   by rewrite next_el_orbit // uniq_find_face.
-suff eq n: `(f_list ll POWER n) x = (next_el (find_face x ll) POWER n) x`.
+suff eq n: `(f_list ll POWER n) x = (next_el (find_face ll x) POWER n) x`.
   by rewrite !Hypermap.orbit_map eq.
 elim: n => [|n Ih]; first by rewrite !POWER_0.
 rewrite !Hypermap.COM_POWER !o_THM Ih f_list.
@@ -909,7 +909,7 @@ Qed.
 
 
 Lemma mem_face_lemma f ll: `good_list ll /\ MEM f (list_of_faces ll)
-	==> ?d. MEM d (list_of_darts ll) /\ f = find_face d ll`.
+	==> ?d. MEM d (list_of_darts ll) /\ f = find_face ll d`.
 Proof.
 rewrite good_list => [] [] [uniq_s] [all_n0] _ mem_f.
 exists `HD f`.
@@ -922,7 +922,7 @@ have f_n0: `~(f = [])`.
 have mem_hd: `MEM (HD f) f`.
   by case: f f_n0 => // h t; rewrite HD MEM.
 rewrite dart_in_face.
-suff ->: `find_face (HD f) ll = f` by [].
+suff ->: `find_face ll (HD f) = f` by [].
 apply: (uniq_face_unique uniq_s `HD f`).
 suff mem_hd2: `MEM (HD f) (list_of_darts ll)`.
   by rewrite mem_find_face // -dart_in_face.
@@ -939,13 +939,13 @@ rewrite Hypermap.set_of_orbits EXTENSION IN_ELIM_THM IN_SET_OF_LIST /= => f.
 rewrite darts_of_list IN_SET_OF_LIST.
 split => [[d] [mem_d] -> | ].
   rewrite f_list_ext_orbit // faces_of_list MEM_MAP.
-  by exists `find_face d ll`; rewrite mem_find_face.
+  by exists `find_face ll d`; rewrite mem_find_face.
 rewrite faces_of_list MEM_MAP => [] [ff] [mem_ff] ->.
 have [d [mem_d] ->] := mem_face_lemma good_s mem_ff.
 by exists d; rewrite f_list_ext_orbit.
 Qed.
 
-     
+
 Lemma components_hypermap_of_list ll: `good_list ll
 	==> dart (hypermap_of_list ll) = darts_of_list ll
 	/\ edge_map (hypermap_of_list ll) = e_list_ext ll
@@ -1404,7 +1404,7 @@ Qed.
 (* Theorems for special lists *)
 
 Lemma face_of_list ll d: `good_list ll /\ MEM d (list_of_darts ll)
-	==> face (hypermap_of_list ll) d = set_of_list (find_face d ll)`.
+	==> face (hypermap_of_list ll) d = set_of_list (find_face ll d)`.
 Proof.
 move => [good_s mem_d].
 have := face_set_eq_list good_s.
@@ -1422,7 +1422,7 @@ Qed.
 
 
 Lemma card_face_of_list ll d: `good_list ll /\ MEM d (list_of_darts ll)
-	==> CARD (face (hypermap_of_list ll) d) = sizel (find_face d ll)`.
+	==> CARD (face (hypermap_of_list ll) d) = sizel (find_face ll d)`.
 Proof.
 move => [good_s mem_d].
 rewrite face_of_list // card_set_of_list_uniq // uniq_find_face.
@@ -1439,7 +1439,7 @@ rewrite Hypermap.face_set Hypermap.set_of_orbits -Hypermap.face IN_ELIM_THM /=.
 rewrite components_hypermap_of_list // darts_of_list IN_SET_OF_LIST.
 rewrite EXTENSION IN_ELIM_THM IN_SET_OF_LIST /= MEM_MAP mem_filter => f /=.
 split => [[g] [] [] [d] [mem_d] -> card_eq -> | [g] [] [size_g] mem_g ->].
-  exists `find_face d ll`.
+  exists `find_face ll d`.
   by rewrite mem_find_face // face_of_list // -card_face_of_list.
 have [d [mem_d] g_eq] := mem_face_lemma good_s mem_g.
 exists `set_of_list g` => /=; split.

@@ -537,17 +537,33 @@ Qed.
 
 Lemma list_of_elements_split L d: `perm_eq (list_of_elements L) (list_of_elements (split_list_hyp L d))`.
 Proof.
-apply uniq_perm_eq; rewrite !uniq_list_of_elements /= !mem_list_of_elements => i.
-case f_size: `sizel (find_pair_list L d) <= 3` => /=.
-  by split => [[y]] mem_iy; exists y; move: mem_iy; rewrite (perm_eq_mem (darts_of_list_split_same f_size)).
-rewrite -ltnNge in f_size.
-rewrite (perm_eq_mem (darts_of_list_split f_size)) mem_cat.
-split => [[y]] mem_iy; first by exists y.
-move: mem_iy; rewrite list_hyp_diag e_list /=.
-
-  movrewrite
+apply uniq_perm_eq; rewrite !uniq_list_of_elements /= => i.
+case mem_d: `MEM d (list_of_darts L)` => /=; last by rewrite d_not_in_dart_split_eq.
+rewrite "let_RULE split_list_hyp_alt" // {1}("let_RULE list_eq_cat_find_pair_list" mem_d).
+set f := `find_pair_list L d`.
+set n := `indexl f L`.
+rewrite !list_of_elements !flatten_cat !mem_undup !mem_cat.
+apply: orb_id2l => _; apply: orb_id2r => _.
+rewrite flatten_cons flatten0 cats0.
+rewrite split_list_face size_rotr size_rot.
+case f_size: `_ <= 3` => /=; rewrite !flatten_cons flatten0 cats0.
+  by rewrite mem_rotr mem_rot.
+set s := `rotr 1 _`.
+have [k ->]: `?k. s = rot k f`.
+  rewrite -s_def rotr size_rot.
+  have [k eq] := rot_rot_eq_rot f `sizel f - 1` `indexl d (list_pairs f)`.
+  by exists k.
+have ineqs: `3 < sizel f /\ 2 < 3` by move: f_size; arith.
+rewrite -(mem_rot k f); split.
+  rewrite -{1}(cat_take_drop `3`) !mem_cat MEM.
+  case => /= mem_i; right; right.
+  rewrite -(cat_take_drop `3` `rot k f`) drop_cat size_take size_rot ineqs /= ineqs /=.
+  by rewrite mem_cat mem_i.
+rewrite mem_cat MEM; case => [/mem_take | [-> | /mem_drop]] //.
+have: `0 < sizel (rot k f)` by rewrite size_rot; move: ineqs; arith.
+by case: `rot k f` => [|h t]; rewrite ?(size_nil, ltn0) // "GEN_ALL HD" MEM.
+Qed.
   
-
 
 Lemma mem_list_hyp_diag L d: `MEM d (list_of_darts L) /\ 
 	(sizel (find_pair_list L d) = 1 \/ sizel (find_pair_list L d) = 3)
@@ -1404,9 +1420,20 @@ by do !case; move/fan_list_nodes_iso_inj => h1 /fan_list_nodes_iso_inj h2; rewri
 Qed.
 
 
-Lemma iso_imp_good_list_nodes_split d: `d IN dart_of_fan (V,E)
-	==> good_list_nodes (split_list_hyp L (f d))`.
+Lemma iso_imp_good_list_nodes_split d: `good_list_nodes (split_list_hyp L d)`.
 Proof.
-move/split_list_hyp_iso => iso_th.
+case mem_d: `MEM d (list_of_darts L)` => /=; last by rewrite d_not_in_dart_split_eq.
+move: mem_d; rewrite -IN_SET_OF_LIST -darts_of_list -(components_hypermap_of_list goodL) => d_in.
+have [[v w] [vw_in <-]] := hyp_iso_surj f_iso d_in.
+rewrite (COMPONENTS_HYPERMAP_OF_FAN fanV) in vw_in.
+have iso_th := split_list_hyp_iso vw_in.
 rewrite good_list_nodes_condition ?iso_imp_good_list_split //.
 rewrite -number_of_nodes (iso_number_of_nodes iso_th).
+rewrite -(perm_eq_size (list_of_elements_split L `f (v,w)`)).
+have [fan_split _] := fan_split_fan_face fanV f_surr vw_in.
+rewrite split_fan_face in fan_split *.
+rewrite fan_number_of_nodes // -(fan_number_of_nodes fanV).
+by rewrite -(iso_number_of_nodes f_iso) number_of_nodes -good_list_nodes_condition.
+Qed.
+
+End FanAndList.

@@ -1,20 +1,33 @@
-"needs \"Examples/ssrbool-compiled.hl\"".
+"needs \"Examples/ssrnat-compiled.hl\"".
 
 Module Hypermap_iso.
 
+(* Main definitions *)
+(* An explicit isomorphism between hypermaps *)
+"let hyp_iso = new_definition `hyp_iso f (H, G) <=>
+                           BIJ f (dart H) (dart G) /\
+                        (!x. x IN dart H ==>
+                        edge_map G (f x) = f (edge_map H x) /\
+                               node_map G (f x) = f (node_map H x) /\
+                           face_map G (f x) = f (face_map H x))`".
+
+(* Restricted inverse *)
+"let res_inv = new_definition `res_inv f s = (\y. @x. f x = y /\ x IN s)`".
+
+
 "open Ssrfun".
 "open Ssrbool".
-
+"open Ssrnat".
 "open Fan".
 "open Hypermap".
-
 "open Fan_defs".
-"open Tame_defs".
 "open Hypermap_and_fan".
 
 "parse_as_infix(\"iso\",(24,\"right\"))".
 
 "let inE = CONJUNCT2 IN_ELIM_THM".
+
+"let IN_TRANS = prove(`!(x:A) s t. t SUBSET s /\ x IN t ==> x IN s`, SET_TAC[])".
 
 
 Lemma bij_disjoint_union f g s t s' t':
@@ -172,11 +185,83 @@ Qed.
 End InjProps.
 
 
+(* FiniteBijections *)
+Section FiniteBijections.
+
+Variable s: `:A->bool`.
+Variable t: `:B->bool`.
+
+Lemma permutes_imp_bij p: `p permutes s ==> BIJ p s s`.
+Proof.
+move => perm; rewrite BIJ INJ SURJ (PERMUTES_IN_IMAGE perm) /=.
+split => [x y [xs] [ys] p_eq | x xs]; first by rewrite -(PERMUTES_INJECTIVE perm).
+move: (PERMUTES_SURJECTIVE perm x) => [y] p_eq; exists y; split => //.
+by rewrite -(PERMUTES_IN_IMAGE perm) p_eq.
+Qed.
+
+Lemma surj_image f: `SURJ f s t ==> IMAGE f s = t`.
+Proof.
+rewrite SURJ EXTENSION IN_IMAGE => [] [f_in surj] y.
+by split => [[x] [->] xs | /surj [x] [xs eq]]; [exact: f_in | exists x].
+Qed.
+
+Lemma surj_imp_finite f: `FINITE s /\ SURJ f s t ==> FINITE t`.
+Proof. by move => [fin_s] /surj_image <-; apply FINITE_IMAGE. Qed.
+
+Lemma inj_imp_finite f: `FINITE t /\ INJ f s t ==> FINITE s`.
+Proof.
+rewrite INJ => [] [fin_t] [f_in] inj.
+rewrite -(FINITE_IMAGE_INJ_EQ inj) (FINITE_SUBSET fin_t) SUBSET IN_IMAGE.
+by move => y [x] [->] xs; exact: f_in.
+Qed.
+
+Lemma bij_finite_eq f: `BIJ f s t ==> (FINITE s <=> FINITE t)`.
+Proof.
+rewrite BIJ => bij; split => [fin_s | fin_t].
+  by rewrite (surj_imp_finite fin_s f).
+by rewrite (inj_imp_finite fin_t f).
+Qed.
+
+Lemma surj_imp_card_le f: `FINITE s /\ SURJ f s t ==> CARD t <= CARD s`.
+Proof. by move => [fin_s] /surj_image <-; apply CARD_IMAGE_LE. Qed.
+
+Lemma inj_imp_card_le f: `FINITE t /\ INJ f s t ==> CARD s <= CARD t`.
+Proof.
+move => [fin_t] inj; move: (inj); rewrite INJ => [] [f_in] inj2.
+rewrite -(CARD_IMAGE_INJ inj2) ?(inj_imp_finite inj) //.
+by rewrite CARD_SUBSET fin_t andbT SUBSET IN_IMAGE => y [x] [->] xs; exact: f_in.
+Qed.
+
+Lemma bij_card_eq f: `BIJ f s t /\ FINITE s ==> CARD t = CARD s`.
+Proof.
+rewrite BIJ => [] [] [inj surj] fin_s; apply: anti_leq.
+by rewrite (surj_imp_card_le surj) // (inj_imp_card_le inj) // (surj_imp_finite surj).
+Qed.
+
+
+Hypothesis fin_s: `FINITE s`.
+Hypothesis fin_t: `FINITE t`.
+Hypothesis card_eq: `CARD s = CARD t`.
+
+Lemma finite_inj_eq_surj f: `INJ f s t <=> SURJ f s t`.
+Proof.
+rewrite INJ SURJ; apply: andb_id2l => f_in.
+rewrite SURJECTIVE_IFF_INJECTIVE_GEN // fin_s fin_t card_eq /=.
+by rewrite SUBSET IN_IMAGE => y [x] [->] xs; exact: f_in.
+Qed.
+
+Lemma finite_inj_eq_bij f: `INJ f s t <=> BIJ f s t`.
+Proof. by rewrite BIJ finite_inj_eq_surj andbb. Qed.
+
+Lemma finite_surj_eq_bij f: `SURJ f s t <=> BIJ f s t`.
+Proof. by rewrite BIJ finite_inj_eq_surj andbb. Qed.
+
+End FiniteBijections.
+
 
 (* Restricted inverse *)
 Section ResInverse.
 
-"let res_inv = new_definition `res_inv f s = (\y. @x. f x = y /\ x IN s)`".
 
 Lemma bij_alt f s t: `BIJ f s t <=>
         (!x. x IN s ==> f x IN t) /\
@@ -249,27 +334,25 @@ move: (congr1 f inv_eq).
 by rewrite !(res_inv_right surj).
 Qed.
 
+Lemma inj_res_inv_left f s t x: `INJ f s t /\ x IN s ==> res_inv f s (f x) = x`.
+Proof. by rewrite INJ => [] h; rewrite res_inv_left //. Qed.
+
+Lemma surj_res_inv_right f s t y: `SURJ f s t /\ y IN t ==>
+	f (res_inv f s y) = y /\ res_inv f s y IN s`.
+Proof. by rewrite SURJ => h; rewrite !(res_inv_right f s t) //. Qed.
+
+
 End ResInverse.
 
 
 (* Iso *)
 Section Iso.
 
-(* An explicit isomorphism between hypermaps *)
-"let hyp_iso = new_definition `hyp_iso f (H, G) <=>
-                           BIJ f (dart H) (dart G) /\
-                        (!x. x IN dart H ==>
-                        edge_map G (f x) = f (edge_map H x) /\
-                               node_map G (f x) = f (node_map H x) /\
-                           face_map G (f x) = f (face_map H x))`".
-
-
 Lemma hyp_iso_imp_iso H G f: `hyp_iso f (H, G) ==> H iso G`.
 Proof. by rewrite hyp_iso iso => h; exists f. Qed.
 
 Lemma iso_imp_hyp_iso H G: `H iso G ==> ?f. hyp_iso f (H, G)`.
 Proof. by rewrite iso hyp_iso. Qed.
-
 
 Lemma h_map_outside H x: `~(x:A IN dart H) ==>
         edge_map H x = x /\
@@ -280,7 +363,6 @@ move => x_n_dart.
 have h := hypermap_lemma H.
 by rewrite !permutes in h; rewrite !h //.
 Qed.
-
 
 Lemma hyp_path_subset H p n: `p 0 IN dart H /\ is_path H p n
         ==> (!i. i <= n ==> p i IN dart H)`.
@@ -297,6 +379,31 @@ Variable H : `:(A)hypermap`.
 Variable G : `:(B)hypermap`.
 Variable f : `:A->B`.
 
+Lemma hyp_iso_edge_face: `hyp_iso f (H,G) <=> BIJ f (dart H) (dart G) /\
+	(!x. x IN dart H ==> edge_map G (f x) = f (edge_map H x)
+			 /\ face_map G (f x) = f (face_map H x))`.
+Proof.
+rewrite hyp_iso; apply: andb_id2l => _; split => eq x x_in; rewrite !eq //=.
+rewrite Hypermap.inverse2_hypermap_maps o_THM.
+have hypG := Hypermap.hypermap_lemma G.
+rewrite (PERMUTES_INVERSE_EQ `dart G`) // eq ?Hypermap.lemma_dart_invariant //.
+rewrite EQ_SYM_EQ (PERMUTES_INVERSE_EQ `dart G`) // eq ?Hypermap.lemma_dart_invariant //.
+by rewrite -(o_THM `edge_map H`) -(o_THM `face_map H`) Hypermap.hypermap_cyclic I_THM.
+Qed.
+
+Lemma hyp_iso_edge_node: `hyp_iso f (H,G) <=> BIJ f (dart H) (dart G) /\
+	(!x. x IN dart H ==> edge_map G (f x) = f (edge_map H x)
+			 /\ node_map G (f x) = f (node_map H x))`.
+Proof.
+rewrite hyp_iso; apply: andb_id2l => _; split => eq x x_in; rewrite !eq //=.
+rewrite Hypermap.inverse2_hypermap_maps o_THM.
+have hypG := Hypermap.hypermap_lemma G.
+rewrite (PERMUTES_INVERSE_EQ `dart G`) // eq ?Hypermap.lemma_dart_invariant //.
+rewrite EQ_SYM_EQ (PERMUTES_INVERSE_EQ `dart G`) // eq ?Hypermap.lemma_dart_invariant //.
+by rewrite -(o_THM `node_map H`) -(o_THM `edge_map H`) Hypermap.hypermap_lemma I_THM.
+Qed.
+
+
 Hypothesis isoHG: `hyp_iso f (H, G)`.
 
 Lemma hyp_iso_bij: `BIJ f (dart H) (dart G)`.
@@ -311,11 +418,31 @@ Proof. by move: isoHG; rewrite hyp_iso bij_alt => [] [] [_] [_] surj _ y; exact:
 Lemma hyp_iso_dart x: `x IN dart H ==> f x IN dart G`.
 Proof. by move: isoHG; rewrite hyp_iso bij_alt => [] [] [h] _ _; exact: h. Qed.
 
+Lemma hyp_iso_SURJ: `SURJ f (dart H) (dart G)`.
+Proof. by rewrite SURJ; split => x x_in; rewrite (hyp_iso_dart, hyp_iso_surj). Qed.
+
+Lemma hyp_iso_INJ: `INJ f (dart H) (dart G)`.
+Proof.
+rewrite INJ; split => [x x_in | x y]; first by rewrite hyp_iso_dart.
+exact: hyp_iso_inj.
+Qed.
+
 Lemma hyp_iso_comm x: `x IN dart H ==>
         edge_map G (f x) = f (edge_map H x) /\
         node_map G (f x) = f (node_map H x) /\
         face_map G (f x) = f (face_map H x)`.
 Proof. by move: isoHG; rewrite hyp_iso => [] [] _ h x_in; rewrite !h. Qed.
+
+Lemma hyp_iso_inverse_comm x: `x IN dart H
+	==> inverse (edge_map G) (f x) = f (inverse (edge_map H) x)
+	 /\ inverse (node_map G) (f x) = f (inverse (node_map H) x)
+	 /\ inverse (face_map G) (f x) = f (inverse (face_map H) x)`.
+Proof.
+move => x_in.
+rewrite !(PERMUTES_INVERSE_EQ `dart G`) ?Hypermap.hypermap_lemma //.
+rewrite !hyp_iso_comm ?Hypermap.lemma_dart_inveriant_under_inverse_maps //.
+by rewrite !(PERMUTES_INVERSES `dart H`) ?Hypermap.hypermap_lemma.
+Qed.
 
 Lemma hyp_iso_inv: `hyp_iso (res_inv f (dart H)) (G, H)`.
 Proof.
@@ -339,6 +466,22 @@ Proof.
 move: isoHG; rewrite hyp_iso => [] [bij] f_eq d_in.
 rewrite !node !face !edge.
 by do !split; apply: (orbit_comm d_in); split => x x_in; rewrite ?lemma_dart_invariant ?f_eq.
+Qed.
+
+Lemma hyp_iso_card_components x: `x IN dart H ==> 
+	CARD (face H x) = CARD (face G (f x)) /\
+	CARD (node H x) = CARD (node G (f x)) /\
+	CARD (edge H x) = CARD (edge G (f x))`.
+Proof.
+move => x_in; rewrite !iso_components //.
+rewrite !CARD_IMAGE_INJ // (EDGE_FINITE, FACE_FINITE, NODE_FINITE) andbT;
+  move => a b [a_in] [b_in] eq; apply: (hyp_iso_inj eq).
+(* 1 *)
+by split; apply IN_TRANS; exists `face H x`; rewrite lemma_face_subset.
+(* 2 *)
+by split; apply IN_TRANS; exists `node H x`; rewrite lemma_node_subset.
+(* 3 *)
+by split; apply IN_TRANS; exists `edge H x`; rewrite lemma_edge_subset.
 Qed.
 
 Lemma iso_node_set: `node_set G = IMAGE (IMAGE f) (node_set H)`.

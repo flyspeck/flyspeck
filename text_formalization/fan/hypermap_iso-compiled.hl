@@ -1,17 +1,25 @@
-needs "Examples/ssrbool-compiled.hl";;
+needs "Examples/ssrnat-compiled.hl";;
 
 (* Module Hypermap_iso*)
 module Hypermap_iso = struct
 
+let hyp_iso = new_definition `hyp_iso f (H, G) <=>
+                           BIJ f (dart H) (dart G) /\
+                        (!x. x IN dart H ==>
+                        edge_map G (f x) = f (edge_map H x) /\
+                               node_map G (f x) = f (node_map H x) /\
+                           face_map G (f x) = f (face_map H x))`;;
+let res_inv = new_definition `res_inv f s = (\y. @x. f x = y /\ x IN s)`;;
 open Ssrfun;;
 open Ssrbool;;
+open Ssrnat;;
 open Fan;;
 open Hypermap;;
 open Fan_defs;;
-open Tame_defs;;
 open Hypermap_and_fan;;
 parse_as_infix("iso",(24,"right"));;
 let inE = CONJUNCT2 IN_ELIM_THM;;
+let IN_TRANS = prove(`!(x:A) s t. t SUBSET s /\ x IN t ==> x IN s`, SET_TAC[]);;
 
 (* Lemma bij_disjoint_union *)
 let bij_disjoint_union = section_proof ["f";"g";"s";"t";"s'";"t'"]
@@ -181,9 +189,120 @@ let image_inj_gen = finalize_theorem image_inj_gen;;
 let image_set_inj_gen = finalize_theorem image_set_inj_gen;;
 end_section "InjProps";;
 
+(* Section FiniteBijections *)
+begin_section "FiniteBijections";;
+(add_section_var (mk_var ("s", (`:A->bool`))));;
+(add_section_var (mk_var ("t", (`:B->bool`))));;
+
+(* Lemma permutes_imp_bij *)
+let permutes_imp_bij = section_proof ["p"]
+`p permutes s ==> BIJ p s s`
+[
+   ((BETA_TAC THEN (move ["perm"])) THEN ((((use_arg_then2 ("BIJ", [BIJ]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("INJ", [INJ]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("SURJ", [SURJ]))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (use_arg_then2 ("PERMUTES_IN_IMAGE", [PERMUTES_IN_IMAGE])) (fun fst_arg -> (use_arg_then2 ("perm", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)));
+   ((THENL_FIRST) ((THENL) (split_tac) [((move ["x"]) THEN (move ["y"]) THEN (case THEN (move ["xs"])) THEN (case THEN (move ["ys"])) THEN (move ["p_eq"])); ((move ["x"]) THEN (move ["xs"]))]) ((((fun arg_tac -> (use_arg_then2 ("PERMUTES_INJECTIVE", [PERMUTES_INJECTIVE])) (fun fst_arg -> (use_arg_then2 ("perm", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (done_tac)));
+   ((((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("PERMUTES_SURJECTIVE", [PERMUTES_SURJECTIVE])) (fun fst_arg -> (use_arg_then2 ("perm", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("x", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC THEN (case THEN (move ["y"])) THEN (move ["p_eq"])) THEN ((use_arg_then2 ("y", [])) (term_tac exists_tac)) THEN ((split_tac) THEN ((TRY done_tac))));
+   (((((fun arg_tac -> (use_arg_then2 ("PERMUTES_IN_IMAGE", [PERMUTES_IN_IMAGE])) (fun fst_arg -> (use_arg_then2 ("perm", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("p_eq", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma surj_image *)
+let surj_image = section_proof ["f"]
+`SURJ f s t ==> IMAGE f s = t`
+[
+   (((((use_arg_then2 ("SURJ", [SURJ]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("EXTENSION", [EXTENSION]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_IMAGE", [IN_IMAGE]))(thm_tac (new_rewrite [] []))))) THEN ALL_TAC THEN (case THEN ((move ["f_in"]) THEN (move ["surj"]))) THEN (move ["y"]));
+   (((THENL) ((THENL) (split_tac) [((case THEN (move ["x"])) THEN (case THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (move ["xs"])); ((DISCH_THEN (fun snd_th -> (use_arg_then2 ("surj", [])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN (case THEN (move ["x"])) THEN (case THEN ((move ["xs"]) THEN (move ["eq"]))))]) [(((use_arg_then2 ("f_in", [])) (disch_tac [])) THEN (clear_assumption "f_in") THEN (exact_tac)); ((use_arg_then2 ("x", [])) (term_tac exists_tac))]) THEN (done_tac));
+];;
+
+(* Lemma surj_imp_finite *)
+let surj_imp_finite = section_proof ["f"]
+`FINITE s /\ SURJ f s t ==> FINITE t`
+[
+   ((BETA_TAC THEN (case THEN (move ["fin_s"])) THEN (DISCH_THEN (fun snd_th -> (use_arg_then2 ("surj_image", [surj_image])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN (((conv_thm_tac DISCH_THEN)(gsym_then (thm_tac (new_rewrite [] [])))))) THEN ((use_arg_then2 ("FINITE_IMAGE", [FINITE_IMAGE])) (thm_tac apply_tac)) THEN (done_tac));
+];;
+
+(* Lemma inj_imp_finite *)
+let inj_imp_finite = section_proof ["f"]
+`FINITE t /\ INJ f s t ==> FINITE s`
+[
+   ((((use_arg_then2 ("INJ", [INJ]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN (move ["fin_t"])) THEN (case THEN (move ["f_in"])) THEN (move ["inj"]));
+   ((((fun arg_tac -> (use_arg_then2 ("FINITE_IMAGE_INJ_EQ", [FINITE_IMAGE_INJ_EQ])) (fun fst_arg -> (use_arg_then2 ("inj", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("FINITE_SUBSET", [FINITE_SUBSET])) (fun fst_arg -> (use_arg_then2 ("fin_t", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("SUBSET", [SUBSET]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_IMAGE", [IN_IMAGE]))(thm_tac (new_rewrite [] [])))));
+   ((BETA_TAC THEN (move ["y"]) THEN (case THEN (move ["x"])) THEN (case THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (move ["xs"])) THEN (((use_arg_then2 ("f_in", [])) (disch_tac [])) THEN (clear_assumption "f_in") THEN (exact_tac)) THEN (done_tac));
+];;
+
+(* Lemma bij_finite_eq *)
+let bij_finite_eq = section_proof ["f"]
+`BIJ f s t ==> (FINITE s <=> FINITE t)`
+[
+   (((((use_arg_then2 ("BIJ", [BIJ]))(thm_tac (new_rewrite [] [])))) THEN (move ["bij"])) THEN ((THENL) (split_tac) [(move ["fin_s"]); (move ["fin_t"])]));
+   ((((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("surj_imp_finite", [surj_imp_finite])) (fun fst_arg -> (use_arg_then2 ("fin_s", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("inj_imp_finite", [inj_imp_finite])) (fun fst_arg -> (use_arg_then2 ("fin_t", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma surj_imp_card_le *)
+let surj_imp_card_le = section_proof ["f"]
+`FINITE s /\ SURJ f s t ==> CARD t <= CARD s`
+[
+   ((BETA_TAC THEN (case THEN (move ["fin_s"])) THEN (DISCH_THEN (fun snd_th -> (use_arg_then2 ("surj_image", [surj_image])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN (((conv_thm_tac DISCH_THEN)(gsym_then (thm_tac (new_rewrite [] [])))))) THEN ((use_arg_then2 ("CARD_IMAGE_LE", [CARD_IMAGE_LE])) (thm_tac apply_tac)) THEN (done_tac));
+];;
+
+(* Lemma inj_imp_card_le *)
+let inj_imp_card_le = section_proof ["f"]
+`FINITE t /\ INJ f s t ==> CARD s <= CARD t`
+[
+   ((BETA_TAC THEN (case THEN (move ["fin_t"])) THEN (move ["inj"])) THEN (((use_arg_then2 ("inj", [])) (disch_tac [])) THEN BETA_TAC) THEN ((((use_arg_then2 ("INJ", [INJ]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN (move ["f_in"])) THEN (move ["inj2"])));
+   ((((fun arg_tac -> (use_arg_then2 ("CARD_IMAGE_INJ", [CARD_IMAGE_INJ])) (fun fst_arg -> (use_arg_then2 ("inj2", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((fun arg_tac -> (use_arg_then2 ("inj_imp_finite", [inj_imp_finite])) (fun fst_arg -> (use_arg_then2 ("inj", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   ((((((use_arg_then2 ("CARD_SUBSET", [CARD_SUBSET]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fin_t", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andbT", [andbT]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("SUBSET", [SUBSET]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_IMAGE", [IN_IMAGE]))(thm_tac (new_rewrite [] []))))) THEN (move ["y"]) THEN (case THEN (move ["x"])) THEN (case THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (move ["xs"])) THEN (((use_arg_then2 ("f_in", [])) (disch_tac [])) THEN (clear_assumption "f_in") THEN (exact_tac)) THEN (done_tac));
+];;
+
+(* Lemma bij_card_eq *)
+let bij_card_eq = section_proof ["f"]
+`BIJ f s t /\ FINITE s ==> CARD t = CARD s`
+[
+   (((((use_arg_then2 ("BIJ", [BIJ]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN ALL_TAC) THEN (case THEN ((move ["inj"]) THEN (move ["surj"]))) THEN (move ["fin_s"])) THEN (((use_arg_then2 ("anti_leq", [anti_leq])) (disch_tac [])) THEN (clear_assumption "anti_leq") THEN (DISCH_THEN apply_tac)));
+   (((((fun arg_tac -> (use_arg_then2 ("surj_imp_card_le", [surj_imp_card_le])) (fun fst_arg -> (use_arg_then2 ("surj", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((fun arg_tac -> (use_arg_then2 ("inj_imp_card_le", [inj_imp_card_le])) (fun fst_arg -> (use_arg_then2 ("inj", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((fun arg_tac -> (use_arg_then2 ("surj_imp_finite", [surj_imp_finite])) (fun fst_arg -> (use_arg_then2 ("surj", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+(add_section_hyp "fin_s" (`FINITE s`));;
+(add_section_hyp "fin_t" (`FINITE t`));;
+(add_section_hyp "card_eq" (`CARD s = CARD t`));;
+
+(* Lemma finite_inj_eq_surj *)
+let finite_inj_eq_surj = section_proof ["f"]
+`INJ f s t <=> SURJ f s t`
+[
+   (((((use_arg_then2 ("INJ", [INJ]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("SURJ", [SURJ]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("andb_id2l", [andb_id2l])) (disch_tac [])) THEN (clear_assumption "andb_id2l") THEN (DISCH_THEN apply_tac) THEN (move ["f_in"])));
+   ((((use_arg_then2 ("SURJECTIVE_IFF_INJECTIVE_GEN", [SURJECTIVE_IFF_INJECTIVE_GEN]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("fin_s", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fin_t", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("card_eq", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((((((use_arg_then2 ("SUBSET", [SUBSET]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_IMAGE", [IN_IMAGE]))(thm_tac (new_rewrite [] []))))) THEN (move ["y"]) THEN (case THEN (move ["x"])) THEN (case THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (move ["xs"])) THEN (((use_arg_then2 ("f_in", [])) (disch_tac [])) THEN (clear_assumption "f_in") THEN (exact_tac)) THEN (done_tac));
+];;
+
+(* Lemma finite_inj_eq_bij *)
+let finite_inj_eq_bij = section_proof ["f"]
+`INJ f s t <=> BIJ f s t`
+[
+   (((((use_arg_then2 ("BIJ", [BIJ]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("finite_inj_eq_surj", [finite_inj_eq_surj]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andbb", [andbb]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma finite_surj_eq_bij *)
+let finite_surj_eq_bij = section_proof ["f"]
+`SURJ f s t <=> BIJ f s t`
+[
+   (((((use_arg_then2 ("BIJ", [BIJ]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("finite_inj_eq_surj", [finite_inj_eq_surj]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andbb", [andbb]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Finalization of the section FiniteBijections *)
+let permutes_imp_bij = finalize_theorem permutes_imp_bij;;
+let surj_image = finalize_theorem surj_image;;
+let surj_imp_finite = finalize_theorem surj_imp_finite;;
+let inj_imp_finite = finalize_theorem inj_imp_finite;;
+let bij_finite_eq = finalize_theorem bij_finite_eq;;
+let surj_imp_card_le = finalize_theorem surj_imp_card_le;;
+let inj_imp_card_le = finalize_theorem inj_imp_card_le;;
+let bij_card_eq = finalize_theorem bij_card_eq;;
+let finite_inj_eq_surj = finalize_theorem finite_inj_eq_surj;;
+let finite_inj_eq_bij = finalize_theorem finite_inj_eq_bij;;
+let finite_surj_eq_bij = finalize_theorem finite_surj_eq_bij;;
+end_section "FiniteBijections";;
+
 (* Section ResInverse *)
 begin_section "ResInverse";;
-let res_inv = new_definition `res_inv f s = (\y. @x. f x = y /\ x IN s)`;;
 
 (* Lemma bij_alt *)
 let bij_alt = section_proof ["f";"s";"t"]
@@ -277,6 +396,21 @@ let bij_res_inv = section_proof ["f";"s";"t"]
    ((repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("res_inv_right", [res_inv_right])) (fun fst_arg -> (use_arg_then2 ("surj", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
 ];;
 
+(* Lemma inj_res_inv_left *)
+let inj_res_inv_left = section_proof ["f";"s";"t";"x"]
+`INJ f s t /\ x IN s ==> res_inv f s (f x) = x`
+[
+   (((((use_arg_then2 ("INJ", [INJ]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (move ["h"])) THEN ((((use_arg_then2 ("res_inv_left", [res_inv_left]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN (done_tac));
+];;
+
+(* Lemma surj_res_inv_right *)
+let surj_res_inv_right = section_proof ["f";"s";"t";"y"]
+`SURJ f s t /\ y IN t ==>
+	f (res_inv f s y) = y /\ res_inv f s y IN s`
+[
+   (((((use_arg_then2 ("SURJ", [SURJ]))(thm_tac (new_rewrite [] [])))) THEN (move ["h"])) THEN ((repeat_tactic 1 9 (((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("res_inv_right", [res_inv_right])) (fun fst_arg -> (use_arg_then2 ("f", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("s", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("t", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac))) THEN (done_tac));
+];;
+
 (* Finalization of the section ResInverse *)
 let bij_alt = finalize_theorem bij_alt;;
 let inj_ext = finalize_theorem inj_ext;;
@@ -286,16 +420,12 @@ let res_inv_left = finalize_theorem res_inv_left;;
 let res_inv_right = finalize_theorem res_inv_right;;
 let res_inv_bij = finalize_theorem res_inv_bij;;
 let bij_res_inv = finalize_theorem bij_res_inv;;
+let inj_res_inv_left = finalize_theorem inj_res_inv_left;;
+let surj_res_inv_right = finalize_theorem surj_res_inv_right;;
 end_section "ResInverse";;
 
 (* Section Iso *)
 begin_section "Iso";;
-let hyp_iso = new_definition `hyp_iso f (H, G) <=>
-                           BIJ f (dart H) (dart G) /\
-                        (!x. x IN dart H ==>
-                        edge_map G (f x) = f (edge_map H x) /\
-                               node_map G (f x) = f (node_map H x) /\
-                           face_map G (f x) = f (face_map H x))`;;
 
 (* Lemma hyp_iso_imp_iso *)
 let hyp_iso_imp_iso = section_proof ["H";"G";"f"]
@@ -338,6 +468,34 @@ begin_section "Iso1";;
 (add_section_var (mk_var ("H", (`:(A)hypermap`))));;
 (add_section_var (mk_var ("G", (`:(B)hypermap`))));;
 (add_section_var (mk_var ("f", (`:A->B`))));;
+
+(* Lemma hyp_iso_edge_face *)
+let hyp_iso_edge_face = section_proof []
+`hyp_iso f (H,G) <=> BIJ f (dart H) (dart G) /\
+	(!x. x IN dart H ==> edge_map G (f x) = f (edge_map H x)
+			 /\ face_map G (f x) = f (face_map H x))`
+[
+   ((((use_arg_then2 ("hyp_iso", [hyp_iso]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andb_id2l", [andb_id2l])) (disch_tac [])) THEN (clear_assumption "andb_id2l") THEN (DISCH_THEN apply_tac) THEN (move ["_"])) THEN ((split_tac) THEN (move ["eq"]) THEN (move ["x"]) THEN (move ["x_in"])) THEN ((repeat_tactic 1 9 (((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] []))))) THEN ((simp_tac THEN TRY done_tac))));
+   ((((use_arg_then2 ("Hypermap.inverse2_hypermap_maps", [Hypermap.inverse2_hypermap_maps]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("o_THM", [o_THM]))(thm_tac (new_rewrite [] [])))));
+   ((fun arg_tac -> (use_arg_then2 ("Hypermap.hypermap_lemma", [Hypermap.hypermap_lemma])) (fun fst_arg -> (use_arg_then2 ("G", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (move ["hypG"])));
+   ((((fun arg_tac -> (use_arg_then2 ("PERMUTES_INVERSE_EQ", [PERMUTES_INVERSE_EQ])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`dart G`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("Hypermap.lemma_dart_invariant", [Hypermap.lemma_dart_invariant]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   ((((use_arg_then2 ("EQ_SYM_EQ", [EQ_SYM_EQ]))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (use_arg_then2 ("PERMUTES_INVERSE_EQ", [PERMUTES_INVERSE_EQ])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`dart G`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("Hypermap.lemma_dart_invariant", [Hypermap.lemma_dart_invariant]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   (((((fun arg_tac -> (use_arg_then2 ("o_THM", [o_THM])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`edge_map H`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("o_THM", [o_THM])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`face_map H`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("Hypermap.hypermap_cyclic", [Hypermap.hypermap_cyclic]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("I_THM", [I_THM]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma hyp_iso_edge_node *)
+let hyp_iso_edge_node = section_proof []
+`hyp_iso f (H,G) <=> BIJ f (dart H) (dart G) /\
+	(!x. x IN dart H ==> edge_map G (f x) = f (edge_map H x)
+			 /\ node_map G (f x) = f (node_map H x))`
+[
+   ((((use_arg_then2 ("hyp_iso", [hyp_iso]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andb_id2l", [andb_id2l])) (disch_tac [])) THEN (clear_assumption "andb_id2l") THEN (DISCH_THEN apply_tac) THEN (move ["_"])) THEN ((split_tac) THEN (move ["eq"]) THEN (move ["x"]) THEN (move ["x_in"])) THEN ((repeat_tactic 1 9 (((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] []))))) THEN ((simp_tac THEN TRY done_tac))));
+   ((((use_arg_then2 ("Hypermap.inverse2_hypermap_maps", [Hypermap.inverse2_hypermap_maps]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("o_THM", [o_THM]))(thm_tac (new_rewrite [] [])))));
+   ((fun arg_tac -> (use_arg_then2 ("Hypermap.hypermap_lemma", [Hypermap.hypermap_lemma])) (fun fst_arg -> (use_arg_then2 ("G", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (move ["hypG"])));
+   ((((fun arg_tac -> (use_arg_then2 ("PERMUTES_INVERSE_EQ", [PERMUTES_INVERSE_EQ])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`dart G`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("Hypermap.lemma_dart_invariant", [Hypermap.lemma_dart_invariant]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   ((((use_arg_then2 ("EQ_SYM_EQ", [EQ_SYM_EQ]))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (use_arg_then2 ("PERMUTES_INVERSE_EQ", [PERMUTES_INVERSE_EQ])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`dart G`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("Hypermap.lemma_dart_invariant", [Hypermap.lemma_dart_invariant]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   (((((fun arg_tac -> (use_arg_then2 ("o_THM", [o_THM])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`node_map H`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("o_THM", [o_THM])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`edge_map H`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("Hypermap.hypermap_lemma", [Hypermap.hypermap_lemma]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("I_THM", [I_THM]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
 (add_section_hyp "isoHG" (`hyp_iso f (H, G)`));;
 
 (* Lemma hyp_iso_bij *)
@@ -368,6 +526,21 @@ let hyp_iso_dart = section_proof ["x"]
    ((((use_arg_then2 ("isoHG", [])) (disch_tac [])) THEN (clear_assumption "isoHG") THEN BETA_TAC) THEN (((((use_arg_then2 ("hyp_iso", [hyp_iso]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("bij_alt", [bij_alt]))(thm_tac (new_rewrite [] []))))) THEN ALL_TAC THEN (case THEN ALL_TAC) THEN (case THEN (move ["h"])) THEN (move ["_"]) THEN (move ["_"])) THEN (((use_arg_then2 ("h", [])) (disch_tac [])) THEN (clear_assumption "h") THEN (exact_tac)) THEN (done_tac));
 ];;
 
+(* Lemma hyp_iso_SURJ *)
+let hyp_iso_SURJ = section_proof []
+`SURJ f (dart H) (dart G)`
+[
+   ((((use_arg_then2 ("SURJ", [SURJ]))(thm_tac (new_rewrite [] [])))) THEN ((split_tac) THEN (move ["x"]) THEN (move ["x_in"])) THEN (((fun arg_tac ->(use_arg_then2 ("hyp_iso_dart", [hyp_iso_dart]))(fun tmp_arg1 -> (use_arg_then2 ("hyp_iso_surj", [hyp_iso_surj]))(fun tmp_arg2 -> arg_tac (Arg_theorem (CONJ (get_arg_thm tmp_arg1) (get_arg_thm tmp_arg2))))))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma hyp_iso_INJ *)
+let hyp_iso_INJ = section_proof []
+`INJ f (dart H) (dart G)`
+[
+   ((THENL_FIRST) ((((use_arg_then2 ("INJ", [INJ]))(thm_tac (new_rewrite [] [])))) THEN ((THENL) (split_tac) [((move ["x"]) THEN (move ["x_in"])); ((move ["x"]) THEN (move ["y"]))])) ((((use_arg_then2 ("hyp_iso_dart", [hyp_iso_dart]))(thm_tac (new_rewrite [] [])))) THEN (done_tac)));
+   (((use_arg_then2 ("hyp_iso_inj", [hyp_iso_inj])) (disch_tac [])) THEN (clear_assumption "hyp_iso_inj") THEN (exact_tac));
+];;
+
 (* Lemma hyp_iso_comm *)
 let hyp_iso_comm = section_proof ["x"]
 `x IN dart H ==>
@@ -376,6 +549,19 @@ let hyp_iso_comm = section_proof ["x"]
         face_map G (f x) = f (face_map H x)`
 [
    ((((use_arg_then2 ("isoHG", [])) (disch_tac [])) THEN (clear_assumption "isoHG") THEN BETA_TAC) THEN ((((use_arg_then2 ("hyp_iso", [hyp_iso]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN ALL_TAC) THEN (move ["_"]) THEN (move ["h"]) THEN (move ["x_in"])) THEN (repeat_tactic 1 9 (((use_arg_then2 ("h", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma hyp_iso_inverse_comm *)
+let hyp_iso_inverse_comm = section_proof ["x"]
+`x IN dart H
+	==> inverse (edge_map G) (f x) = f (inverse (edge_map H) x)
+	 /\ inverse (node_map G) (f x) = f (inverse (node_map H) x)
+	 /\ inverse (face_map G) (f x) = f (inverse (face_map H) x)`
+[
+   (BETA_TAC THEN (move ["x_in"]));
+   ((repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("PERMUTES_INVERSE_EQ", [PERMUTES_INVERSE_EQ])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`dart G`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("Hypermap.hypermap_lemma", [Hypermap.hypermap_lemma]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   ((repeat_tactic 1 9 (((use_arg_then2 ("hyp_iso_comm", [hyp_iso_comm]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("Hypermap.lemma_dart_inveriant_under_inverse_maps", [Hypermap.lemma_dart_inveriant_under_inverse_maps]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   (((repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("PERMUTES_INVERSES", [PERMUTES_INVERSES])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`dart H`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("Hypermap.hypermap_lemma", [Hypermap.hypermap_lemma]))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
 ];;
 
 (* Lemma hyp_iso_inv *)
@@ -406,6 +592,20 @@ let iso_components = section_proof ["d"]
    ((((use_arg_then2 ("isoHG", [])) (disch_tac [])) THEN (clear_assumption "isoHG") THEN BETA_TAC) THEN ((((use_arg_then2 ("hyp_iso", [hyp_iso]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN (move ["bij"])) THEN (move ["f_eq"]) THEN (move ["d_in"])));
    ((repeat_tactic 1 9 (((use_arg_then2 ("node", [node]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("face", [face]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("edge", [edge]))(thm_tac (new_rewrite [] []))))));
    ((repeat_tactic 1 9 ((split_tac))) THEN (((fun arg_tac -> (use_arg_then2 ("orbit_comm", [orbit_comm])) (fun fst_arg -> (use_arg_then2 ("d_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac)) THEN ((split_tac) THEN (move ["x"]) THEN (move ["x_in"])) THEN ((repeat_tactic 0 10 (((use_arg_then2 ("lemma_dart_invariant", [lemma_dart_invariant]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("f_eq", []))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+];;
+
+(* Lemma hyp_iso_card_components *)
+let hyp_iso_card_components = section_proof ["x"]
+`x IN dart H ==> 
+	CARD (face H x) = CARD (face G (f x)) /\
+	CARD (node H x) = CARD (node G (f x)) /\
+	CARD (edge H x) = CARD (edge G (f x))`
+[
+   ((BETA_TAC THEN (move ["x_in"])) THEN ((repeat_tactic 1 9 (((use_arg_then2 ("iso_components", [iso_components]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac))));
+   (((repeat_tactic 1 9 (((use_arg_then2 ("CARD_IMAGE_INJ", [CARD_IMAGE_INJ]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((fun arg_tac ->(use_arg_then2 ("EDGE_FINITE", [EDGE_FINITE]))(fun tmp_arg1 -> (fun arg_tac ->(use_arg_then2 ("FACE_FINITE", [FACE_FINITE]))(fun tmp_arg1 -> (use_arg_then2 ("NODE_FINITE", [NODE_FINITE]))(fun tmp_arg2 -> arg_tac (Arg_theorem (CONJ (get_arg_thm tmp_arg1) (get_arg_thm tmp_arg2))))))(fun tmp_arg2 -> arg_tac (Arg_theorem (CONJ (get_arg_thm tmp_arg1) (get_arg_thm tmp_arg2))))))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andbT", [andbT]))(thm_tac (new_rewrite [] []))))) THEN (BETA_TAC THEN (move ["a"]) THEN (move ["b"]) THEN (case THEN (move ["a_in"])) THEN (case THEN (move ["b_in"])) THEN (move ["eq"])) THEN (((fun arg_tac -> (use_arg_then2 ("hyp_iso_inj", [hyp_iso_inj])) (fun fst_arg -> (use_arg_then2 ("eq", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac)));
+   ((split_tac) THEN ((use_arg_then2 ("IN_TRANS", [IN_TRANS])) (thm_tac apply_tac)) THEN ((fun arg_tac -> arg_tac (Arg_term (`face H x`))) (term_tac exists_tac)) THEN (((use_arg_then2 ("lemma_face_subset", [lemma_face_subset]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((split_tac) THEN ((use_arg_then2 ("IN_TRANS", [IN_TRANS])) (thm_tac apply_tac)) THEN ((fun arg_tac -> arg_tac (Arg_term (`node H x`))) (term_tac exists_tac)) THEN (((use_arg_then2 ("lemma_node_subset", [lemma_node_subset]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((split_tac) THEN ((use_arg_then2 ("IN_TRANS", [IN_TRANS])) (thm_tac apply_tac)) THEN ((fun arg_tac -> arg_tac (Arg_term (`edge H x`))) (term_tac exists_tac)) THEN (((use_arg_then2 ("lemma_edge_subset", [lemma_edge_subset]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
 ];;
 
 (* Lemma iso_node_set *)
@@ -609,14 +809,20 @@ let iso_connected_imp = section_proof []
 ];;
 
 (* Finalization of the section Iso1 *)
+let hyp_iso_edge_face = finalize_theorem hyp_iso_edge_face;;
+let hyp_iso_edge_node = finalize_theorem hyp_iso_edge_node;;
 let hyp_iso_bij = finalize_theorem hyp_iso_bij;;
 let hyp_iso_inj = finalize_theorem hyp_iso_inj;;
 let hyp_iso_surj = finalize_theorem hyp_iso_surj;;
 let hyp_iso_dart = finalize_theorem hyp_iso_dart;;
+let hyp_iso_SURJ = finalize_theorem hyp_iso_SURJ;;
+let hyp_iso_INJ = finalize_theorem hyp_iso_INJ;;
 let hyp_iso_comm = finalize_theorem hyp_iso_comm;;
+let hyp_iso_inverse_comm = finalize_theorem hyp_iso_inverse_comm;;
 let hyp_iso_inv = finalize_theorem hyp_iso_inv;;
 let hyp_iso_ext = finalize_theorem hyp_iso_ext;;
 let iso_components = finalize_theorem iso_components;;
+let hyp_iso_card_components = finalize_theorem hyp_iso_card_components;;
 let iso_node_set = finalize_theorem iso_node_set;;
 let iso_edge_set = finalize_theorem iso_edge_set;;
 let iso_face_set = finalize_theorem iso_face_set;;
@@ -679,14 +885,20 @@ let hyp_iso_imp_iso = finalize_theorem hyp_iso_imp_iso;;
 let iso_imp_hyp_iso = finalize_theorem iso_imp_hyp_iso;;
 let h_map_outside = finalize_theorem h_map_outside;;
 let hyp_path_subset = finalize_theorem hyp_path_subset;;
+let hyp_iso_edge_face = finalize_theorem hyp_iso_edge_face;;
+let hyp_iso_edge_node = finalize_theorem hyp_iso_edge_node;;
 let hyp_iso_bij = finalize_theorem hyp_iso_bij;;
 let hyp_iso_inj = finalize_theorem hyp_iso_inj;;
 let hyp_iso_surj = finalize_theorem hyp_iso_surj;;
 let hyp_iso_dart = finalize_theorem hyp_iso_dart;;
+let hyp_iso_SURJ = finalize_theorem hyp_iso_SURJ;;
+let hyp_iso_INJ = finalize_theorem hyp_iso_INJ;;
 let hyp_iso_comm = finalize_theorem hyp_iso_comm;;
+let hyp_iso_inverse_comm = finalize_theorem hyp_iso_inverse_comm;;
 let hyp_iso_inv = finalize_theorem hyp_iso_inv;;
 let hyp_iso_ext = finalize_theorem hyp_iso_ext;;
 let iso_components = finalize_theorem iso_components;;
+let hyp_iso_card_components = finalize_theorem hyp_iso_card_components;;
 let iso_node_set = finalize_theorem iso_node_set;;
 let iso_edge_set = finalize_theorem iso_edge_set;;
 let iso_face_set = finalize_theorem iso_face_set;;

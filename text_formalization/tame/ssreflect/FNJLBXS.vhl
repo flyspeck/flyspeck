@@ -10,6 +10,8 @@ Module Fnjlbxs.
 "open Seq".
 "open Seq2".
 "open Sort".
+"open Tame_defs".
+"open Fan_defs".
 
 Lemma packing V: `packing V <=> (!u v. u IN V /\ v IN V /\ ~(u = v) ==> &2 <= dist (u,v))`.
 Proof. by rewrite Sphere.packing -!(IN V). Qed.
@@ -475,7 +477,7 @@ Lemma bij_scriptL f V W: `BIJ f V W /\ (!v. v IN V ==> norm v = norm (f v)) ==>
         scriptL W = scriptL V`.
 Proof.
 rewrite BIJ INJ => [] [[[_ inj_f] surj_f]] norm_eq.
-rewrite !Tame_defs.scriptL -(surj_image surj_f) SUM_IMAGE.
+rewrite !Tame_defs.scriptL -(Hypermap_iso.surj_image surj_f) SUM_IMAGE.
   by move => x y [x_in] [y_in] f_eq; apply: inj_f.
 by apply SUM_EQ => v v_in /=; rewrite o_THM /= -norm_eq.
 Qed.
@@ -1455,7 +1457,7 @@ set W := `u INSERT (V DELETE v)`.
 set f := `\x. if x = v then u else x`.
 exists W f; split.
   have card_n0: `~(CARD V = 0)` by rewrite CARD_EQ_0 // -MEMBER_NOT_EMPTY; exists v.
-  rewrite -finite_surj_eq_bij -W_def ?FINITE_INSERT ?CARD_CLAUSES ?FINITE_DELETE ?finV //.
+  rewrite -Hypermap_iso.finite_surj_eq_bij -W_def ?FINITE_INSERT ?CARD_CLAUSES ?FINITE_DELETE ?finV //.
     by rewrite IN_DELETE nuV /= CARD_DELETE // vV /=; move: card_n0; arith.
   rewrite SURJ !IN_INSERT !IN_DELETE -f_def /=; split => [x xV | ].
     by case eq: `x = v` => /=; rewrite xV andTb eq.
@@ -1597,16 +1599,28 @@ by move: bij_f; rewrite BIJ INJ => ->.
 Qed.
 
 
-(* Hypotheses *)
-Hypothesis DLWCHEM: `!V. packing V /\ V SUBSET ball_annulus ==> CARD V <= 15`.
-Hypothesis XULJEPR: `!V v. packing V /\ V SUBSET ball_annulus /\ scriptL V > &12 /\
-        v IN V /\ norm v = &2 ==> ?u. u IN V /\ ~(u = v) /\ dist (v, u) < &2 * h0`.
+Lemma radV_2 a b: `radV {a,b} = norm (b - a) / &2`.
+Proof.
+rewrite (Rogers.OAPVION2 b) ?AFFINE_INDEPENDENT_2 ?IN_INSERT //.
+rewrite Rogers.CIRCUMCENTER_2 midpoint dist.
+have ->: `inv(&2) % (a + b) - b = inv (&2) % (a - b)` by "VECTOR_ARITH_TAC".
+by rewrite NORM_MUL REAL_ABS_INV REAL_ABS_NUM NORM_SUB REAL_MUL_SYM real_div.
+Qed.
 
 
-Theorem FCDJDOT: `(?W. packing W /\ W SUBSET ball_annulus /\ scriptL W > &12) ==>
+Lemma hl2 a b: `hl [a;b] = norm (b - a) / &2`.
+Proof. by rewrite Pack_defs.HL !"GEN_ALL set_of_list" radV_2. Qed.
+
+
+Lemma lmfun_ineq_center_scriptL V: `lmfun_ineq_center V <=> scriptL V <= &12`.
+Proof. by rewrite Pack_defs.lmfun_ineq_center scriptL hl2 "GEN_ALL VECTOR_SUB_RZERO". Qed.
+
+
+Theorem FCDJDOT: `pack_ineq_def_a ==>
+	(?W. packing W /\ W SUBSET ball_annulus /\ scriptL W > &12) ==>
        (?V. contravening V)`.
 Proof.
-move => [W0] W0_props.
+move => ineqs [W0] W0_props.
 move: scriptL_attains_max_in_ball_annulus => [W1] [packW1] [subW1] W1max.
 have W1_gt12: `scriptL W1 > &12`.
   by move: (W1max W0); rewrite !W0_props /= real_gt; apply/REAL_LTE_TRANS; rewrite -real_gt.
@@ -1614,22 +1628,23 @@ move: (FNJLBXS packW1 subW1) => [V] [f] [bij_f] [packV] [subV] [norm_eq] V_ESTD.
 have LV_eq := bij_scriptL bij_f norm_eq.
 exists V; rewrite contravening packV subV LV_eq W1_gt12 /=.
 split => //; split.
-  move: (card_counterexample_ge13 packV subV) (DLWCHEM packV subV).
-  by rewrite LV_eq W1_gt12 /=; arith.
+  apply: (Counting_spheres.DLWCHEM packV subV ineqs).
+  by rewrite lmfun_ineq_center_scriptL REAL_NOT_LE LV_eq -real_gt.
 split => v vV; last first.
   case h: `surrounded_node _1 v` => /=.
   by apply: (not_surrounded_node_norm_ECTC packV).
 move: (V_ESTD vV); case => // set0; apply: contraT => _.
-have norm_v: `norm v = &2`.
+have := Counting_spheres.XULJEPR packV subV ineqs.
+rewrite implybF NOT_IMP lmfun_ineq_center_scriptL REAL_NOT_LE LV_eq -real_gt W1_gt12 /=.
+exists v; do !split => //.
   apply: (isolated_node_norm_ECTC packV); do !split => //.
   apply: contraLR set0; rewrite -!MEMBER_NOT_EMPTY => [] [x].
   rewrite !set_of_edge !inE; move: (ECTC_sub_ESTD V); rewrite SUBSET => subCS.
   by move => [/subCS] inS xV; exists x.
-move: (XULJEPR packV subV vV norm_v); "ANTS_TAC"; first by rewrite LV_eq.
-move => [u] [uV] [nuv] dist_vu.
-move: set0 => /=; rewrite -MEMBER_NOT_EMPTY; exists u.
-rewrite set_of_edge inE uV andbT ESTD IN_ELIM_THM /=.
-by exists v u; rewrite REAL_LT_IMP_LE.
+move => u [uV] nuv; apply: contraLR set0.
+rewrite -MEMBER_NOT_EMPTY REAL_NOT_LE Pack_defs.h0 => dist_lt.
+exists u; rewrite set_of_edge inE Tame_general.IN_ESTD uV vV -nuv /= DIST_SYM.
+by move: dist_lt; arith.
 Qed.
 
 

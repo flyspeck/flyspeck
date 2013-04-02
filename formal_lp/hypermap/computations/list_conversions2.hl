@@ -4,52 +4,83 @@
 (* Date: 2012-10-27                                            *)
 (* =========================================================== *)
 
+(* Copy to a configuration file *)
+let add_to_load_path path =
+  if mem path !load_path then () 
+  else load_path := path :: !load_path;;
+
+add_to_load_path "/mnt/Repository/formal_ineqs";;
+
+needs "arith_options.hl";;
+Arith_options.base := 10;;
+
+
+
 needs "arith/nat.hl";;
 needs "misc/vars.hl";;
 needs "Examples/seq-compiled.hl";;
 
 module type List_conversions_sig =
   sig
-	(* HD *)
+    (* pair *)
+    val eval_pair_eq_univ : (term -> thm) * (term -> thm) -> term -> term -> thm
+    val pair_eq_conv_univ : (term -> thm) * (term -> thm) -> term -> thm
+    val eval_pair_eq_num : term -> term -> thm
+    val pair_eq_conv_num : term -> thm
+    (* HD *)
     val eval_hd : term -> thm
     val hd_conv : term -> thm
-	(* EL *)
+      (* EL *)
     val eval_el : term -> term -> thm
     val el_conv : term -> thm
-	(* FST, SND *)
+      (* FST, SND *)
     val fst_conv : term -> thm
     val snd_conv : term -> thm
-	(* LENGTH *)
+      (* LENGTH *)
     val eval_length : term -> thm
     val length_conv : term -> thm
-	(* ZIP *)
+      (* ZIP *)
     val eval_zip : term -> term -> thm
-	(* ALL *)
+      (* ALL *)
     val all_conv_univ : (term -> thm) -> term -> thm
-	(* ALL2 *)
+      (* ALL2 *)
     val all2_conv_univ : (term -> thm) -> term -> thm
-	(* MEM *)
+      (* MEM *)
     val eval_mem_univ : (term -> thm) -> term -> term -> thm
     val mem_conv_univ : (term -> thm) -> term -> thm
-	(* FILTER *)
+      (* FILTER *)
     val filter_conv_univ : (term -> thm) -> term -> thm
-	(* MAP *)
+      (* MAP *)
     val map_conv_univ : (term -> thm) -> term -> thm
-	(* ALL theorems *)
+      (* ALL theorems *)
     val get_all : thm -> thm list
     val select_all : thm -> int list -> thm list
-	(* set_of_list *)
-	val eval_set_of_list : term -> thm
+      (* set_of_list *)
+    val eval_set_of_list : term -> thm
     val set_of_list_conv : term -> thm
-	(* flatten *)
-	val eval_flatten : term -> thm
-	val flatten_conv : term -> thm
-	(* uniq *)
-	val eval_uniq_univ : (term -> thm) -> term -> thm
-	val uniq_conv_univ : (term -> thm) -> term -> thm
-	(* undup *)
-	val eval_undup_univ : (term -> thm) -> term -> thm
-	val undup_conv_univ : (term -> thm) -> term -> thm
+      (* flatten *)
+    val eval_flatten : term -> thm
+    val flatten_conv : term -> thm
+      (* uniq *)
+    val eval_uniq_univ : (term -> thm) -> term -> thm
+    val uniq_conv_univ : (term -> thm) -> term -> thm
+      (* undup *)
+    val eval_undup_univ : (term -> thm) -> term -> thm
+    val undup_conv_univ : (term -> thm) -> term -> thm
+      (* cat *)
+    val eval_cat : term -> term -> thm
+    val cat_conv : term -> thm
+      (* BUTLAST, LAST *)
+    val eval_butlast_last : term -> thm * thm
+      (* take, drop *)
+    val eval_take : term -> term -> thm
+    val eval_drop : term -> term -> thm
+    val eval_take_drop : term -> term -> thm * thm
+      (* rot *)
+    val eval_rot : term -> term -> thm
+    val eval_rot1 : term -> thm
+    val eval_rotr1 : term -> thm
+      
   end;;
 
 
@@ -63,6 +94,76 @@ open Seq;;
 
 let MY_RULE = UNDISCH_ALL o PURE_REWRITE_RULE[GSYM IMP_IMP] o SPEC_ALL;;
 let MY_RULE_NUM = UNDISCH_ALL o NUMERALS_TO_NUM o PURE_REWRITE_RULE[GSYM IMP_IMP] o SPEC_ALL;;
+let TO_NUM = REWRITE_RULE[Arith_hash.NUM_THM] o DEPTH_CONV NUMERAL_TO_NUM_CONV;;
+let to_num = rand o concl o TO_NUM;;
+
+
+
+(***********************************************)
+(* pair_eq_conv *)
+
+let PAIR_EQ_TT = (MY_RULE o prove)(`(n = x <=> T) /\ (m = y <=> T) ==> (n:A,m:B = x,y <=> T)`, SIMP_TAC[PAIR_EQ]) and
+    PAIR_NEQ_FST = (MY_RULE o prove)(`(n = x <=> F) ==> (n:A,m:B = x,y <=> F)`, SIMP_TAC[PAIR_EQ]) and
+    PAIR_NEQ_SND = (MY_RULE o prove)(`(m = y <=> F) ==> (n:A,m:B = x,y <=> F)`, SIMP_TAC[PAIR_EQ]);;
+
+
+let eval_pair_eq_univ (eq1_f, eq2_f) p1_tm p2_tm =
+  if (p1_tm = p2_tm) then
+    EQT_INTRO (REFL p1_tm)
+  else
+    let n_tm, m_tm = dest_pair p1_tm in
+    let x_tm, y_tm = dest_pair p2_tm in
+    let ty1 = type_of n_tm and
+	ty2 = type_of m_tm in
+    let n_var, m_var = mk_var("n", ty1), mk_var("m", ty2) and
+	x_var, y_var = mk_var("x", ty1), mk_var("y", ty2) in
+    let inst_t = INST_TYPE[ty1, aty; ty2, bty] in
+    let inst = INST[n_tm, n_var; m_tm, m_var; x_tm, x_var; y_tm, y_var] in
+    let fst_th = eq1_f (mk_eq (n_tm, x_tm)) in
+      if (rand(concl fst_th) = f_const) then
+	MY_PROVE_HYP fst_th ((inst o inst_t) PAIR_NEQ_FST)
+      else
+	let snd_th = eq2_f (mk_eq (m_tm, y_tm)) in
+	  if (rand(concl snd_th) = f_const) then
+	    MY_PROVE_HYP snd_th ((inst o inst_t) PAIR_NEQ_SND)
+	  else
+	    let th0 = (inst o inst_t) PAIR_EQ_TT in
+	      MY_PROVE_HYP fst_th (MY_PROVE_HYP snd_th th0);;
+
+
+let pair_eq_conv_univ (eq1_f, eq2_f) eq_tm =
+  let lhs, rhs = dest_eq eq_tm in
+    eval_pair_eq_univ (eq1_f, eq2_f) lhs rhs;;
+
+
+let eval_pair_eq_num =
+  let inst_t = INST_TYPE[num_type, aty; num_type, bty] in
+  let pair_eq, pair_neq_fst, pair_neq_snd = 
+    inst_t PAIR_EQ_TT, inst_t PAIR_NEQ_FST, inst_t PAIR_NEQ_SND in
+    fun p1_tm p2_tm ->
+      if (p1_tm = p2_tm) then
+	EQT_INTRO (REFL p1_tm)
+      else
+	let n_tm, m_tm = dest_pair p1_tm in
+	let x_tm, y_tm = dest_pair p2_tm in
+	let inst = INST[n_tm, n_var_num; m_tm, m_var_num; x_tm, x_var_num; y_tm, y_var_num] in
+	let fst_th = raw_eq_hash_conv (mk_eq (n_tm, x_tm)) in
+	  if (rand(concl fst_th) = f_const) then
+	    MY_PROVE_HYP fst_th (inst pair_neq_fst)
+	  else
+	    let snd_th = raw_eq_hash_conv (mk_eq (m_tm, y_tm)) in
+	      if (rand(concl snd_th) = f_const) then
+		MY_PROVE_HYP snd_th (inst pair_neq_snd)
+	      else
+		let th0 = inst pair_eq in
+		  MY_PROVE_HYP fst_th (MY_PROVE_HYP snd_th th0);;
+
+
+let pair_eq_conv_num eq_tm =
+  let lhs, rhs = dest_eq eq_tm in
+    eval_pair_eq_num lhs rhs;;
+
+
 
 (******************************)
 
@@ -84,6 +185,7 @@ let eval_hd list_tm =
 let hd_conv hd_tm =
   if (fst o dest_const o rator) hd_tm <> "HD" then failwith "hd_conv"
   else eval_hd (rand hd_tm);;
+
 
 
 (*********************************)
@@ -182,6 +284,7 @@ let eval_length list_tm =
 let length_conv length_tm =
   if (fst o dest_const o rator) length_tm <> "LENGTH" then failwith "length_conv"
   else eval_length (rand length_tm);;
+
 
 
 
@@ -326,8 +429,8 @@ let all2_conv_univ p_conv tm =
 (* MEM conversions *)
 
 let MEM_A_EMPTY = prove(`MEM (x:A) [] <=> F`, REWRITE_TAC[MEM]) and
-    MEM_A_HD = (MY_RULE o prove) (`(x = h <=> T) ==> (MEM (x:A) (CONS h t) <=> T)`,SIMP_TAC[MEM])) and
-    MEM_A_TL = (MY_RULE o prove) (`(x = h <=> F) ==> (MEM (x:A) (CONS h t) <=> MEM x t)`, SIMP_TAC[MEM]));;
+    MEM_A_HD = (MY_RULE o prove) (`(x = h <=> T) ==> (MEM (x:A) (CONS h t) <=> T)`, SIMP_TAC[MEM]) and
+    MEM_A_TL = (MY_RULE o prove) (`(x = h <=> F) ==> (MEM (x:A) (CONS h t) <=> MEM x t)`, SIMP_TAC[MEM]);;
 
 
 let rec eval_mem_univ eq_conv x_tm list_tm =
@@ -406,8 +509,7 @@ let filter_conv_univ p_conv tm =
       INST[p_tm, p_var] filter_empty in
     filter_conv_raw list_tm;;
 	  
-    
-    
+
 (***************************)
 (* MAP conversions *)
 
@@ -446,8 +548,8 @@ let map_conv_univ f_conv tm =
 (*****************************************)
 (* ALL rules *)
 
-let ALL_A_HD = (MY_RULE o prove) (`ALL (P:A->bool) (CONS h t) ==> P h`, SIMP_TAC[ALL])) and
-    ALL_A_TL = (MY_RULE o prove) (`ALL (P:A->bool) (CONS h t) ==> ALL P t`, SIMP_TAC[ALL]));;
+let ALL_A_HD = (MY_RULE o prove) (`ALL (P:A->bool) (CONS h t) ==> P h`, SIMP_TAC[ALL]) and
+    ALL_A_TL = (MY_RULE o prove) (`ALL (P:A->bool) (CONS h t) ==> ALL P t`, SIMP_TAC[ALL]);;
 
 
 (* Given a theorem `ALL P list` returns the list of theorems (P x1),...,(P xn) *)
@@ -546,13 +648,13 @@ let set_of_list_conv tm =
   if (fst o dest_const o rator) tm <> "set_of_list" then failwith "set_of_list_conv"
   else eval_set_of_list (rand tm);;
 
-  
+
 (*****************************************)
 (* flatten conversions *)
 
 let flatten_empty = prove(`flatten ([]:((A)list)list) = []`, REWRITE_TAC[flatten; foldr; cat]) and
     flatten_cons_empty = prove(`flatten (CONS ([]:(A)list) tt) = flatten tt`, REWRITE_TAC[flatten; foldr; cat]) and
-    flatten_cons_cons = prove(`flatten (CONS (CONS (h:A) t) tt) = CONS h (FLATTEN (CONS t tt))`, REWRITE_TAC[flatten; foldr; cat]);;
+    flatten_cons_cons = prove(`flatten (CONS (CONS (h:A) t) tt) = CONS h (flatten (CONS t tt))`, REWRITE_TAC[flatten; foldr; cat]);;
 
 
 (* Works for any list of lists *)
@@ -592,22 +694,13 @@ let flatten_conv flatten_tm =
   if (fst o dest_const o rator) flatten_tm <> "flatten" then failwith "flatten_conv"
   else eval_flatten (rand flatten_tm);;
 
-(*
-let tm = `flatten [[1;2;3];[3];[4;5;2;1;6;7]]`;;
-flatten_conv tm;;
-REWRITE_CONV[FLATTEN; ITLIST; APPEND] tm;;
-
-test 100 (REWRITE_CONV[FLATTEN; ITLIST; APPEND]) tm;; (* 0.348 *)
-test 100 (flatten_conv_univ) tm;; (* 0.028 *)
-*)
-
 
 (********************************)
 (* uniq conversion *)
 
 let uniq_empty = prove(`uniq ([]:(A)list) <=> T`, REWRITE_TAC[uniq]) and
-    uniq_cons_F = (MY_RULE o prove) (`(MEM (h:A) t <=> F) ==> (uniq (CONS h t) <=> uniq t)`, SIMP_TAC[uniq])) and
-    uniq_cons_T = (MY_RULE o prove) (`(MEM (h:A) t <=> T) ==> (uniq (CONS h t) <=> F)`, SIMP_TAC[uniq]));;
+    uniq_cons_F = (MY_RULE o prove) (`(MEM (h:A) t <=> F) ==> (uniq (CONS h t) <=> uniq t)`, SIMP_TAC[uniq]) and
+    uniq_cons_T = (MY_RULE o prove) (`(MEM (h:A) t <=> T) ==> (uniq (CONS h t) <=> F)`, SIMP_TAC[uniq]);;
 
 
 let eval_uniq_univ eq_conv list_tm =
@@ -617,50 +710,35 @@ let eval_uniq_univ eq_conv list_tm =
   let t_var = mk_var("t", list_ty) in
   let inst_t = INST_TYPE[ty, aty] in
   let uniq_empty, uniq_cons_F, uniq_cons_T =
-	inst_t uniq_empty, inst_t uniq_cons_F, inst_t uniq_cons_T in
-
-	let rec uniq_rec list_tm =
-		if (is_comb list_tm) then
-			let h_tm', t_tm = dest_comb list_tm in
-			let h_tm = rand h_tm' in
-			let inst = INST[h_tm, h_var; t_tm, t_var] in
-			let mem_th = eval_mem_univ eq_conv h_tm t_tm in
-			if (rand (concl mem_th) = t_const) then
-				MY_PROVE_HYP mem_th (inst uniq_cons_T)
-			else
-				let th0 = MY_PROVE_HYP mem_th (inst uniq_cons_F) in
-				let th1 = uniq_rec t_tm in
-					TRANS th0 th1
+    inst_t uniq_empty, inst_t uniq_cons_F, inst_t uniq_cons_T in
+  let rec uniq_rec list_tm =
+    if (is_comb list_tm) then
+      let h_tm', t_tm = dest_comb list_tm in
+      let h_tm = rand h_tm' in
+      let inst = INST[h_tm, h_var; t_tm, t_var] in
+      let mem_th = eval_mem_univ eq_conv h_tm t_tm in
+	if (rand (concl mem_th) = t_const) then
+	  MY_PROVE_HYP mem_th (inst uniq_cons_T)
+	else
+	  let th0 = MY_PROVE_HYP mem_th (inst uniq_cons_F) in
+	  let th1 = uniq_rec t_tm in
+	    TRANS th0 th1
 		else
-			uniq_empty in
-			
-		uniq_rec list_tm;;
+		  uniq_empty in
+    uniq_rec list_tm;;
 
 
 let uniq_conv_univ eq_conv tm =
   if (fst o dest_const o rator) tm <> "uniq" then failwith "uniq_conv"
   else eval_uniq_univ eq_conv (rand tm);;
 
-(*
-let uniq_REWRITE_CONV = REWRITE_CONV[uniq; MEM; PAIR_EQ; ARITH];;
 
-let z = mk_comb(`ALL_DISTINCT:(num#num)list->bool`, rand(concl (LIST_OF_DARTS_CONV y)));;
-ALL_DISTINCT_REWRITE_CONV z;;
-ALL_DISTINCT_NUM_PAIR_CONV z;;
-test 1 ALL_DISTINCT_REWRITE_CONV z;; (* 0.808 *)
-test 1 ALL_DISTINCT_NUM_PAIR_CONV z;; (* 0.084 *)
-*)
-	  
 (**********************************)
 (* undup conversion *)
 
-
-
 let undup_empty = prove(`undup ([]:(num)list) = []`, REWRITE_TAC[undup]) and
-	undup_mem_T = (MY_RULE o prove) (`(MEM (h:A) t <=> T) ==>
-						undup (CONS h t) = undup t, SIMP_TAC[undup]) and
-	undup_mem_F = (MY_RULE o prove) (`(MEM (h:A) t <=> F) ==>
-						undup (CONS h t) = CONS h (undup t)`, SIMP_TAC[undup]));;
+    undup_mem_T = (MY_RULE o prove) (`(MEM (h:A) t <=> T) ==> undup (CONS h t) = undup t`, SIMP_TAC[undup]) and
+    undup_mem_F = (MY_RULE o prove) (`(MEM (h:A) t <=> F) ==> undup (CONS h t) = CONS h (undup t)`, SIMP_TAC[undup]);;
 
 
 let eval_undup_univ eq_conv list_tm =
@@ -670,42 +748,283 @@ let eval_undup_univ eq_conv list_tm =
   let t_var = mk_var("t", list_ty) in
   let inst_t = INST_TYPE[ty, aty] in
   let empty, mem_T, mem_F =
-	inst_t undup_empty, inst_t undup_mem_T, inst_t undup_mem_F in
-
-  let undup_rec list_tm =
+    inst_t undup_empty, inst_t undup_mem_T, inst_t undup_mem_F in
+    
+  let rec undup_rec list_tm =
     if (is_comb list_tm) then
       let h_tm', t_tm = dest_comb list_tm in
       let h_tm = rand h_tm' in
       let inst = INST[h_tm, h_var; t_tm, t_var] in
       let mem_th = eval_mem_univ eq_conv h_tm t_tm in
-		if (rand(concl mem_th) = t_const) then
-			let th0 = MY_PROVE_HYP mem_th (inst mem_T) in
-			let th1 = undup_rec t_tm in
-				TRANS th0 th1
-		else
-			let th0 = MY_PROVE_HYP mem_th (inst mem_F) in
-			let ltm, rtm = dest_comb (rand(concl th0)) in
-			let th1 = uniq_rec (rand rtm) in
-				TRANS th0 (AP_TERM ltm th1)
+	if (rand(concl mem_th) = t_const) then
+	  let th0 = MY_PROVE_HYP mem_th (inst mem_T) in
+	  let th1 = undup_rec t_tm in
+	    TRANS th0 th1
 	else
-      empty;;
+	  let th0 = MY_PROVE_HYP mem_th (inst mem_F) in
+	  let ltm, rtm = dest_comb (rand(concl th0)) in
+	  let th1 = undup_rec (rand rtm) in
+	    TRANS th0 (AP_TERM ltm th1)
+    else
+      empty in
+
+    undup_rec list_tm;;
 
 
 let undup_conv_univ eq_conv tm =
   if (fst o dest_const o rator) tm <> "undup" then failwith "undup_conv"
   else eval_undup_univ eq_conv (rand tm);;
 
-	  
-(*
-let tm = `undup [1;2;3;4;2;1;3]`;;
-let undup_REWRITE_CONV = REWRITE_CONV[undup; MEM; ARITH_EQ];;
 
-undup_REWRITE_CONV tm;;
-test 10 undup_REWRITE_CONV tm;; (* 0.776 *)
+(**********************************)
+(* cat conversion *)
 
-undup_conv_univ tm;;
-test 1000 REMOVE_DUPLICATES_NUM_CONV tm;; (* 0.548 *)
-*)
+let cat_empty' = prove(`cat [] (s:(A)list) = s`, REWRITE_TAC[cat]) and
+    cat_cons' = prove(`cat (CONS (h:A) t) s = CONS h (cat t s)`, REWRITE_TAC[cat]);;
 
-	  
+
+let eval_cat list1_tm list2_tm =
+  let list_ty = type_of list1_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let h_var = mk_var("h", ty) and
+      t_var = mk_var("t", list_ty) and
+      s_var = mk_var("s", list_ty) in
+  let inst_t = INST_TYPE[ty, aty] in
+  let empty, cons = inst_t cat_empty', inst_t cat_cons' in
+  let rec cat_rec list_tm =
+    if (is_comb list_tm) then
+      let h_tm', t_tm = dest_comb list_tm in
+      let h_tm = rand h_tm' in
+      let inst = INST[h_tm, h_var; t_tm, t_var; list2_tm, s_var] in
+      let th0 = inst cons in
+      let ltm = rator (rand (concl th0)) in
+      let th1 = cat_rec t_tm in
+	TRANS th0 (AP_TERM ltm th1)
+    else
+      INST[list2_tm, s_var] empty in
+
+    cat_rec list1_tm;;
+
+
+let cat_conv tm =
+  let ltm, list2_tm = dest_comb tm in
+  let cat, list1_tm = dest_comb ltm in
+    if (fst o dest_const) cat <> "cat" then failwith "cat_conv"
+    else eval_cat list1_tm list2_tm;;
+
+
+(**********************************)
+(* BUTLAST and LAST conversions *)
+
+let last1' = prove(`LAST [h:A] = h`, REWRITE_TAC[LAST]) and
+    last_cons2' = prove(`LAST (CONS (h:A) (CONS h2 s)) = LAST (CONS h2 s)`, REWRITE_TAC[LAST; NOT_CONS_NIL]) and
+    butlast1' = prove(`BUTLAST [h:A] = []`, REWRITE_TAC[BUTLAST]) and
+    butlast_cons2' = prove(`BUTLAST (CONS (h:A) (CONS h2 s)) = CONS h (BUTLAST (CONS h2 s))`, 
+			   REWRITE_TAC[BUTLAST; NOT_CONS_NIL]);;
+
+
+let eval_butlast_last list_tm =
+  let list_ty = type_of list_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let inst_t = INST_TYPE[ty, aty] in
+  let last1, last2 = inst_t last1', inst_t last_cons2' in
+  let butlast1, butlast2 = inst_t butlast1', inst_t butlast_cons2' in
+  let h_var, h2_var, s_var = mk_var("h", ty), mk_var("h2", ty), mk_var("s", list_ty) in
+
+  let rec butlast_last_rec list_tm =
+    let h_tm', t_tm = dest_comb list_tm in
+    let h_tm = rand h_tm' in
+      if is_comb t_tm then
+	let h_tm', s_tm = dest_comb t_tm in
+	let h2_tm = rand h_tm' in
+	let inst = INST[h_tm, h_var; h2_tm, h2_var; s_tm, s_var] in
+	let butlast_th0 = inst butlast2 in
+	let last_th0 = inst last2 in
+	let butlast_th1, last_th1 = butlast_last_rec t_tm in
+	let ltm = (rator o rand o concl) butlast_th0 in
+	  TRANS butlast_th0 (AP_TERM ltm butlast_th1), TRANS last_th0 last_th1
+      else
+	let inst = INST[h_tm, h_var; t_tm, s_var] in
+	  inst butlast1, inst last1 in
+
+    butlast_last_rec list_tm;;
+
+
+
+(**********************************)
+(* take and drop conversions *)
+
+let take0' = (MY_RULE_NUM o prove)(`take 0 (s:(A)list) = []`, REWRITE_TAC[take]) and
+    take_nil' = prove(`take n ([]:(A)list) = []`, REWRITE_TAC[take]) and
+    take_pre' = (MY_RULE_NUM o prove)(`!n. (0 < n <=> T) /\ PRE n = m ==> take n (CONS (h:A) s) = CONS h (take m s)`,
+				      INDUCT_TAC THEN SIMP_TAC[take; PRE] THEN ARITH_TAC);;
+
+
+let eval_take n_tm list_tm =
+  let list_ty = type_of list_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let inst_t = INST_TYPE[ty, aty] in
+  let take0, take_nil, take_pre = inst_t take0', inst_t take_nil', inst_t take_pre' in
+  let h_var, s_var = mk_var("h", ty), mk_var("s", list_ty) in
+
+  let rec take_rec n_tm list_tm =
+    if is_comb list_tm then
+      if n_tm = zero_const then
+	INST[list_tm, s_var] take0
+      else
+	let h_tm', t_tm = dest_comb list_tm in
+	let h_tm = rand h_tm' in
+	let n_gt0 = raw_gt0_hash_conv n_tm in
+	let pre_n = raw_pre_hash_conv (mk_comb (pre_op_num, n_tm)) in
+	let m_tm = (rand o concl) pre_n in
+	let inst = INST[h_tm, h_var; t_tm, s_var; m_tm, m_var_num; n_tm, n_var_num] in
+	let th0 = (MY_PROVE_HYP pre_n o MY_PROVE_HYP n_gt0 o inst) take_pre in
+	let ltm = (rator o rand o concl) th0 in
+	let th1 = take_rec m_tm t_tm in
+	  TRANS th0 (AP_TERM ltm th1)
+    else
+      INST[n_tm, n_var_num] take_nil in
+
+    take_rec n_tm list_tm;;
+
+
+(* drop *)
+let drop0' = (MY_RULE_NUM o prove)(`dropl 0 (s:(A)list) = s`, REWRITE_TAC[drop]) and
+    drop_nil' = prove(`dropl n ([]:(A)list) = []`, REWRITE_TAC[drop]) and
+    drop_pre' = (MY_RULE_NUM o prove)(`!n. (0 < n <=> T) /\ PRE n = m ==> dropl n (CONS (h:A) s) = dropl m s`,
+				      INDUCT_TAC THEN SIMP_TAC[drop; PRE] THEN ARITH_TAC);;
+
+
+let eval_drop n_tm list_tm =
+  let list_ty = type_of list_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let inst_t = INST_TYPE[ty, aty] in
+  let drop0, drop_nil, drop_pre = inst_t drop0', inst_t drop_nil', inst_t drop_pre' in
+  let h_var, s_var = mk_var("h", ty), mk_var("s", list_ty) in
+
+  let rec drop_rec n_tm list_tm =
+    if is_comb list_tm then
+      if n_tm = zero_const then
+	INST[list_tm, s_var] drop0
+      else
+	let h_tm', t_tm = dest_comb list_tm in
+	let h_tm = rand h_tm' in
+	let n_gt0 = raw_gt0_hash_conv n_tm in
+	let pre_n = raw_pre_hash_conv (mk_comb (pre_op_num, n_tm)) in
+	let m_tm = (rand o concl) pre_n in
+	let inst = INST[h_tm, h_var; t_tm, s_var; m_tm, m_var_num; n_tm, n_var_num] in
+	let th0 = (MY_PROVE_HYP pre_n o MY_PROVE_HYP n_gt0 o inst) drop_pre in
+	let th1 = drop_rec m_tm t_tm in
+	  TRANS th0 th1
+    else
+      INST[n_tm, n_var_num] drop_nil in
+
+    drop_rec n_tm list_tm;;
+
+
+(* take_drop *)
+
+let eval_take_drop n_tm list_tm =
+  let list_ty = type_of list_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let inst_t = INST_TYPE[ty, aty] in
+  let drop0, drop_nil, drop_pre = inst_t drop0', inst_t drop_nil', inst_t drop_pre' in
+  let take0, take_nil, take_pre = inst_t take0', inst_t take_nil', inst_t take_pre' in
+  let h_var, s_var = mk_var("h", ty), mk_var("s", list_ty) in
+
+  let rec take_drop_rec n_tm list_tm =
+    if is_comb list_tm then
+      if n_tm = zero_const then
+	let inst = INST[list_tm, s_var] in
+	  inst take0, inst drop0
+      else
+	let h_tm', t_tm = dest_comb list_tm in
+	let h_tm = rand h_tm' in
+	let n_gt0 = raw_gt0_hash_conv n_tm in
+	let pre_n = raw_pre_hash_conv (mk_comb (pre_op_num, n_tm)) in
+	let m_tm = (rand o concl) pre_n in
+	let inst = INST[h_tm, h_var; t_tm, s_var; m_tm, m_var_num; n_tm, n_var_num] in
+	let drop_th0 = (MY_PROVE_HYP pre_n o MY_PROVE_HYP n_gt0 o inst) drop_pre in
+	let take_th0 = (MY_PROVE_HYP pre_n o MY_PROVE_HYP n_gt0 o inst) take_pre in
+	let take_th1, drop_th1 = take_drop_rec m_tm t_tm in
+	let take_ltm = (rator o rand o concl) take_th0 in
+	  TRANS take_th0 (AP_TERM take_ltm take_th1), TRANS drop_th0 drop_th1
+    else
+      let inst = INST[n_tm, n_var_num] in
+	inst take_nil, inst drop_nil in
+
+    take_drop_rec n_tm list_tm;;
+
+
+(**************************)
+(* rot *)
+
+let rot' = prove(`rot n (s:(A)list) = cat (dropl n s) (take n s)`, REWRITE_TAC[rot]);;
+
+let eval_rot n_tm list_tm =
+  let list_ty = type_of list_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let s_var = mk_var("s", list_ty) in
+  let inst_t = INST_TYPE[ty, aty] in
+  let take_th, drop_th = eval_take_drop n_tm list_tm in
+  let cat_th = eval_cat (rand (concl drop_th)) (rand (concl take_th)) in
+  let cat_tm = (rator o rator o lhand o concl) cat_th in
+  let th0 = (INST[n_tm, n_var_num; list_tm, s_var] o inst_t) rot' in
+  let th1 = MK_COMB (AP_TERM cat_tm drop_th, take_th) in
+    TRANS (TRANS th0 th1) cat_th;;
+
+
+(*******************************)
+(* shift_left = rot 1 *)
+
+let shift_left_empty' = prove(`rot 1 [] = ([]:(A)list)`, REWRITE_TAC[rot; take; drop; cat]) and
+    shift_left_cons' = prove(`rot 1 (CONS (h:A) s) = cat s [h]`, REWRITE_TAC[rot1_cons; GSYM cats1]);;
+
+
+let eval_rot1 list_tm =
+  let list_ty = type_of list_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let inst_t = INST_TYPE[ty, aty] in
+  let h_var, s_var = mk_var("h", ty), mk_var("s", list_ty) in
+    if is_comb list_tm then
+      let h_tm', t_tm = dest_comb list_tm in
+      let h_tm = rand h_tm' in
+      let th0 = (INST[h_tm, h_var; t_tm, s_var] o inst_t) shift_left_cons' in
+      let h_list = (rand o rand o concl) th0 in
+      let th1 = eval_cat t_tm h_list in
+	TRANS th0 th1
+    else
+      inst_t shift_left_empty';;
+
+
+(* shift_right = rotr 1 *)
+let shift_right_empty' = prove(`rotr 1 [] = ([]:(A)list)`, REWRITE_TAC[rotr; rot; take; drop; cat]) and
+    shift_right_cons' = prove(`rotr 1 (CONS (h:A) s) = CONS (LAST (CONS h s)) (BUTLAST (CONS h s))`,
+			      MP_TAC (ISPECL [`h:A`; `s:(A)list`] lastI) THEN
+				DISCH_THEN (fun th -> REWRITE_TAC[th; rotr1_rcons]) THEN
+				REWRITE_TAC[GSYM lastI] THEN SPEC_TAC (`h:A`, `h:A`) THEN
+				SPEC_TAC (`s:(A)list`, `s:(A)list`) THEN
+				LIST_INDUCT_TAC THEN REWRITE_TAC[last; belast; last1'; butlast1'] THEN GEN_TAC THEN
+				REWRITE_TAC[last_cons2'; butlast_cons2'] THEN
+				POP_ASSUM (MP_TAC o SPEC `h:A`) THEN
+				REWRITE_TAC[injectivity "list"]);;
+
+
+let eval_rotr1 list_tm =
+  let list_ty = type_of list_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let inst_t = INST_TYPE[ty, aty] in
+  let h_var, s_var = mk_var("h", ty), mk_var("s", list_ty) in
+    if is_comb list_tm then
+      let h_tm', t_tm = dest_comb list_tm in
+      let h_tm = rand h_tm' in
+      let th0 = (INST[h_tm, h_var; t_tm, s_var] o inst_t) shift_right_cons' in
+      let butlast_th, last_th = eval_butlast_last list_tm in
+      let cons_tm = (rator o rator o rand o concl) th0 in
+	TRANS th0 (MK_COMB (AP_TERM cons_tm last_th, butlast_th))
+    else
+      inst_t shift_right_empty';;
+
+
+
 end;;

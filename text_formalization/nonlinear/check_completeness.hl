@@ -125,14 +125,14 @@ let four = 4.0;;
 let fourh0 = 2.0 *. twoh0;;
 let upperbd = 6.0;;  (* 6.0 > 4 * h0, upper bound on diags in BB *)
 
-let tame_table_d0 i = 
+let d_tame i = 
   if (i <= 3) then zero
   else if (i=4) then 0.206 
   else if (i=5) then 0.4819
   else if (i=6) then 0.712
   else target;;
 
-let tame_table_d r s = 
+let d_tame2 r s = 
   if (r + 2 * s <= 3) then 0.0
   else
     let r' = float_of_int r in
@@ -175,7 +175,7 @@ type constraint_system =
   b_cs: int->int->float;
   am_cs: int->int->float;
   bm_cs: int->int->float;
-  js_cs : (int*int) list;
+  js_cs : (int*int) list;  (* psorted, both < k_cs *)
   lo_cs :int list;
   str_cs : int list;
   history_cs : string list;
@@ -209,7 +209,9 @@ let pp_print_cs f cs = pp_print_string f (string_of_cs cs);;
 (* report(string_of_cs quad_std_cs);; *)
 (* #install_printer pp_print_cs;; *)
 
+let ks_cs cs = (0-- (cs.k_cs -1));;
 
+let ks_cart cs = cart2 (ks_cs cs);;
 
 let extensional_equality cs cs' = 
   let bk = cs.k_cs = cs'.k_cs in
@@ -224,6 +226,8 @@ let extensional_equality cs cs' =
   let bstr = set_eq (cs.str_cs) cs'.str_cs in
   let blo = set_eq cs.lo_cs cs'.lo_cs in
     bk && bd && ba && bb && bam && bbm && bstr && blo && bj;;
+
+
 
 let debug_cs = ref [];;
 
@@ -569,7 +573,7 @@ TABLES OF AUGMENTED CONSTRAINT SYSTEMS
 ****************************************
 *)
 
-let mk_cs (k,d,a,b,h) = {
+let mk_unadorned (k,d,a,b,h) = {
   k_cs = k;
   d_cs = d;
   a_cs = a;
@@ -582,41 +586,41 @@ let mk_cs (k,d,a,b,h) = {
   history_cs = [h];
 };;
 
-let hex_std_cs = mk_cs (6, tame_table_d0 6,
+let hex_std_cs = mk_unadorned (6, d_tame 6,
   cs_adj two twoh0 6,
   cs_adj twoh0 upperbd 6,"hex std init");;
 
-let pent_std_cs = mk_cs (5,tame_table_d0 5,
+let pent_std_cs = mk_unadorned (5,d_tame 5,
   cs_adj two twoh0 5,
   cs_adj twoh0 upperbd 5,"pent std init");;
 
-let quad_std_cs = mk_cs (4,tame_table_d0 4,
+let quad_std_cs = mk_unadorned (4,d_tame 4,
   cs_adj two twoh0 4,
   cs_adj twoh0 upperbd 4,"quad std init");;
 
-let tri_std_cs = mk_cs (3,tame_table_d0 3,
+let tri_std_cs = mk_unadorned (3,d_tame 3,
   cs_adj two twoh0 3,
   cs_adj twoh0 upperbd 3,"tri std init");;
 
-let pent_diag_cs = mk_cs (
+let pent_diag_cs = mk_unadorned (
    5,
    0.616,
    cs_adj two sqrt8 5,
    cs_adj twoh0 upperbd 5,"pent diag init");;
 
-let quad_diag_cs = mk_cs (
+let quad_diag_cs = mk_unadorned (
    4,
    0.467,
    cs_adj two three 4,
    cs_adj twoh0 upperbd 4,"quad diag init");;
 
-let pent_pro_cs = mk_cs (
+let pent_pro_cs = mk_unadorned (
    5,
    0.616,
    a_pro twoh0 two twoh0 5,
    a_pro sqrt8 twoh0 upperbd 5,"pent pro init");;
 
-let quad_pro_cs = mk_cs (
+let quad_pro_cs = mk_unadorned (
    4,
    0.477,
    a_pro twoh0 two sqrt8 4,
@@ -639,14 +643,14 @@ map assert_stable_cs init_cs;;
 (* now for the terminal cases done by interval computer calculation *)
 
 let terminal_hex =
-mk_cs (
+mk_unadorned (
    6,
-   tame_table_d0 6,
+   d_tame 6,
    cs_adj two cstab 6,
    cs_adj two upperbd 6,"terminal hex");;
 
 let terminal_pent = 
-mk_cs (
+mk_unadorned (
    5,
    0.616,
    cs_adj two cstab 5,
@@ -655,46 +659,46 @@ mk_cs (
 (* two cases for the 0.467 bound: all top edges 2 or both diags 3 *)
 
 let terminal_adhoc_quad_9563139965A = 
-mk_cs (
+mk_unadorned (
    4,
    0.467,
    cs_adj two three 4,
    cs_adj two upperbd 4,"terminal");;
 
 let terminal_adhoc_quad_9563139965B = 
-mk_cs (
+mk_unadorned (
    4,
    0.467,
    cs_adj two three 4,
    cs_adj twoh0 three 4,"terminal");;
 
-let terminal_adhoc_quad_4680581274 = mk_cs(
+let terminal_adhoc_quad_4680581274 = mk_unadorned(
  4,
  0.616 -. 0.11,
  funlist [(0,1),cstab ; (0,2),cstab ; (1,3),cstab ] two,
  funlist [(0,1),cstab ; (0,2),upperbd ; (1,3),upperbd ] two,"terminal 4680581274");;
 
-let terminal_adhoc_quad_7697147739 = mk_cs(
+let terminal_adhoc_quad_7697147739 = mk_unadorned(
  4,
  0.616 -. 0.11,
  funlist [(0,1),sqrt8 ; (0,2),cstab ; (1,3),cstab ] two,
  funlist [(0,1),sqrt8 ; (0,2),upperbd ; (1,3),upperbd ] two,"terminal 7697147739");;
 
 (* special case of tri_492...
-let terminal_tri_3456082115 = mk_cs(
+let terminal_tri_3456082115 = mk_unadorned(
  3,
  0.5518 /. 2.0,
  funlist [(0,1), cstab; (0,2),twoh0; (1,2),two] two,
  funlist [(0,1), 3.22; (0,2),twoh0; (1,2),two] two,"terminal 3456082115");;
 *)
 
-let terminal_tri_7720405539 = mk_cs(
+let terminal_tri_7720405539 = mk_unadorned(
  3,
  0.5518 /. 2.0 -. 0.2,
  funlist [(0,1),cstab; (0,2),twoh0; (1,2),two] two,
  funlist [(0,1),3.41; (0,2),twoh0; (1,2),two] two,"terminal 7720405539");;
  
-let terminal_tri_2739661360 = mk_cs(
+let terminal_tri_2739661360 = mk_unadorned(
  3,
  0.5518 /. 2.0 +. 0.2,
  funlist [(0,1),cstab; (0,2),cstab; (1,2),two] two,
@@ -702,13 +706,13 @@ let terminal_tri_2739661360 = mk_cs(
  
 (* range increased by combining with previous case *)
 
-let terminal_tri_9269152105 = mk_cs(
+let terminal_tri_9269152105 = mk_unadorned(
  3,
  0.5518 /. 2.0 ,
  funlist [(0,1),cstab; (0,2),cstab; (1,2),two] two,
  funlist [(0,1),3.62; (0,2),cstab; (1,2),two] two,"terminal 9269152105");;
 
-let terminal_tri_4922521904 = mk_cs(
+let terminal_tri_4922521904 = mk_unadorned(
  3,
  0.5518 /. 2.0 ,
  funlist [(0,1),cstab; (0,2),twoh0; (1,2),two] two,
@@ -730,7 +734,7 @@ We use 5512912661 deformation: 3.15/h0 instead
 *)
 
 (*
-let terminal_quad_1637868761 = mk_cs(
+let terminal_quad_1637868761 = mk_unadorned(
  4,
  0.5518,
  funlist [(0,1),two; (1,2), cstab; 
@@ -740,7 +744,7 @@ let terminal_quad_1637868761 = mk_cs(
 *)
 
 (*
-let terminal_quad_1637868761 = mk_cs(
+let terminal_quad_1637868761 = mk_unadorned(
  4,
  0.5518,
  funlist [(0,1),two; (1,2), cstab; 
@@ -767,7 +771,7 @@ let ear_cs =
 (* two consequences of usual ear *)
 let ear_jnull = modify_cs ear_cs ~js:[] ();;
 
-let ear_stab = mk_cs(
+let ear_stab = mk_unadorned(
   3,
   djz,
   funlist [(0,2),cstab] two,
@@ -805,93 +809,93 @@ let terminal_tri_5766053833 =
   history_cs=["terminal 5766053833"];
 };;
 
-let terminal_tri_5026777310 = mk_cs(
+let terminal_tri_5026777310 = mk_unadorned(
  3,
   0.6548 -. 2.0 *. 0.11,
  funlist [(0,1),sqrt8;(1,2),sqrt8] two,
  funlist [(0,1),cstab;(1,2),cstab] twoh0,"terminal 5026777310");;
 
-let terminal_tri_7881254908 = mk_cs(
+let terminal_tri_7881254908 = mk_unadorned(
  3,
   0.696 -. 2.0 *. 0.11,
  funlist [(0,1),sqrt8;(1,2),sqrt8] twoh0,
  funlist [(0,1),cstab;(1,2),cstab] twoh0,"terminal 7881254908");;
 
 (* 1107929058 *)
-let terminal_std_tri_OMKYNLT_2_1  = mk_cs(
+let terminal_std_tri_OMKYNLT_2_1  = mk_unadorned(
  3,
-  tame_table_d 2 1,
+  d_tame2 2 1,
  funlist [(0,1),twoh0] two,
  funlist [(0,1),twoh0] two,"terminal 1107929058");;
 
-let terminal_std_tri_7645170609 = mk_cs(
+let terminal_std_tri_7645170609 = mk_unadorned(
  3,
-  tame_table_d 2 1,
+  d_tame2 2 1,
  funlist [(0,1),sqrt8] two,
  funlist [(0,1),sqrt8] two,"terminal 7645170609");;
 
 (* 1532755966 *)
-let terminal_std_tri_OMKYNLT_1_2  = mk_cs(
+let terminal_std_tri_OMKYNLT_1_2  = mk_unadorned(
  3,
-  tame_table_d 1 2,
+  d_tame2 1 2,
  funlist [(0,1),two] twoh0,
  funlist [(0,1),two] twoh0,"terminal 1532755966");;
 
-let terminal_std_tri_7097350062a = mk_cs(
+let terminal_std_tri_7097350062a = mk_unadorned(
  3,
-  tame_table_d 1 2,
+  d_tame2 1 2,
  funlist [(0,1),twoh0;(0,2),sqrt8] two,
  funlist [(0,1),twoh0;(0,2),sqrt8] two,"terminal 7097350062a");;
 
-let terminal_std_tri_2900061606 = mk_cs(
+let terminal_std_tri_2900061606 = mk_unadorned(
  3,
-  tame_table_d 1 2 +. (tame_table_d 2 1 -. 0.11),
+  d_tame2 1 2 +. (d_tame2 2 1 -. 0.11),
  funlist [(0,1),twoh0;(0,2),cstab] two,
  funlist [(0,1),twoh0;(0,2),cstab] two,"terminal 2900061606");;
 
-let terminal_std_tri_2200527225 = mk_cs(
+let terminal_std_tri_2200527225 = mk_unadorned(
  3,
-  tame_table_d 1 2 +. 2.0*. (tame_table_d 2 1 -. 0.11),
+  d_tame2 1 2 +. 2.0*. (d_tame2 2 1 -. 0.11),
  funlist [(0,1),two;] sqrt8,
  funlist [(0,1),two;] sqrt8,"terminal 2200527225");;
 
-let terminal_std_tri_3106201101 = mk_cs(
+let terminal_std_tri_3106201101 = mk_unadorned(
  3,
-  tame_table_d 1 2 +. 2.0*. (tame_table_d 2 1 -. 0.11),
+  d_tame2 1 2 +. 2.0*. (d_tame2 2 1 -. 0.11),
  funlist [(0,1),two;(0,2),cstab] sqrt8,
  funlist [(0,1),two;(0,2),cstab] sqrt8,"terminal 3106201101");;
 
-let terminal_std_tri_9816718044 = mk_cs(
+let terminal_std_tri_9816718044 = mk_unadorned(
  3,
-  tame_table_d 1 2 +. 2.0*. (tame_table_d 2 1 -. 0.11),
+  d_tame2 1 2 +. 2.0*. (d_tame2 2 1 -. 0.11),
  funlist [(0,1),two] cstab,
  funlist [(0,1),two] cstab,"terminal 9816718044");;
 
-let terminal_std_tri_1080462150 = mk_cs(
+let terminal_std_tri_1080462150 = mk_unadorned(
  3,
-  tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11),
+  d_tame2 0 3 +. 3.0 *.(d_tame2 2 1 -. 0.11),
  funlist [] twoh0,
  funlist [] twoh0,"terminal 1080462150");;
 
-let terminal_std_tri_4143829594 = mk_cs(
+let terminal_std_tri_4143829594 = mk_unadorned(
  3,
-  tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11),
+  d_tame2 0 3 +. 3.0 *.(d_tame2 2 1 -. 0.11),
  funlist [(0,1),cstab] twoh0,
  funlist [(0,1),cstab] twoh0,"terminal 4143829594");;
 
-let terminal_std_tri_7459553847 = mk_cs(
+let terminal_std_tri_7459553847 = mk_unadorned(
  3,
-  tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11),
+  d_tame2 0 3 +. 3.0 *.(d_tame2 2 1 -. 0.11),
  funlist [(0,1),twoh0] cstab,
  funlist [(0,1),twoh0] cstab,"terminal 7459553847");;
 
-let terminal_std_tri_4528012043 = mk_cs(
+let terminal_std_tri_4528012043 = mk_unadorned(
  3,
-  tame_table_d 0 3 +. 3.0 *.(tame_table_d 2 1 -. 0.11),
+  d_tame2 0 3 +. 3.0 *.(d_tame2 2 1 -. 0.11),
  funlist [] cstab,
  funlist [] cstab,"terminal 4528012043");;
 
-let terminal_std_tri_OMKYNLT_3336871894 = mk_cs(
+let terminal_std_tri_OMKYNLT_3336871894 = mk_unadorned(
  3,
  zero,
  funlist [] two,
@@ -1028,11 +1032,11 @@ let x_equi_transfer_to_list terms =
 let restrict_cs cs =
     modify_cs cs ~a:cs.am_cs ~b:cs.bm_cs ();;
 
-(* slice works on B-fields, resetting M-fields. 
+(* half_slice works on B-fields, resetting M-fields. 
    This version does not create an ear. 
    It does just one side. *)
 
-let slice_aux cs p q dv = 
+let half_slice cs p q dv = 
   let k = cs.k_cs in
   let p = p mod k in
   let q = q mod k in
@@ -1042,14 +1046,15 @@ let slice_aux cs p q dv =
   let bv = cs.bm_cs p q in
   let a = override cs.a_cs (p,q,av) in
   let b = override cs.b_cs (p,q,bv) in
-  let _ = (k' >2) or failwith "slice_dcs underflow" in
-  let _ = (k'  <  k) or failwith "slice_dcs overflow" in
+  let _ = (k' >2) or failwith "half_slice underflow" in
+  let _ = (k'  <  k) or failwith "half_slice overflow" in
   let r i = (i + k - p) mod k in
   let s i' = (i' + p) mod k in
   let shift f i' j' = f (s i') (s j') in
-  let cd1 = mk_cs (k',dv,shift a, shift b,"slice:"^(join_semi cs.history_cs)) in
-  let js = map (fun (i,j) -> (r i,r j)) (intersect (cart2 (p--q)) cs.js_cs) in
-    modify_cs cd1 ~js:js ();;
+  let cd1 = mk_unadorned (k',dv,shift a, shift b,"slice:"^(join_semi cs.history_cs)) in
+  let js = map (fun (i,j) -> psort (r i,r j)) (intersect (cart2 (p--q)) cs.js_cs) in
+  let cd2 = modify_cs cd1 ~js:js () in
+    cd2;;
 
 (* calculate the value of the new d from the old one,
    using standard assumptions about the desired terminal inequalities.
@@ -1057,7 +1062,7 @@ let slice_aux cs p q dv =
    This inequality is to be used when every edge has bounds in
    one of the three intervals [2,2h0], [2h0,sqrt8], [sqrt8,3.01] *)
 
-let slice_dstd_aux cs p q = 
+let calc_d_std_earless cs p q = 
   let k = cs.k_cs in
   let p = p mod k in
   let q = q mod k in
@@ -1083,14 +1088,14 @@ let slice_dstd_aux cs p q =
   let c_edge3= length (filter (edge3) triedge) in
   let c_edge3s = length (filter edge3s triedge) in
   let c_edgeL = length (filter edgeL triedge) in
-  let eps = tame_table_d 2 1 -. 0.11 in 
-  let d12 = tame_table_d 1 2 in
+  let eps = d_tame2 2 1 -. 0.11 in 
+  let d12 = d_tame2 1 2 in
   let m3 = eps *. float_of_int (c_edge3) in
-  let flat1 = (c_edge1=2) && (c_edge2=1), tame_table_d 2 1 in
+  let flat1 = (c_edge1=2) && (c_edge2=1), d_tame2 2 1 in
   let flat2s = (c_edge1=2) && (c_edge3s=1), djz in
   let flat2 = (c_edge1=2) && (c_edge3=1), 0.11 in
   let atype = (c_edge1=1) && (c_edge2+c_edge3 =2), d12 +.  m3 in 
-  let btype = (c_edge1=0) && (c_edge2+c_edge3=3), tame_table_d 0 3 +. 3.0 *. eps in
+  let btype = (c_edge1=0) && (c_edge2+c_edge3=3), d_tame2 0 3 +. 3.0 *. eps in
   let typeL = (c_edge1=1) && (c_edgeL=2),0.2619 in
   let (_,dpq) = List.find (fst) [flat1;flat2s;flat2;atype;btype;typeL] in
     (dpq, d-. dpq);;
@@ -1106,7 +1111,7 @@ let sort_slice_order cs p q =
     let _ = (inc cs p1 = q) or  failwith "sso:not a diag" in
       (if (edge1(p,p1) && edge1(p1,q)) then (p,q,false) else (q,p,true));;
   
-let slice_dstd cs p q = 
+let calc_d_std cs p q = 
   let k = cs.k_cs in
   let swap (a,b) = (b,a) in 
   let inc3 = funpow 3 (inc cs) in
@@ -1117,15 +1122,15 @@ let slice_dstd cs p q =
       let (p,q,swapped) = sort_slice_order cs p q in
       let d = 
 	try 
-	  slice_dstd_aux cs p q 
-	with Not_found  -> failwith "slice_dstd" in
+	  calc_d_std_earless cs p q 
+	with Not_found  -> failwith "calc_d_std" in
 	(if swapped then swap d else d);;
 
 let slice_cs cs p q dvpq dvqp mk_ear = 
   let machine_eps = 1e-08 in  (* will go away in formalization *)
   let _ = dvpq +. dvqp +. machine_eps >= cs.d_cs or failwith "slice_cs:bad d" in
-  let cpq = slice_aux cs p q dvpq in
-  let cqp = slice_aux cs q p dvqp in
+  let cpq = half_slice cs p q dvpq in
+  let cqp = half_slice cs q p dvqp in
   let addj cs = modify_cs cs ~js:((0,(cs.k_cs - 1))::cs.js_cs) () in
   let cpq = if (mk_ear) then addj cpq else cpq in
   let cqp = if (mk_ear) then addj cqp else cqp in
@@ -1133,7 +1138,7 @@ let slice_cs cs p q dvpq dvqp mk_ear =
     [cpq;cqp];;
 
 let slice_std cs p q =
-  let (dvpq,dvqp) = slice_dstd cs p q in
+  let (dvpq,dvqp) = calc_d_std cs p q in
   let mk_ear = false in
   let rv = slice_cs cs p q dvpq dvqp mk_ear in
   let _ = forall (fun cs' -> cs'.k_cs < cs.k_cs) rv in
@@ -1828,7 +1833,7 @@ let pent_init =
 (* it doesn't matter how our assumptions are generated,
    as long as they are eventually discharged. *)
 
-let pent_composite_cs = mk_cs (
+let pent_composite_cs = mk_unadorned (
   5,
   0.616,
   a_pro two two cstab 5,
@@ -2050,21 +2055,21 @@ claim_arrow([quad_pro_cs],quad_477_preslice_long);;  (* claim E *)
 
 let triquad_assumption = 
 [
-  mk_cs (
+  mk_unadorned (
     4,
     0.513,
     overrides (cs_adj two cstab 4) [((1,2),twoh0);((2,3),twoh0)],
     overrides (cs_adj twoh0 upperbd 4) [((1,2),cstab);((2,3),cstab)],
     "triquad assumption"
   );
-  mk_cs (
+  mk_unadorned (
     4,
     0.513,
     overrides (cs_adj two cstab 4) [((1,2),twoh0);((0,3),twoh0)],
     overrides (cs_adj twoh0 upperbd 4) [((1,2),cstab);((0,3),cstab)],
     "triquad assumption"    
   );
-  mk_cs (
+  mk_unadorned (
     3,
     0.4278,
     cs_adj twoh0 cstab 3,
@@ -2072,13 +2077,13 @@ let triquad_assumption =
     "tri assumption"
   );
 (*
-  mk_cs (
+  mk_unadorned (
     3,
     0.103,
     funlist [(0,1),twoh0] two,
     funlist [(0,1),sqrt8] twoh0,
     "td 2 1");
-  mk_cs (
+  mk_unadorned (
     3,
     0.0,
     cs_adj two cstab 3,
@@ -2319,7 +2324,7 @@ let cs' = List.nth kl 4;;
 report_cs cs';;
 handle1 cs';;
 slice_std cs' 1 3 ;;
-slice_dstd cs' 1 3;;
+calc_d_std cs' 1 3;;
 
 let kl = handle1 cs1;;
 map report_cs kl;;

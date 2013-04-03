@@ -1,0 +1,43 @@
+"needs \"../formal_lp/hypermap/ssreflect/list_hypermap-compiled.hl\"".
+
+Module More_list_hypermap.
+
+"open Ssrbool".
+"open Ssrnat".
+"open Seq".
+"open List_hypermap".
+
+"let list_pairs2 = (GEN_ALL o define) 
+	`list_pairs2 [] (hd:A) = [] /\ 
+          list_pairs2 [h] hd = [h,hd] /\ 
+          list_pairs2 (h1 :: (h2 :: t)) hd = (h1,h2) :: (list_pairs2 (h2 :: t) hd)`".
+
+Lemma size_list_pairs2 x s: `sizel (list_pairs2 s x) = sizel s`.
+Proof.
+by elim: s => [|h [|h2 t] Ih]; rewrite !list_pairs2 ?(size_nil, size_cons) // Ih size_cons.
+Qed.
+
+Lemma nth_list_pairs2 x0 x s i: `i < sizel s
+	==> nth (x0,x0) (list_pairs2 s x) i =
+		nth x0 s i, if i = sizel s - 1 then x else nth x0 s (i + 1)`.
+Proof.
+elim: s i => [|h [|h2 t] Ih]; rewrite !list_pairs2 ?(size_nil, size_cons, ltn0) //.
+  move => i i_lt.
+  have ->: `i = 0` by move: i_lt; arith.
+  by rewrite -ONE subnn /= !nth.
+case => [|i]; first by rewrite succnK -NOT_SUC /= add0n ONE !nth.
+rewrite ltSS !nth succnK eqSS => i_lt.
+by rewrite Ih ?size_cons // succnK addSn nth.
+Qed.
+
+Lemma list_pairs_eq_list_pairs2 s: `list_pairs s = list_pairs2 s (HD s)`.
+Proof.
+apply (eq_from_nth `HD s,HD s`).
+rewrite size_list_pairs size_list_pairs2 /= => i i_lt.
+rewrite nth_list_pairs // nth_list_pairs2 // PAIR_EQ /=.
+case: `i = _` => /=.
+by rewrite nth0 Seq2.head_HD //; move: i_lt; arith.
+Qed.
+
+
+    

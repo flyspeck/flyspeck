@@ -16,9 +16,14 @@ open Arith_nat;;
 open More_list_hypermap;;
 open List_hypermap;;
 open List_conversions;;
+open List_hypermap_iso;;
 
 
 let MY_RULE = UNDISCH_ALL o PURE_REWRITE_RULE[GSYM IMP_IMP] o SPEC_ALL;;
+let MY_RULE_NUM = UNDISCH_ALL o NUMERALS_TO_NUM o PURE_REWRITE_RULE[GSYM IMP_IMP] o SPEC_ALL;;
+let TO_NUM = REWRITE_RULE[Arith_hash.NUM_THM] o DEPTH_CONV NUMERAL_TO_NUM_CONV;;
+let to_num = rand o concl o TO_NUM;;
+
 
 (* Constants and variables *)
 let hd_var_num = `hd:num` and
@@ -27,13 +32,19 @@ let hd_var_num = `hd:num` and
     h2_var_num = `h2:num` and
     t_var = `t:(num)list` and
     x_var_pair = `x:num#num` and
+    d_var_pair = `d:num#num` and
     acc_var = `acc:(num#num)list` and
     f_var_fun = `f:num#num->num#num` and
     l_cap_var = `L:((num)list)list` and
     ll_var = `ll:((num)list)list` and
     list_var = `list:(num#num)list` and
     t_var_numnum_list = `t:(num#num)list` and
-    t_var_num_list = `t:(num)list`;;
+    t_var_num_list = `t:(num)list` and
+    t_var_list_list = `t:((num)list)list` and
+    h_var_list = `h:(num)list` and
+    r_var_list = `r:(num)list` and
+    s1_var_list = `s1:(num)list` and
+    s2_var_list = `s2:(num)list`;;
 
 let num_list_type = `:(num)list`;;
 let num_list_list_type = `:((num)list)list`;;
@@ -50,7 +61,63 @@ let hypermap_of_list_const = `hypermap_of_list:((num)list)list->(num#num)hyperma
     list_of_elements_const = `list_of_elements:((num)list)list->(num)list` and
     good_list_const = `good_list:((num)list)list->bool` and
     good_list_nodes_const = `good_list_nodes:((num)list)list->bool`;;
+
+
+
+let build_term_rewrite tm lhs =
+  let rec build_rewrite tm =
+    if tm = lhs then
+      (fun th -> th), true
+    else
+      match tm with
+	| Comb (l_tm, r_tm) ->
+	    let l_f, l_flag = build_rewrite l_tm and
+		r_f, r_flag = build_rewrite r_tm in
+	      if l_flag then
+		if r_flag then
+		  (fun th -> MK_COMB (l_f th, r_f th)), true
+		else
+		  (fun th -> AP_THM (l_f th) r_tm), true
+	      else
+		if r_flag then
+		  (fun th -> AP_TERM l_tm (r_f th)), true
+		else
+		  I, false
+	| Abs (var_tm, b_tm) ->
+	    let b_f, b_flag = build_rewrite b_tm in
+	      if b_flag then
+		(fun th -> ABS var_tm (b_f th)), true
+	      else
+		I, false
+	| _ -> I, false in
+  let f, flag = build_rewrite tm in
+    if flag then f else (fun th -> REFL tm);;
     
+
+(* eq_th = |- lhs = rhs; rewrites exact occurrences of lhs in tm and returns |- tm = tm[lhs/rhs] *)
+let term_rewrite tm eq_th =
+  let lhs, _ = dest_eq (concl eq_th) in
+    build_term_rewrite tm lhs eq_th;;
+
+
+(*
+let tm = `(x + 2) * 2 = 0 /\ (\y. (x + 2) * y) 3 = 2` and
+    th = ARITH_RULE `x + 2 = 1 * 2 + x`;;
+
+let f = build_term_rewrite tm `x + 2`;;
+
+term_rewrite tm th;;
+f th;;
+PURE_REWRITE_CONV[th] tm;;
+
+(* 0.304 *)
+test 10000 (term_rewrite tm) th;;
+(* 0.216 *)
+test 10000 f th;;
+(* 2.808 *)
+test 10000 (PURE_REWRITE_CONV[th]) tm;;
+*)
+
 
 
 (* example of java style string from hypermap generator. *)
@@ -85,7 +152,6 @@ let create_hol_list_str =
   create_hol_list o snd o convert_to_list;;
 
 let test_list0 = create_hol_list_str test_string;;
-let to_num = (rand o concl o REWRITE_RULE[Arith_hash.NUM_THM] o DEPTH_CONV NUMERAL_TO_NUM_CONV);;
 let test_list = to_num test_list0;;
 
 
@@ -281,977 +347,78 @@ test 10 (eval_good_list0 test_list) darts;; (* 1.376 *)
 *)
 
 
-(*
-(**********************************)
-
-(* LIST_OF_NODES_CONV *)
+(*********************************)
+(* split_list_hyp *)
 
 
-let FILTER_NODE_EMPTY = prove(`FILTER (\d:num#num. FST d = x) [] = []`, REWRITE_TAC[FILTER]);;
-let FILTER_NODE_CONS_EQ = UNDISCH_ALL (prove(`(n = x <=> T) ==> FILTER (\d:num#num. FST d = x) (CONS (n,m) t) =
-						 CONS (n,m) (FILTER (\d. FST d = x) t)`, SIMP_TAC[FILTER]));;
-let FILTER_NODE_CONS_NEQ = UNDISCH_ALL (prove(`(n = x <=> F) ==> FILTER (\d:num#num. FST d = x) (CONS (n,m) t) =
-						  FILTER (\d. FST d = x) t`, SIMP_TAC[FILTER]));;
+let one_eq = TO_NUM `1` and
+    two_tm = to_num `2` and
+    three_tm = to_num `3` and
+    three_lt_tm = to_num `(<) 3`;;
 
 
-
-let rec FILTER_NODE_CONV tm =
-  let ltm, list_tm = dest_comb tm in
-  let x_tm = (rand o snd o dest_abs o rand) ltm in
-    if (is_comb list_tm) then
-      let h_tm, t_tm = dest_comb list_tm in
-      let n_tm, m_tm = dest_pair (rand h_tm) in
-      let inst = INST[n_tm, n_var_num; m_tm, m_var_num; t_tm, t_var_numnumlist; x_tm, x_var_num] in
-      let eq_th = MY_NUM_EQ_CONV (mk_eq (n_tm, x_tm)) in
-	if (rand(concl eq_th) = t_const) then
-	  let th0 = MY_PROVE_HYP eq_th (inst FILTER_NODE_CONS_EQ) in
-	  let ltm, rtm = dest_comb (rand(concl th0)) in
-	  let th1 = FILTER_NODE_CONV rtm in
-	    TRANS th0 (AP_TERM ltm th1)
-	else
-	  let th0 = MY_PROVE_HYP eq_th (inst FILTER_NODE_CONS_NEQ) in
-	  let th1 = FILTER_NODE_CONV (rand(concl th0)) in
-	    TRANS th0 th1
-    else
-      INST[x_tm, x_var_num] FILTER_NODE_EMPTY;;
+let split_list_hyp_empty = prove(`split_list_hyp [] (d:num#num) = []`, REWRITE_TAC[split_list_hyp]);;
+let split_list_hyp_cons_F = (MY_RULE o prove)(`list_pairs h = list /\ (MEM d list <=> F)
+	==> split_list_hyp (h :: t) d = h :: split_list_hyp t (d:num#num)`, SIMP_TAC[split_list_hyp]);;
+let split_list_hyp_cons_T = (UNDISCH_ALL o PURE_ONCE_REWRITE_RULE[GSYM one_eq] o DISCH_ALL o MY_RULE_NUM o prove)
+  (`list_pairs h = list /\ (MEM (d:num#num) list <=> T) /\ (3 < LENGTH h <=> T)
+      /\ indexl d list = i /\ rotr 1 (rot i h) = r /\ take 3 r = s1 /\ dropl 2 r = s2 /\ HD r = h1
+      ==> split_list_hyp (h :: t) d = s1 :: (h1 :: s2) :: t`,
+   SIMP_TAC[split_list_hyp; split_list_face] THEN
+     STRIP_TAC THEN REPLICATE_TAC 3 (POP_ASSUM (fun th -> ALL_TAC)) THEN
+     POP_ASSUM (fun th -> REWRITE_TAC[GSYM th]) THEN
+     REWRITE_TAC[Seq.size_rotr; Seq.size_rot; Seq.size] THEN
+     ASM_REWRITE_TAC[ARITH_RULE `a <= 3 <=> ~(3 < a)`] THEN
+     REWRITE_TAC[Seq.cat]);;
 
 
-
-(*
-test 10 LIST_OF_NODES_CONV y;; (* 0.992 *)
-*)
-
-
-
-(****************************************************)
-
-(* `node (hypermap_of_list L) x` table construction *)
-
-
-let NODE_HYPERMAP_OF_LIST_EXPLICIT = prove(`!(L:((A)list)list) n d. good_list_nodes L /\ 
-					     MEM n (list_of_nodes L) /\ MEM d n 
-					   ==> node (hypermap_of_list L) d = set_of_list n`,
-   REWRITE_TAC[good_list_nodes] THEN REPEAT STRIP_TAC THEN
-     SUBGOAL_THEN `set_of_list n IN node_set (hypermap_of_list (L:((A)list)list))` ASSUME_TAC THENL
-     [
-       ASM_REWRITE_TAC[IN_SET_OF_LIST; nodes_of_list; MEM_MAP] THEN
-	 EXISTS_TAC `n:(A#A)list` THEN
-	 ASM_REWRITE_TAC[];
-       ALL_TAC
-     ] THEN
-     MP_TAC (ISPECL [`hypermap_of_list L:(A#A)hypermap`; `set_of_list n:A#A->bool`] Hypermap.lemma_node_representation) THEN
-     ASM_REWRITE_TAC[] THEN
-     STRIP_TAC THEN
-     ASM_REWRITE_TAC[] THEN
-     MATCH_MP_TAC (GSYM Hypermap.lemma_node_identity) THEN
-     POP_ASSUM (fun th -> REWRITE_TAC[SYM th]) THEN
-     ASM_REWRITE_TAC[IN_SET_OF_LIST]);;
-
-
-let NODES_HYPERMAP_OF_LIST_ALL = prove(`!(L:((A)list)list). good_list_nodes L ==>
-		ALL (\n. ALL(\d. node (hypermap_of_list L) d = set_of_list n) n) (list_of_nodes L)`,
-   REWRITE_TAC[GSYM ALL_MEM] THEN
-     REPEAT STRIP_TAC THEN
-     MATCH_MP_TAC NODE_HYPERMAP_OF_LIST_EXPLICIT THEN
-     ASM_REWRITE_TAC[]);;
-
-
-
-
-let build_table_of_nodes hyp_list nodes_th =
-  let table_of_nodes = Hashtbl.create 100 in
-  let th0 = (UNDISCH_ALL o ISPEC hyp_list) NODES_HYPERMAP_OF_LIST_ALL in
-  let all_tm = rator (concl th0) in
-  let th1 = EQ_MP (AP_TERM all_tm nodes_th) th0 in
-  let th1_list = get_all th1 in
-
-  let build1 = fun th ->
-    let th = BETA_RULE th in
-    let list_tm = dest_list(rand(concl th)) in
-    let ths = get_all th in
-    let r = CONV_RULE (BETA_CONV THENC RAND_CONV set_of_list_conv) in
-      map (fun tm, th -> Hashtbl.add table_of_nodes tm (r th)) (zip list_tm ths) in
-
-  let _ = map build1 th1_list in
-    table_of_nodes;;
-
-
+let rec eval_split_list_hyp tm d_tm =
+  if not (is_comb tm) then
+    INST[d_tm, d_var_pair] split_list_hyp_empty
+  else
+    let h_tm', t_tm = dest_comb tm in
+    let h_tm = rand h_tm' in
+    let pairs_th = eval_list_pairs h_tm in
+    let list_tm = (rand o concl) pairs_th in
+    let mem_th = eval_mem_num_pair d_tm list_tm in
+      if (rand (concl mem_th) = f_const) then
+	let th0 = (MY_PROVE_HYP pairs_th o MY_PROVE_HYP mem_th o 
+		     INST[d_tm, d_var_pair; t_tm, t_var_list_list; h_tm, h_var_list; list_tm, list_var])
+	  split_list_hyp_cons_F in
+	let ltm = (rator o rand o concl) th0 in
+	let th1 = eval_split_list_hyp t_tm d_tm in
+	  TRANS th0 (AP_TERM ltm th1)
+      else
+	let size_th = eval_length h_tm in
+	let size_lt0 = AP_TERM three_lt_tm size_th in
+	let size_lt1 = raw_lt_hash_conv ((rand o concl) size_lt0) in
+	  if (rand (concl size_lt1) = f_const) then
+	    failwith "eval_split_list_hyp: size (face) <= 3"
+	  else
+	    let size_lt_th = TRANS size_lt0 size_lt1 in
+	    let i_th = eval_index_univ pair_eq_conv_num d_tm list_tm in
+	    let i_tm = (rand o concl) i_th in
+	    let r_th = apply_op (eval_rot i_tm h_tm) eval_rotr1 in
+	    let r_tm = (rand o concl) r_th in
+	    let hd_th = eval_hd r_tm in
+	    let h1_tm = (rand o concl) hd_th in
+	    let take_th = eval_take three_tm r_tm in
+	    let s1_tm = (rand o concl) take_th in
+	    let drop_th = eval_drop two_tm r_tm in
+	    let s2_tm = (rand o concl) drop_th in
+	      (MY_PROVE_HYP i_th o MY_PROVE_HYP hd_th o MY_PROVE_HYP pairs_th o 
+		 MY_PROVE_HYP take_th o MY_PROVE_HYP r_th o MY_PROVE_HYP drop_th o 
+		 MY_PROVE_HYP mem_th o MY_PROVE_HYP size_lt_th o
+		 INST[h_tm, h_var_list; list_tm, list_var; h1_tm, h1_var_num; 
+		      d_tm, d_var_pair; r_tm, r_var_list; i_tm, i_var_num; t_tm, t_var_list_list;
+		      s1_tm, s1_var_list; s2_tm, s2_var_list])
+		split_list_hyp_cons_T;;
 
 
 (*
-let hol_list, th_table = compute_all pentstring;;
-let nodes = Hashtbl.find th_table "nodes";;
-
-
-let MEM_h_CONS_h_t = prove(`!(h:A) t. MEM h (CONS h t)`, REWRITE_TAC[MEM]);;
-
-
-
-let th = ISPEC hol_list NODES_HYPERMAP_OF_LIST_ALL;;
-let nodes_th = UNDISCH_ALL (REWRITE_RULE[nodes; ALL; set_of_list] th);;
-CONJUNCTS nodes_th;;
-*)
-
-
-(****************************************************)
-
-(* `face (hypermap_of_list L) x` table construction *)
-
-
-let FACE_HYPERMAP_OF_LIST_EXPLICIT = prove(`!(L:((A)list)list) f d. good_list L /\ 
-					     MEM f (list_of_faces L) /\ MEM d f 
-					   ==> face (hypermap_of_list L) d = set_of_list f`,
-   REPEAT STRIP_TAC THEN
-     MP_TAC (SPECL [`f:(A#A)list`; `L:((A)list)list`] MEM_FACE_LEMMA) THEN
-     ASM_REWRITE_TAC[] THEN
-     DISCH_THEN (X_CHOOSE_THEN `x:A#A` STRIP_ASSUME_TAC) THEN
-     
-     SUBGOAL_THEN `MEM (d:A#A) (list_of_darts L)` ASSUME_TAC THENL
-     [
-       MATCH_MP_TAC MEM_FIND_FACE_IMP_MEM_DARTS THEN
-	 EXISTS_TAC `x:A#A` THEN
-	 POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]);
-       ALL_TAC
-     ] THEN
-
-     ASM_SIMP_TAC[FACE_OF_LIST] THEN
-     AP_TERM_TAC THEN
-     MATCH_MP_TAC MEM_FIND_FACE_IMP_FACES_EQ THEN
-     CONJ_TAC THENL
-     [
-       UNDISCH_TAC `good_list (L:((A)list)list)` THEN
-	 SIMP_TAC[good_list];
-       ALL_TAC
-     ] THEN
-     
-     REMOVE_ASSUM THEN
-     POP_ASSUM (fun th -> ASM_REWRITE_TAC[SYM th]));;
-
-
-
-let FACES_HYPERMAP_OF_LIST_ALL = prove(`!(L:((A)list)list). good_list L ==>
-		ALL (\f. ALL(\d. face (hypermap_of_list L) d = set_of_list f) f) (list_of_faces L)`,
-   REWRITE_TAC[GSYM ALL_MEM] THEN
-     REPEAT STRIP_TAC THEN
-     MATCH_MP_TAC FACE_HYPERMAP_OF_LIST_EXPLICIT THEN
-     ASM_REWRITE_TAC[]);;
-
-
-let build_table_of_faces hyp_list good_list_th faces_th =
-  let table_of_faces = Hashtbl.create 100 in
-  let th0 = MY_PROVE_HYP good_list_th ((UNDISCH_ALL o ISPEC hyp_list) FACES_HYPERMAP_OF_LIST_ALL) in
-  let all_tm = rator (concl th0) in
-  let th1 = EQ_MP (AP_TERM all_tm faces_th) th0 in
-  let th1_list = get_all th1 in
-
-  let build1 = fun th ->
-    let th = BETA_RULE th in
-    let list_tm = dest_list(rand(concl th)) in
-    let ths = get_all th in
-    let r = CONV_RULE (BETA_CONV THENC RAND_CONV set_of_list_conv) in
-      map (fun tm, th -> Hashtbl.add table_of_faces tm (r th)) (zip list_tm ths) in
-
-  let _ = map build1 th1_list in
-    table_of_faces;;
-
-
-
-
-
-
-
-
-(********************************************)
-
-(* face_map H and inverse (face_map H) tables *)
-
-let f_list_ext_table = define `(f_list_ext_table L [] (first:A#A) <=> T)
-  /\ (f_list_ext_table L (CONS h1 (CONS h2 t)) first 
-                                  <=> f_list_ext L h1 = h2 /\
-                                      inverse (f_list_ext L) h2 = h1 /\
-		  		      f_list_ext_table L (CONS h2 t) first)
-  /\ (f_list_ext_table L [h1] first <=> f_list_ext L h1 = first /\
-	                             inverse (f_list_ext L) first = h1)`;;
-
-
-let list_to_pair list = hd list, hd(tl list);;
-
-
-let F_LIST_EXT_SINGLE, INV_F_LIST_EXT_SINGLE = (list_to_pair o CONJUNCTS o UNDISCH_ALL)
-  (prove(`f_list_ext_table L [h1:num#num] first 
-	 ==> f_list_ext L h1 = first /\
-	     inverse (f_list_ext L) first = h1`, SIMP_TAC[f_list_ext_table])) and
-F_LIST_EXT_CONS, INV_F_LIST_EXT_CONS = (list_to_pair o CONJUNCTS o UNDISCH_ALL)
-  (prove(`f_list_ext_table L (CONS (h1:num#num) (CONS h2 t)) first 
-	 ==> f_list_ext L h1 = h2 /\
-	     inverse (f_list_ext L) h2 = h1`, SIMP_TAC[f_list_ext_table])) and
-F_LIST_EXT_TABLE_CONS = UNDISCH_ALL (prove(`f_list_ext_table L (CONS (h1:num#num) t) first
-					       ==> f_list_ext_table L t first`,
-   DISJ_CASES_TAC (ISPEC `t:(num#num)list` list_CASES) THENL
-     [
-       ASM_REWRITE_TAC[f_list_ext_table];
-       POP_ASSUM STRIP_ASSUME_TAC THEN
-	 ASM_SIMP_TAC[f_list_ext_table]
-     ]));;
-
-
-let h1_var = `h1:num#num` and
-    h2_var = `h2:num#num` and
-    t_var = `t:(num#num)list` and
-    first_var = `first:num#num` and
-    l_var = `L:((num)list)list`;;
-
-
-let f_list_ext_table_all th = 
-  let ltm, first_tm = dest_comb(concl th) in
-  let ltm, list_tm = dest_comb ltm in
-  let l_tm = rand ltm in
-  let inst_t = INST[l_tm, l_var; first_tm, first_var] in
-  let f_single, inv_f_single = inst_t F_LIST_EXT_SINGLE, inst_t INV_F_LIST_EXT_SINGLE in
-  let f_cons, inv_f_cons = inst_t F_LIST_EXT_CONS, inst_t INV_F_LIST_EXT_CONS in
-  let f_table = inst_t F_LIST_EXT_TABLE_CONS in
-    
-  let rec f_list_raw = fun f_table_th h1_tm t1_tm ->
-    if (is_comb t1_tm) then
-      let h2_tm', t2_tm = dest_comb t1_tm in
-      let h2_tm = rand h2_tm' in
-      let inst_t = MY_PROVE_HYP f_table_th o INST[h1_tm, h1_var; h2_tm, h2_var; t2_tm, t_var] in
-
-      let f_th, inv_f_th = inst_t f_cons, inst_t inv_f_cons in
-      let th0 = (MY_PROVE_HYP f_table_th o INST[h1_tm, h1_var; t1_tm, t_var]) f_table in
-      let f_list, inv_f_list = f_list_raw th0 h2_tm t2_tm in
-	(h1_tm, f_th) :: f_list, (h2_tm, inv_f_th) :: inv_f_list
-
-    else
-      let inst_t = MY_PROVE_HYP f_table_th o INST[h1_tm, h1_var] in
-      let f_th, inv_f_th = inst_t f_single, inst_t inv_f_single in
-	[h1_tm, f_th], [first_tm, inv_f_th] in
-
-    if (is_comb list_tm) then
-      let h1_tm, t1_tm = dest_comb list_tm in
-	f_list_raw th (rand h1_tm) t1_tm
-    else
-      [], [];;
-	
-      
-
-
-(**********************)
-
-
-let FIND_FACE_LEMMA_EXPLICIT = prove(`!(L:((A)list)list) f d. good_list L /\ 
-				       MEM f (list_of_faces L) /\ MEM d f
-				     ==> find_face d L = f`,
-   REPEAT STRIP_TAC THEN
-     MP_TAC (SPECL[`f:(A#A)list`; `L:((A)list)list`] MEM_FACE_LEMMA) THEN
-     ASM_REWRITE_TAC[] THEN
-     STRIP_TAC THEN
-     UNDISCH_TAC `MEM (d:A#A) f` THEN
-     ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
-     MATCH_MP_TAC MEM_FIND_FACE_IMP_FACES_EQ THEN
-     UNDISCH_TAC `good_list (L:((A)list)list)` THEN
-     ASM_SIMP_TAC[good_list]);;
-
-
-
-let INVERSE_F_LIST_EXT_LEMMA = prove(`!(L:((A)list)list) d. good_list L ==>
-	inverse (f_list_ext L) (f_list_ext L d) = d`,
-   REPEAT STRIP_TAC THEN
-     ABBREV_TAC `H = hypermap_of_list L:(A#A)hypermap` THEN
-     MP_TAC (ISPECL [`face_map (H:(A#A)hypermap)`; `dart H:A#A->bool`] PERMUTES_INVERSES) THEN
-     ASM_SIMP_TAC[Hypermap.hypermap_lemma] THEN
-     EXPAND_TAC "H" THEN
-     ASM_SIMP_TAC[COMPONENTS_HYPERMAP_OF_LIST]);;
-
-
-
-let NEXT_EL_APPEND_lemma = prove(`!l t1 (h:A) h' t2. ALL_DISTINCT l /\ 
-				   l = CONS h (APPEND t1 (CONS h' t2)) ==>
-                                   NEXT_EL h' l = if (t2 = []) then h else HD t2`,
-   REPEAT STRIP_TAC THEN
-     REWRITE_TAC[NEXT_EL] THEN
-     ABBREV_TAC `n1 = LENGTH (t1:(A)list)` THEN
-     SUBGOAL_THEN `INDEX (h':A) l = SUC n1` ASSUME_TAC THENL
-     [
-       SUBGOAL_THEN `h':A = EL (SUC n1) l` (fun th -> REWRITE_TAC[th]) THENL
-	 [
-	   ASM_REWRITE_TAC[EL; TL; EL_APPEND; LT_REFL; SUB_REFL; HD];
-	   ALL_TAC
-	 ] THEN
-	 MATCH_MP_TAC INDEX_EL THEN
-	 ASM_REWRITE_TAC[LENGTH; LENGTH_APPEND] THEN
-	 ARITH_TAC;
-       ALL_TAC
-     ] THEN
-     DISJ_CASES_TAC (ISPEC `t2:(A)list` list_CASES) THENL
-     [
-       ASM_REWRITE_TAC[LENGTH; LENGTH_APPEND; HD] THEN
-	 ARITH_TAC;
-       ALL_TAC
-     ] THEN
-     POP_ASSUM MP_TAC THEN STRIP_TAC THEN
-     ASM_REWRITE_TAC[LENGTH; LENGTH_APPEND; NOT_CONS_NIL; HD] THEN
-     REWRITE_TAC[ARITH_RULE `~(SUC n1 = SUC (n1 + SUC (SUC n)) - 1)`] THEN
-     REWRITE_TAC[ARITH_RULE `SUC n1 + 1 = SUC (n1 + 1)`; EL; TL] THEN
-     ASM_REWRITE_TAC[EL_APPEND; ARITH_RULE `~(n1 + 1 < n1)`; ARITH_RULE `(n1 + 1) - n1 = 1`] THEN
-     REWRITE_TAC[ARITH_RULE `1 = SUC 0`; EL; TL; HD]);;
-
-     
-
-
-let F_LIST_EXT_TABLE = prove(`!L:((A)list)list. good_list L
-			     ==> ALL (\f. f_list_ext_table L f (HD f)) (list_of_faces L)`,
-   REPEAT STRIP_TAC THEN
-     FIRST_ASSUM MP_TAC THEN REWRITE_TAC[good_list] THEN STRIP_TAC THEN
-     REWRITE_TAC[GSYM ALL_MEM] THEN
-     X_GEN_TAC `f:(A#A)list` THEN DISCH_TAC THEN
-
-     DISJ_CASES_TAC (ISPEC `f:(A#A)list` list_CASES) THENL
-     [
-       ASM_REWRITE_TAC[f_list_ext_table];
-       ALL_TAC
-     ] THEN
-
-     POP_ASSUM MP_TAC THEN STRIP_TAC THEN
-     ASM_REWRITE_TAC[HD] THEN
-     SUBGOAL_THEN `(!t2 t1. t = APPEND t1 t2 ==> f_list_ext_table L t2 (h:A#A)) ==> f_list_ext_table L (CONS h t) h` MP_TAC THENL
-     [
-       DISCH_THEN (MP_TAC o SPECL [`t:(A#A)list`; `[]:(A#A)list`]) THEN
-	 REWRITE_TAC[APPEND] THEN
-	 DISJ_CASES_TAC (ISPEC `t:(A#A)list` list_CASES) THENL
-	 [
-	   ASM_REWRITE_TAC[f_list_ext_table] THEN
-	     SUBGOAL_THEN `f_list_ext L (h:A#A) = h` ASSUME_TAC THENL
-	     [
-	       REWRITE_TAC[f_list_ext; res; f_list] THEN
-		 SUBGOAL_THEN `find_face (h:A#A) L = f` ASSUME_TAC THENL
-		 [
-		   MATCH_MP_TAC FIND_FACE_LEMMA_EXPLICIT THEN
-		     ASM_REWRITE_TAC[MEM];
-		   ALL_TAC
-		 ] THEN
-
-		 SUBGOAL_THEN `h:A#A IN darts_of_list L` (fun th -> REWRITE_TAC[th]) THENL
-		 [
-		   ASM_REWRITE_TAC[darts_of_list; IN_SET_OF_LIST; DART_IN_FACE; MEM];
-		   ALL_TAC
-		 ] THEN
-
-		 ASM_REWRITE_TAC[NEXT_EL; INDEX; LENGTH; ARITH_RULE `SUC 0 - 1 = 0`; HD];
-	       ALL_TAC
-	     ] THEN
-	     ASM_REWRITE_TAC[] THEN
-	     FIRST_ASSUM (fun th -> ONCE_REWRITE_TAC[SYM th]) THEN
-	     MP_TAC (SPECL [`L:((A)list)list`; `h:A#A`] INVERSE_F_LIST_EXT_LEMMA) THEN
-	     ASM_REWRITE_TAC[];
-	   ALL_TAC
-	 ] THEN
-
-	 POP_ASSUM MP_TAC THEN STRIP_TAC THEN
-	 ASM_REWRITE_TAC[f_list_ext_table] THEN
-	 DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
-
-	 SUBGOAL_THEN `f_list_ext L h = h':A#A` ASSUME_TAC THENL
-	 [
-	   REWRITE_TAC[f_list_ext; res; f_list] THEN
-	     SUBGOAL_THEN `find_face (h:A#A) L = f` ASSUME_TAC THENL
-	     [
-	       MATCH_MP_TAC FIND_FACE_LEMMA_EXPLICIT THEN
-		 ASM_REWRITE_TAC[MEM];
-	       ALL_TAC
-	     ] THEN
-
-	     SUBGOAL_THEN `h:A#A IN darts_of_list L` (fun th -> REWRITE_TAC[th]) THENL
-	     [
-	       ASM_REWRITE_TAC[darts_of_list; IN_SET_OF_LIST; DART_IN_FACE; MEM];
-	       ALL_TAC
-	     ] THEN
-
-	     ASM_REWRITE_TAC[NEXT_EL; INDEX; LENGTH; ARITH_RULE `~(0 = SUC(SUC n) - 1)`] THEN
-	     REWRITE_TAC[ARITH_RULE `0 + 1 = SUC 0`; EL; TL; HD];
-	   ALL_TAC
-	 ] THEN
-
-	 ASM_REWRITE_TAC[] THEN
-	 POP_ASSUM (fun th -> ONCE_REWRITE_TAC[SYM th]) THEN
-	 ASM_SIMP_TAC[INVERSE_F_LIST_EXT_LEMMA];
-       ALL_TAC
-     ] THEN
-
-     DISCH_THEN MATCH_MP_TAC THEN
-     LIST_INDUCT_TAC THENL
-     [
-       REWRITE_TAC[f_list_ext_table];
-       ALL_TAC
-     ] THEN
-
-     REPEAT STRIP_TAC THEN
-
-     SUBGOAL_THEN `MEM (h':A#A) f` ASSUME_TAC THENL
-     [
-       ASM_REWRITE_TAC[MEM; MEM_APPEND];
-       ALL_TAC
-     ] THEN
-
-     SUBGOAL_THEN `ALL_DISTINCT (f:(A#A)list)` ASSUME_TAC THENL
-     [
-       MATCH_MP_TAC ALL_DISTINCT_FACE THEN
-	 EXISTS_TAC `L:((A)list)list` THEN
-	 ASM_REWRITE_TAC[];
-       ALL_TAC
-     ] THEN
-
-     UNDISCH_TAC `t = APPEND t1 (CONS (h':A#A) t')` THEN
-     DISJ_CASES_TAC (ISPEC `t':(A#A)list` list_CASES) THENL
-     [
-       ASM_REWRITE_TAC[f_list_ext_table] THEN DISCH_TAC THEN
-	 SUBGOAL_THEN `f_list_ext L (h':A#A) = h` ASSUME_TAC THENL
-	 [
-	   REWRITE_TAC[f_list_ext; res; f_list] THEN
-	     SUBGOAL_THEN `find_face (h':A#A) L = f` ASSUME_TAC THENL
-	     [
-	       MATCH_MP_TAC FIND_FACE_LEMMA_EXPLICIT THEN
-		 ASM_REWRITE_TAC[];
-	       ALL_TAC
-	     ] THEN
-
-	     SUBGOAL_THEN `h':A#A IN darts_of_list L` (fun th -> REWRITE_TAC[th]) THENL
-	     [
-	       ASM_REWRITE_TAC[darts_of_list; IN_SET_OF_LIST; DART_IN_FACE] THEN
-		 REWRITE_TAC[MEM; MEM_APPEND];
-	       ALL_TAC
-	     ] THEN
-
-	     ASM_REWRITE_TAC[] THEN
-	     MP_TAC (ISPECL [`f:(A#A)list`; `t1:(A#A)list`; `h:A#A`; `h':A#A`; `t':(A#A)list`] NEXT_EL_APPEND_lemma) THEN
-	     ASM_REWRITE_TAC[];
-	   ALL_TAC
-	 ] THEN
-
-	 ASM_REWRITE_TAC[] THEN
-	 POP_ASSUM (fun th -> ONCE_REWRITE_TAC[SYM th]) THEN
-	 ASM_SIMP_TAC[INVERSE_F_LIST_EXT_LEMMA];
-       ALL_TAC
-     ] THEN
-
-     POP_ASSUM MP_TAC THEN STRIP_TAC THEN
-     ASM_REWRITE_TAC[f_list_ext_table] THEN
-     DISCH_TAC THEN
-
-     SUBGOAL_THEN `f_list_ext L (h':A#A) = h''` ASSUME_TAC THENL
-     [
-       REWRITE_TAC[f_list_ext; res; f_list] THEN
-	 SUBGOAL_THEN `find_face (h':A#A) L = f` ASSUME_TAC THENL
-	 [
-	   MATCH_MP_TAC FIND_FACE_LEMMA_EXPLICIT THEN
-	     ASM_REWRITE_TAC[];
-	   ALL_TAC
-	 ] THEN
-
-	 SUBGOAL_THEN `h':A#A IN darts_of_list L` (fun th -> REWRITE_TAC[th]) THENL
-	 [
-	   ASM_REWRITE_TAC[darts_of_list; IN_SET_OF_LIST; DART_IN_FACE] THEN
-	     REWRITE_TAC[MEM; MEM_APPEND];
-	   ALL_TAC
-	 ] THEN
-
-	 ASM_REWRITE_TAC[] THEN
-	 MP_TAC (ISPECL [`f:(A#A)list`; `t1:(A#A)list`; `h:A#A`; `h':A#A`; `t':(A#A)list`] NEXT_EL_APPEND_lemma) THEN
-	 ASM_REWRITE_TAC[NOT_CONS_NIL; HD];
-       ALL_TAC
-     ] THEN
-
-     ASM_REWRITE_TAC[] THEN
-     CONJ_TAC THENL
-     [
-       POP_ASSUM (fun th -> ONCE_REWRITE_TAC[SYM th]) THEN
-	 ASM_SIMP_TAC[INVERSE_F_LIST_EXT_LEMMA];
-       ALL_TAC
-     ] THEN
-
-     FIRST_X_ASSUM (MP_TAC o SPEC `APPEND t1 [h':A#A]`) THEN
-     ASM_REWRITE_TAC[] THEN
-     DISCH_THEN MATCH_MP_TAC THEN
-     
-     UNDISCH_TAC `t':(A#A)list = CONS h'' t''` THEN
-     DISCH_THEN (fun th -> REWRITE_TAC[SYM th]) THEN
-     REPEAT REMOVE_ASSUM THEN
-     SPEC_TAC (`t1:(A#A)list`, `t1:(A#A)list`) THEN
-     LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[APPEND]);;
-
-     
-
-
-let build_f_list_ext_table hol_list good_list_th faces_th =    
-  let f_table, inv_f_table = Hashtbl.create 100, Hashtbl.create 100 in
-  let th0 = (MY_PROVE_HYP good_list_th o UNDISCH_ALL o ISPEC hol_list) F_LIST_EXT_TABLE in
-  let all_tm = rator(concl th0) in
-  let th1 = EQ_MP (AP_TERM all_tm faces_th) th0 in
-  let th1_list = get_all th1 in
-
-  let step = fun th ->
-    let th = BETA_RULE th in
-    let ltm, rtm = dest_comb(concl th) in
-    let first_th = hd_conv rtm in
-    let f_table_th = EQ_MP (AP_TERM ltm first_th) th in
-    let f_list, inv_f_list = f_list_ext_table_all f_table_th in
-    let _ = map (fun tm, th -> Hashtbl.add f_table tm th) f_list in
-    let _ = map (fun tm, th -> Hashtbl.add inv_f_table tm th) inv_f_list in
-      () in
-
-  let _ = map step th1_list in
-    f_table, inv_f_table;;
-
-
-
-
-(************************************)
-
-(* Final conversion *)
-
-
-let compute_all hyp_str =
-  let thm_table = Hashtbl.create 10 in
-  let fun_table = Hashtbl.create 10 in
-  let hol_list = create_hol_list hyp_str in
-  let faces = LIST_OF_FACES_REWRITE_CONV (mk_comb (list_of_faces_const, hol_list)) in
-  let LIST_OF_DARTS_CONV = REWRITE_CONV[LIST_OF_DARTS; faces; FLATTEN; ITLIST; APPEND] in
-  let darts = LIST_OF_DARTS_CONV (mk_comb (list_of_darts_const, hol_list)) in
-
-  let GOOD_LIST_CONV tm = 
-    let th0 = REWRITE_CONV[good_list; darts] tm in
-    let [c1;c2;c3] = conjuncts (rand(concl th0)) in
-    let th1 = ALL_DISTINCT_NUM_PAIR_CONV c1 in
-    let th2 = REWRITE_CONV[ALL; NOT_CONS_NIL] c2 in
-    let th3 = (REWRITE_CONV[ALL_MEM] THENC GOOD_LIST_COND3_CONV) c3 in
-    let th = CONJ (EQT_ELIM th1) (CONJ (EQT_ELIM th2) (EQT_ELIM th3)) in
-      EQ_MP (SYM th0) th in
-
-  let y = mk_comb(good_list_const, hol_list) in
-  let good_list_th = GOOD_LIST_CONV y in
-
-(*
-test 1 GOOD_LIST_CONV y;; (* 2.448; (ALL_DISTINCT_NUM_PAIR_CONV) 1.748; (COND3) 0.244 *)
-*)
-
-  let components_th = MATCH_MP COMPONENTS_HYPERMAP_OF_LIST good_list_th in
-  let darts_th = REWRITE_RULE[darts_of_list; darts] (CONJUNCT1 components_th) in
-  let faces_th = REWRITE_RULE[faces_of_list; faces] (MATCH_MP FACE_SET_EQ_LIST good_list_th) in
-    (*REWRITE_RULE[MAP; set_of_list] faces_th;; *)
-
-  let y = mk_comb(list_of_elements_const, hol_list) in
-  let elements = LIST_OF_ELEMENTS_CONV y in
-
-  let LIST_OF_NODES_CONV = ONCE_REWRITE_CONV[list_of_nodes] THENC
-    ONCE_REWRITE_CONV[darts] THENC ONCE_REWRITE_CONV[elements] THENC
-    map_conv_univ (BETA_CONV THENC FILTER_NODE_CONV) in
-
-  let y = mk_comb(list_of_nodes_const, hol_list) in
-  let nodes = LIST_OF_NODES_CONV y in
-
-  let good_nodes_th = ASSUME (mk_comb(`good_list_nodes:((num)list)list->bool`, hol_list)) in
-  let hyp_nodes = REWRITE_RULE[good_list_nodes; nodes_of_list; nodes; MAP; set_of_list] good_nodes_th in
-
-  (* Table of node L x *)
-  let table_of_nodes = build_table_of_nodes hol_list nodes in
-
-  (* Table of face L x *)
-  let table_of_faces = build_table_of_faces hol_list good_list_th faces in
-
-  (* Table of face_map and inverses *)
-(*
-  let f_list_th1 = MP (ISPEC hol_list F_LIST_EXT_TABLE) good_list_th in
-  let f_list_th2 = REWRITE_RULE[faces; ALL] f_list_th1 in
-  let f_list_ext_table_th = REWRITE_RULE[f_list_ext_table; HD] f_list_th2 in
-*)
-  let f_list_ext_table, inv_f_list_ext_table = build_f_list_ext_table hol_list good_list_th faces in
-
-  (* List of edges *)
-  let y = mk_comb(list_of_edges_const, hol_list) in
-  let edges = REWRITE_CONV[list_of_edges; darts; MAP] y in
-
-  (* faces3, face4, face5, faces6 *)
-  let faces3_tm = mk_comb(list_of_faces3_const, hol_list) in
-  let faces4_tm = mk_comb(list_of_faces4_const, hol_list) in
-  let faces5_tm = mk_comb(list_of_faces5_const, hol_list) in
-  let faces6_tm = mk_comb(list_of_faces6_const, hol_list) in
-
-  let filter = filter_conv_univ (BETA_CONV THENC
-				   LAND_CONV (length_conv_univ NUM_SUC_CONV) THENC
-				   MY_NUM_EQ_CONV) in
-
-  let faces3 = (REWRITE_CONV[list_of_faces3; faces] THENC filter) faces3_tm in
-  let faces4 = (REWRITE_CONV[list_of_faces4; faces] THENC filter) faces4_tm in
-  let faces5 = (REWRITE_CONV[list_of_faces5; faces] THENC filter) faces5_tm in
-  let faces6 = (REWRITE_CONV[list_of_faces6; faces] THENC filter) faces6_tm in
-
-  (* darts3, darts4, dartsX *)
-  let darts3_tm = mk_comb(list_of_darts3_const, hol_list) in
-  let darts4_tm = mk_comb(list_of_darts4_const, hol_list) in
-    
-  let darts3 = (REWRITE_CONV[list_of_darts3; faces3] THENC flatten_conv_univ) darts3_tm in
-  let darts4 = (REWRITE_CONV[list_of_darts4; faces4] THENC flatten_conv_univ) darts4_tm in
-
-  let filter = filter_conv_univ (BETA_CONV THENC
-				   RAND_CONV (length_conv_univ NUM_SUC_CONV) THENC
-				   NUM_LE_CONV) in
-  let dartsX_tm = mk_comb(list_of_dartsX_const, hol_list) in
-  let dartsX = (REWRITE_CONV[list_of_dartsX; list_of_faces456; faces] THENC
-		  RAND_CONV filter THENC flatten_conv_univ) dartsX_tm in
-
-  (* add everything to the table *)
-  let add = fun str thm -> Hashtbl.add thm_table str thm in
-  let _ = 
-    add "faces" faces;
-    add "darts" darts;
-    add "good_list" good_list_th;
-    add "edges" edges;
-    add "nodes" nodes;
-    add "elements" elements;
-    add "darts3" darts3;
-    add "darts4" darts4;
-    add "dartsX" dartsX;
-    add "faces3" faces3;
-    add "faces4" faces4;
-    add "faces5" faces5;
-    add "faces6" faces6 in
-
-  let add = fun str table -> Hashtbl.add fun_table str table in
-  let _ =
-    add "face" table_of_faces;
-    add "node" table_of_nodes;
-    add "inverse" inv_f_list_ext_table;
-    add "f_list_ext" f_list_ext_table in
-    
-    hol_list, thm_table, fun_table;;
-
-    
-
-(*
-let hol_list, thm_table, fun_table = compute_all pentstring;;
-
-let table = Hashtbl.find fun_table "f_list_ext";;
-Hashtbl.find table `0,2`;;
-
-(* (1): 0.560; (2): 0.640; (3): 1.424; (4): 1.448; (5): 0.748 *)
-test 1 compute_all pentstring;; 
-
-Hashtbl.find list_thm "faces_table";;
-Hashtbl.find list_thm "darts4";;
-Hashtbl.find list_thm "edges";;
-*)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-     
-(*
-let hol_list, list_thm = compute_all pentstring;;     
-let th1 = MP (ISPEC hol_list FACE_MAP_TABLE) (Hashtbl.find list_thm "good_list");;
-let th2 = REWRITE_RULE[Hashtbl.find list_thm "faces"; ALL] th1;;
-let th3 = REWRITE_RULE[face_map_table; HD] th2;;
-*)
-
-
-(* Explicit orbit computation *)
-(* Orbits for lists *)     
-
-let list_orbit = define `list_orbit f x acc = if (MEM x acc) then acc else list_orbit f (f x) (CONS x acc)`;;
-
-
-(* The same definitions as in "pack_defs.hl" *)
-let REVERSE_TABLE  = define `(REVERSE_TABLE (f:num->A) 0 = []) /\
-   (REVERSE_TABLE f (SUC i) = CONS (f i)  ( REVERSE_TABLE f i))`;; 
-
-let TABLE = new_definition `!(f:num->A) k. TABLE f k = REVERSE (REVERSE_TABLE f k)`;;
-
-
-let LENGTH_REVERSE = prove(`!l:(A)list. LENGTH (REVERSE l) = LENGTH l`,
-   LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[REVERSE; LENGTH; LENGTH_APPEND] THEN ARITH_TAC);;
-
-
-let LENGTH_REVERSE_TABLE = prove(`!(f:num->A) n. LENGTH (REVERSE_TABLE f n) = n`,
-   GEN_TAC THEN INDUCT_TAC THEN ASM_REWRITE_TAC[REVERSE_TABLE; LENGTH]);;
-
-
-let LENGTH_TABLE = prove(`!(f:num->A) n. LENGTH(TABLE f n) = n`,
-   REWRITE_TAC[TABLE; LENGTH_REVERSE; LENGTH_REVERSE_TABLE]);;
-
-
-let EL_REVERSE_TABLE = prove(`!(f:num->A) n i. i < n ==> EL i (REVERSE_TABLE f n) = f (n - i - 1)`,
-   GEN_TAC THEN INDUCT_TAC THEN GEN_TAC THEN REWRITE_TAC[ARITH_RULE `~(i < 0)`] THEN
-     DISCH_TAC THEN
-     MP_TAC (SPEC `i:num` num_CASES) THEN
-     DISCH_THEN DISJ_CASES_TAC THENL
-     [
-       ASM_REWRITE_TAC[REVERSE_TABLE; EL; HD; ARITH_RULE `SUC n - 0 - 1 = n`];
-       ALL_TAC
-     ] THEN
-     POP_ASSUM CHOOSE_TAC THEN
-     UNDISCH_TAC `i < SUC n` THEN ASM_REWRITE_TAC[LT_SUC; EL] THEN
-     REWRITE_TAC[REVERSE_TABLE; TL; ARITH_RULE `SUC n - SUC n' = n - n'`] THEN
-     DISCH_TAC THEN
-     FIRST_X_ASSUM MATCH_MP_TAC THEN
-     ASM_REWRITE_TAC[]);;
-
-
-let EL_REVERSE = prove(`!(l:(A)list) i. i < LENGTH l ==> EL i (REVERSE l) = EL (LENGTH l - i - 1) l`,
-   LIST_INDUCT_TAC THEN REWRITE_TAC[LENGTH; REVERSE; LT] THEN
-     REPEAT STRIP_TAC THENL
-     [
-       ASM_REWRITE_TAC[EL_APPEND; LENGTH_REVERSE; LT_REFL; SUB_REFL] THEN
-	 REWRITE_TAC[ARITH_RULE `SUC n - n - 1 = 0`] THEN
-	 REWRITE_TAC[EL; HD];
-       ALL_TAC
-     ] THEN
-     ASM_REWRITE_TAC[EL_APPEND; LENGTH_REVERSE] THEN
-     ASM_SIMP_TAC[ARITH_RULE `i < n ==> SUC n - i - 1 = SUC(n - i - 1)`] THEN
-     REWRITE_TAC[EL; TL]);;
-
-
-let EL_TABLE = prove(`!(f:num->A) n i. i < n ==> EL i (TABLE f n) = f i`,
-   REPEAT STRIP_TAC THEN
-     REWRITE_TAC[TABLE] THEN
-     MP_TAC (SPECL [`REVERSE_TABLE (f:num->A) n`; `i:num`] EL_REVERSE) THEN
-     ASM_REWRITE_TAC[LENGTH_REVERSE_TABLE] THEN
-     MP_TAC (SPECL [`f:(num->A)`; `n:num`; `n - i - 1`] EL_REVERSE_TABLE) THEN
-     ASM_SIMP_TAC[ARITH_RULE `i < n ==> n - (n - i - 1) - 1 = i`] THEN
-     ASM_SIMP_TAC[ARITH_RULE `i < n ==> n - i - 1 < n`]);;
-
-
-
-
-let LIST_ORBIT_LEMMA = prove(`!f (x:A) n. 1 <= n /\ (f POWER n) x = x /\ 
-    (!i j. ~(i = j) /\ i < n /\ j < n ==> ~((f POWER i) x = (f POWER j) x))
-    ==> (!k. k <= n ==> list_orbit f ((f POWER (n - k)) x) 
-	   (REVERSE_TABLE (\i. (f POWER i) x) (n - k)) = REVERSE_TABLE (\i. (f POWER i) x) n)`,
-   REPEAT GEN_TAC THEN STRIP_TAC THEN
-     INDUCT_TAC THEN DISCH_TAC THENL
-     [
-       REWRITE_TAC[SUB_0] THEN
-	 ONCE_REWRITE_TAC[list_orbit] THEN
-	 ASM_REWRITE_TAC[] THEN
-	 SUBGOAL_THEN `MEM (x:A) (REVERSE_TABLE (\i. (f POWER i) x) n)` ASSUME_TAC THENL
-	 [
-	   REWRITE_TAC[MEM_EXISTS_EL] THEN
-	     EXISTS_TAC `n - 1` THEN
-	     REWRITE_TAC[LENGTH_REVERSE_TABLE] THEN
-	     MP_TAC (ARITH_RULE `1 <= n ==> n - 1 < n`) THEN
-	     ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
-	     ASM_SIMP_TAC[EL_REVERSE_TABLE] THEN
-	     ASM_SIMP_TAC[ARITH_RULE `1 <= n ==> n - (n - 1) - 1 = 0`] THEN
-	     REWRITE_TAC[Hypermap.POWER_0; I_THM];
-	   ALL_TAC
-	 ] THEN
-	 ASM_REWRITE_TAC[];
-       ALL_TAC
-     ] THEN
-
-     ONCE_REWRITE_TAC[list_orbit] THEN
-     COND_CASES_TAC THENL
-     [
-       POP_ASSUM MP_TAC THEN
-	 REWRITE_TAC[MEM_EXISTS_EL] THEN
-	 REWRITE_TAC[LENGTH_REVERSE_TABLE] THEN
-	 STRIP_TAC THEN
-	 POP_ASSUM MP_TAC THEN
-	 ASM_SIMP_TAC[EL_REVERSE_TABLE] THEN
-	 FIRST_X_ASSUM (MP_TAC o SPECL [`n - SUC k`; `n - SUC k - i - 1`]) THEN
-	 ANTS_TAC THENL
-	 [
-	   POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
-	     UNDISCH_TAC `1 <= n` THEN
-	     ARITH_TAC;
-	   ALL_TAC
-	 ] THEN
-
-	 SIMP_TAC[];
-       ALL_TAC
-     ] THEN
-
-     SUBGOAL_THEN `f ((f POWER (n - SUC k)) (x:A)) = (f POWER (n - k)) x` (fun th -> REWRITE_TAC[th]) THENL
-     [
-       ASM_SIMP_TAC[ARITH_RULE `SUC k <= n ==> n - k = SUC(n - SUC k)`] THEN
-	 REWRITE_TAC[Hypermap.COM_POWER; o_THM];
-       ALL_TAC
-     ] THEN
-
-     SUBGOAL_THEN `CONS ((f POWER (n - SUC k)) (x:A)) (REVERSE_TABLE (\i. (f POWER i) x) (n - SUC k)) = REVERSE_TABLE (\i. (f POWER i) x) (n - k)` ASSUME_TAC THENL
-     [
-       ASM_SIMP_TAC[ARITH_RULE `SUC k <= n ==> n - k = SUC(n - SUC k)`] THEN
-	 REWRITE_TAC[REVERSE_TABLE];
-       ALL_TAC
-     ] THEN
-
-     ASM_REWRITE_TAC[] THEN
-     FIRST_X_ASSUM MATCH_MP_TAC THEN
-     UNDISCH_TAC `SUC k <= n` THEN ARITH_TAC);;
-
-
-
-let LIST_ORBIT_EXPLICIT = prove(`!f (x:A) n. 1 <= n /\ (f POWER n) x = x /\
-	    (!i j. ~(i = j) /\ i < n /\ j < n ==> ~((f POWER i) x = (f POWER j) x))
-	    ==> list_orbit f x [] = REVERSE_TABLE (\i. (f POWER i) x) n`,
-   REPEAT STRIP_TAC THEN
-     MP_TAC (SPEC_ALL LIST_ORBIT_LEMMA) THEN
-     ASM_REWRITE_TAC[] THEN
-     DISCH_THEN (MP_TAC o SPEC `n:num`) THEN
-     REWRITE_TAC[LE_REFL; SUB_REFL; Hypermap.POWER; I_THM] THEN
-     REWRITE_TAC[REVERSE_TABLE]);;
-
-
-let FINITE_ORBIT_MAP_EXPLICIT = prove(`!s f (x:A). f permutes s /\ FINITE s ==>
-		?n. 1 <= n /\ 
-		    orbit_map f x = {(f POWER k) x | k < n} /\
-  		    (f POWER n) x = x /\
-		    (!i j. ~(i = j) /\ i < n /\ j < n ==> ~((f POWER i) x = (f POWER j) x))`,
-   REPEAT STRIP_TAC THEN
-     ABBREV_TAC `n = CARD (orbit_map f (x:A))` THEN
-     EXISTS_TAC `n:num` THEN
-     MP_TAC (SPEC_ALL Hypermap_and_fan.FINITE_ORBIT_MAP) THEN
-     ASM_REWRITE_TAC[] THEN
-     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
-     REPEAT CONJ_TAC THENL
-     [
-       MP_TAC (SPEC_ALL Hypermap_and_fan.ORBIT_MAP_CARD_POS) THEN
-	 ASM_REWRITE_TAC[] THEN
-	 ARITH_TAC;
-       EXPAND_TAC "n" THEN
-	 MATCH_MP_TAC Hypermap.lemma_cycle_orbit THEN
-	 EXISTS_TAC `s:A->bool` THEN ASM_REWRITE_TAC[];
-       ALL_TAC
-     ] THEN
-     REPEAT STRIP_TAC THEN
-     MP_TAC (INST[`n:num`, `k:num`] (SPEC_ALL Hypermap_and_fan.ORBIT_MAP_INJ)) THEN
-     ASM_REWRITE_TAC[]);;
-     
-
-
-let ORBIT_EQ_LIST_ORBIT = prove(`!f s (x:A). f permutes s /\ FINITE s
-				  ==> orbit_map f x = set_of_list (list_orbit f x [])`,
-   REPEAT GEN_TAC THEN
-     DISCH_THEN (MP_TAC o MATCH_MP FINITE_ORBIT_MAP_EXPLICIT) THEN
-     DISCH_THEN (STRIP_ASSUME_TAC o SPEC `x:A`) THEN
-     ASM_SIMP_TAC[LIST_ORBIT_EXPLICIT] THEN
-     
-     REWRITE_TAC[EXTENSION] THEN X_GEN_TAC `y:A` THEN
-     REWRITE_TAC[IN_ELIM_THM; IN_SET_OF_LIST; MEM_EXISTS_EL] THEN
-     REWRITE_TAC[LENGTH_REVERSE_TABLE] THEN
-     EQ_TAC THEN STRIP_TAC THENL
-     [
-       EXISTS_TAC `n - k - 1` THEN
-	 MP_TAC (ARITH_RULE `k < n ==> n - k - 1 < n`) THEN
-	 ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
-	 ASM_SIMP_TAC[EL_REVERSE_TABLE] THEN
-	 ASM_SIMP_TAC[ARITH_RULE `k < n ==> n - (n - k - 1) - 1 = k`];
-       ALL_TAC
-     ] THEN
-     POP_ASSUM MP_TAC THEN
-     ASM_SIMP_TAC[EL_REVERSE_TABLE] THEN DISCH_TAC THEN
-     EXISTS_TAC `n - i - 1` THEN
-     ASM_SIMP_TAC[ARITH_RULE `i < n ==> n - i - 1 < n`]);;
-
-
-(**************)
-
-
-(* PREV_EL_CONV *)
-
-let [el_0_th; el_suc_th] = CONJUNCTS (ISPECL[`n:num`; `l:(num#num)list`] (GEN_ALL EL));;
-let n_var_num = `n:num`;;
-let l_list = `l:(num#num)list`;;
-let zero_const = `_0`;;
-
-let rec el_conv tm =
-  let ltm, l_tm = dest_comb tm in
-  let el_tm, n_tm = dest_comb ltm in
-    if (rand n_tm <> zero_const) then
-      let n_suc_th = num_CONV n_tm in
-      let m_tm = rand (rand (concl n_suc_th)) in
-      let th0 = AP_THM (AP_TERM el_tm n_suc_th) l_tm in
-      let th1' = INST[m_tm, n_var_num; l_tm, l_list] el_suc_th in
-      let th1 = REWRITE_RULE[TL] th1' in
-      let th2 = el_conv (rand(concl th1)) in
-	TRANS th0 (TRANS th1 th2)
-    else
-      let th0' = INST[l_tm, l_list] el_0_th in
-	REWRITE_RULE[HD] th0';;
-
-
-
-let prev_hd_th = prove(`PREV_EL (x:A) (CONS x t) = LAST (CONS x t)`,
-		       REWRITE_TAC[PREV_EL; INDEX]);;
-
-
-
-let PREV_EL_CONV = REWRITE_CONV[PREV_EL; INDEX; PAIR_EQ; ARITH; LAST; NOT_CONS_NIL] THENC
-  TRY_CONV (ONCE_DEPTH_CONV el_conv);;
-
-
-(*
-let N_LIST_CONV = (REWRITE_CONV[n_list] THENC 
-		     REWRITE_CONV[find_face; find_list; faces; MEM; PAIR_EQ; ARITH] THENC
-		     ONCE_DEPTH_CONV PREV_EL_CONV THENC
-		     REWRITE_CONV[e_list]);;
-*)
-(*
-let z = mk_comb (`n_list:((num)list)list->num#num->num#num`, x);;
-let zz = mk_comb (z, `2,0`);;
-
-
-N_LIST_CONV zz;;
-test 10 N_LIST_CONV zz;; (* 0.704 *)
-*)
-
-
-let list_orbit_mem = UNDISCH_ALL (prove(`(MEM (x:num#num) acc <=> T) ==> list_orbit f x acc = acc`,
-					ONCE_REWRITE_TAC[list_orbit] THEN
-					  SIMP_TAC[]));;
-let list_orbit_not_mem = UNDISCH_ALL (prove(`(MEM (x:num#num) acc <=> F) 
-					    ==> list_orbit f x acc = list_orbit f (f x) (CONS x acc)`,
-					    DISCH_TAC THEN
-					      GEN_REWRITE_TAC LAND_CONV[list_orbit] THEN
-					      ASM_REWRITE_TAC[]));;
-
-
-
-let rec list_orbit_conv f_conv tm =
-  let ltm, acc = dest_comb tm in
-  let ltm, x_arg = dest_comb ltm in
-  let ltm, f_arg = dest_comb ltm in
-  let mem_th = REWRITE_CONV[MEM; PAIR_EQ; ARITH] (mk_binop mem_const x_arg acc) in
-    if (rand(concl mem_th) = f_const) then
-      let th0' = INST[x_arg, x_var_pair; f_arg, f_var_fun; acc, acc_var] list_orbit_not_mem in
-      let th0 = PROVE_HYP mem_th th0' in
-      let tm1 = rand(concl th0) in
-      let ltm, acc1 = dest_comb tm1 in
-      let ltm, x_arg1 = dest_comb ltm in
-      let x_th = f_conv x_arg1 in
-      let th1 = TRANS th0 (AP_THM (AP_TERM ltm x_th) acc1) in
-      let th2 = list_orbit_conv f_conv (rand(concl th1)) in
-	TRANS th1 th2
-    else
-      let th0 = INST[x_arg, x_var_pair; f_arg, f_var_fun; acc, acc_var] list_orbit_mem in
-	PROVE_HYP mem_th th0;;
-
-
-(*
-let zzz = 
-  let t1 = mk_comb (`list_orbit:(num#num->num#num)->(num#num)->(num#num)list->(num#num)list`, z) in
-    mk_comb(mk_comb(t1, `12,7`), `[]:(num#num)list`);;
-
-list_orbit_conv N_LIST_CONV zzz;;
-*)
-
+let tm = test_list;;
+let d_tm = to_num `7,0`;;
+
+(* 0.152 *)
+test 100 (eval_split_list_hyp tm) d_tm;;
 *)

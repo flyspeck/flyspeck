@@ -7,6 +7,7 @@ open Ssrbool;;
 open Ssrnat;;
 open Seq;;
 open List_hypermap;;
+open Hypermap;;
 let list_pairs2 = (GEN_ALL o define) 
 	`list_pairs2 [] (hd:A) = [] /\ 
           list_pairs2 [h] hd = [h,hd] /\ 
@@ -43,6 +44,111 @@ let list_pairs_eq_list_pairs2 = section_proof ["s"]
    ((((use_arg_then2 ("nth_list_pairs", [nth_list_pairs]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("nth_list_pairs2", [nth_list_pairs2]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
    (((fun arg_tac -> arg_tac (Arg_term (`i = _`))) (disch_tac [])) THEN case THEN (simp_tac));
    (((((use_arg_then2 ("nth0", [nth0]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("Seq2.head_HD", [Seq2.head_HD]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN (((use_arg_then2 ("i_lt", [])) (disch_tac [])) THEN (clear_assumption "i_lt") THEN BETA_TAC) THEN (arith_tac) THEN (done_tac));
+];;
+
+(* Lemma node_hypermap_of_list_explicit *)
+let node_hypermap_of_list_explicit = section_proof ["L";"n";"d"]
+`good_list_nodes L /\
+	MEM n (list_of_nodes L) /\ MEM d n
+	==> node (hypermap_of_list L) d = set_of_list n`
+[
+   ((((use_arg_then2 ("good_list_nodes", [good_list_nodes]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN (move ["eq"])) THEN (case THEN (move ["mem_n"])) THEN (move ["mem_d"]));
+   ((fun arg_tac -> arg_tac (Arg_term (`set_of_list n IN node_set (hypermap_of_list L)`))) (term_tac (have_gen_tac []ALL_TAC)));
+   (((((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_SET_OF_LIST", [IN_SET_OF_LIST]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("nodes_of_list", [nodes_of_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("MEM_MAP", [MEM_MAP]))(thm_tac (new_rewrite [] []))))) THEN ((use_arg_then2 ("n", [])) (term_tac exists_tac)) THEN (done_tac));
+   ((DISCH_THEN (fun snd_th -> (use_arg_then2 ("lemma_node_representation", [lemma_node_representation])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN BETA_TAC THEN (case THEN (move ["x"])) THEN (case THEN (move ["_"])) THEN (move ["eq2"]));
+   (((((use_arg_then2 ("eq2", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("eq_sym", [eq_sym]))(thm_tac (new_rewrite [] []))))) THEN ((use_arg_then2 ("lemma_node_identity", [lemma_node_identity])) (thm_tac apply_tac)));
+   (((((use_arg_then2 ("eq2", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("IN_SET_OF_LIST", [IN_SET_OF_LIST]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma nodes_hypermap_of_list_all *)
+let nodes_hypermap_of_list_all = section_proof ["L"]
+`good_list_nodes L
+   ==> ALL (\n. ALL (\d. node (hypermap_of_list L) d = set_of_list n) n) (list_of_nodes L)`
+[
+   ((repeat_tactic 1 9 (((use_arg_then2 ("ALL_MEM", [ALL_MEM]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (DISCH_THEN (fun snd_th -> (use_arg_then2 ("node_hypermap_of_list_explicit", [node_hypermap_of_list_explicit])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN (move ["eq"]) THEN (move ["n"]) THEN (move ["mem_n"]) THEN (simp_tac) THEN (move ["d"]) THEN (move ["mem_d"]));
+   ((((fun arg_tac -> (use_arg_then2 ("eq", [])) (fun fst_arg -> (use_arg_then2 ("mem_n", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma face_hypermap_of_list_explicit *)
+let face_hypermap_of_list_explicit = section_proof ["L";"f";"d"]
+`good_list L /\
+	MEM f (list_of_faces L) /\ MEM d f
+	==> face (hypermap_of_list L) d = set_of_list f`
+[
+   ((BETA_TAC THEN (case THEN (move ["goodL"])) THEN (case THEN (move ["mem_f"])) THEN (move ["mem_d"])) THEN (((use_arg_then2 ("goodL", [])) (disch_tac [])) THEN BETA_TAC) THEN ((((use_arg_then2 ("good_list", [good_list]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN (move ["uniqL"])) THEN (move ["_"])));
+   ((fun arg_tac -> arg_tac (Arg_term (`MEM d (list_of_darts L)`))) (term_tac (have_gen_tac [](move ["mem_d2"]))));
+   (((((use_arg_then2 ("list_of_darts_alt", [list_of_darts_alt]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("Seq2.mem_flatten", [Seq2.mem_flatten]))(thm_tac (new_rewrite [] []))))) THEN ((use_arg_then2 ("f", [])) (term_tac exists_tac)) THEN (done_tac));
+   (((((use_arg_then2 ("face_of_list", [face_of_list]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN ((congr_tac (`_1 _2`)) THEN (simp_tac)));
+   ((((use_arg_then2 ("find_face_eq", [find_face_eq]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Lemma faces_hypermap_of_list_all *)
+let faces_hypermap_of_list_all = section_proof ["L"]
+`good_list L
+   ==> ALL (\f. ALL (\d. face (hypermap_of_list L) d = set_of_list f) f) (list_of_faces L)`
+[
+   ((repeat_tactic 1 9 (((use_arg_then2 ("ALL_MEM", [ALL_MEM]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (DISCH_THEN (fun snd_th -> (use_arg_then2 ("face_hypermap_of_list_explicit", [face_hypermap_of_list_explicit])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN (move ["eq"]) THEN (move ["f"]) THEN (move ["mem_f"]) THEN (simp_tac) THEN (move ["d"]) THEN (move ["mem_d"]));
+   ((((fun arg_tac -> (use_arg_then2 ("eq", [])) (fun fst_arg -> (use_arg_then2 ("mem_f", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+let f_list_ext_table = (GEN_ALL o define) 
+	`(f_list_ext_table L [] (first:A#A) <=> T)
+  	/\ (f_list_ext_table L (CONS h1 (CONS h2 t)) first 
+			<=> f_list_ext L h1 = h2
+				/\ inverse (f_list_ext L) h2 = h1
+				/\ f_list_ext_table L (CONS h2 t) first)
+	/\ (f_list_ext_table L [h1] first 
+			<=> f_list_ext L h1 = first
+	         		/\ inverse (f_list_ext L) first = h1)`;;
+
+(* Lemma f_list_ext_table_list_of_faces *)
+let f_list_ext_table_list_of_faces = section_proof ["L"]
+`good_list L
+	==> ALL (\f. f_list_ext_table L f (HD f)) (list_of_faces L)`
+[
+   ((BETA_TAC THEN (move ["goodL"])) THEN (((use_arg_then2 ("goodL", [])) (disch_tac [])) THEN BETA_TAC) THEN ((((use_arg_then2 ("good_list", [good_list]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN (move ["uniqL"])) THEN (move ["_"])));
+   (((((use_arg_then2 ("Seq2.ALL_all", [Seq2.ALL_all]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("allP", [allP]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (move ["f"]) THEN (simp_tac) THEN (move ["mem_f"]));
+   ((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("mem_face_lemma", [mem_face_lemma])) (fun fst_arg -> (use_arg_then2 ("goodL", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("mem_f", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun arg -> thm_tac MP_TAC arg THEN (case THEN ((move ["d"]) THEN (case THEN ((move ["mem_d"]) THEN (move ["f_eq"])))))));
+   ((fun arg_tac -> arg_tac (Arg_term (`0 < sizel f`))) (term_tac (have_gen_tac [](move ["f_size"]))));
+   ((THENL_LAST) ((THENL) (((use_arg_then2 ("f_eq", [])) (disch_tac [])) THEN (clear_assumption "f_eq") THEN ((use_arg_then2 ("f", [])) (disch_tac [])) THEN (clear_assumption "f") THEN case) [ALL_TAC; ((move ["h"]) THEN (move ["t"]))]) (((((use_arg_then2 ("size_cons", [size_cons]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("gtS0", [gtS0]))(thm_tac (new_rewrite [] []))))) THEN (done_tac)));
+   (((((use_arg_then2 ("eq_sym", [eq_sym]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("find_face_empty", [find_face_empty]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((fun arg_tac -> arg_tac (Arg_term (`f = s1 ++ [x] ++ s2 /\ f_list_ext_table L s2 (HD f) 
+	==> f_list_ext_table L (x :: s2) (HD f)`))) (term_tac (have_gen_tac ["s2"; "s1"; "x"](move ["h"]))));
+   (BETA_TAC THEN (case THEN (move ["f_eq_cat"])));
+   ((THENL_FIRST) ((fun arg_tac -> arg_tac (Arg_term (`MEM x f`))) (term_tac (have_gen_tac [](move ["mem_xf"])))) (((((use_arg_then2 ("f_eq_cat", []))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("mem_cat", [mem_cat]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("mem_seq1", [mem_seq1]))(thm_tac (new_rewrite [] []))))) THEN (done_tac)));
+   ((fun arg_tac -> arg_tac (Arg_term (`find_face L x = f`))) (term_tac (have_gen_tac [](move ["fx_eq"]))));
+   ((((use_arg_then2 ("f_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (use_arg_then2 ("mem_find_face_imp_faces_eq", [mem_find_face_imp_faces_eq])) (fun fst_arg -> (use_arg_then2 ("uniqL", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac)) THEN (((use_arg_then2 ("f_eq", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((fun arg_tac -> arg_tac (Arg_term (`MEM x (list_of_darts L)`))) (term_tac (have_gen_tac [](move ["mem_x"]))));
+   (((use_arg_then2 ("dart_in_darts", [dart_in_darts])) (thm_tac apply_tac)) THEN ((fun arg_tac -> arg_tac (Arg_term (`find_pair_list L d`))) (term_tac exists_tac)));
+   (((((use_arg_then2 ("find_face_alt", [find_face_alt]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("f_eq", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("mem_find_pair_list", [mem_find_pair_list]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((((THENL) (((use_arg_then2 ("f_eq_cat", [])) (disch_tac [])) THEN (clear_assumption "f_eq_cat") THEN ((use_arg_then2 ("s2", [])) (disch_tac [])) THEN (clear_assumption "s2") THEN case) [ALL_TAC; ((move ["h2"]) THEN (move ["t"]))]) THEN (move ["f_eq_cat"]) THEN (move ["Ih"])) THEN ((repeat_tactic 1 9 (((use_arg_then2 ("f_list_ext_table", [f_list_ext_table]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("Ih", []))(thm_tac (new_rewrite [] []))))) THEN (simp_tac)));
+   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`f_list_ext L x = (HD f)`))) (term_tac (have_gen_tac [](move ["eq"])))));
+   (((((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (((use_arg_then2 ("eq", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("o_THM", [o_THM])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`inverse _`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("f_list_ext_inverse_works", [f_list_ext_inverse_works]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("I_THM", [I_THM]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((((use_arg_then2 ("f_list_ext", [f_list_ext]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("res", [res]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("darts_of_list", [darts_of_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_SET_OF_LIST", [IN_SET_OF_LIST]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("mem_x", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (((use_arg_then2 ("f_list", [f_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fx_eq", []))(thm_tac (new_rewrite [] [])))));
+   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`x = last (HD f) f`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))))));
+   (((((use_arg_then2 ("Seq2.next_el_last", [Seq2.next_el_last]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("f_size", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("f_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("uniq_find_face", [uniq_find_face]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   (((((use_arg_then2 ("f_eq_cat", []))(thm_tac (new_rewrite [2] [])))) THEN (((use_arg_then2 ("cats0", [cats0]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("cats1", [cats1]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("last_rcons", [last_rcons]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`f_list_ext L x = h2`))) (term_tac (have_gen_tac [](move ["eq"])))));
+   (((((use_arg_then2 ("eq", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (((use_arg_then2 ("eq", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("o_THM", [o_THM])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`inverse _`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("f_list_ext_inverse_works", [f_list_ext_inverse_works]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("I_THM", [I_THM]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((((use_arg_then2 ("f_list_ext", [f_list_ext]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("res", [res]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("darts_of_list", [darts_of_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_SET_OF_LIST", [IN_SET_OF_LIST]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("f_list", [f_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("mem_x", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((((fun arg_tac -> (use_arg_then2 ("Seq2.next_el_rot_eq", [Seq2.next_el_rot_eq])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`sizel s1`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("uniq_find_face", [uniq_find_face]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   (((((use_arg_then2 ("rot", [rot]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("fx_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("f_eq_cat", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("drop_size_cat", [drop_size_cat]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("cat1s", [cat1s]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("cat", [cat]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("Seq2.next_el_hd_cons2", [Seq2.next_el_hd_cons2]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((fun arg_tac -> arg_tac (Arg_term (`\k. ?s1 x s2. f = s1 ++ [x] ++ s2 /\ sizel s1 = k /\ f_list_ext_table L s2 (HD f)`))) (term_tac (set_tac "P")));
+   ((fun arg_tac -> arg_tac (Arg_term (`?n. P n`))) (term_tac (have_gen_tac []ALL_TAC)));
+   (((fun arg_tac -> arg_tac (Arg_term (`sizel f - 1`))) (term_tac exists_tac)) THEN ((((use_arg_then2 ("P_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (simp_tac)));
+   (((fun arg_tac -> arg_tac (Arg_term (`butlast f`))) (term_tac exists_tac)) THEN ((fun arg_tac -> arg_tac (Arg_term (`last (HD f) f`))) (term_tac exists_tac)) THEN ((fun arg_tac -> arg_tac (Arg_term (`[]`))) (term_tac exists_tac)));
+   (((((use_arg_then2 ("f_list_ext_table", [f_list_ext_table]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("Seq2.size_butlast", [Seq2.size_butlast]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("cats0", [cats0]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("Seq2.cat_butlast_last", [Seq2.cat_butlast_last]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+   ((((use_arg_then2 ("MINIMAL", [MINIMAL]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN (move ["Pk"])) THEN (move ["Pm"]));
+   ((fun arg_tac -> arg_tac (Arg_term (`(minimal) P`))) (term_tac (set_tac "k")));
+   ((((use_arg_then2 ("Pk", [])) (disch_tac [])) THEN (clear_assumption "Pk") THEN BETA_TAC) THEN (((((use_arg_then2 ("P_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (simp_tac)) THEN ALL_TAC THEN (case THEN (move ["s1"])) THEN (case THEN (move ["x"])) THEN (case THEN (move ["s2"])) THEN (case THEN (move ["f_eq"])) THEN (case THEN (move ["size_s1"])) THEN (move ["h_s2"])));
+   (((fun arg_tac -> arg_tac (Arg_term (`k = 0`))) (disch_eq_tac "k_eq" [])) THEN case THEN (simp_tac) THEN (process_fst_eq_tac));
+   ((((use_arg_then2 ("size_s1", [])) (disch_tac [])) THEN (clear_assumption "size_s1") THEN BETA_TAC) THEN (((((use_arg_then2 ("k_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("size_eq0", [size_eq0]))(thm_tac (new_rewrite [] []))))) THEN (move ["s1_eq"])));
+   (((((use_arg_then2 ("f_eq", []))(thm_tac (new_rewrite [1] [])))) THEN (((use_arg_then2 ("s1_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("cat", [cat]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("cat1s", [cat1s]))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (use_arg_then2 ("h", [])) (fun fst_arg -> (use_arg_then2 ("f_eq", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((THENL_FIRST) (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`P (k - 1)`))) (term_tac (have_gen_tac []ALL_TAC)))) (((((use_arg_then2 ("Pm", []))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac))) THEN (((use_arg_then2 ("k_eq", [])) (disch_tac [])) THEN (clear_assumption "k_eq") THEN BETA_TAC) THEN (arith_tac) THEN (done_tac)));
+   ((((use_arg_then2 ("P_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (simp_tac));
+   (((fun arg_tac -> arg_tac (Arg_term (`butlast s1`))) (term_tac exists_tac)) THEN ((fun arg_tac -> arg_tac (Arg_term (`last (HD f) s1`))) (term_tac exists_tac)) THEN ((fun arg_tac -> arg_tac (Arg_term (`x :: s2`))) (term_tac exists_tac)));
+   ((((use_arg_then2 ("Seq2.size_butlast", [Seq2.size_butlast]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("size_s1", []))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (use_arg_then2 ("h", [])) (fun fst_arg -> (use_arg_then2 ("f_eq", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((simp_tac THEN TRY done_tac)));
+   ((((use_arg_then2 ("catA", [catA]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("Seq2.cat_butlast_last", [Seq2.cat_butlast_last]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 1 (((use_arg_then2 ("cat1s", [cat1s]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("f_eq", []))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("size_s1", []))(thm_tac (new_rewrite [] [])))));
+   ((((use_arg_then2 ("k_eq", [])) (disch_tac [])) THEN (clear_assumption "k_eq") THEN BETA_TAC) THEN (arith_tac) THEN (done_tac));
 ];;
 
 (* Close the module *)

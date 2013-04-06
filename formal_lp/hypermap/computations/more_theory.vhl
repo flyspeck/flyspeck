@@ -6,6 +6,9 @@ Module More_list_hypermap.
 "open Ssrnat".
 "open Seq".
 "open List_hypermap".
+"open Hypermap".
+
+(* Darts *)
 
 "let list_pairs2 = (GEN_ALL o define) 
 	`list_pairs2 [] (hd:A) = [] /\ 
@@ -40,4 +43,108 @@ by rewrite nth0 Seq2.head_HD //; move: i_lt; arith.
 Qed.
 
 
-    
+(* Nodes *)
+
+Lemma node_hypermap_of_list_explicit L n d: `good_list_nodes L /\
+	MEM n (list_of_nodes L) /\ MEM d n
+	==> node (hypermap_of_list L) d = set_of_list n`.
+Proof.
+rewrite good_list_nodes => [] [eq] [mem_n] mem_d.
+have: `set_of_list n IN node_set (hypermap_of_list L)`.
+  by rewrite eq IN_SET_OF_LIST nodes_of_list MEM_MAP; exists n.
+move/lemma_node_representation => [x] [_] eq2.
+rewrite eq2 eq_sym; apply lemma_node_identity.
+by rewrite -eq2 IN_SET_OF_LIST.
+Qed.
+
+
+Lemma nodes_hypermap_of_list_all L: `good_list_nodes L
+   ==> ALL (\n. ALL (\d. node (hypermap_of_list L) d = set_of_list n) n) (list_of_nodes L)`.
+Proof.
+rewrite -!ALL_MEM => /node_hypermap_of_list_explicit eq n mem_n /= d mem_d.
+by rewrite (eq mem_n).
+Qed.
+
+
+(* Faces *)
+Lemma face_hypermap_of_list_explicit L f d: `good_list L /\
+	MEM f (list_of_faces L) /\ MEM d f
+	==> face (hypermap_of_list L) d = set_of_list f`.
+Proof.
+move => [goodL] [mem_f] mem_d; move: (goodL); rewrite good_list => [] [uniqL] _.
+have mem_d2: `MEM d (list_of_darts L)`.
+  by rewrite list_of_darts_alt Seq2.mem_flatten; exists f.
+rewrite face_of_list //; congr `_1 _2` => /=.
+by rewrite find_face_eq.
+Qed.
+
+
+Lemma faces_hypermap_of_list_all L: `good_list L
+   ==> ALL (\f. ALL (\d. face (hypermap_of_list L) d = set_of_list f) f) (list_of_faces L)`.
+Proof.
+rewrite -!ALL_MEM => /face_hypermap_of_list_explicit eq f mem_f /= d mem_d.
+by rewrite (eq mem_f).
+Qed.
+
+
+(* f_list_ext *)
+
+"let f_list_ext_table = (GEN_ALL o define) 
+	`(f_list_ext_table L [] (first:A#A) <=> T)
+  	/\ (f_list_ext_table L (CONS h1 (CONS h2 t)) first 
+			<=> f_list_ext L h1 = h2
+				/\ inverse (f_list_ext L) h2 = h1
+				/\ f_list_ext_table L (CONS h2 t) first)
+	/\ (f_list_ext_table L [h1] first 
+			<=> f_list_ext L h1 = first
+	         		/\ inverse (f_list_ext L) first = h1)`".
+
+
+Lemma f_list_ext_table_list_of_faces L: `good_list L
+	==> ALL (\f. f_list_ext_table L f (HD f)) (list_of_faces L)`.
+Proof.
+move => goodL; move: (goodL); rewrite good_list => [] [uniqL] _.
+rewrite Seq2.ALL_all -allP => f /= mem_f.
+have [d [mem_d f_eq]] := mem_face_lemma goodL mem_f.
+have f_size: `0 < sizel f`.
+  case: f f_eq => [|h t]; last by rewrite size_cons gtS0.
+  by rewrite eq_sym find_face_empty.
+have h s2 s1 x: `f = s1 ++ [x] ++ s2 /\ f_list_ext_table L s2 (HD f) 
+	==> f_list_ext_table L (x :: s2) (HD f)`.
+  move => [f_eq_cat].
+  have mem_xf: `MEM x f` by rewrite f_eq_cat !mem_cat mem_seq1.
+  have fx_eq: `find_face L x = f`.
+    by rewrite f_eq; apply: (mem_find_face_imp_faces_eq uniqL); rewrite -f_eq.
+  have mem_x: `MEM x (list_of_darts L)`.
+    apply dart_in_darts; exists `find_pair_list L d`.
+    by rewrite -find_face_alt -f_eq mem_find_pair_list.
+  case: s2 f_eq_cat => [|h2 t] f_eq_cat Ih; rewrite !f_list_ext_table ?Ih /=.
+    suff eq: `f_list_ext L x = (HD f)`.
+      by rewrite eq /= -eq -(o_THM `inverse _`) f_list_ext_inverse_works // I_THM.
+    rewrite f_list_ext res darts_of_list IN_SET_OF_LIST mem_x /= f_list fx_eq.
+    suff ->: `x = last (HD f) f`.
+      by rewrite Seq2.next_el_last // f_size f_eq uniq_find_face.
+    by rewrite {2}f_eq_cat cats0 cats1 last_rcons.
+  suff eq: `f_list_ext L x = h2`.
+    by rewrite eq /= -eq -(o_THM `inverse _`) f_list_ext_inverse_works // I_THM.
+  rewrite f_list_ext res darts_of_list IN_SET_OF_LIST f_list mem_x /=.
+  rewrite -(Seq2.next_el_rot_eq `sizel s1`) ?uniq_find_face //.
+  by rewrite rot fx_eq f_eq_cat drop_size_cat // cat1s !cat Seq2.next_el_hd_cons2.
+set P := `\k. ?s1 x s2. f = s1 ++ [x] ++ s2 /\ sizel s1 = k /\ f_list_ext_table L s2 (HD f)`.
+have: `?n. P n`.
+  exists `sizel f - 1`; rewrite -P_def /=.
+  exists `butlast f` `last (HD f) f` `[]`.
+  by rewrite f_list_ext_table Seq2.size_butlast cats0 -Seq2.cat_butlast_last.
+rewrite MINIMAL => [] [Pk] Pm.
+set k := `(minimal) P`.
+move: Pk; rewrite -P_def /= => [] [s1] [x] [s2] [f_eq] [size_s1] h_s2.
+case k_eq: `k = 0` => /=.
+  move: size_s1; rewrite k_eq size_eq0 => s1_eq.
+  by rewrite {1}f_eq s1_eq cat cat1s (h f_eq).
+suff: `P (k - 1)` by rewrite Pm //; move: k_eq; arith.
+rewrite -P_def /=.
+exists `butlast s1` `last (HD f) s1` `x :: s2`.
+rewrite Seq2.size_butlast size_s1 (h f_eq) //=.
+rewrite catA -Seq2.cat_butlast_last -1?cat1s ?f_eq // size_s1.
+by move: k_eq; arith.
+Qed.

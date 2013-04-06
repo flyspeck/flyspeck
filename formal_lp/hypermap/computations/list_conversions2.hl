@@ -80,7 +80,9 @@ module type List_conversions_sig =
     val eval_rot : term -> term -> thm
     val eval_rot1 : term -> thm
     val eval_rotr1 : term -> thm
-      
+      (* index *)
+    val eval_index_univ : (term -> thm) -> term -> term -> thm
+    val index_conv_univ : (term -> thm) -> term -> thm
   end;;
 
 
@@ -1025,6 +1027,51 @@ let eval_rotr1 list_tm =
     else
       inst_t shift_right_empty';;
 
+
+
+(******************************)
+(* index conversions *)
+
+let index_empty = (MY_RULE_NUM o prove)(`indexl (x:A) [] = 0`, REWRITE_TAC[index; find]) and
+    index_cons_eq = (MY_RULE_NUM o prove)(`(x = h <=> T) ==> indexl (x:A) (CONS h t) = 0`,
+				      SIMP_TAC[index; find; pred1]) and
+    index_cons_neq = (MY_RULE o prove)(`(x = h <=> F) ==> indexl (x:A) (CONS h t) = SUC (indexl x t)`,
+					   SIMP_TAC[index; find; pred1]);;
+
+
+let rec eval_index_univ eq_conv x_tm list_tm =
+  let ty = type_of x_tm in
+  let inst_t = INST_TYPE[ty, aty] in
+  let index_empty, index_eq, index_neq = 
+    inst_t index_empty, inst_t index_cons_eq, inst_t index_cons_neq in
+  let x_var, h_var = mk_var("x", ty), mk_var("h", ty) and
+      t_var = mk_var("t", mk_type("list", [ty])) in
+
+  let rec index_rec list_tm =
+    if (is_comb list_tm) then
+      let h_tm', t_tm = dest_comb list_tm in
+      let h_tm = rand h_tm' in
+      let eq_th = eq_conv (mk_eq(x_tm, h_tm)) in
+	if (rand(concl eq_th) = t_const) then
+	  let th0 = INST[x_tm, x_var; h_tm, h_var; t_tm, t_var] index_eq in
+	    MY_PROVE_HYP eq_th th0
+	else
+	  let th0 = INST[x_tm, x_var; h_tm, h_var; t_tm, t_var] index_neq in
+	  let th1 = MY_PROVE_HYP eq_th th0 in
+	  let th2 = AP_TERM suc_op_num (index_rec t_tm) in
+	  let suc_th = raw_suc_conv_hash (rand (concl th2)) in
+	    TRANS th1 (TRANS th2 suc_th)
+    else
+      INST[x_tm, x_var] index_empty in
+
+    index_rec list_tm;;
+
+
+let index_conv_univ eq_conv mem_tm =
+  let ltm, list_tm = dest_comb mem_tm in
+  let c_tm, x_tm = dest_comb ltm in
+    if (fst o dest_const) c_tm <> "indexl" then failwith "index_conv_univ" else
+      eval_index_univ eq_conv x_tm list_tm;;
 
 
 end;;

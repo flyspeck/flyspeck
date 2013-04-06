@@ -33,6 +33,8 @@ let hd_var_num = `hd:num` and
     t_var = `t:(num)list` and
     x_var_pair = `x:num#num` and
     d_var_pair = `d:num#num` and
+    h1_var_pair = `h1:num#num` and
+    h2_var_pair = `h2:num#num` and
     acc_var = `acc:(num#num)list` and
     f_var_fun = `f:num#num->num#num` and
     l_cap_var = `L:((num)list)list` and
@@ -61,6 +63,11 @@ let hypermap_of_list_const = `hypermap_of_list:((num)list)list->(num#num)hyperma
     list_of_elements_const = `list_of_elements:((num)list)list->(num)list` and
     good_list_const = `good_list:((num)list)list->bool` and
     good_list_nodes_const = `good_list_nodes:((num)list)list->bool`;;
+
+
+let num_pair_hash tm =
+  let ltm, rtm = dest_pair tm in
+    Arith_cache.num_tm_hash ltm ^ "," ^ Arith_cache.num_tm_hash rtm;;
 
 
 
@@ -421,4 +428,259 @@ let d_tm = to_num `7,0`;;
 
 (* 0.152 *)
 test 100 (eval_split_list_hyp tm) d_tm;;
+*)
+
+
+(*********************************)
+(* list_of_nodes *)
+
+let filter_nodes_empty = prove(`filter (\d:num#num. FST d = x) [] = []`, REWRITE_TAC[Seq.filter]);;
+let filter_nodes_cons_eq = (MY_RULE o prove)(`(n = x <=> T) ==> filter (\d:num#num. FST d = x) (CONS (n,m) t) =
+						 CONS (n,m) (filter (\d. FST d = x) t)`, SIMP_TAC[Seq.filter]);;
+let filter_nodes_cons_neq = (MY_RULE o prove)(`(n = x <=> F) ==> filter (\d:num#num. FST d = x) (CONS (n,m) t) =
+						  filter (\d. FST d = x) t`, SIMP_TAC[Seq.filter]);;
+
+let rec eval_filter_nodes x_tm list_tm =
+  if (is_comb list_tm) then
+    let h_tm', t_tm = dest_comb list_tm in
+    let h_tm = rand h_tm' in
+    let n_tm, m_tm = dest_pair h_tm in
+    let inst = INST[n_tm, n_var_num; m_tm, m_var_num; t_tm, t_var_numnum_list; x_tm, x_var_num] in
+    let eq_th = raw_eq_hash_conv (mk_eq (n_tm, x_tm)) in
+      if (rand (concl eq_th) = t_const) then
+	let th0 = MY_PROVE_HYP eq_th (inst filter_nodes_cons_eq) in
+	let ltm = (rator o rand o concl) th0 in
+	let th1 = eval_filter_nodes x_tm t_tm in
+	  TRANS th0 (AP_TERM ltm th1)
+      else
+	let th0 = MY_PROVE_HYP eq_th (inst filter_nodes_cons_neq) in
+	let th1 = eval_filter_nodes x_tm t_tm in
+	  TRANS th0 th1
+  else
+    INST[x_tm, x_var_num] filter_nodes_empty;;
+
+
+let filter_nodes_conv filter_tm =
+  let ltm, list_tm = dest_comb filter_tm in
+  let x_tm = (rand o snd o dest_abs o rand) ltm in
+    eval_filter_nodes x_tm list_tm;;
+
+
+(*
+let x_tm = to_num `11`;;
+let list_tm = (rand o concl o eval_list_of_darts) test_list;;
+
+(* 10: 0.396 *)
+test 100 (eval_filter_nodes x_tm) list_tm;;
+*)
+
+
+let eval_list_of_nodes0 =
+  let th0 = (MY_RULE o prove)(`list_of_darts L = list /\ list_of_elements L = (s1:(num)list)
+      ==> list_of_nodes L = MAP (\x. filter (\d. FST d = x) list) s1`, SIMP_TAC[list_of_nodes]) in
+    fun tm darts_th elements_th ->
+      let list_tm = (rand o concl) darts_th in
+      let s1_tm = (rand o concl) elements_th in
+      let th1 = (MY_PROVE_HYP darts_th o MY_PROVE_HYP elements_th o
+		   INST[list_tm, list_var; s1_tm, s1_var_list; tm, l_cap_var]) th0 in
+      let rtm = rand (concl th1) in
+      let map_th = map_conv_univ (BETA_CONV THENC filter_nodes_conv) rtm in
+	TRANS th1 map_th;;
+
+
+let eval_list_of_nodes tm =
+  eval_list_of_nodes0 tm (eval_list_of_darts tm) (eval_list_of_elements tm);;
+
+
+(*
+let darts_th = eval_list_of_darts test_list;;
+let elements_th = eval_list_of_elements test_list;;
+(* 10: 0.528 *)
+test 10 (eval_list_of_nodes0 test_list darts_th) elements_th;;
+*)
+
+
+let build_table_of_nodes hyp_list nodes_th =
+  let table_of_nodes = Hashtbl.create 100 in
+  let th0 = (UNDISCH_ALL o ISPEC hyp_list) nodes_hypermap_of_list_all in
+  let all_tm = rator (concl th0) in
+  let th1 = EQ_MP (AP_TERM all_tm nodes_th) th0 in
+  let th1_list = get_all th1 in
+  let build1 th =
+    let th = MY_BETA_RULE th in
+    let list_tm = dest_list(rand(concl th)) in
+    let ths = get_all th in
+    let r = CONV_RULE (BETA_CONV THENC RAND_CONV set_of_list_conv) in
+      map (fun tm, th -> Hashtbl.add table_of_nodes (num_pair_hash tm) (r th)) (zip list_tm ths) in
+  let _ = map build1 th1_list in
+    table_of_nodes;;
+
+
+(*
+let nodes_th = eval_list_of_nodes test_list;;
+(* 10: 0.156 *)
+test 10 (build_table_of_nodes test_list) nodes_th;;
+*)
+
+
+(***************************)
+(* table of faces *)
+
+let build_table_of_faces hyp_list good_list_th faces_th =
+  let table_of_faces = Hashtbl.create 100 in
+  let th0 = (MY_PROVE_HYP good_list_th o UNDISCH_ALL o ISPEC hyp_list) faces_hypermap_of_list_all in
+  let all_tm = rator (concl th0) in
+  let th1 = EQ_MP (AP_TERM all_tm faces_th) th0 in
+  let th1_list = get_all th1 in
+  let build1 th =
+    let th = MY_BETA_RULE th in
+    let list_tm = dest_list(rand(concl th)) in
+    let ths = get_all th in
+    let r = CONV_RULE (BETA_CONV THENC RAND_CONV set_of_list_conv) in
+      map (fun tm, th -> Hashtbl.add table_of_faces (num_pair_hash tm) (r th)) (zip list_tm ths) in
+  let _ = map build1 th1_list in
+    table_of_faces;;
+
+(*
+let faces_th = eval_list_of_faces test_list;;
+let darts_th = eval_list_of_darts0 test_list faces_th;;
+let good_th = eval_good_list0 test_list darts_th;;
+let table = build_table_of_faces test_list good_th faces_th;;
+Hashtbl.find table "D7,D2D1";;
+(* 10: 0.148 *)
+test 10 (build_table_of_faces test_list good_th) faces_th;;
+*)
+
+
+(*****************************)
+(* f_list_ext tables *)
+
+let list_to_pair list = hd list, hd(tl list);;
+
+let F_LIST_EXT_SINGLE, INV_F_LIST_EXT_SINGLE = (list_to_pair o CONJUNCTS o MY_RULE o prove)
+  (`f_list_ext_table L [h1] (x:num#num)
+   ==> f_list_ext L h1 = x /\
+       inverse (f_list_ext L) x = h1`, SIMP_TAC[f_list_ext_table]);;
+
+let F_LIST_EXT_CONS, INV_F_LIST_EXT_CONS = (list_to_pair o CONJUNCTS o MY_RULE o prove)
+  (`f_list_ext_table L (h1 :: h2 :: t) (x:num#num)
+  ==> f_list_ext L h1 = h2 /\
+      inverse (f_list_ext L) h2 = h1`, SIMP_TAC[f_list_ext_table]);;
+
+let F_LIST_EXT_TABLE_CONS = (MY_RULE o prove)
+  (`f_list_ext_table L (h1 :: t) (x:num#num) ==> f_list_ext_table L t x`,
+   DISJ_CASES_TAC (ISPEC `t:(num#num)list` list_CASES) THENL
+     [
+       ASM_REWRITE_TAC[f_list_ext_table];
+       POP_ASSUM STRIP_ASSUME_TAC THEN
+	 ASM_SIMP_TAC[f_list_ext_table]
+     ]);;
+
+
+let f_list_ext_table_all th = 
+  let ltm, x_tm = dest_comb(concl th) in
+  let ltm, list_tm = dest_comb ltm in
+  let l_tm = rand ltm in
+  let inst_t = INST[x_tm, x_var_pair] in
+  let f_single, inv_f_single = inst_t F_LIST_EXT_SINGLE, inst_t INV_F_LIST_EXT_SINGLE in
+  let f_cons, inv_f_cons = inst_t F_LIST_EXT_CONS, inst_t INV_F_LIST_EXT_CONS in
+  let f_table = inst_t F_LIST_EXT_TABLE_CONS in
+    
+  let rec f_list_raw f_table_th h1_tm t1_tm =
+    if (is_comb t1_tm) then
+      let h2_tm', t2_tm = dest_comb t1_tm in
+      let h2_tm = rand h2_tm' in
+      let inst_t = MY_PROVE_HYP f_table_th o 
+	INST[l_tm, l_cap_var; h1_tm, h1_var_pair; h2_tm, h2_var_pair; t2_tm, t_var_numnum_list] in
+
+      let f_th, inv_f_th = inst_t f_cons, inst_t inv_f_cons in
+      let th0 = (MY_PROVE_HYP f_table_th o INST[l_tm, l_cap_var; h1_tm, h1_var_pair; t1_tm, t_var_numnum_list]) f_table in
+      let f_list, inv_f_list = f_list_raw th0 h2_tm t2_tm in
+	(h1_tm, f_th) :: f_list, (h2_tm, inv_f_th) :: inv_f_list
+
+    else
+      let inst_t = MY_PROVE_HYP f_table_th o INST[l_tm, l_cap_var; h1_tm, h1_var_pair] in
+      let f_th, inv_f_th = inst_t f_single, inst_t inv_f_single in
+	[h1_tm, f_th], [x_tm, inv_f_th] in
+
+    if (is_comb list_tm) then
+      let h1_tm, t1_tm = dest_comb list_tm in
+	f_list_raw th (rand h1_tm) t1_tm
+    else
+      [], [];;
+
+
+let build_f_list_ext_table =
+  let th0' = (UNDISCH_ALL o ISPEC l_cap_var) f_list_ext_table_list_of_faces in
+    fun hol_list good_list_th faces_th ->
+      let f_table, inv_f_table = Hashtbl.create 100, Hashtbl.create 100 in
+      let th0 = (MY_PROVE_HYP good_list_th o INST[hol_list, l_cap_var]) th0' in
+      let all_tm = rator (concl th0) in
+      let th1 = EQ_MP (AP_TERM all_tm faces_th) th0 in
+      let th1_list = get_all th1 in
+
+      let step th =
+	let th = MY_BETA_RULE th in
+	let ltm, rtm = dest_comb(concl th) in
+	let first_th = hd_conv rtm in
+	let f_table_th = EQ_MP (AP_TERM ltm first_th) th in
+	let f_list, inv_f_list = f_list_ext_table_all f_table_th in
+	let _ = map (fun tm, th -> Hashtbl.add f_table (num_pair_hash tm) th) f_list in
+	let _ = map (fun tm, th -> Hashtbl.add inv_f_table (num_pair_hash tm) th) inv_f_list in
+	  () in
+
+      let _ = map step th1_list in
+	f_table, inv_f_table;;
+
+
+(*
+let faces_th = eval_list_of_faces test_list;;
+let darts_th = eval_list_of_darts0 test_list faces_th;;
+let good_th = eval_good_list0 test_list darts_th;;
+let ft, ift = build_f_list_ext_table test_list good_th faces_th;;
+Hashtbl.find ft "D7,D2D1";;
+Hashtbl.find ift "D7,D2D1";;
+(* 10: 0.056 *)
+test 10 (build_f_list_ext_table test_list good_th) faces_th;;
+*)
+
+
+(**************************************)
+(* compute_all *)
+
+let compute_all hyp_list =
+  let thm_table = Hashtbl.create 10 in
+  let fun_table = Hashtbl.create 10 in
+  let elements_th = eval_list_of_elements hyp_list in
+  let faces_th = eval_list_of_faces hyp_list in
+  let darts_th = eval_list_of_darts0 hyp_list faces_th in
+  let good_th = eval_good_list0 hyp_list darts_th in
+  let nodes_th = eval_list_of_nodes0 hyp_list darts_th elements_th in
+    
+  let table_of_nodes = build_table_of_nodes hyp_list nodes_th and
+      table_of_faces = build_table_of_faces hyp_list good_th faces_th and
+      f_table, inv_f_table = build_f_list_ext_table hyp_list good_th faces_th in
+
+  let add = fun str thm -> Hashtbl.add thm_table str thm in
+  let _ =
+    add "good_list" good_th;
+    add "elements" elements_th;
+    add "darts" darts_th;
+    add "faces" faces_th;
+    add "nodes" nodes_th in
+    
+  let add = fun str table -> Hashtbl.add fun_table str table in
+  let _ =
+    add "face" table_of_faces;
+    add "node" table_of_nodes;
+    add "f" f_table;
+    add "inv_f" inv_f_table in
+
+    thm_table, fun_table;;
+
+
+(*    
+let t1, t2 = compute_all test_list;;
+(* 10: 2.444 *)
+test 10 compute_all test_list;;
 *)

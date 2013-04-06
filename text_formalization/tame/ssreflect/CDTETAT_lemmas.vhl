@@ -1,0 +1,139 @@
+"flyspeck_needs \"../formal_lp/hypermap/ssreflect/add_triangle-compiled.hl\"".
+
+Module Cdtetat_lemmas.
+
+"let kcblrqc_ineq_tml = 
+  let has_id = (fun t -> not(intersect [\"KCBLRQC\"] (Ineq.flypaper_ids t) = [])) in
+  let idl = (filter has_id !Ineq.ineqs) in
+  let tml = map (fun t -> t.ineq) idl in
+    end_itlist (curry mk_conj) tml".
+
+"let kcblrqc_ineq_def = new_definition
+	(mk_eq (`kcblrqc_ineq_def:bool`, kcblrqc_ineq_tml))".
+
+"open Tame_general".
+"open Add_triangle".
+"open Fan_defs".
+"open Pack_defs".
+"open Hypermap_and_fan".
+"open Ssrbool".
+"open Ssrnat".
+
+
+Section FullySurrounded.
+
+Variable V: `:real^3->bool`.
+Variable E: `:(real^3->bool)->bool`.
+
+Hypothesis fanV: `FAN (vec 0,V,E)`.
+Hypothesis f_surr: `fully_surrounded (V,E)`.
+
+Lemma fully_surrounded_not_coplanar v w: `v,w IN dart_of_fan (V,E)
+	==> ~(coplanar {vec 0, v, w, sigma_fan (vec 0) V E v w})`.
+Proof.
+move => vw_in.
+have dart1_eq := fully_surrounded_dart_of_fan_eq fanV f_surr.
+have vw_in1: `v,w IN dart1_of_fan (V,E)` by rewrite -dart1_eq.
+have vw'_in := sigma_in_dart1 fanV vw_in1.
+set w' := `sigma_fan _1 V _2 v w`.
+have ->: `{vec 0, v, w, w'} = {vec 0, w', v, w}`.
+  by rewrite ("(GEN_ALL o CONJUNCT2 o CONJUNCT2) Collect_geom.PER_SET3" w' w v).
+rewrite (Planarity.properties_fully_surrounded fanV) //.
+rewrite -w'_def -(fully_surrounded_azim_dart_eq_azim fanV f_surr) // w'_def.
+rewrite !(inE_eq_in_dart1 V) vw_in1 dart1_switch vw'_in (AZIM_DART_POS fanV vw_in).
+by move: f_surr; rewrite fully_surrounded => ->.
+Qed.
+
+
+Lemma fully_surrounded_delta_pos v w: `v,w IN dart_of_fan (V,E)
+	==>	let w' = sigma_fan (vec 0) V E v w in
+		let y1 = norm v in
+		let y2 = norm w in
+		let y3 = norm w' in
+		let y4 = dist (w,w') in
+		let y5 = dist (v,w') in
+		let y6 = dist (v,w) in
+			&0 < delta_y y1 y2 y3 y4 y5 y6`.
+Proof.
+rewrite Sphere.delta_y => vw_in; do !"CONV_TAC let_CONV".
+rewrite -DELTA_EQ_DELTA_X -!Trigonometry1.DIST_L_ZERO -!REAL_POW_2.
+rewrite "GEN_ALL Collect_geom2.POS_EQ_NOT_COPLANANR".
+rewrite -Ckqowsa_3_points.coplanar_eq_coplanar_alt ?DIMINDEX_3; first by arith.
+exact: fully_surrounded_not_coplanar.
+Qed.
+
+End FullySurrounded.
+
+
+
+Section Contravening.
+
+Variable V: `:real^3->bool`.
+Hypothesis contrV: `contravening V`.
+
+
+Lemma contravening_non_triangular_face_dist v w: `v,w IN dart_of_fan (V,ESTD V)
+	/\ 3 < CARD (face (hypermap_of_fan (V,ESTD V)) (v,w))
+	==>	let w' = sigma_fan (vec 0) V (ESTD V) v w in
+		let y1 = norm v in
+		let y2 = norm w in
+		let y3 = norm w' in
+		let y4 = dist (w,w') in
+		let y5 = dist (v,w') in
+		let y6 = dist (v,w) in
+			(&2 <= y1 /\ y1 <= &2 * h0) /\
+			(&2 <= y2 /\ y2 <= &2 * h0) /\
+			(&2 <= y3 /\ y3 <= &2 * h0) /\
+			(&2 * h0 <= y4 /\ y4 <= &4 * h0) /\
+			(&2 <= y5 /\ y5 <= &2 * h0) /\
+			(&2 <= y6 /\ y6 <= &2 * h0)`.
+Proof.
+move => [vw_in card_gt3]; do !"CONV_TAC let_CONV".
+rewrite h0 !"ARITH_RULE `&2 * #1.26 = #2.52 /\ &2 = #2.0`".
+have fanV := CONTRAVENING_FAN contrV.
+have f_surr := CONTRAVENING_IMP_FULLY_SURROUNDED fanV contrV.
+have dart1_eq := fully_surrounded_dart_of_fan_eq fanV f_surr.
+have vw_in1: `v,w IN dart1_of_fan (V,ESTD V)` by rewrite -dart1_eq.
+have w'_in := sigma_fan_inV fanV vw_in1.
+have vw'_in := sigma_in_dart1 fanV vw_in1.
+have w'_neq_w := sigma_fan_not_fixed fanV vw_in f_surr.
+have not_diag := fully_surrounded_diag_not_in_dart fanV f_surr vw_in card_gt3.
+have [v_in w_in] := PAIR_IN_DART_OF_FAN fanV vw_in.
+set w' := `sigma_fan _1 V _2 v w`.
+rewrite -!Trigonometry1.DIST_L_ZERO !(CONTRAVENING_DIST contrV) // !andTb.
+rewrite andbC 4?(CONTRAVENING_DART_DIST contrV) // !andTb; split.
+  move: not_diag; rewrite dart1_eq dart1_of_fan IN_ELIM_THM /= !NOT_EXISTS_THM.
+  by move/(_ w w'); rewrite /= IN_ESTD w_in w'_in -w'_neq_w /=; arith.
+apply: (DIST_TRIANGLE_LE w w' v).
+have ->: `&4 * #1.26 = #2.52 + #2.52` by arith.
+by rewrite REAL_LE_ADD2 DIST_SYM (DIST_SYM w') !(CONTRAVENING_DART_DIST contrV).
+Qed.
+
+
+Section Ineqs.
+
+Hypothesis ineqs: `kcblrqc_ineq_def`.
+
+Lemma non_triangular_face_azim_dart_bound d: `d IN dart_of_fan (V,ESTD V)
+	/\ 3 < CARD (face (hypermap_of_fan (V,ESTD V)) d)
+	==> #1.15 < azim_dart (V,ESTD V) d`.
+Proof.
+case: d => v w [vw_in card_gt3].
+have fanV := CONTRAVENING_FAN contrV.
+have f_surr := CONTRAVENING_IMP_FULLY_SURROUNDED fanV contrV.
+rewrite "let_RULE CONTRAVENING_AZIM_DART_EQ_DIH_Y" // -real_gt.
+set w' := `sigma_fan _1 V _2 v w`.
+have := "GEN_ALL Tame_inequalities.DIH_Y_INEQ" 
+	`norm v` `norm w` `norm w'` `dist (w,w')` `dist (v,w')` `dist (v,w)`; "ANTS_TAC".
+  by move: ineqs; rewrite kcblrqc_ineq_def => ->.
+rewrite INEQ_ALT !"GEN_ALL ALL" /=; "ANTS_TAC".
+  have eqs: `#2.0 = &2 /\ #2.52 = &2 * h0 /\ #5.04 = &4 * h0` by rewrite h0; arith.
+  by rewrite !eqs -w'_def 12!("let_RULE contravening_non_triangular_face_dist" vw_in card_gt3). 
+by rewrite -REAL_NOT_LT -w'_def ("let_RULE fully_surrounded_delta_pos" fanV f_surr).
+Qed.
+
+
+End Ineqs.
+
+
+End Contravening.

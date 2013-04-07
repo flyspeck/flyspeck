@@ -5,20 +5,18 @@
 
 
 flyspeck_needs "tame/TameGeneral.hl";;
-flyspeck_needs "TameAssumptions.hl";;
+flyspeck_needs "tame/ssreflect/tame_lemmas-compiled.hl";;
 
 
 
-module Cdtetat_tame  = struct
-
+module Cdtetat_tame = struct
 
 
 open Hypermap_and_fan;;
 open Fan_defs;;
 open Tame_defs;;
 open Tame_general;;
-
-open Tame_assumptions;;
+open Tame_lemmas;;
 
 
 
@@ -174,37 +172,16 @@ let CDTETAT_lemma1 = prove(`!p t:num. &p * (#0.852) + &t * (#1.15) <= &2 * pi /\
 
 (* CDTETAT (with assumptions) *)
 
-
-
-let CDTETAT_concl = `!V x. contravening V /\ x IN dart_of_fan (V,ESTD V) ==>
-       (let (p,q,r) = type_of_node (hypermap_of_fan (V, ESTD V)) x in
-             ((p,q+r) IN { (0,3), (0,4), (0,5), (1,2), (1,3), (1,4), 
-             (2,1), (2,2), (2,3), (3,1), (3,2), (3,3), 
-             (4,0), (4,1),(4,2), (5,0), (5,1), 
-             (6,0), (6,1), (7,0)  }))`;;
-
-
-let CDTETAT_assumptions = [`!V. contravening V ==> simple_hypermap (hypermap_of_fan (V,ESTD V))`; 
-			   NON_TRIANGULAR_FACE_AZIM_DART_BOUND_concl] @
-                           map (fun id -> (hd (Ineq.getexact id)).ineq) ["2570626711"; "5735387903"; "5490182221"];;
-
-let CDTETAT_concl2 = mk_imp (list_mk_conj CDTETAT_assumptions, CDTETAT_concl);;
-
-
-g(CDTETAT_concl2);;
-let CDTETAT = prove(CDTETAT_concl2,
- (* Deal with assumptions *)
+let CDTETAT = prove(`kcblrqc_ineq_def ==> !V x. contravening V /\ x IN dart_of_fan (V,ESTD V) ==>
+		      (let (p,q,r) = type_of_node (hypermap_of_fan (V, ESTD V)) x in
+			 ((p,q+r) IN { (0,3), (0,4), (0,5), (1,2), (1,3), (1,4), 
+				       (2,1), (2,2), (2,3), (3,1), (3,2), (3,3), 
+				       (4,0), (4,1),(4,2), (5,0), (5,1), 
+				       (6,0), (6,1), (7,0)  }))`,
  REPEAT STRIP_TAC THEN
-   FIRST_X_ASSUM (MP_TAC o SPEC `V:real^3->bool`) THEN
-   ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
-   MP_TAC (SPEC_ALL CONTRAVENING_FAN) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
-   FIRST_X_ASSUM (fun ineq -> FIRST_X_ASSUM (MP_TAC o (MATCH_MP ineq))) THEN
-   DISCH_THEN (MP_TAC o SPEC `V:real^3->bool`) THEN
-   ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
-
- (* Proof *)
+   MP_TAC (ISPEC `V:real^3->bool` CONTRAVENING_FAN) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
    MP_TAC (ISPECL [`hypermap_of_fan (V:real^3->bool,ESTD V)`; `x:real^3#real^3`] NODE_TYPE_lemma) THEN
-   ASM_SIMP_TAC[Hypermap.dart; HYPERMAP_OF_FAN] THEN
+   ASM_SIMP_TAC[Hypermap.dart; HYPERMAP_OF_FAN; Jgtdebu.JGTDEBU4] THEN
    DISCH_THEN (fun th -> ALL_TAC) THEN
    CONV_TAC let_CONV THEN
    ABBREV_TAC `H = hypermap_of_fan (V,ESTD V)` THEN
@@ -249,7 +226,7 @@ let CDTETAT = prove(CDTETAT_concl2,
      EXPAND_TAC "A" THEN GEN_TAC THEN
        REWRITE_TAC[IN_ELIM_THM] THEN DISCH_TAC THEN
        MP_TAC TRIANGULAR_FACE_AZIM_DART_BOUNDS THEN
-       ASM_REWRITE_TAC[] THEN
+       UNDISCH_TAC `kcblrqc_ineq_def` THEN SIMP_TAC[kcblrqc_ineq_def] THEN DISCH_THEN (fun th -> ALL_TAC) THEN
        DISCH_THEN (MP_TAC o SPECL [`V:real^3->bool`; `y:real^3#real^3`]) THEN
        ASM_SIMP_TAC[REAL_ARITH `a < #1.893 ==> a < #1.9`];
      ALL_TAC
@@ -259,12 +236,9 @@ let CDTETAT = prove(CDTETAT_concl2,
    [
      EXPAND_TAC "D" THEN GEN_TAC THEN
        REWRITE_TAC[IN_ELIM_THM] THEN DISCH_TAC THEN
-       REPLICATE_TAC 3 (FIRST_X_ASSUM (MP_TAC o SPEC `y:real^3#real^3`)) THEN
-       ASM_REWRITE_TAC[IMP_IMP; ARITH_RULE `a > 3 <=> a >= 4`] THEN
-       DISCH_THEN (CONJUNCTS_THEN2 MP_TAC (fun th -> ALL_TAC)) THEN
-       DISCH_THEN (CONJUNCTS_THEN2 MP_TAC ASSUME_TAC) THEN
-       ASM_SIMP_TAC[] THEN
-       DISCH_TAC THEN
+       MP_TAC (SPEC `V:real^3->bool` non_triangular_face_azim_dart_bound) THEN ASM_REWRITE_TAC[] THEN
+       DISCH_THEN (MP_TAC o SPEC `y:real^3#real^3`) THEN
+       ASM_SIMP_TAC[ARITH_RULE `3 < a <=> a >= 4`] THEN
        MP_TAC (SPECL [`V:real^3->bool`] CONTRAVENING_IMP_FULLY_SURROUNDED) THEN
        ASM_REWRITE_TAC[fully_surrounded] THEN
        DISCH_THEN (MP_TAC o SPEC `y:real^3#real^3`) THEN
@@ -324,34 +298,18 @@ let CDTETAT = prove(CDTETAT_concl2,
 
 
 (* SZIPOAS *)
-let SZIPOAS_concl = `!V. contravening V ==> tame_11b  (hypermap_of_fan (V, ESTD V))`;;
 
-let SZIPOAS_assumptions = CDTETAT_assumptions;;
-
-let SZIPOAS_concl2 = mk_imp (list_mk_conj SZIPOAS_assumptions, SZIPOAS_concl);;
-
-
-g(SZIPOAS_concl2);;
-let SZIPOAS = prove(SZIPOAS_concl2,
-   (* Assumptions *)
-   DISCH_TAC THEN
-     FIRST_ASSUM (MP_TAC o (MATCH_MP CDTETAT)) THEN
-     POP_ASSUM (MP_TAC o CONJUNCT1) THEN
-     REPEAT STRIP_TAC THEN
-     REPEAT (FIRST_X_ASSUM (MP_TAC o SPEC `V:real^3->bool`)) THEN
-     MP_TAC (SPEC_ALL CONTRAVENING_FAN) THEN
-     ASM_REWRITE_TAC[] THEN REPEAT DISCH_TAC THEN
-
-   (* Proof *)
-     REWRITE_TAC[tame_11b] THEN
+let SZIPOAS = prove(`kcblrqc_ineq_def ==> 
+		      !V. contravening V ==> tame_11b  (hypermap_of_fan (V, ESTD V))`,
+   REPEAT STRIP_TAC THEN REWRITE_TAC[tame_11b] THEN
+     MP_TAC (ISPEC `V:real^3->bool` CONTRAVENING_FAN) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
      GEN_TAC THEN
      ASM_SIMP_TAC[Hypermap.dart; HYPERMAP_OF_FAN] THEN
      DISCH_TAC THEN
 
      MP_TAC (SPECL [`V:real^3->bool`; `ESTD (V:real^3->bool)`; `x:real^3#real^3`] FULLY_SURROUNDED_IMP_CARD_NODE_EQ_SUM_NODE_TYPE) THEN
-     ASM_SIMP_TAC[CONTRAVENING_IMP_FULLY_SURROUNDED] THEN
-
-     FIRST_X_ASSUM (MP_TAC o SPEC `x:real^3#real^3`) THEN
+     ASM_SIMP_TAC[CONTRAVENING_IMP_FULLY_SURROUNDED; Jgtdebu.JGTDEBU4] THEN
+     FIRST_X_ASSUM (MP_TAC o SPECL [`V:real^3->bool`; `x:real^3#real^3`] o MATCH_MP CDTETAT) THEN
      ASM_REWRITE_TAC[type_of_node] THEN
      CONV_TAC (DEPTH_CONV let_CONV) THEN
      ABBREV_TAC `H = hypermap_of_fan (V,ESTD(V))` THEN
@@ -361,7 +319,6 @@ let SZIPOAS = prove(SZIPOAS_concl2,
 
      REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY; PAIR_EQ] THEN
      ARITH_TAC);;
-     
 
 
 end;;

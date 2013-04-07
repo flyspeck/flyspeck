@@ -36,19 +36,21 @@ public class TreeBuilder {
 		if (t.type != TokenType.IDENTIFIER)
 			throw new Exception("IDENTIFIER expected: " + t);
 		
-		if (t.value == "Lemma" || t.value == "Theorem")
+		if (t.value == "Lemma" || t.value == "Theorem" || t.value == "Let" ||
+				t.value == "lemma" || t.value == "theorem" || t.value == "let")
 			return parseLemma();
 		
-		if (t.value == "Module")
+		if (t.value == "Module" || t.value == "module")
 			return parseModule();
 		
-		if (t.value == "Section" || t.value == "End")
+		if (t.value == "Section" || t.value == "End" || t.value == "section" || t.value == "end")
 			return parseSection();
 		
-		if (t.value == "Variable" || t.value == "Variables" || t.value == "Implicit")
+		if (t.value == "Variable" || t.value == "Variables" || t.value == "Implicit" ||
+				t.value == "variable" || t.value == "variables" || t.value == "implicit")
 			return parseVariables();
 		
-		if (t.value == "Hypothesis")
+		if (t.value == "Hypothesis" || t.value == "hypothesis")
 			return parseHypothesis();
 		
 		throw new Exception("Unknown command: " + t);
@@ -60,7 +62,7 @@ public class TreeBuilder {
 	private ModuleNode parseModule() throws Exception {
 		// Module
 		Token t = scanner.nextToken();
-		if (t.type != TokenType.IDENTIFIER || t.value != "Module")
+		if (t.type != TokenType.IDENTIFIER || !(t.value == "Module" || t.value == "module"))
 			throw new Exception("'Module' expected: " + t);
 		
 		// Module's name
@@ -78,8 +80,12 @@ public class TreeBuilder {
 	private LemmaNode parseLemma() throws Exception {
 		// Lemma
 		Token t = scanner.nextToken();
-		if (t.type != TokenType.IDENTIFIER || (t.value != "Lemma" && t.value != "Theorem"))
+		if (t.type != TokenType.IDENTIFIER || 
+				(t.value != "Lemma" && t.value != "Theorem" && t.value != "Let" && 
+				 t.value != "lemma" && t.value != "theorem" && t.value != "let"))
 			throw new Exception("'Lemma' or 'Theorem' expected: " + t);
+		
+		boolean letFlag = (t.value == "Let" || t.value == "let");
 		
 		// name and parameters
 		ArrayList<String> ids = parseIdList();
@@ -102,7 +108,7 @@ public class TreeBuilder {
 			throw new Exception("goal expected: " + t);
 		
 		RawObjectNode goal = new RawObjectNode(raw);
-		return new LemmaNode(name, params, goal);
+		return new LemmaNode(letFlag, name, params, goal);
 	}
 	
 	
@@ -135,13 +141,16 @@ public class TreeBuilder {
 		// Variable or Implicit
 		Token t = scanner.nextToken();
 		if (t.type != TokenType.IDENTIFIER || 
-				(t.value != "Variable" && t.value != "Variables" && t.value != "Implicit"))
+				(t.value != "Variable" && t.value != "Variables" && t.value != "Implicit" &&
+				 t.value != "variable" && t.value != "variables" && t.value != "implicit"))
 			throw new Exception("'Variable or Implicit Type' expected: " + t);
 		
 		// Implicit [Type] or Implicit [Types] 
 		if (t.value == "Implicit") {
 			t = scanner.peekToken();
-			if (t.type == TokenType.IDENTIFIER && (t.value == "Type" || t.value == "Types"))
+			if (t.type == TokenType.IDENTIFIER && 
+					(t.value == "Type" || t.value == "Types" || 
+				     t.value == "type" || t.value == "types"))
 				// Type or Types
 				scanner.nextToken();
 			
@@ -186,7 +195,8 @@ public class TreeBuilder {
 	private SectionHypothesisNode parseHypothesis() throws Exception {
 		// Lemma
 		Token t = scanner.nextToken();
-		if (t.type != TokenType.IDENTIFIER || t.value != "Hypothesis")
+		if (t.type != TokenType.IDENTIFIER || 
+				(t.value != "Hypothesis" && t.value != "hypothesis"))
 			throw new Exception("'Hypothesis' expected: " + t);
 		
 		// name
@@ -221,9 +231,9 @@ public class TreeBuilder {
 		if (t.type != TokenType.IDENTIFIER)
 			throw new Exception("Section or End expected: " + t);
 		
-		if (t.value == "Section")
+		if (t.value == "Section" || t.value == "section")
 			startFlag = true;
-		else if (t.value == "End")
+		else if (t.value == "End" || t.value == "end")
 			startFlag = false;
 		else
 			throw new Exception("Section or End expected: " + t);

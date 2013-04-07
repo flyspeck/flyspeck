@@ -6,6 +6,6 @@ package edu.pitt.math.jhol.ssreflect.parser.tree;
 public abstract class TacticNode extends Node {
 	@Override
 	public String getRevertCommand() {
-		return "b()";
+		return "Sections.revert_proof_step()";
 	}
 }

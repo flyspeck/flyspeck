@@ -454,7 +454,8 @@ public class TestSSReflectGUI extends JFrame implements Configuration.Saver, Act
     		boolean errors = false;
     		
     		logArea.setText("");
-    	
+    		editor.revertAll();
+    		
     		try {
     			Compiler compiler = new Compiler(in, out);
     			if (fastFlag)

@@ -255,6 +255,15 @@ public class TextEditor extends JTextPane implements DocumentListener {
 		highlight(writePosition, getDocument().getLength());
 	}
 	
+	
+	/**
+	 * Reverts all commands
+	 */
+	public void revertAll() {
+		interpreter.revert(0);
+		changeWritePosition(0);
+	}
+	
 
 	/**
 	 * Changes the locked text

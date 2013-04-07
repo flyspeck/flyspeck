@@ -27,11 +27,11 @@ public class SectionHypothesisNode extends Node {
 	@Override
 	protected void translate(StringBuffer buffer) {
 		int type = term.getType();
-		if (type != ObjectNode.TERM)
+		if (type != ObjectNode.TERM && type != ObjectNode.UNKNOWN)
 			throw new RuntimeException("TERM expected: " + term);
 
 		buffer.append('(');
-		buffer.append("add_section_hyp ");
+		buffer.append("Sections.add_section_hyp ");
 		
 		buffer.append('"' + label + '"');
 		buffer.append(' ');
@@ -43,7 +43,7 @@ public class SectionHypothesisNode extends Node {
 	
 	@Override
 	public String getRevertCommand() {
-		return "remove_section_hyp " + '"' + label + '"';
+		return "Sections.remove_section_hyp " + '"' + label + '"';
 	}
 
 }

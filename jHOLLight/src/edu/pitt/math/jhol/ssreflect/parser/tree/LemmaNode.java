@@ -10,13 +10,16 @@ public class LemmaNode extends Node {
 	private final String[] params;
 	// Lemma's goal
 	private final RawObjectNode goal; 
+	// True for local section lemmas
+	private final boolean letFlag;
 
 	/**
 	 * Default constructor
 	 */
-	public LemmaNode(String name, String[] params, RawObjectNode goal) {
+	public LemmaNode(boolean letFlag, String name, String[] params, RawObjectNode goal) {
 		assert(name != null && name.length() > 0);
 		assert(goal != null);
+		this.letFlag = letFlag;
 		this.name = name;
 		this.goal = goal;
 		this.params = (params == null) ? new String[0] : params.clone();
@@ -41,6 +44,13 @@ public class LemmaNode extends Node {
 	 */
 	public String getGoalText() {
 		return goal.getRawText();
+	}
+	
+	/**
+	 * Returns true if the lemma is a local section lemma
+	 */
+	public boolean isLet() {
+		return letFlag;
 	}
 	
 	@Override
@@ -76,7 +86,7 @@ public class LemmaNode extends Node {
 	protected void translate(StringBuffer buffer) {
 		buffer.append('(');
 		
-		buffer.append("start_section_proof ");
+		buffer.append("Sections.start_section_proof ");
 		translateParameters(buffer);
 		goal.directTranslate(buffer);
 
@@ -86,6 +96,11 @@ public class LemmaNode extends Node {
 	
 	@Override
 	public String getRevertCommand() {
-		return "let " + name + " = 0"; 
+		if (letFlag) {
+			return "Sections.remove_section_lemma " + '"' + name + '"';
+		}
+		else {
+			return "let " + name + " = 0";
+		}
 	}
 }

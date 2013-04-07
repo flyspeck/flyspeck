@@ -55,9 +55,9 @@ public class SectionVariableNode extends Node {
 		for (int i = 0; i < n; i++) {
 			String name = names.get(i);
 			if (implicitTypeFlag)
-				buffer.append("add_section_type ");
+				buffer.append("Sections.add_section_type ");
 			else
-				buffer.append("add_section_var ");
+				buffer.append("Sections.add_section_var ");
 
 			buffer.append("(mk_var (\"");
 			buffer.append(name);
@@ -80,9 +80,9 @@ public class SectionVariableNode extends Node {
 		for (int i = 0; i < n; i++) {
 			String name = names.get(i);
 			if (implicitTypeFlag)
-				str.append("remove_section_type ");
+				str.append("Sections.remove_section_type ");
 			else
-				str.append("remove_section_var ");
+				str.append("Sections.remove_section_var ");
 			str.append('"' + name + '"');
 			
 			if (i < n - 1)

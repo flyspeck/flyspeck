@@ -103,6 +103,18 @@ public class Interpreter {
 			this.caml = caml;
 			this.commandLog = null;
 		}
+		
+		
+		/**
+		 * Initializes a new session
+		 */
+		public void initSession() {
+			try {
+				runCommand("Sections.end_all_sections();;");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	
 	
 		/**
@@ -284,6 +296,10 @@ public class Interpreter {
 		public String getLemmaName() {
 			return lemma.getName();
 		}
+		
+		public boolean isLet() {
+			return lemma.isLet();
+		}
 	}
 	
 	// A command in the "proof" mode
@@ -312,6 +328,7 @@ public class Interpreter {
 	 */
 	public void clearAndInit(String logName) {
 		executor.initLog(logName);
+		executor.initSession();
 		this.mode = GLOBAL_MODE;
 		this.state = null;
 		this.globalCommands.clear();
@@ -513,7 +530,7 @@ public class Interpreter {
 		Token t = scanner.peekToken();
 		
 		// Initial 'Proof' command (optional)
-		if (t.value == "Proof") {
+		if (t.value == "Proof" || t.value == "proof") {
 			// Proof
 			scanner.nextToken();
 			
@@ -532,8 +549,8 @@ public class Interpreter {
 		}
 		
 		// Special commands
-		if (t.value == "Abort" || t.value == "Qed") {
-			boolean abortFlag = (t.value == "Abort");
+		if (t.value == "Abort" || t.value == "Qed" || t.value == "abort" || t.value == "qed") {
+			boolean abortFlag = (t.value == "Abort" || t.value == "abort");
 			
 			// Abort or Qed
 			scanner.nextToken();
@@ -548,8 +565,17 @@ public class Interpreter {
 
 			if (!abortFlag) {
 				// Finish the proof
-				String saveCmd = "let " + lemma.getLemmaName() + " = end_section_proof();;";
-				executor.runCommand(saveCmd);
+				String lemmaCmd;
+				
+				if (lemma.isLet()) {
+					lemmaCmd = "Sections.add_section_lemma " + '"' + lemma.getLemmaName() + '"' 
+								+ " (Sections.end_section_proof());;";
+				}
+				else {
+					lemmaCmd = "let " + lemma.getLemmaName() + " = Sections.end_section_proof();;";
+				}
+				
+				executor.runCommand(lemmaCmd);
 				lemma.provedFlag = true;
 			}
 			else {
@@ -635,7 +661,7 @@ public class Interpreter {
 				
 				if (cmd instanceof LemmaCommand) {
 					LemmaCommand lemmaCmd = (LemmaCommand) cmd;
-					if (lemmaCmd.provedFlag)
+					if (!lemmaCmd.isLet() && lemmaCmd.provedFlag)
 						lemmas.add(lemmaCmd);
 				}
 				
@@ -654,7 +680,7 @@ public class Interpreter {
 				StringBuffer bufferCmd = new StringBuffer();
 				LemmaCommand lemma = lemmas.get(i);
 				String lemmaName = lemma.getLemmaName();
-				bufferCmd.append("let " + lemmaName + " = finalize_theorem " + lemmaName);
+				bufferCmd.append("let " + lemmaName + " = Sections.finalize_theorem " + lemmaName);
 				bufferCmd.append(";;");
 				executor.runCommand(bufferCmd.toString());
 			}

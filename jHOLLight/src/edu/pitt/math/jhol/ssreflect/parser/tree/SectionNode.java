@@ -48,9 +48,9 @@ public class SectionNode extends Node {
 	@Override
 	protected void translate(StringBuffer buffer) {
 		if (startFlag)
-			buffer.append("begin_section ");
+			buffer.append("Sections.begin_section ");
 		else
-			buffer.append("end_section ");
+			buffer.append("Sections.end_section ");
 		
 		buffer.append('"');
 		buffer.append(sectionName);
@@ -61,7 +61,7 @@ public class SectionNode extends Node {
 	@Override
 	public String getRevertCommand() {
 		if (startFlag)
-			return "end_section " + '"' + sectionName + '"';
+			return "Sections.end_section " + '"' + sectionName + '"';
 		else
 			return null;
 	}

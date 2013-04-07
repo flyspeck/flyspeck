@@ -48,6 +48,13 @@ public class Compiler {
 		}
 		
 		/**
+		 * Returns true if the lemma is a local section lemma
+		 */
+		public boolean isLet() {
+			return node.isLet();
+		}
+		
+		/**
 		 * Adds a proof step (a tactic)
 		 */
 		public void addProofStep(TacticNode tac) {
@@ -60,36 +67,46 @@ public class Compiler {
 		public void translate(PrintWriter out, CamlEnvironment env) throws Exception {
 			StringBuffer buffer = new StringBuffer(1000);
 			String name = getName();
+			boolean letFlag = isLet();
 			
 			out.println();
 			// Comments
-			out.println("(* Lemma " + name + " *)");
+			if (letFlag) {
+				out.println("(* Let " + name + " *)");
+			}
+			else {
+				out.println("(* Lemma " + name + " *)");
+			}
 			
 			// Statement
-			buffer.append("let " + name + " = section_proof ");
+			if (letFlag) {
+				buffer.append("Sections.add_section_lemma " + '"' + name + '"');
+				buffer.append(" (");
+			}
+			else {
+				buffer.append("let " + name + " = ");
+			}
+			buffer.append("Sections.section_proof ");
 			node.translateParameters(buffer);
-//			out.println(buffer);
 			buffer.append('\n');
 
-//			out.println(node.getGoalText());
 			buffer.append(node.getGoalText());
 			buffer.append('\n');
 
 			// Proof
-//			out.println('[');
 			buffer.append("[\n");
 			
 			for (TacticNode tac : proof) {
-//				out.print("   ");
-//				out.print(tac.toHOLCommand());
-//				out.println(';');
 				buffer.append("   ");
 				buffer.append(tac.toHOLCommand(env));
 				buffer.append(";\n");
 			}
 			
-//			out.println("];;");
-			buffer.append("];;");
+			buffer.append(']');
+			if (letFlag) {
+				buffer.append(')');
+			}
+			buffer.append(";;");
 			
 			String cmd = buffer.toString();
 			out.println(cmd);
@@ -152,7 +169,7 @@ public class Compiler {
 			out.println("(* Finalization of the section " + name + " *)");
 			
 			for (String lemma : lemmas) {
-				String cmd = "let " + lemma + " = finalize_theorem " + lemma + ";;"; 
+				String cmd = "let " + lemma + " = Sections.finalize_theorem " + lemma + ";;"; 
 				out.println(cmd);
 				
 				if (env != null) {
@@ -181,7 +198,7 @@ public class Compiler {
 		Token t = scanner.peekToken();
 		
 		// Initial 'Proof' command (optional)
-		if (t.value == "Proof") {
+		if (t.value == "Proof" || t.value == "proof") {
 			// Proof
 			scanner.nextToken();
 			
@@ -196,8 +213,8 @@ public class Compiler {
 			t = scanner.peekToken();
 			
 			// Special commands
-			if (t.value == "Abort" || t.value == "Qed") {
-				boolean abortFlag = (t.value == "Abort");
+			if (t.value == "Abort" || t.value == "Qed" || t.value == "abort" || t.value == "qed") {
+				boolean abortFlag = (t.value == "Abort" || t.value == "abort");
 			
 				// Abort or Qed
 				scanner.nextToken();
@@ -319,7 +336,9 @@ public class Compiler {
 				Lemma lemma = processLemmaProof((LemmaNode) node);
 				if (lemma != null) {
 					lemma.translate(out, env);
-					section.addLemmaName(lemma.getName());
+					if (!lemma.isLet()) {
+						section.addLemmaName(lemma.getName());
+					}
 				}
 				
 				continue;

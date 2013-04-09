@@ -2711,7 +2711,56 @@ let DART1_NOT_COLLINEAR_2 = prove(`!V E v (w:real^3). FAN (vec 0,V,E) /\ (v,w) I
      MATCH_MP_TAC DART1_NOT_COLLINEAR THEN
      MAP_EVERY EXISTS_TAC [`V:real^3->bool`; `E:(real^3->bool)->bool`] THEN
      ASM_REWRITE_TAC[]);;	 
+
 	 
+open Hypermap;;
+	 
+let ORBIT_MAP_RES_LEMMA = prove(`!f (x:A) s. orbit_map f x SUBSET s ==> 
+			    orbit_map (res f s) x = orbit_map f x`,
+   REWRITE_TAC[SUBSET; orbit_map; IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
+     REWRITE_TAC[EXTENSION; IN_ELIM_THM] THEN
+     SUBGOAL_THEN `!n. (res f s POWER n) x = (f POWER n) (x:A)` ASSUME_TAC THENL
+     [
+       INDUCT_TAC THEN REWRITE_TAC[POWER_0] THEN
+	 ASM_REWRITE_TAC[COM_POWER; o_THM] THEN
+	 REWRITE_TAC[res] THEN
+	 SUBGOAL_THEN `(f POWER n) (x:A) IN s` (fun th -> REWRITE_TAC[th]) THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 EXISTS_TAC `n:num` THEN
+	 REWRITE_TAC[GE; LE_0];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[]);;
+
+
+let ORBIT_SUBSET_LEMMA = prove(`!f s (x:A). x IN s /\ (!y. y IN s ==> f y IN s)
+				 ==> orbit_map f x SUBSET s`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[orbit_map; SUBSET; IN_ELIM_THM] THEN
+     GEN_TAC THEN DISCH_THEN CHOOSE_TAC THEN POP_ASSUM MP_TAC THEN
+     SPEC_TAC (`x':A`, `y:A`) THEN
+     SPEC_TAC (`n:num`, `n:num`) THEN
+     INDUCT_TAC THEN ASM_SIMP_TAC[GE; LE_0; POWER_0; I_THM] THEN
+     GEN_TAC THEN REWRITE_TAC[COM_POWER; o_THM] THEN
+     DISCH_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `(f POWER n) (x:A)`) THEN
+     ASM_REWRITE_TAC[GE; LE_0]);;
+
+
+let ORBIT_MAP_RES = prove(`!f (x:A) s. x IN s /\ (res f s) permutes s
+			    ==> orbit_map (res f s) x = orbit_map f x`,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC ORBIT_MAP_RES_LEMMA THEN
+     MATCH_MP_TAC ORBIT_SUBSET_LEMMA THEN
+     ASM_REWRITE_TAC[] THEN
+     REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `(f:A->A) y = (res f s) y` (fun th -> REWRITE_TAC[th]) THENL
+     [
+       ASM_REWRITE_TAC[res];
+       ALL_TAC
+     ] THEN
+     MP_TAC (ISPECL [`res (f:A->A) s`; `s:A->bool`] PERMUTES_IMP_INSIDE) THEN
+     ASM_SIMP_TAC[]);;
 
 
 

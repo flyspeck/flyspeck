@@ -15,10 +15,11 @@ Module Tame_lemmas.
 "open Add_triangle".
 "open Fan_defs".
 "open Pack_defs".
+"open Hypermap".
 "open Hypermap_and_fan".
+"open Hypermap_iso".
 "open Ssrbool".
 "open Ssrnat".
-
 
 Section FullySurrounded.
 
@@ -28,12 +29,72 @@ Variable E: `:(real^3->bool)->bool`.
 Hypothesis fanV: `FAN (vec 0,V,E)`.
 Hypothesis f_surr: `fully_surrounded (V,E)`.
 
+Let dart1_eq: `dart_of_fan (V,E) = dart1_of_fan (V,E)`.
+Proof. by rewrite fully_surrounded_dart_of_fan_eq. Qed.
+
+Let confV: `conforming_fan (vec 0,V,E)`.
+Proof. by rewrite fully_surrounded_imp_conforming. Qed.
+
+Let dartH: `dart (hypermap_of_fan (V,E)) = dart_of_fan (V,E)`.
+Proof. by rewrite COMPONENTS_HYPERMAP_OF_FAN. Qed.
+
+
+Lemma dart_leads_into_eq1 v w: `v,w IN dart_of_fan (V,E)
+	==> dart_leads_into (vec 0) V E v w 
+		= dartset_leads_into_fan (vec 0) V E 
+			(IMAGE (ext_dart (V,E)) (face (hypermap_of_fan (V,E)) (v,w)))`.
+Proof.
+move => vw_in.
+have iso := fan_hypermaps_iso_explicit2 fanV.
+set h := `ext_dart _`.
+set H := `hypermap_of_fan _`.
+rewrite -(iso_components iso) ?dartH //.
+set f1 := `face _1 _2`.
+rewrite (Planarity.DARTSET_LEADS_INTO_FAN fanV f1 `h (v,w)`); last first.
+  by rewrite -h_def ext_dart Fan.pr2 Fan.pr3.
+rewrite fully_surrounded_imp_fan80 // -f1_def -lemma_in_face_set.
+rewrite face_refl (hyp_iso_dart iso) ?dartH // => /= u uV.
+by rewrite fully_surrounded_card_set_of_edge1.
+Qed.
+
+
+Lemma dart_leads_into_same f v w x y: `f IN face_set (hypermap_of_fan (V,E))
+	/\ (v,w) IN f /\ (x,y) IN f
+	==> dart_leads_into (vec 0) V E v w = dart_leads_into (vec 0) V E x y`.
+Proof.
+move => [/lemma_face_representation] [[a b]] [ab_in] -> [vw_in xy_in].
+have all_in: `x,y IN dart_of_fan (V,E) /\ v,w IN dart_of_fan (V,E)`.
+  by rewrite -dartH (IN_TRANS xy_in) ?(IN_TRANS vw_in) // lemma_face_subset.
+rewrite !dart_leads_into_eq1 //.
+by rewrite -(lemma_face_identity `a,b` `v,w`) // -(lemma_face_identity `a,b` `x,y`).
+Qed.
+
+
+Lemma fully_surrounded_sol v w: `v,w IN dart_of_fan (V,E)
+   ==> sol (vec 0) (dart_leads_into (vec 0) V E v w)
+	= &2 * pi + sum (face (hypermap_of_fan (V,E)) (v,w)) (\x. azim_dart (V,E) x - pi)`.
+Proof.
+move => vw_in.
+have iso := fan_hypermaps_iso_explicit2 fanV.
+move: confV; rewrite Conforming.conforming_fan "let_RULE Conforming.conforming_solid_angle_fan".
+move => [_] [_] [_] [_] [f_sol] _.
+rewrite dart_leads_into_eq1 // f_sol.
+  by rewrite -(iso_components iso) -?lemma_in_face_set ?(hyp_iso_dart iso) // dartH.
+congr `_1 + _2:real` => //.
+have in_face x: `x IN face (hypermap_of_fan (V,E)) (v,w) ==> x IN dart_of_fan (V,E)`.
+  by move/IN_TRANS => ->; rewrite -dartH lemma_face_subset dartH.
+rewrite SUM_IMAGE.
+  move => x y [/in_face] x_in [/in_face] y_in /(hyp_iso_inj iso).
+  by rewrite dartH => ->.
+apply SUM_EQ; move => [a b] /in_face d_in.
+by rewrite o_THM /= ext_dart Fan.pr2 Fan.pr3 /= azim_dart_eq_azim_fan.
+Qed.
+
+
 Lemma fully_surrounded_not_coplanar v w: `v,w IN dart_of_fan (V,E)
 	==> ~(coplanar {vec 0, v, w, sigma_fan (vec 0) V E v w})`.
 Proof.
-move => vw_in.
-have dart1_eq := fully_surrounded_dart_of_fan_eq fanV f_surr.
-have vw_in1: `v,w IN dart1_of_fan (V,E)` by rewrite -dart1_eq.
+move => vw_in; move: (vw_in); rewrite dart1_eq => vw_in1.
 have vw'_in := sigma_in_dart1 fanV vw_in1.
 set w' := `sigma_fan _1 V _2 v w`.
 have ->: `{vec 0, v, w, w'} = {vec 0, w', v, w}`.
@@ -45,8 +106,8 @@ by move: f_surr; rewrite fully_surrounded => ->.
 Qed.
 
 
-Lemma fully_surrounded_delta_pos v w: `v,w IN dart_of_fan (V,E)
-	==>	let w' = sigma_fan (vec 0) V E v w in
+Lemma fully_surrounded_delta_pos v w: `v,w IN dart_of_fan (V,E) ==>
+		let w' = sigma_fan (vec 0) V E v w in
 		let y1 = norm v in
 		let y2 = norm w in
 		let y3 = norm w' in
@@ -62,7 +123,222 @@ rewrite -Ckqowsa_3_points.coplanar_eq_coplanar_alt ?DIMINDEX_3; first by arith.
 exact: fully_surrounded_not_coplanar.
 Qed.
 
+
+Lemma fully_surrounded_azim_eq_dih_y v w: `v,w IN dart_of_fan (V,E) ==>
+	 let w' = sigma_fan (vec 0) V E v w in
+	 let y1 = norm v in
+	 let y2 = norm w in
+	 let y3 = norm w' in
+	 let y4 = dist (w,w') in
+	 let y5 = dist (v,w') in
+	 let y6 = dist (v,w) in
+		azim_dart (V,E) (v,w) = dih_y y1 y2 y3 y4 y5 y6`.
+Proof.
+move => vw_in; do !"CONV_TAC let_CONV"; move: (vw_in); rewrite dart1_eq => vw_in1.
+have vw'_in := sigma_in_dart1 vw_in1 fanV.
+rewrite fully_surrounded_azim_dart_eq_azim // AZIM_DIVH ?(DART1_NOT_COLLINEAR fanV) //.
+rewrite -fully_surrounded_azim_dart_eq_azim //.
+move: f_surr; rewrite fully_surrounded => -> //=.
+rewrite "let_RULE DIHV_EQ_DIH_Y" ?(DART1_NOT_COLLINEAR fanV) //.
+by rewrite !Trigonometry1.DIST_L_ZERO.
+Qed.
+
+
+Lemma fully_surrounded_sol_eq_sol_y v w: `v,w IN dart_of_fan (V,E) /\
+	CARD (face (hypermap_of_fan (V,E)) (v,w)) = 3 ==>
+		 let w' = sigma_fan (vec 0) V E v w in
+		 let y1 = norm v in
+		 let y2 = norm w in
+		 let y3 = norm w' in
+		 let y4 = dist (w,w') in
+		 let y5 = dist (v,w') in
+		 let y6 = dist (v,w) in
+	sol (vec 0) (dart_leads_into (vec 0) V E v w) = sol_y y1 y2 y3 y4 y5 y6`.
+Proof.
+move => [vw_in card3]; do !"CONV_TAC let_CONV"; move: (vw_in); rewrite dart1_eq => vw_in1.
+rewrite fully_surrounded_sol //.
+have [f_eq eqs] := "let_RULE TRIANGULAR_FACE" fanV vw_in1 card3.
+set w' := `sigma_fan _ V E v w`.
+set H := `hypermap_of_fan _`.
+have all_in: `v,w IN dart_of_fan (V,E) /\ w,w' IN dart_of_fan (V,E) /\ w',v IN dart_of_fan (V,E)`.
+  by rewrite -dartH; do !split; apply IN_TRANS; exists `face H (v,w)`;
+	rewrite lemma_face_subset ?dartH // f_eq !IN_INSERT.
+have neqs: `~(v = w) /\ ~(w' = v) /\ ~(w = w')`.
+  by rewrite !(PAIR_IN_DART1_OF_FAN_IMP_NOT_EQ fanV) -?dart1_eq.
+rewrite f_eq !(SUM_SING, SUM_CLAUSES) ?(FINITE_INSERT, FINITE_EMPTY) //.
+rewrite !(IN_SING, IN_INSERT) !PAIR_EQ !neqs /= -neqs /=.
+rewrite !"let_RULE fully_surrounded_azim_eq_dih_y" // w'_def !eqs.
+by rewrite Sphere.sol_y !(DIST_SYM w') !(DIST_SYM w); arith.
+Qed.
+
+
+Lemma tauVEF_alt1 v w: `v,w IN dart_of_fan (V,E)
+	==> let f = face (hypermap_of_fan (V,E)) (v,w) in
+		tauVEF (V,E,f) = sol (vec 0) (dart_leads_into (vec 0) V E v w)
+		  + (&2 - &(CARD f)) * sol0
+		  - sol0 / pi * sum f (\x. azim_dart (V,E) x * (lmfun (h_dart x) - &1))`.
+Proof.
+move => vw_in; "CONV_TAC let_CONV".
+rewrite Tame_defs.tauVEF fully_surrounded_sol //.
+set H := `hypermap_of_fan _`.
+have fin_f := FACE_FINITE H `v,w`.
+rewrite "REAL_ARITH `!a b c. a * (&1 + b * (&1 - c)) = a - b * (a * (c - &1))`".
+by rewrite !SUM_SUB // !SUM_LMUL (SUM_CONST `pi`) //; arith.
+Qed.
+
+
+Lemma tauVEF_alt2 v w: `v,w IN dart_of_fan (V,E)
+	==> let f = face (hypermap_of_fan (V,E)) (v,w) in
+	  tauVEF (V,E,f) = sol (vec 0) (dart_leads_into (vec 0) V E v w) * (&1 + sol0 / pi) 
+			- sol0 / pi * sum f (\x. azim_dart (V,E) x * lmfun (h_dart x))`.
+Proof.
+move => vw_in; "CONV_TAC let_CONV".
+rewrite "let_RULE tauVEF_alt1" // fully_surrounded_sol //.
+set H := `hypermap_of_fan _`.
+have fin_f := FACE_FINITE H `v,w`.
+have -> a b: `a * (b - &1) = a * b - a` by arith.
+rewrite !SUM_SUB // (SUM_CONST `pi`) //.
+by move: PI_POS; "CONV_TAC REAL_FIELD".
+Qed.
+
+
+
+Section BallAnnulus.
+
+Hypothesis subV: `V SUBSET ball_annulus`.
+
+Let v_norm v: `v IN V ==> norm v <= &2 * h0 /\ &2 <= norm v`.
+Proof. by rewrite SUBSET in subV; move/subV; rewrite Ckqowsa_3_points.in_ball_annulus /=. Qed.
+
+
+Lemma fully_surrounded_lnazim v w: `v,w IN dart_of_fan (V,E) ==>
+	 let w' = sigma_fan (vec 0) V E v w in
+	 let y1 = norm v in
+	 let y2 = norm w in
+	 let y3 = norm w' in
+	 let y4 = dist (w,w') in
+	 let y5 = dist (v,w') in
+	 let y6 = dist (v,w) in
+		azim_dart (V,E) (v,w) * lmfun (h_dart (v,w)) = lnazim y1 y2 y3 y4 y5 y6`.
+Proof.
+move => vw_in; do !"CONV_TAC let_CONV".
+rewrite Sphere.lnazim -("let_RULE fully_surrounded_azim_eq_dih_y" vw_in).
+by rewrite REAL_MUL_SYM ly_EQ_lmfun FST // v_norm (PAIR_IN_DART_OF_FAN fanV vw_in).
+Qed.
+
+
+Lemma fully_surrounded_tau_eq_taum v w: `v,w IN dart_of_fan (V,E)
+	/\ CARD (face (hypermap_of_fan (V,E)) (v,w)) = 3
+	==>	let w' = sigma_fan (vec 0) V E v w in
+		let y1 = norm v in
+		let y2 = norm w in
+		let y3 = norm w' in
+		let y4 = dist (w,w') in
+		let y5 = dist (v,w') in
+		let y6 = dist (v,w) in
+		tauVEF (V,E,face (hypermap_of_fan (V,E)) (v,w)) = taum y1 y2 y3 y4 y5 y6`.
+Proof.
+move => [vw_in card3]; do !"CONV_TAC let_CONV"; move: (vw_in); rewrite dart1_eq => vw_in1.
+have [f_eq eqs] := "let_RULE TRIANGULAR_FACE" fanV vw_in1 card3.
+have [dartH _] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+set w' := `sigma_fan _ V E v w`.
+set H := `hypermap_of_fan _`.
+have all_in: `v,w IN dart_of_fan (V,E) /\ w,w' IN dart_of_fan (V,E) /\ w',v IN dart_of_fan (V,E)`.
+  by rewrite -dartH; do !split; apply IN_TRANS; exists `face H (v,w)`;
+	rewrite lemma_face_subset ?dartH // f_eq !IN_INSERT.
+have neqs: `~(v = w) /\ ~(w' = v) /\ ~(w = w')`.
+  by rewrite !(PAIR_IN_DART1_OF_FAN_IMP_NOT_EQ fanV) -?dart1_eq.
+rewrite -H_def "let_RULE tauVEF_alt2" // H_def.
+rewrite f_eq !(SUM_SING, SUM_CLAUSES) ?(FINITE_INSERT, FINITE_EMPTY) //.
+rewrite !(IN_SING, IN_INSERT) !PAIR_EQ !neqs /= -neqs /=.
+rewrite !"let_RULE fully_surrounded_lnazim" // !eqs.
+rewrite "let_RULE fully_surrounded_sol_eq_sol_y" ?H_def // w'_def.
+by rewrite Sphere.taum sol0_over_pi_EQ_const1 !(DIST_SYM w') !(DIST_SYM w).
+Qed.
+
+
+End BallAnnulus.
+
 End FullySurrounded.
+
+
+(* tauq *)
+Section Tauq.
+
+Lemma taum_sym y1 y2 y3 y4 y5 y6: `taum y1 y2 y3 y4 y5 y6 = taum y3 y2 y1 y6 y5 y4`.
+Proof.
+have sym := Nonlinear_lemma.dih_y_sym.
+rewrite eq_sym Sphere.taum Sphere.sol_y !Sphere.lnazim.
+rewrite (sym y3 y2) (sym y2 y1) (sym y1 y3).
+have -> a b c d: `a + b + c - d = c + b + a - d:real` by arith.
+rewrite -Sphere.sol_y.
+have -> a b c: `a + b + c = c + b + a:real` by arith.
+by rewrite -!Sphere.lnazim -Sphere.taum.
+Qed.
+
+
+Variable V: `:real^3->bool`.
+Variable E: `:(real^3->bool)->bool`.
+
+Hypothesis fanV: `FAN (vec 0,V,E)`.
+Hypothesis f_surr: `fully_surrounded (V,E)`.
+Hypothesis subV: `V SUBSET ball_annulus`.
+
+Let dart1_eq: `dart_of_fan (V,E) = dart1_of_fan (V,E)`.
+Proof. by rewrite fully_surrounded_dart_of_fan_eq. Qed.
+
+Let dartH: `dart (hypermap_of_fan (V,E)) = dart_of_fan (V,E)`.
+Proof. by rewrite COMPONENTS_HYPERMAP_OF_FAN. Qed.
+
+
+Lemma fully_surrounded_tau_eq_tauq v w: `v,w IN dart_of_fan (V,E)
+	/\ CARD (face (hypermap_of_fan (V,E)) (v,w)) = 4
+	==>	let w' = sigma_fan (vec 0) V E v w in
+		let u = sigma_fan (vec 0) V E w' v in
+		let y1 = norm v in
+		let y2 = norm w in
+		let y3 = norm w' in
+		let y4 = dist(w,w') in
+		let y5 = dist(v,w') in
+		let y6 = dist(v,w) in
+		let y7 = norm u in
+		let y8 = dist(w',u) in
+		let y9 = dist(w,u) in
+	tauVEF (V,E,face (hypermap_of_fan (V,E)) (v,w)) = tauq y1 y2 y3 y4 y5 y6 y7 y8 y9`.
+Proof.
+move => [vw_in card4]; do 11!"CONV_TAC let_CONV".
+have := fan_split_fan_face fanV f_surr vw_in.
+have := "let_RULE face_split_fan_face_explicit" fanV f_surr vw_in.
+rewrite card4 "ARITH_RULE `4 - 1 = 3`"; "ANTS_TAC"; first by arith.
+rewrite split_fan_face.
+set w' := `sigma_fan _ V E v w`.
+set w2 := `sigma_fan _ V E w' v`.
+set E2 := `_ INSERT E`.
+set H2 := `hypermap_of_fan (V,E2)`.
+move => [_] [cards_eq] [in_face] neqs [fan2] [dart2_eq] f_surr2.
+have all_in2: `v,w IN dart_of_fan (V,E2) /\ w',w IN dart_of_fan (V,E2)`.
+  by rewrite dart2_eq !IN_UNION -dart1_eq !IN_INSERT vw_in.
+rewrite ("let_RULE tau_split_fan_face_add" fanV f_surr vw_in); first by rewrite card4; arith.
+rewrite w'_def E2_def.
+rewrite !"let_RULE fully_surrounded_tau_eq_taum" //.
+set H := `hypermap_of_fan (V,E)`.
+have split_eq: `split_fan_face (V,E) (v,w) = (V,E2)`.
+  by rewrite split_fan_face w'_def E2_def.
+have ->: `sigma_fan (vec 0) V E2 v w = w'`.
+  suff: `n_fan_pair (V,E2) (v,w) = n_fan_pair (V,E) (v,w)`.
+    by rewrite !n_fan_pair w'_def PAIR_EQ => [] [_] ->.
+  rewrite -split_eq (n_split_fan_face_eq1 vw_in fanV f_surr) // !FST w'_def !neqs /=.
+  by rewrite split_eq dart2_eq -dart1_eq IN_UNION.
+have ->: `sigma_fan (vec 0) V E2 w' w = w2`.
+  suff: `n_fan_pair (V,E2) (w',w) = n_fan_pair (V,E) (w',v)`.
+    by rewrite !n_fan_pair w2_def PAIR_EQ => [] [_] ->.
+  have := "let_RULE n_split_fan_face" fanV f_surr vw_in.
+  by rewrite H_def card4 "ARITH_RULE `3 < 4`" /= split_eq w'_def => ->.
+by rewrite Sphere.tauq (taum_sym `norm w2`) !(DIST_SYM w').
+Qed.
+
+
+End Tauq.
 
 
 

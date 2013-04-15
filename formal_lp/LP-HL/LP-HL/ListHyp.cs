@@ -34,17 +34,23 @@ namespace LP_HL
         // Second key: the value of a mod-file element ((1,2,3,0) for e-dart, etc)
         private Dictionary<string, Dictionary<string, HypermapElement>> translationTables;
 
+        /// <summary>
+        /// Private constructor
+        /// </summary>
+        /// <param name="manager"></param>
+        private ListHyp(ListHypManager manager, string rawString)
+        {
+            this.Manager = manager;
+            this.rawString = rawString;
+            this.list = new List<List<int>>();
+        }
 
         /// <summary>
         /// Creates a list hypermap from its string representation
         /// </summary>
         /// <param name="str"></param>
-        public ListHyp(string str, ListHypManager manager)
+        public ListHyp(string str, ListHypManager manager) : this(manager, str)
         {
-            this.Manager = manager;
-            this.rawString = str;
-            this.list = new List<List<int>>();
-
             string[] els = str.Split(' ');
             this.Id = els[0];
 
@@ -66,6 +72,94 @@ namespace LP_HL
                 list.Add(face);
             }
         }
+
+
+        /// <summary>
+        /// Splits the hypermap using the given list of split darts
+        /// </summary>
+        /// <param name="splitDarts"></param>
+        /// <returns></returns>
+        public ListHyp Split(List<Dart> splitDarts)
+        {
+            ListHyp hyp = new ListHyp(Manager, rawString);
+            hyp.Id = Id;
+
+            var l2 = list;
+            foreach (Dart d in splitDarts)
+            {
+                l2 = Split(l2, d);
+            }
+
+            hyp.list.AddRange(l2);
+            return hyp;
+        }
+
+
+        /// <summary>
+        /// Creates a list of pairs
+        /// </summary>
+        private static List<Dart> ListPairs(List<int> l)
+        {
+            List<Dart> result = new List<Dart>();
+
+            int n = l.Count;
+            for (int i = 0; i < n; i++)
+            {
+                int i1 = (i + 1 < n) ? i + 1 : 0;
+                result.Add(new Dart(l[i], l[i1]));
+            }
+
+            return result;
+        }
+
+
+        /// <summary>
+        /// Splits the given list of elements
+        /// </summary>
+        /// <param name="list"></param>
+        /// <returns></returns>
+        private static List<List<int>> Split(List<List<int>> list, Dart d)
+        {
+            List<List<int>> result = new List<List<int>>();
+
+            for (int k = 0; k < list.Count; k++)
+            {
+                var f = list[k];
+                var pairs = ListPairs(f);
+
+                if (!pairs.Contains(d))
+                {
+                    result.Add(f);
+                    continue;
+                }
+
+                int i = pairs.IndexOf(d);
+                f = f.rotate(i - 1);
+
+                if (f.Count <= 3)
+                {
+                    result.Add(f);
+                }
+                else
+                {
+                    var f2 = f.Skip(2).ToList();
+                    f2.Insert(0, f[0]);
+
+                    result.Add(f.Take(3).ToList());
+                    result.Add(f2);
+                }
+
+                for (k++; k < list.Count; k++)
+                {
+                    result.Add(list[k]);
+                }
+
+                break;
+            }
+
+            return result;
+        }
+
 
 
         /// <summary>
@@ -100,24 +194,6 @@ namespace LP_HL
 
 
         /// <summary>
-        /// Creates a list of pairs
-        /// </summary>
-        private List<Dart> ListPairs(List<int> l)
-        {
-            List<Dart> result = new List<Dart>();
-
-            int n = l.Count;
-            for (int i = 0; i < n; i++)
-            {
-                int i1 = (i + 1 < n) ? i + 1 : 0;
-                result.Add(new Dart(l[i], l[i1]));
-            }
-
-            return result;
-        }
-
-
-        /// <summary>
         /// Finds the face which contains the given dart
         /// </summary>
         private int FindFaceIndex(int i1, int i2)
@@ -140,7 +216,7 @@ namespace LP_HL
         /// <summary>
         /// Computes all sets of darts
         /// </summary>
-        public void ComputeAllSets()
+        public void ComputeAllSets(List<int> facesPermutation)
         {
             // faces
             var faces = list.map(l => ListPairs(l));
@@ -199,6 +275,7 @@ namespace LP_HL
 
             for (int j = 0; j < list.Count; j++)
             {
+                int mod_index = facesPermutation[j];
                 var f = list[j];
                 int n = f.Count;
                 for (int i = 0; i < n; i++)
@@ -206,15 +283,16 @@ namespace LP_HL
                     int i1 = f[i];
                     int i2 = f[(i + 1) % n];
                     int i3 = f[(i + 2) % n];
-                    string e_dart = i1 + "," + i2 + "," + i3 + "," + j;
-                    string dart = i2 + "," + j;
+                    string e_dart = i1 + "," + i2 + "," + i3 + "," + mod_index;
+                    string dart = i2 + "," + mod_index;
                     HypermapElement d = new Dart(i2, i3);
 
+                    // (i1,i2,i3,j) corresponds to (i2,i3); (i1,j) = f^(-1)(i2,j) and (i3,j) = f(i2,j)
                     e_darts.Add(e_dart, d);
                     mod_darts.Add(dart, d);
                 }
 
-                mod_faces.Add(j.ToString(), new DartList(faces[j]));
+                mod_faces.Add(mod_index.ToString(), new DartList(faces[j]));
             }
 
             // nodes
@@ -231,10 +309,10 @@ namespace LP_HL
                 Dart d1 = e[0];
                 Dart d2 = e[1];
                 int i1 = d1.a;
-                int j1 = FindFaceIndex(d1.a, d1.b);
+                int j1 = facesPermutation[FindFaceIndex(d1.a, d1.b)];
 
                 int i2 = d2.a;
-                int j2 = FindFaceIndex(d2.a, d2.b);
+                int j2 = facesPermutation[FindFaceIndex(d2.a, d2.b)];
 
                 string edge = i1 + "," + j1 + "," + i2 + "," + j2;
                 mod_edges.Add(edge, new DartList(e));
@@ -353,6 +431,76 @@ namespace LP_HL
 
 
         /// <summary>
+        /// Computes a hypermap from input file data
+        /// </summary>
+        /// <param name="hypInfo"></param>
+        /// <returns></returns>
+        public ListHyp ComputeHypermap(TextReader hypInfo, out string name)
+        {
+            name = null;
+            string id = null;
+            List<Dart> splitDarts = new List<Dart>();
+            List<int> facesPermutation = null;
+
+            while (true)
+            {
+                string str = hypInfo.ReadLine();
+                if (str == null)
+                    break;
+
+                string[] els = str.Split(':');
+                if (els.Length != 2)
+                {
+                    Console.WriteLine("Bad line: " + str);
+                    continue;
+                }
+
+                string val = els[1].Trim();
+
+                switch (els[0].Trim())
+                {
+                    case "name":
+                        name = val;
+                        break;
+
+                    case "id":
+                        id = val;
+                        break;
+
+                    case "split":
+                        if (val == "")
+                            break;
+
+                        els = val.Split(';');
+                        splitDarts.Clear();
+
+                        foreach (string el in els)
+                        {
+                            splitDarts.Add(Dart.Parse(el));
+                        }
+                        break;
+
+                    case "faces":
+                        facesPermutation = val.Split(',').ToList().map(x => int.Parse(x));
+                        break;
+
+                    default:
+                        Console.WriteLine("Bad line: " + str);
+                        break;
+                }
+            }
+
+            if (name == null || id == null || facesPermutation == null)
+                throw new Exception("ComputeHypermaps(): name, id, or facesPermutation are not defined");
+
+            ListHyp hyp = this[id].Split(splitDarts);
+            hyp.ComputeAllSets(facesPermutation);
+
+            return hyp;
+        }
+
+
+        /// <summary>
         /// Returns a hypermap element corresponding to the variable name
         /// </summary>
         /// <param name="varName"></param>
@@ -373,6 +521,9 @@ namespace LP_HL
 
         public int FindIneqIndex(ListHyp hypermap, Label ineqId)
         {
+            if (!constraints.ContainsKey(ineqId.name))
+                throw new Exception("Constraint " + ineqId.name + " is not defined in 000.txt");
+
             Definition c = constraints[ineqId.name];
             HypermapElement element = hypermap.Translate(c.domain, ineqId.index);
             return hypermap.FindElementIndex(c.set, element);
@@ -476,9 +627,7 @@ namespace LP_HL
         }
 
 
- 
-
-
+        // Reads one definition
         private Definition ReadDefinition(Scanner s)
         {
             // name

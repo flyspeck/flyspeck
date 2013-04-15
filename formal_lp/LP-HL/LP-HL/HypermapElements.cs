@@ -26,6 +26,18 @@ namespace LP_HL
             this.b = b;
         }
 
+        public static Dart Parse(String str)
+        {
+            string[] els = str.Split(',');
+            if (els.Length != 2)
+                throw new Exception("Dart.Parse(): bad argument: " + str);
+
+            int a = int.Parse(els[0]);
+            int b = int.Parse(els[1]);
+
+            return new Dart(a, b);
+        }
+
         public override string ToString()
         {
             return a + "," + b;

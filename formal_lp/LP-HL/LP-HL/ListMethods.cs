@@ -28,6 +28,36 @@ namespace LP_HL
         }
 
         /// <summary>
+        /// Rotates the list
+        /// If n is positive then the list is rotated to the left
+        /// If n is negative then the list is rotated to the right
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="l"></param>
+        /// <param name="n"></param>
+        /// <returns></returns>
+        public static List<T> rotate<T>(this List<T> l, int n)
+        {
+            List<T> result = new List<T>();
+            int size = l.Count;
+
+            if (size == 0)
+                return result;
+
+            n = n % size;
+            if (n < 0)
+                n += size;
+
+            var take = l.Take(n);
+            var drop = l.Skip(n);
+
+            result.AddRange(drop);
+            result.AddRange(take);
+
+            return result;
+        }
+
+        /// <summary>
         /// Flattens a list
         /// </summary>
         public static List<T> flatten<T>(this List<List<T>> ll)

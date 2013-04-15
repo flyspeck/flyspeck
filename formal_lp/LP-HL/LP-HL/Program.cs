@@ -26,11 +26,28 @@ namespace LP_HL
                 // return;
 
                 // Flyspeck
-                if (args.Length == 0)
+                if (args.Length == 0 || args.Length == 1)
                 {
-                    Console.WriteLine("Processing Flyspeck linear programs");
-                    Console.WriteLine();
-                    ProcessFlyspeckLP();
+                    try
+                    {
+                        ListHypManager hypermaps = InitializeHypermaps();
+                        Console.WriteLine("Processing Flyspeck linear program(s)");
+                        Console.WriteLine();
+
+                        if (args.Length == 1)
+                        {
+                            ProcessFlyspeckLP(args[0], hypermaps);
+                        }
+                        else
+                        {
+                            ProcessFlyspeckLPs(hypermaps);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Console.Error.WriteLine("ERROR: {0}", e.Message);
+                    }
+
                     return;
                 }
 
@@ -54,12 +71,10 @@ namespace LP_HL
         /// <summary>
         /// Processes all Flyspeck linear programs in the current directory
         /// </summary>
-        static void ProcessFlyspeckLP()
+        static void ProcessFlyspeckLPs(ListHypManager hypermaps)
         {
-            ListHypManager hypermaps = InitializeHypermaps();
-
             // GenerateExamples();
-            string[] files = Directory.GetFiles(".", "*.lp");
+            string[] files = Directory.GetFiles(".", "flyspeck*.txt");
             FileStream fs = new FileStream("all_tests.hl", FileMode.Create);
             StreamWriter w = new StreamWriter(fs);
 
@@ -69,15 +84,9 @@ namespace LP_HL
             int i = 1;
             foreach (string file in files)
             {
-                string name = new FileInfo(file).Name;
-                string[] els = name.Split('.');
-                ListHyp hypermap = hypermaps[els[0]];
-                hypermap.ComputeAllSets();
-
-                ProcessLP(els[0], new LpNumber(12), hypermap);
-
+                string name = ProcessFlyspeckLP(file, hypermaps);
                 w.WriteLine("\"Case: {0}/{1}\";;", i++, files.Length);
-                w.WriteLine("let _ = needs \"{0}\" in Sys.time() -. start;;", els[0] + "_out.hl");
+                w.WriteLine("let _ = needs \"{0}\" in Sys.time() -. start;;", name + "_out.hl");
                 // break;
             }
 
@@ -87,11 +96,34 @@ namespace LP_HL
 
 
         /// <summary>
+        /// Processes one Flyspeck LP
+        /// </summary>
+        /// <param name="fname"></param>
+        static string ProcessFlyspeckLP(string fname, ListHypManager hypermaps)
+        {
+            FileStream info = new FileStream(fname, FileMode.Open);
+
+            try
+            {
+                string name;
+                ListHyp hypermap = hypermaps.ComputeHypermap(new StreamReader(info), out name);
+
+                ProcessLP(name, new LpNumber(12), hypermap);
+                return name;
+            }
+            finally
+            {
+                info.Close();
+            }
+        }
+
+
+        /// <summary>
         /// Initializes hypermaps of lists
         /// </summary>
         static ListHypManager InitializeHypermaps()
         {
-            FileStream ftame = new FileStream("tame_archive.txt", FileMode.Open);
+            FileStream ftame = new FileStream("string_archive.txt", FileMode.Open);
             FileStream fdefs = new FileStream("000.txt", FileMode.Open);
             ListHypManager hypermaps = null;
 

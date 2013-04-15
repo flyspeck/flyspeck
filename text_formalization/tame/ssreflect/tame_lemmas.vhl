@@ -21,12 +21,76 @@ Module Tame_lemmas.
 "open Ssrbool".
 "open Ssrnat".
 
+
+(* Misc *)
+Section Misc.
+
+Implicit Type v: `:real^3`.
+
+
+Lemma delta_y_pos v w w': 
+	`let y1 = norm v in
+	 let y2 = norm w in
+	 let y3 = norm w' in
+	 let y4 = dist (w,w') in
+	 let y5 = dist (v,w') in
+	 let y6 = dist (v,w) in
+		&0 <= delta_y y1 y2 y3 y4 y5 y6`.
+Proof.
+do !"CONV_TAC let_CONV".
+rewrite Sphere.delta_y -DELTA_EQ_DELTA_X -!DIST_0 -!REAL_POW_2.
+have := Collect_geom.DELTA_POS_4POINTS `vec 0:real^3` v w w'.
+by rewrite !(DIST_SYM `vec 0`).
+Qed.
+
+
+Lemma quadratic_root_plus_works a b c: `~(a = &0) /\ &0 <= b pow 2 - &4 * a * c ==>
+	let x = quadratic_root_plus (a,b,c) in
+		a * x pow 2 + b * x + c = &0`.
+Proof.
+move => ineqs; "CONV_TAC let_CONV".
+rewrite (Collect_geom2.FACTOR_OF_QUADRARTIC ineqs).
+by rewrite Sphere.quadratic_root_plus; arith.
+Qed.
+
+
+Lemma quadratic_root_plus_eq a b c x: `&0 < a /\ &0 <= b pow 2 - &4 * a * c 
+	/\ &0 <= b /\ (a * x pow 2 + b * x + c = &0) /\ &0 <= x
+	==> quadratic_root_plus (a,b,c) = x`.
+Proof.
+move => [a_gt0] [disc_ge0] [b_ge0] [x_root] x_ge0.
+have a_neq: `~(a = &0)` by move: a_gt0; arith.
+have := Collect_geom2.FACTOR_OF_QUADRARTIC a_neq disc_ge0 x.
+rewrite x_root eq_sym !REAL_ENTIRE -Sphere.quadratic_root_plus a_neq orFb.
+rewrite !REAL_SUB_0 => [] [-> | ] // x_eq.
+have: `x <= &0`.
+  rewrite x_eq.
+  suff -> u: `&0 <= u ==> (--b - u) / (&2 * a) <= &0` by rewrite SQRT_POS_LE.
+  move => u_ge0; rewrite "REAL_ARITH `!x. x <= &0 <=> ~(&0 < x)`".
+  rewrite real_div REAL_MUL_POS_LT negb_or.
+  have h1: `&0 < inv (&2 * a)` by rewrite REAL_LT_INV REAL_LT_MUL a_gt0; arith.
+  rewrite h1 andbT !(real_lt `&0`) !REAL_LE_LT h1 /=.
+  by move: u_ge0 b_ge0; arith.
+rewrite REAL_LE_LT; case; first by move: x_ge0; arith.
+move => x_eq0.
+have c_eq0: `c = &0` by move: x_root; rewrite x_eq0 REAL_POW_2 !REAL_MUL_RZERO !REAL_ADD_LID.
+rewrite Sphere.quadratic_root_plus c_eq0 !REAL_MUL_RZERO REAL_SUB_RZERO.
+by rewrite POW_2_SQRT // REAL_ADD_LINV real_div REAL_MUL_LZERO x_eq0.
+Qed.
+
+
+End Misc.
+
+
+(* FullySurrounded *)
 Section FullySurrounded.
 
 Variable V: `:real^3->bool`.
 Variable E: `:(real^3->bool)->bool`.
 
 Hypothesis fanV: `FAN (vec 0,V,E)`.
+
+
 Hypothesis f_surr: `fully_surrounded (V,E)`.
 
 Let dart1_eq: `dart_of_fan (V,E) = dart1_of_fan (V,E)`.
@@ -201,6 +265,68 @@ rewrite !SUM_SUB // (SUM_CONST `pi`) //.
 by move: PI_POS; "CONV_TAC REAL_FIELD".
 Qed.
 
+
+Lemma tauVEF_alt3 v w: `v,w IN dart_of_fan (V,E)
+	==> let f = face (hypermap_of_fan (V,E)) (v,w) in
+	tauVEF (V,E,f) = sum f (\x. (&1 + sol0 / pi * (&1 - lmfun (h_dart x))) 
+	* azim_dart (V,E) x - pi - sol0) + &2 * (pi + sol0)`.
+Proof.
+move => vw_in; "CONV_TAC let_CONV".
+have -> a x b c: `a * x - b - c = x * a - (b + c):real` by arith.
+set H := `hypermap_of_fan _`.
+have fin_f := FACE_FINITE H `v,w`.
+rewrite SUM_SUB // (SUM_CONST `pi + sol0`) //.
+by rewrite Tame_defs.tauVEF; arith.
+Qed.
+
+
+Lemma fully_surrounded_enclosed v w: `v,w IN dart_of_fan (V,E)
+	==>	let w' = sigma_fan (vec 0) V E v w in
+		let u = sigma_fan (vec 0) V E w' v in
+		let y1 = norm v in
+		let y2 = norm w in
+		let y3 = norm w' in
+		let y4 = dist(w,w') in
+		let y5 = dist(v,w') in
+		let y6 = dist(v,w) in
+		let y7 = norm u in
+		let y8 = dist(w',u) in
+		let y9 = dist(w,u) in
+	dist (v,u) = enclosed y1 y5 y6 y4 y2 y3 y7 y8 y9`.
+Proof.
+move => vw_in; do 11!"CONV_TAC let_CONV".
+set w' := `sigma_fan _ V E v w`.
+set u := `sigma_fan _ V E w' v`.
+rewrite Enclosed.enclosed.
+have := "let_RULE Collect_geom2.CAYLEYR_5POINTS" `vec 0:real^3` w' w v u.
+rewrite !(DIST_SYM `vec 0`) !DIST_0 !REAL_POW_2 -Mur.muR !(DIST_SYM v) !(DIST_SYM w').
+set p := `muR _1 _2 _3 _4 _5 _6 _7 _8 _9`.
+move => p0.
+suff ->: `quadratic_root_plus (abc_of_quadratic p) = dist (u,v) pow 2`.
+  by rewrite POW_2_SQRT // DIST_POS_LE.
+suff: `?a b c. (p = \x. a * x pow 2 + b * x + c) 
+	/\ &0 < a /\ &0 <= b pow 2 - &4 * a * c /\ &0 <= b`.
+  move => [a] [b] [c] [p_eq] ineqs.
+  rewrite p_eq Nonlinear_lemma.abc_quadratic; apply: quadratic_root_plus_eq.
+  rewrite !ineqs !andTb REAL_LE_POW_2 andbT.
+  by move: p0; rewrite p_eq /= -REAL_POW_2.
+rewrite -p_def "GEN_ALL Mur.muRa" FUN_EQ_THM "GEN_ALL Collect_geom.LEMMA50".
+set a := `ups_x _1 _2 _3`.
+set b := `cayleytr _1 _2 _3 _4 _5 _6 _7 _8 _9 _10`.
+set c := `cayleyR _1 _2 _3 _4 _5 _6 _7 _8 _9 _10`.
+exists a b c => /=; split.
+  rewrite -a_def.
+  have := "(GEN_ALL o let_RULE) Trigonometry2.NOT_COLLINEAR_IMP_UPS_LT" `vec 0:real^3` w' w.
+  rewrite !DIST_0 -!REAL_POW_2 (DIST_SYM w); apply.
+  move/Planarity.notcoplanar_imp_notcollinear_fan: (fully_surrounded_not_coplanar vw_in).
+  by rewrite w'_def "GEN_ALL Collect_geom.PER_SET3" => ->.
+split.
+  rewrite -b_def -a_def -c_def "GEN_ALL Collect_geom.DISCRIMINANT_OF_CAY".
+  rewrite !DELTA_EQ_DELTA_X -!Sphere.delta_y !(DIST_SYM w) !(DIST_SYM v) !(DIST_SYM u).
+  rewrite !REAL_LE_MUL; last by arith.
+  by rewrite !"let_RULE delta_y_pos".
+
+Abort.
 
 
 Section BallAnnulus.

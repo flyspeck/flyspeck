@@ -1,4 +1,6 @@
 "needs \"../formal_lp/hypermap/ssreflect/list_hypermap-compiled.hl\"".
+"needs \"../formal_lp/hypermap/ssreflect/list_hypermap_iso-compiled.hl\"".
+
 
 Module More_list_hypermap.
 
@@ -7,6 +9,9 @@ Module More_list_hypermap.
 "open Seq".
 "open List_hypermap".
 "open Hypermap".
+"open Hypermap_and_fan".
+"open Hypermap_iso".
+"open Tame_general".
 
 (* Darts *)
 
@@ -148,3 +153,117 @@ rewrite Seq2.size_butlast size_s1 (h f_eq) //=.
 rewrite catA -Seq2.cat_butlast_last -1?cat1s ?f_eq // size_s1.
 by move: k_eq; arith.
 Qed.
+
+
+(* Contravening *)
+Section Contravening.
+
+Variable V: `:real^3->bool`.
+Variable L: `:((num)list)list`.
+Variable h: `:num->real^3`.
+Variable g: `:num#num->real^3#real^3`.
+
+
+Lemma mem_list_of_darts_imp_mem_list_of_elements a b: `MEM (a,b) (list_of_darts L)
+	==> MEM a (list_of_elements L) /\ MEM b (list_of_elements L)`.
+Proof.
+rewrite mem_list_of_darts => [] [l] [mem_l] /mem_list_pairs mem_ab.
+rewrite !list_of_elements !mem_undup !Seq2.mem_flatten.
+by split; exists l.
+Qed.
+
+
+Hypothesis contrV: `contravening V`.
+
+Let fanV: `FAN (vec 0,V,ESTD V)`.
+Proof. by rewrite CONTRAVENING_FAN. Qed.
+
+
+Section Norm.
+
+Hypothesis bij_h: `BIJ h (elements_of_list L) V`.
+
+Lemma contravening_norm_le: `ALL (\x. norm (h x) <= #2.52) (list_of_elements L)`.
+Proof.
+move: bij_h; rewrite -ALL_MEM BIJ INJ elements_of_list IN_SET_OF_LIST.
+move => [] [x_in] _ _ x /x_in inV.
+by rewrite -Trigonometry1.DIST_L_ZERO (CONTRAVENING_DIST contrV).
+Qed.
+
+
+Lemma contravening_norm_ge: `ALL (\x. &2 <= norm (h x)) (list_of_elements L)`.
+Proof.
+move: bij_h; rewrite -ALL_MEM BIJ INJ elements_of_list IN_SET_OF_LIST.
+move => [] [x_in] _ _ x /x_in inV; rewrite "REAL_ARITH `&2 = #2.0`".
+by rewrite -Trigonometry1.DIST_L_ZERO (CONTRAVENING_DIST contrV).
+Qed.
+
+
+End Norm.
+
+
+Lemma contravening_dart_eq_dart1: `dart_of_fan (V,ESTD V) = dart1_of_fan (V,ESTD V)`.
+Proof.
+rewrite (Add_triangle.fully_surrounded_dart_of_fan_eq fanV) //.
+by rewrite CONTRAVENING_IMP_FULLY_SURROUNDED.
+Qed.
+
+
+Hypothesis goodL: `good_list L`.
+Hypothesis iso_g: `hyp_iso g (hypermap_of_list L, hypermap_of_fan (V,ESTD V))`.
+
+
+Let mem_dartsL d: `MEM d (list_of_darts L) <=> d IN dart (hypermap_of_list L)`.
+Proof. by rewrite -IN_SET_OF_LIST -darts_of_list (components_hypermap_of_list goodL). Qed.
+
+Let in_dartsH x: `x IN dart (hypermap_of_fan (V,ESTD V)) <=> x IN dart_of_fan (V,ESTD V)`.
+Proof. by rewrite (COMPONENTS_HYPERMAP_OF_FAN fanV). Qed.
+
+
+Lemma contravening_dist_dart_ge: `ALL (\d. &2 <= dist (g d)) (list_of_darts L)`.
+Proof.
+rewrite -ALL_MEM mem_dartsL => d /(hyp_iso_dart iso_g) /=.
+by rewrite in_dartsH => /(CONTRAVENING_DART_DIST contrV); arith.
+Qed.
+
+
+Lemma contravening_dist_dart_le: `ALL (\d. dist (g d) <= #2.52) (list_of_darts L)`.
+Proof.
+rewrite -ALL_MEM mem_dartsL => d /(hyp_iso_dart iso_g) /=.
+by rewrite in_dartsH => /(CONTRAVENING_DART_DIST contrV); arith.
+Qed.
+
+
+(* h *)
+Hypothesis bij_h: `BIJ h (elements_of_list L) V`.
+Hypothesis g_eq: `g = \d. h (FST d), h (SND d)`.
+
+
+Lemma contravening_dist_not_dart s: 
+	`ALL (\d. MEM (FST d) (list_of_elements L) /\ MEM (SND d) (list_of_elements L) 
+		/\ (FST d = SND d <=> F)) s
+	/\ ALL (\d. MEM d (list_of_darts L) <=> F) s
+	==> ALL (\d. #2.52 <= dist (g d)) s`.
+Proof.
+rewrite -!ALL_MEM => /= [h1] h2 [a b] mem_ds.
+have hab_in: `h a IN V /\ h b IN V /\ ~(h a = h b)`.
+  move: bij_h; rewrite BIJ INJ => [] [] [x_in] h_inj _.
+  move: (h1 mem_ds) => /= h1.
+  rewrite !x_in // ?(elements_of_list, IN_SET_OF_LIST) // !andTb.
+  by rewrite -implybF => /h_inj; rewrite elements_of_list !IN_SET_OF_LIST !h1.
+suff mem_gd: `~(g (a,b) IN dart_of_fan (V,ESTD V))`.
+  apply: contraR mem_gd; rewrite g_eq => /= ineq.
+  rewrite contravening_dart_eq_dart1 -Add_triangle.inE_eq_in_dart1.
+  by rewrite IN_ESTD !hab_in; move: ineq; arith.
+apply: contra (h2 mem_ds) => g_in.
+move: (hyp_iso_surj iso_g); rewrite in_dartsH.
+move/(_ g_in) => [[a' b']]; rewrite -mem_dartsL => [] [ab'_in].
+rewrite g_eq /= PAIR_EQ => [] [eq_a eq_b].
+move: bij_h; rewrite BIJ INJ elements_of_list !IN_SET_OF_LIST => [] [] [_] inj _.
+move: (h1 mem_ds) => /= mem_ab.
+move: (mem_list_of_darts_imp_mem_list_of_elements ab'_in) => mem_ab'.
+by move: (inj eq_b) (inj eq_a) => <- // <-.
+Qed.
+
+
+End Contravening.

@@ -1,0 +1,279 @@
+needs "../formal_lp/ineqs/constants_approx.hl";;
+
+module Lp_approx_ineqs = struct
+
+(* Integral approximation of inequalities and equalities *)
+let mk_decimal =
+  let decimal_const = `DECIMAL` and
+      neg_op_real = `(--):real->real` in
+    fun (n,m) ->
+      let tm = mk_comb(mk_comb(decimal_const, mk_numeral (abs_num n)), mk_numeral m) in
+	if (n </ Int 0) then mk_comb(neg_op_real, tm) else tm;;
+
+
+(*
+Given a rational number term `r` and a natural number k,
+returns a pair of theorems:
+|- low <= r, |- r <= high,
+with decimal low and high such that
+|low - r| <= 10^(-k) and |high - r| <= 10^(-k)
+*)
+let real_rat_approx =
+  let le_op_real = `(<=):real->real->bool` in
+    fun tm precision ->
+      let n = rat_of_term tm in
+      let m = Int 10 **/ (Int precision) in
+      let n1 = n */ m in
+      let low, high = floor_num n1, ceiling_num n1 in
+      let l_tm, h_tm =
+	if precision = 0 then
+	  term_of_rat low, term_of_rat high
+	else
+	  mk_decimal (low, m), mk_decimal (high, m) in
+      let l_th = EQT_ELIM (REAL_RAT_LE_CONV (mk_binop le_op_real l_tm tm)) in
+      let h_th = EQT_ELIM (REAL_RAT_LE_CONV (mk_binop le_op_real tm h_tm)) in
+	l_th, h_th;;
+
+
+(* Splits a sum into two parts: with and without free variables *)
+let split_sum_conv =
+  let sum_th0 = REAL_ARITH `x = x + &0 + &0` and
+      sum_th1 = REAL_ARITH `(x + y) + b + c = y + (x + b) + c:real` and
+      sum_th2 = REAL_ARITH `(x + y) + b + c = y + b + (x + c):real` and
+      sum_th1' = REAL_ARITH `x + b + c = (x + b) + c:real` and
+      sum_th2' = REAL_ARITH `x + b + c = b + (x + c):real` in
+  let x_var_real = `x:real` and
+      y_var_real = `y:real` and
+      b_var_real = `b:real` and
+      c_var_real = `c:real` and
+      add_op_real = `(+):real->real->real` in
+  let rec split_sum_raw_conv tm =
+    let xy_tm, bc_tm = dest_binop add_op_real tm in
+    let b_tm, c_tm = dest_binop add_op_real bc_tm in
+      if (is_binop add_op_real xy_tm) then
+        let x_tm, y_tm = dest_binop add_op_real xy_tm in
+        let inst_th = INST[x_tm, x_var_real; y_tm, y_var_real; b_tm, b_var_real; c_tm, c_var_real] in
+        let th1 = if (frees x_tm <> []) then inst_th sum_th1 else inst_th sum_th2 in
+        let th2 = split_sum_raw_conv (rand(concl th1)) in
+          TRANS th1 th2
+      else
+        let inst_th = INST[xy_tm, x_var_real; b_tm, b_var_real; c_tm, c_var_real] in
+          if (frees xy_tm <> []) then inst_th sum_th1' else inst_th sum_th2' in
+
+    fun tm ->
+      let th0 = INST[tm, x_var_real] sum_th0 in
+      let th1 = split_sum_raw_conv (rand(concl th0)) in
+	TRANS th0 th1;;
+
+
+
+let rearrange_mul_conv =
+  let mul_op_real = `( * ):real->real->real` in
+  let rec dest_mul tm =
+    if (is_binop mul_op_real tm) then
+      let lhs, rhs = dest_binop mul_op_real tm in
+      let cs, vars = dest_mul rhs in
+        if (frees lhs = []) then
+          lhs::cs, vars
+        else
+          cs, lhs::vars
+    else
+      if (frees tm = []) then
+        [tm], []
+      else
+        [], [tm] in
+  let mk_mul list =
+    if (list = []) then failwith "rearrange_mul: empty list"
+    else itlist (fun l r -> mk_binop mul_op_real l r) (tl list) (hd list) in
+
+    fun tm ->
+      let cs, vars = dest_mul tm in
+      let cs_mul, vars_mul = mk_mul cs, mk_mul vars in
+      let t = mk_eq(tm, mk_binop mul_op_real cs_mul vars_mul) in
+	EQT_ELIM (REWRITE_CONV[REAL_MUL_AC] t);;
+
+
+
+(* Moves everything with free variables on the left and performs basic reductions *)
+let ineq_rewrite_conv = 
+  let le_add_th = REAL_ARITH `x + y <= b + c <=> x - b <= c - y:real` in
+    REWRITE_CONV[real_ge; real_div; DECIMAL] THENC
+      LAND_CONV REAL_POLY_CONV THENC RAND_CONV REAL_POLY_CONV THENC
+      LAND_CONV split_sum_conv THENC RAND_CONV split_sum_conv THENC
+      ONCE_REWRITE_CONV[le_add_th] THENC
+      LAND_CONV REAL_POLY_CONV THENC RAND_CONV REAL_POLY_CONV THENC
+      REWRITE_CONV[GSYM real_div] THENC
+      ONCE_DEPTH_CONV rearrange_mul_conv;;
+
+
+(* Approximation *)
+
+let le_mul1_th = REAL_ARITH `!x. &1 * x <= x`;;
+let ge_mul1_th = REAL_ARITH `!x. x <= &1 * x`;;
+let INTERVAL_LO = prove(`interval_arith x (a,b) ==> a <= x`, SIMP_TAC[interval_arith]);;
+let INTERVAL_HI = prove(`interval_arith x (a,b) ==> x <= b`, SIMP_TAC[interval_arith]);;
+
+let add_op_real = `(+):real->real->real`;;
+
+let rec low_approx tm precision =
+  let low_approx1 tm precision =
+    if (is_binop mul_op_real tm && frees tm <> []) then
+      let c, var = dest_binop mul_op_real tm in
+      let interval_th = approx_interval (create_interval c) precision in
+      let l_th = MATCH_MP INTERVAL_LO interval_th in
+      let a, b = dest_binop le_op_real (concl l_th) in
+        (PROVE_HYP l_th o UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o SPECL[a; b; var]) REAL_LE_RMUL
+    else
+      if (frees tm = []) then
+        MATCH_MP INTERVAL_LO (approx_interval (create_interval tm) precision)
+      else
+        SPEC tm le_mul1_th in
+
+  if (is_binop add_op_real tm && frees tm <> []) then
+    let lhs, rhs = dest_binop add_op_real tm in
+    let l_th = low_approx1 lhs precision in
+    let r_th = low_approx rhs precision in
+      MATCH_MP REAL_LE_ADD2 (CONJ l_th r_th)
+  else
+    low_approx1 tm precision;;
+
+
+let rec hi_approx tm precision =
+  let hi_approx1 tm precision =
+    if (is_binop mul_op_real tm && frees tm <> []) then
+      let c, var = dest_binop mul_op_real tm in
+      let interval_th = approx_interval (create_interval c) precision in
+      let h_th = MATCH_MP INTERVAL_HI interval_th in
+      let a, b = dest_binop le_op_real (concl h_th) in
+        (PROVE_HYP h_th o UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o SPECL[a; b; var]) REAL_LE_RMUL
+    else
+      if (frees tm = []) then
+        MATCH_MP INTERVAL_HI (approx_interval (create_interval tm) precision)
+      else
+        SPEC tm ge_mul1_th in
+
+  if (is_binop add_op_real tm && frees tm <> []) then
+    let lhs, rhs = dest_binop add_op_real tm in
+    let l_th = hi_approx1 lhs precision in
+    let r_th = hi_approx rhs precision in
+      MATCH_MP REAL_LE_ADD2 (CONJ l_th r_th)
+  else
+    hi_approx1 tm precision;;
+
+
+
+let approx_le_ineq precision tm =
+  let lhs, rhs = dest_binop le_op_real tm in
+  let lhs_th = low_approx lhs precision in
+  let rhs_th = hi_approx rhs precision in
+  let ll, lr = dest_binop le_op_real (concl lhs_th) in
+  let rl, rr = dest_binop le_op_real (concl rhs_th) in
+
+  let th0 = ASSUME tm in
+  let th1 = SPECL[ll; lr; rhs] REAL_LE_TRANS in
+  let th2 = SPECL[ll; rhs; rr] REAL_LE_TRANS in
+  let s1 = MATCH_MP th1 (CONJ lhs_th th0) in
+    MATCH_MP th2 (CONJ s1 rhs_th);;
+
+
+let integer_approx_le_ineq precision ineq =
+  let lhs, rhs = dest_binop le_op_real ineq in
+  let m = (Int 10 **/ Int precision) in
+  let m_num, m_real = mk_numeral m, term_of_rat m in
+  let m_pos = SPEC m_num REAL_POS in
+  let mul_th = SPECL[m_real; lhs; rhs] REAL_LE_LMUL in
+  let th0 = MATCH_MP mul_th (CONJ m_pos (ASSUME ineq)) in
+  let th1 = (CONV_RULE ineq_rewrite_conv) th0 in
+  let approx = approx_le_ineq 0 (concl th1) in
+    PROVE_HYP th1 approx;;
+
+
+let create_approximations precision_list ineq =
+  let ineq_th = ineq_rewrite_conv ineq in
+  let rhs = rand(concl ineq_th) in
+  let th0 = CONV_RULE (LAND_CONV (REWRITE_CONV[DECIMAL] THENC REAL_POLY_CONV))
+    (approx_le_ineq 8 rhs) in
+
+  let int_approx p =
+    let th1 = integer_approx_le_ineq p (concl th0) in
+    let th2 = PROVE_HYP th0 th1 in
+    let th3 = DISCH rhs th2 in
+      REWRITE_RULE[GSYM ineq_th] th3 in
+
+    map int_approx precision_list;;
+
+(**********************************)
+
+
+(*
+let tm = `(&34/ &13 + pi/sol0)* x + &2 + -- &14 / &3 * z <= pi + rho218 + z * sol0 - u / &1000`;;
+create_approximations [3;4;5] tm;;
+*)
+
+
+(*************************)
+
+(* Additional step for generalizing hypotheses *)
+
+let LIST_SUM_LMUL = prove(`!(f:A->real) c n. list_sum n (\x. c * f x) = c * list_sum n f`,
+			  REWRITE_TAC[Seq2.list_sum_lmul]);;
+let le_hyp_gen = prove(`!f y. (!x. &0 <= f x) ==> &0 <= f y`, SIMP_TAC[]);;
+let le_list_sum_hyp_gen = prove(`!(f:A->real) n. (!x. &0 <= f x) ==> &0 <= list_sum n f`,
+				REPEAT STRIP_TAC THEN MATCH_MP_TAC Seq2.list_sum_ge0 THEN ASM_REWRITE_TAC[]);;
+
+
+let generalize_hyp th =
+  let gen_hyp tm =
+    let fn, arg = dest_comb (rand tm) in
+      if (is_comb fn && is_const (rator fn) && (fst o dest_const o rator) fn = "list_sum") then
+        let f, n = arg, rand fn in
+          UNDISCH_ALL (ISPECL[f; n] le_list_sum_hyp_gen)
+      else
+        UNDISCH_ALL (ISPECL[fn; arg] le_hyp_gen) in
+
+  let hyp_ths = map gen_hyp (hyp th) in
+    itlist PROVE_HYP hyp_ths th;;
+
+
+(*
+let tm = `list_sum n (\x. s x * r) + &1 / &3 * (azim_dart (V,E) o g) x <= pi`;;
+let ths = create_approximations [3] tm;;
+map generalize_hyp ths;;
+*)
+
+
+(*******************************)
+
+
+let generate_ineqs pos_ths precision_list ineq_th =
+  let create_approxs original_th precision_list =
+    let var, ineq = (dest_abs o rand o rator o concl) original_th in
+    let final_step = fun approx_th ->
+      let p_tm', q_tm' = dest_imp (concl approx_th) in
+      let p_tm, q_tm = mk_abs(var, p_tm'), mk_abs(var, q_tm') in
+      let list_tm = (rand o concl) original_th in
+      let mono_th = BETA_RULE (ISPECL[p_tm; q_tm; list_tm] (GEN_ALL MONO_ALL)) in
+      let s1 = MATCH_MP mono_th (GEN var approx_th) in
+        MATCH_MP s1 original_th in
+
+    let approx_ths0 = map generalize_hyp (create_approximations precision_list ineq) in
+    let approx_ths1 = map (itlist PROVE_HYP pos_ths) approx_ths0 in
+    let approx_ths = map (REWRITE_RULE[GSYM LIST_SUM_LMUL]) approx_ths1 in
+      map final_step approx_ths in
+
+
+  let ineq = (snd o dest_abs o rand o rator o concl) ineq_th in
+    if (is_eq ineq) then
+      let eq_th = REWRITE_RULE[GSYM REAL_LE_ANTISYM; GSYM AND_ALL] ineq_th in
+      let ths1 = create_approxs (CONJUNCT1 eq_th) precision_list in
+      let ths2 = create_approxs (CONJUNCT2 eq_th) precision_list in
+        ths1, ths2
+    else
+      create_approxs ineq_th precision_list, [];;
+
+
+(*
+generate_ineqs [] [3;4] (ASSUME `ALL (\n. list_sum n (\x. f x) - &1 <= pi) s`);;
+*)
+
+end;;

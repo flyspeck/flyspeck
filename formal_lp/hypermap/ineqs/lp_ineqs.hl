@@ -1,0 +1,210 @@
+needs "../formal_lp/hypermap/ineqs/lp_approx_ineqs.hl";;
+needs "../formal_lp/hypermap/ineqs/lp_ineqs_defs.hl";;
+needs "../formal_lp/hypermap/arith_link.hl";;
+
+
+let constraints = Hashtbl.create 100;;
+let add_constraints = map (uncurry (Hashtbl.add constraints));;
+
+
+add_constraints
+[
+  "azim_lo", `ALL (\x. &0 <= azim_list (g,fan) x) (list_of_darts L)`;
+  "azim_hi", `ALL (\x. azim_list (g,fan) x <= pi) (list_of_darts L)`;
+  "azim2_lo", `ALL (\x. &0 <= azim2_list (g,fan) x) (list_of_darts L)`;
+  "azim2_hi", `ALL (\x. azim2_list (g,fan) x <= pi) (list_of_darts L)`;
+  "azim3_lo", `ALL (\x. &0 <= azim3_list (g,fan) x) (list_of_darts L)`;
+  "azim3_hi", `ALL (\x. azim3_list (g,fan) x <= pi) (list_of_darts L)`;
+
+  "rhazim_lo", `ALL (\x. &0 <= rhazim_list (g,fan) x) (list_of_darts L)`;
+  "rhazim_hi", `ALL (\x. rhazim_list (g,fan) x <= pi + sol0) (list_of_darts L)`;
+  "rhazim2_lo", `ALL (\x. &0 <= rhazim2_list (g,fan) x) (list_of_darts L)`;
+  "rhazim2_hi", `ALL (\x. rhazim2_list (g,fan) x <= pi + sol0) (list_of_darts L)`;
+  "rhazim3_lo", `ALL (\x. &0 <= rhazim3_list (g,fan) x) (list_of_darts L)`;
+  "rhazim3_hi", `ALL (\x. rhazim3_list (g,fan) x <= pi + sol0) (list_of_darts L)`;
+
+  "ln_lo", `ALL (\x. &0 <= ln_list g x) (nodes_of_list L)`;
+  "ln_hi", `ALL (\x. ln_list g x <= &1) (nodes_of_list L)`;
+  "rho_lo", `ALL (\x. &1 <= rho_list g x) (nodes_of_list L)`;
+  "rho_hi", `ALL (\x. rho_list g x <= &1 + sol0 / pi) (nodes_of_list L)`;
+  "yn_lo", `ALL (\x. &2 <= yn_list g x) (nodes_of_list L)`;
+  "yn_hi", `ALL (\x. yn_list g x <= #2.52) (nodes_of_list L)`;
+
+  "ye_lo", `ALL (\x. &2 <= ye_list g x) (list_of_darts L)`;
+  "ye_hi", `ALL (\x. ye_list g x <= &3) (list_of_darts L)`;
+
+  "y1_lo", `ALL (\x. &2 <= y1_list g x) (list_of_darts L)`;
+  "y1_hi", `ALL (\x. y1_list g x <= #2.52) (list_of_darts L)`;
+  "y2_lo", `ALL (\x. &2 <= y2_list g x) (list_of_darts L)`;
+  "y2_hi", `ALL (\x. y2_list g x <= #2.52) (list_of_darts L)`;
+  "y3_lo", `ALL (\x. &2 <= y3_list (g,fan) x) (list_of_darts L)`;
+  "y3_hi", `ALL (\x. y3_list (g,fan) x <= #2.52) (list_of_darts L)`;
+  "y4_lo", `ALL (\x. &2 <= y4_list (g,fan) x) (list_of_darts L)`;
+  "y4_hi", `ALL (\x. y4_list (g,fan) x <= &3) (list_of_darts L)`;
+  "y5_lo", `ALL (\x. &2 <= y5_list (g,fan) x) (list_of_darts L)`;
+  "y5_hi", `ALL (\x. y5_list (g,fan) x <= &3) (list_of_darts L)`;
+  "y6_lo", `ALL (\x. &2 <= y6_list g x) (list_of_darts L)`;
+  "y6_hi", `ALL (\x. y6_list g x <= &3) (list_of_darts L)`;
+  "y8_lo", `ALL (\x. &2 <= y8_list (g,fan) x) (list_of_darts L)`;
+  "y8_hi", `ALL (\x. y8_list (g,fan) x <= #2.52) (list_of_darts L)`;
+  "y9_lo", `ALL (\x. &2 <= y9_list (g,fan) x) (list_of_darts L)`;
+  "y9_hi", `ALL (\x. y9_list (g,fan) x <= #2.52) (list_of_darts L)`;
+
+  "sol_lo", `ALL (\f. &0 <= sol_list (g,fan) f) (faces_of_list L)`;
+  "sol_hi", `ALL (\f. sol_list (g,fan) f <= &4 * pi) (faces_of_list L)`;
+  "tau_lo", `ALL (\f. &0 <= tau_list (g,fan) f) (faces_of_list L)`;
+  "tau_hi", `ALL (\f. tau_list (g,fan) f <= tgt) (faces_of_list L)`;
+];;
+
+
+add_constraints
+[
+  "azim_sum", `ALL (\n. list_sum n (azim_list (g,fan)) = &2 * pi) (list_of_nodes L)`;
+  "rhazim_sum", `ALL (\n. list_sum n (rhazim_list (g,fan)) = &2 * pi * rho_list g (set_of_list n)) (list_of_nodes L)`;
+  "sol_sum", `ALL (\f. list_sum f (azim_list (g,fan)) = sol_list (g,fan) (set_of_list f) + &(LENGTH f - 2) * pi) (list_of_faces L)`;
+  "tau_sum", `ALL (\f. list_sum f (rhazim_list (g,fan)) = tau_list (g,fan) (set_of_list f) + &(LENGTH f - 2) * (pi + sol0)) (list_of_faces L)`;
+
+  "ln_def", `ALL (\n. ln_list g n = (#2.52 - ln_list g n) / #0.52) (nodes_of_list L)`;
+  "rho_def", `ALL (\n. rho_list g n = (&1 + sol0 / pi) - ln_list g n * sol0 / pi) (nodes_of_list L)`;
+  "edge_sym", `ALL (\d. ye_list g d = ye_list g (SND d, FST d)) (list_of_darts L)`;
+
+  "y1_def", `ALL (\d. y1_list g d = yn_list g (node (hypermap_of_list L) d)) (list_of_darts L)`;
+  "y2_def", `ALL (\d. y2_list g d = yn_list g (node (hypermap_of_list L) (f_list_ext L d))) (list_of_darts L)`;
+  "y3_def", `ALL (\d. y3_list (g,fan) d = yn_list g (node (hypermap_of_list L) (inverse (f_list_ext L) d))) (list_of_darts L)`;
+  "y4_def", `ALL (\d. y4_list (g,fan) d = ye_list g (f_list_ext L d)) (list_of_darts L)`;
+  "y5_def", `ALL (\d. y5_list (g,fan) d = ye_list g (inverse (f_list_ext L) d)) (list_of_darts L)`;
+  "y6_def", `ALL (\d. y6_list g d = ye_list g d) (list_of_darts L)`;
+  "y9_def", `ALL (\d. y9_list (g,fan) d = ye_list g (f_list_ext L d)) (list_of_darts L)`;
+  "y8_def", `ALL (\d. y8_list (g,fan) d = y5_list (g,fan) (inverse (f_list_ext L) d)) (list_of_darts L)`;
+
+  "azim2c", `ALL (\d. azim2_list (g,fan) d = azim_list (g,fan) (f_list_ext L d)) (list_of_darts L)`;
+  "azim3c", `ALL (\d. azim3_list (g,fan) d = azim_list (g,fan) (inverse (f_list_ext L) d)) (list_of_darts L)`;
+  "rhazim2c", `ALL (\d. rhazim2_list (g,fan) d = rhazim_list (g,fan) (f_list_ext L d)) (list_of_darts L)`;
+  "rhazim3c", `ALL (\d. rhazim3_list (g,fan) d = rhazim_list (g,fan) (inverse (f_list_ext L) d)) (list_of_darts L)`;
+];;
+
+
+
+(* inequality constraints *)
+
+add_constraints
+[
+  "RHA", `ALL (\d. rhazim_list (g,fan) d >= azim_list (g,fan) d) (list_of_darts L)`;
+  "RHB", `ALL (\d. rhazim_list (g,fan) d <= azim_list (g,fan) d * (&1 + sol0 / pi)) (list_of_darts L)`;
+];;
+
+
+(* definitional inequalities *)
+
+
+
+(* y bounds *)
+add_constraints
+[
+  "yy10", `ALL (\d. ye_list g d <= #2.52) (list_of_darts L)`;
+];;
+
+
+
+(* tau tame table D inequality (Main Estimate) *)
+add_constraints
+[
+  "tau3", `ALL (\f. tau_list (g,fan) f >= &0) (faces_of_list L)`;
+  "tau4", `ALL (\f. tau_list (g,fan) f >= #0.206) (faces_of_list L)`;
+  "tau5", `ALL (\f. tau_list (g,fan) f >= #0.4819) (faces_of_list L)`;
+  "tau6", `ALL (\f. tau_list (g,fan) f >= #0.7120) (faces_of_list L)`;
+];;
+
+
+add_constraints
+[
+  "ineq105", `ALL (\d. 
+	((((azim_list (g,fan) d) - #1.629) + ((#0.402 * (y2_list g d +
+                (y3_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #8.0))))) -
+                        (#0.315 * (y1_list g d - #2.0)))) - #0.0) >= #0.0) (list_of_darts L)`;
+
+  "ineq106", `ALL (\d.
+        ((((rhazim_list (g,fan) d) - #1.2308) + (((#0.3639 * (y2_list g d + (y3_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #8.0))))) -
+                (#0.6 * (y1_list g d - #2.0))) - (#0.685 * (y4_list (g,fan) d - #2.0)))) - #0.0) >= #0.0) (list_of_darts L)`;
+
+
+  "ineq107", `ALL (\d.
+        (((--(azim_list (g,fan) d)) + ((#1.231 - (#0.152 * (y2_list g d + (y3_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #8.0)))))) + ((#0.5 * (y1_list g d - #2.0)) + (#0.773 * (y4_list (g,fan) d - #2.0))))) - #0.0) >= #0.0) (list_of_darts L)`;
+
+  "ineq108", `ALL (\d.
+        ((((azim_list (g,fan) d) - #1.2308) + (((#0.3639 * (y2_list g d + (y3_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #8.0))))) - (#0.235 * (y1_list g d - #2.0))) - (#0.685 * (y4_list (g,fan) d - #2.0)))) - #0.0) >= #0.0) (list_of_darts L)`;
+
+  "ineq109", `ALL (\d.
+        (((--(sol_list (g,fan) (face (hypermap_of_list L) d))) + (#0.5513 + ((#0.3232 * (y4_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #6.0)))) - (#0.151 * (y1_list g d + (y2_list g d + (y3_list (g,fan) d - #6.0))))))) - #0.0) >= #0.0) (list_of_darts L)`;
+
+  "ineq110", `ALL (\d.
+        (((((sol_list (g,fan) (face (hypermap_of_list L) d)) - #0.55125) - (#0.196 * (y4_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #6.0))))) + (#0.38 * (y1_list g d + (y2_list g d + (y3_list (g,fan) d - #6.0))))) - #0.0) >= #0.0) (list_of_darts L)`;
+
+  "ineq111", `ALL (\d.
+        (((tau_list (g,fan) (face (hypermap_of_list L) d)) + ((#0.001 - (#0.18 * (y1_list g d + (y2_list g d + (y3_list (g,fan) d - #6.0))))) - (#0.125 * (y4_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #6.0)))))) - #0.0) >= #0.0) (list_of_darts L)`;
+
+
+  "ineq112", `ALL (\d.
+        ((((tau_list (g,fan) (face (hypermap_of_list L) d)) - (#0.507 * (azim_list (g,fan) d))) + #0.724) - #0.0) >= #0.0) (list_of_darts L)`;
+
+  "ineq113", `ALL (\d.
+        ((((tau_list (g,fan) (face (hypermap_of_list L) d)) - (#0.259 * (azim_list (g,fan) d))) + #0.32) - #0.0) >= #0.0) (list_of_darts L)`;
+
+  "ineq114", `ALL (\d.
+        (((tau_list (g,fan) (face (hypermap_of_list L) d)) + ((#0.626 * (azim_list (g,fan) d)) - #0.77)) - #0.0) >= #0.0) (list_of_darts L)`;
+
+  "ineq115", `ALL (\d.
+        (#1.893 - (azim_list (g,fan) d)) >= #0.0) (list_of_darts L)`;
+
+  "ineq116", `ALL (\d.
+        ((azim_list (g,fan) d) - #0.852) >= #0.0) (list_of_darts L)`;
+
+  "ineq119", `ALL (\d.
+        ((((tau_list (g,fan) (face (hypermap_of_list L) d)) - (#0.453 * (azim_list (g,fan) d))) + #0.777) - #0.0) >= #0.0) (list_of_darts L)`;
+
+  "ineq120", `ALL (\d.
+        (((tau_list (g,fan) (face (hypermap_of_list L) d)) + ((#0.7573 * (azim_list (g,fan) d)) - #1.433)) - #0.0) >= #0.0) (list_of_darts L)`;
+
+  "ineq121", `ALL (\d.
+        (((tau_list (g,fan) (face (hypermap_of_list L) d)) + ((#0.972 * (azim_list (g,fan) d)) - #1.707)) - #0.0) >= #0.0) (list_of_darts L)`;
+
+  "ineq122", `ALL (\d.
+        (((tau_list (g,fan) (face (hypermap_of_list L) d)) + ((#4.72 * (azim_list (g,fan) d)) - #6.248)) - #0.0) >= #0.0) (list_of_darts L)`;
+];;
+
+
+(*****************************************)
+
+open Lp_approx_ineqs;;
+open Lp_ineqs_def;;
+
+let ineq_table = Array.init 6 (fun i -> Hashtbl.create 10);;
+let ineq_test_table = Array.init 6 (fun i -> Hashtbl.create 10);;
+
+
+let DECIMAL_INT = prove(`!n. DECIMAL n 1 = &n`, REWRITE_TAC[DECIMAL; REAL_DIV_1]);;
+
+
+let add_everything_to_table table =
+  let add_approximations_to_table = fun name ineq ->
+    let approxs', neg_approxs' = generate_ineqs list_var_pos [3;4;5] (ASSUME ineq) in
+    let approxs = zip (3--5) approxs' in
+    let neg_approxs = if (neg_approxs' = []) then [] else zip (3--5) neg_approxs' in
+    let r0 = CONV_RULE (REWRITE_CONV[DECIMAL_INT]) in
+    let r = CONV_RULE (REWRITE_CONV[DECIMAL_INT] THENC DEPTH_CONV Arith_nat.NUMERAL_TO_NUM_CONV) in
+    let _ = map (fun (i, t) -> Hashtbl.add (ineq_test_table.(i)) name (r0 t);
+                               Hashtbl.add (ineq_table.(i)) name (r t)) approxs in
+    let _ = map (fun (i, t) -> Hashtbl.add (ineq_test_table.(i)) (name^"_neg") (r0 t);
+                               Hashtbl.add (ineq_table.(i)) (name^"_neg") (r t)) neg_approxs in
+      () in
+
+    Hashtbl.iter (fun name ineq -> add_approximations_to_table name ineq) table;;
+
+
+let find_ineq precision name = Hashtbl.find ineq_table.(precision) name;;
+let find_test_ineq precision name = Hashtbl.find ineq_test_table.(precision) name;;
+
+
+(* Generate and add inequalities for constraints *)
+add_everything_to_table constraints;;
+

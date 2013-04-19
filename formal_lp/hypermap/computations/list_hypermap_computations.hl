@@ -178,6 +178,50 @@ let eval_mem_num_pair = eval_mem_univ pair_eq_conv_num;;
 let mem_num_pair_conv = mem_conv_univ pair_eq_conv_num;;
 
 
+(*************************************)
+(* list_sum conversions *)
+
+let LIST_SUM_A_EMPTY = prove(`list_sum [] (f:A->real) = &0`, REWRITE_TAC[Seq2.list_sum_nil]) and
+    LIST_SUM_A_H = prove(`list_sum [h:A] f = f h`, REWRITE_TAC[Seq2.list_sum_cons; Seq2.list_sum_nil; REAL_ADD_RID]) and
+    LIST_SUM_A_CONS = prove(`list_sum (CONS (h:A) t) f = f h + list_sum t f`, REWRITE_TAC[Seq2.list_sum_cons]);;
+
+
+let list_sum_conv f_conv tm =
+  let ltm, f_tm = dest_comb tm in
+  let list_tm = rand ltm in
+  let list_ty = type_of list_tm in
+  let f_ty = type_of f_tm in
+  let ty = (hd o snd o dest_type) list_ty in
+  let f_var = mk_var("f", f_ty) and
+      h_var = mk_var("h", ty) and
+      t_var = mk_var("t", list_ty) in
+  let inst_t = INST[f_tm, f_var] o INST_TYPE[ty, aty] in
+  let list_sum_h = inst_t LIST_SUM_A_H and
+      list_sum_cons = inst_t LIST_SUM_A_CONS in
+
+  let rec list_sum_conv_raw = fun h_tm t_tm ->
+    if (is_comb t_tm) then
+      let h_tm', t_tm' = dest_comb t_tm in
+      let th0 = INST[h_tm, h_var; t_tm, t_var] list_sum_cons in
+      let ltm, rtm = dest_comb(rand(concl th0)) in
+      let plus_op, fh_tm = dest_comb ltm in
+      let f_th = f_conv fh_tm in
+      let th1 = list_sum_conv_raw (rand h_tm') t_tm' in
+      let th2 = MK_COMB(AP_TERM plus_op f_th, th1) in
+	TRANS th0 th2
+    else
+      let th0 = INST[h_tm, h_var] list_sum_h in
+      let f_th = f_conv (rand(concl th0)) in
+	TRANS th0 f_th in
+
+    if (is_comb list_tm) then
+      let h_tm, t_tm = dest_comb list_tm in
+	list_sum_conv_raw (rand h_tm) t_tm
+    else
+      inst_t LIST_SUM_A_EMPTY;;
+
+
+
 (*********************************)
 (* list_pairs_conv *)
 let RULE tm = prove(tm, REWRITE_TAC[list_pairs2]);;
@@ -244,6 +288,17 @@ let eval_list_of_faces =
       let rtm = (rand o concl) th0 in
       let th1 = map_conv_univ list_pairs_conv rtm in
 	TRANS th0 th1;;
+
+
+let eval_faces_of_list0 =
+  let th0 = ISPEC l_cap_var faces_of_list in
+  let op_tm = `MAP set_of_list : ((num#num)list)list->(num#num->bool)list` in
+    fun list_tm faces_th ->
+      let th1 = INST[list_tm, l_cap_var] th0 in
+      let th2 = AP_TERM op_tm faces_th in
+      let th3 = map_conv_univ set_of_list_conv ((rand o concl) th2) in
+	TRANS th1 (TRANS th2 th3);;
+
 
 (*
 let y = mk_comb (list_of_darts_const, test_list);;
@@ -488,6 +543,17 @@ let eval_list_of_nodes0 =
 	TRANS th1 map_th;;
 
 
+let eval_nodes_of_list0 =
+  let th0 = ISPEC l_cap_var nodes_of_list in
+  let op_tm = `MAP set_of_list : ((num#num)list)list->(num#num->bool)list` in
+    fun list_tm nodes_th ->
+      let th1 = INST[list_tm, l_cap_var] th0 in
+      let th2 = AP_TERM op_tm nodes_th in
+      let th3 = map_conv_univ set_of_list_conv ((rand o concl) th2) in
+	TRANS th1 (TRANS th2 th3);;
+
+
+
 let eval_list_of_nodes tm =
   eval_list_of_nodes0 tm (eval_list_of_darts tm) (eval_list_of_elements tm);;
 
@@ -656,6 +722,8 @@ let compute_all hyp_list =
   let darts_th = eval_list_of_darts0 hyp_list faces_th in
   let good_th = eval_good_list0 hyp_list darts_th in
   let nodes_th = eval_list_of_nodes0 hyp_list darts_th elements_th in
+  let set_faces_th = eval_faces_of_list0 hyp_list faces_th in
+  let set_nodes_th = eval_nodes_of_list0 hyp_list nodes_th in
     
   let table_of_nodes = build_table_of_nodes hyp_list nodes_th and
       table_of_faces = build_table_of_faces hyp_list good_th faces_th and
@@ -667,14 +735,16 @@ let compute_all hyp_list =
     add "elements" elements_th;
     add "darts" darts_th;
     add "faces" faces_th;
-    add "nodes" nodes_th in
+    add "nodes" nodes_th;
+    add "set_faces" set_faces_th;
+    add "set_nodes" set_nodes_th in
     
   let add = fun str table -> Hashtbl.add fun_table str table in
   let _ =
     add "face" table_of_faces;
     add "node" table_of_nodes;
-    add "f" f_table;
-    add "inv_f" inv_f_table in
+    add "f_list_ext" f_table;
+    add "inverse" inv_f_table in
 
     thm_table, fun_table;;
 

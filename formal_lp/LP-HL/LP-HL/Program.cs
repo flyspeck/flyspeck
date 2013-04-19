@@ -261,6 +261,11 @@ namespace LP_HL
             lp.PrintCertificate(new StreamWriter(main), precision, hypermap, log);
             main.Close();
 
+            // Debug file with text inequalities
+            FileStream text = new FileStream(fname + "_text.hl", FileMode.Create);
+            lp.PrintAllText(new StreamWriter(text), precision, hypermap);
+            text.Close();
+
             return true;
         }
 

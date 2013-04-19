@@ -1,0 +1,493 @@
+(* Tests *)
+needs "../formal_lp/formal_interval/m_verifier.hl";;
+
+let reset_all () =
+  Arith_cache.reset_stat();
+  Arith_cache.reset_cache();
+  Arith_float.reset_stat();
+  Arith_float.reset_cache();;
+
+let dest_int int =
+  let f1, f2 = Informal_interval.dest_interval int in
+    Informal_float.dest_float f1, Informal_float.dest_float f2;;
+
+let dest_f = Informal_float.dest_float;;
+
+let dest_dom dom =
+  map dest_f dom.Informal_taylor.lo,
+  map dest_f dom.Informal_taylor.hi,
+  map dest_f dom.Informal_taylor.y,
+  map dest_f dom.Informal_taylor.w;;
+
+let dest_ti ti =
+  dest_int ti.Informal_taylor.f, 
+  map dest_int ti.Informal_taylor.df, 
+  map (map dest_int) ti.Informal_taylor.ddf;;
+
+
+needs "../formal_lp/formal_interval/m_examples_poly.hl";;
+
+
+
+(***)
+(* delta_y *)
+let delta_y_poly =
+  let tm = (rand o concl o SPEC_ALL o REWRITE_RULE[Sphere.delta_x]) Sphere.delta_y in
+    expr_to_vector_fun tm;;
+
+
+let pp = 10;;
+let pp0 = 4;;
+let n = 6;;
+let xx = `[&2;&2;&2;&2;&2;&2]` and
+    zz = `[#2.52;#2.52;#2.52;#2.52;#2.52;#2.52]`;;
+
+let xx1 = convert_to_float_list pp0 true xx and
+    zz1 = convert_to_float_list pp0 false zz;;
+let xx2 = Informal_taylor.convert_to_float_list pp0 true xx and
+    zz2 = Informal_taylor.convert_to_float_list pp0 false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_delta_y, tf_delta_y, ti_delta_y = mk_verification_functions pp delta_y_poly true `#127.999`;;
+let certificate = run_test tf_delta_y xx_float zz_float false 0.0 true true true true 0.0;;
+let c1 = transform_result xx_float zz_float certificate;;
+
+
+(* 10: 362; 165 (find_and_replace_all); 300: 75 *)
+(* 10 (cached, float_cached): 33.778 *)
+reset_all();;
+test 1 (m_verify_list n pp eval_delta_y c1 xx1) zz1;;
+
+let p_min = 1 and
+    p_max = pp and
+    p_split = pp;;
+
+let cp1 = Informal_verifier.m_verify_list p_split p_min p_max ti_delta_y c1 xx2 zz2;;
+
+(* 10: 26.950 *)
+reset_all();;
+test 1 (m_p_verify_list n pp eval_delta_y cp1 xx1) zz1;;
+
+
+
+
+(************************)
+let poly1 = `x2 + x3 + x5 + x6 - #7.99 - #0.00385 * delta_y x1 x2 x3 x4 x5 x6 - 
+  #2.75 * ((x1 + x4) * #0.5 - sqrt (&8))`;;
+let poly_ineq = (expr_to_vector_fun o rand o concl o 
+		   REWRITE_CONV[Sphere.delta_y; Sphere.delta_x]) poly1;;
+let pp = 10;;
+let pp0 = 5;;
+
+let n = 6;;
+let xx = `[sqrt (&8); &2; &2; sqrt (&8); &2; &2]` and
+    zz = `[&3; #2.07; #2.07; &4 * #1.26; #2.07; #2.07]`;;
+
+let xx1 = convert_to_float_list pp0 true xx and
+    zz1 = convert_to_float_list pp0 false zz;;
+let xx2 = Informal_taylor.convert_to_float_list pp0 true xx and
+    zz2 = Informal_taylor.convert_to_float_list pp0 false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_ineq, tf_ineq, ti_ineq = mk_verification_functions pp poly_ineq true `&0`;;
+let certificate = run_test tf_ineq xx_float zz_float false 0.0 true true true true 0.0;;
+let c1 = transform_result xx_float zz_float certificate;;
+
+let p_split = pp and
+    p_min = 1 and
+    p_max = pp;;
+let cp1 = Informal_verifier.m_verify_list p_split p_min p_max ti_ineq c1 xx2 zz2;;
+
+
+(* 10: 14.665 *)
+reset_all();;
+test 1 (m_verify_list n pp eval_ineq c1 xx1) zz1;;
+(* 10: 4.788 *)
+test 1 (m_verify_list n pp eval_ineq c1 xx1) zz1;;
+
+
+(* 10: 12.465 *)
+reset_all();;
+test 1 (m_p_verify_list n p_split eval_ineq cp1 xx1) zz1;;
+(* 10: 4.520 *)
+test 1 (m_p_verify_list n p_split eval_ineq cp1 xx1) zz1;;
+
+
+
+
+(*******************************)
+
+let get_m_cell_domain =
+  let domain_hash = Hashtbl.create 20 in
+  let mem, find, add = Hashtbl.mem domain_hash, 
+    Hashtbl.find domain_hash, Hashtbl.add domain_hash in
+    fun n pp domain0 path ->
+      let rec get_rec domain_th path hash =
+	match path with
+	  | [] -> domain_th
+	  | (s, j) :: ps ->
+	      let hash' = hash^s^(string_of_int j) in
+		if mem hash' then 
+		  get_rec (find hash') ps hash'
+		else
+		  if s = "l" or s = "r" then
+		    let domain1_th, domain2_th = split_domain n pp j domain_th in
+		    let hash1 = hash^"l"^(string_of_int j) and
+			hash2 = hash^"r"^(string_of_int j) in
+		    let _ = add hash1 domain1_th; add hash2 domain2_th in
+		      if s = "l" then
+			get_rec domain1_th ps hash'
+		      else
+			get_rec domain2_th ps hash'
+		  else
+		    let l_flag = (s = "ml") in
+		    let domain_th', _ = restrict_domain n j l_flag domain_th in
+		    let _ = add hash' domain_th' in
+		      get_rec domain_th' ps hash' in
+	get_rec domain0 path "";;
+
+
+let m_p_verify_list0 n p_split fs certificate_list xx zz th_refs =
+  let domain_th0 = mk_m_center_domain n p_split xx zz in
+  let size = length certificate_list in
+  let k = ref 0 in
+  let rec rec_verify certificate_list th_list =
+    match certificate_list with
+      | [] -> th_list
+      | (path, certificate) :: cs ->
+	  let _ = k := !k + 1; report (sprintf "List: %d/%d" !k size) in
+	  let domain_th = get_m_cell_domain n p_split domain_th0 path in
+	  let th = m_p_verify_raw n p_split fs certificate domain_th th_list in
+	    rec_verify cs (th_list @ [th]) in
+    rec_verify certificate_list th_refs;;
+
+
+let i_get_m_cell_domain =
+  let domain_hash = Hashtbl.create 20 in
+  let mem, find, add = Hashtbl.mem domain_hash, 
+    Hashtbl.find domain_hash, Hashtbl.add domain_hash in
+    fun pp domain0 path ->
+      let rec get_rec domain_th path hash =
+	match path with
+	  | [] -> domain_th
+	  | (s, j) :: ps ->
+	      let hash' = hash^s^(string_of_int j) in
+		if mem hash' then 
+		  get_rec (find hash') ps hash'
+		else
+		  if s = "l" or s = "r" then
+		    let domain1_th, domain2_th = Informal_verifier.split_domain pp j domain_th in
+		    let hash1 = hash^"l"^(string_of_int j) and
+			hash2 = hash^"r"^(string_of_int j) in
+		    let _ = add hash1 domain1_th; add hash2 domain2_th in
+		      if s = "l" then
+			get_rec domain1_th ps hash'
+		      else
+			get_rec domain2_th ps hash'
+		  else
+		    let l_flag = (s = "ml") in
+		    let domain_th' = Informal_verifier.restrict_domain j l_flag domain_th in
+		    let _ = add hash' domain_th' in
+		      get_rec domain_th' ps hash' in
+	get_rec domain0 path "";;
+
+
+let i_m_verify_list p_split p_min p_max fs certificate_list xx zz =
+  let domain0 = Informal_taylor.mk_m_center_domain p_split xx zz in
+  let size = length certificate_list in
+  let k = ref 0 in
+  let rec rec_verify certificate_list dom_list tree_list =
+    match certificate_list with
+      | [] -> rev tree_list, dom_list
+      | (path, certificate) :: cs ->
+	  let _ = k := !k + 1; report (sprintf "List: %d/%d" !k size) in
+	  let domain = i_get_m_cell_domain p_split domain0 path in
+	  let tree = Informal_verifier.m_verify_raw p_split p_min p_max fs certificate domain dom_list in
+	    rec_verify cs (dom_list @ [domain]) ((path, tree) :: tree_list) in
+    rec_verify certificate_list [] [];;
+
+
+(***********************)
+
+
+let l1, l2 = chop_list 26 cp1;;
+let ths1 = m_p_verify_list0 n p_split eval_ineq l1 xx1 zz1 [];;
+let path2, c2 = hd l2;;
+let dom2_th = get_m_cell_domain n p_split (mk_m_center_domain n p_split xx1 zz1) path2;;
+let dom2 = i_get_m_cell_domain p_split (Informal_taylor.mk_m_center_domain p_split xx2 zz2) path2;;
+dest_dom dom2;;
+
+
+m_p_verify_raw n p_split eval_ineq c2 dom2_th ths1;;
+c2;;
+
+let d1_th, d2_th = split_domain n p_split (3 + 1) dom2_th;;
+let d1, d2 = Informal_verifier.split_domain p_split (3 + 1) dom2;;
+
+let t2_th = eval_ineq.taylor 4 4 d2_th;;
+eval_m_taylor_upper_partial n 4 4 t2_th;;
+
+let t2 = ti_ineq.Informal_verifier.taylor 4 d2;;
+dest_f (Informal_taylor.eval_m_taylor_upper_partial 4 4 t2);;
+
+let f0, df0, ddf0 = dest_ti t2;;
+let _, _, _, _, f1, df1, ddf1 = dest_m_taylor (concl t2_th);;
+
+df1;;
+df0;;
+(* partial 4, upper bound: -67 * 10^-2, (true, 671, 47) *)
+
+let x_tm, body_tm = dest_abs poly_ineq;;
+let new_f = mk_abs (x_tm, mk_binop sub_op_real `&0` body_tm);;
+let partial4 = gen_partial_poly 4 new_f;;
+
+let g1 = mk_eval_function_eq pp partial4;;
+let g0 = Informal_taylor.mk_eval_function pp (rand (concl partial4));;
+
+let _, y1, _ = dest_m_cell_domain (concl d2_th);;
+let y0 = d2.Informal_taylor.y;;
+
+g1 2 y1 y1;;
+dest_int (g0 2 y0 y0);;
+
+float_interval_pow_simple 2 4 (mk_const_interval (mk_float 29 49));;
+let ff = Informal_float.mk_float (Int 29) 49;;
+dest_int (Informal_interval.pow_interval 2 4 (Informal_interval.mk_interval (ff, ff)));;
+
+let g_test = `\x:real^2. (-- &77 / &10000) * x$2 * x$1 pow 4`;;
+let pp = 10;;
+let g1 = mk_eval_function_eq pp (REFL g_test);;
+let g0 = Informal_taylor.mk_eval_function pp g_test;;
+
+let yy = `[#2.9; &3]`;;
+let y1' = mk_vector (convert_to_float_list pp true yy);;
+let y0' = Informal_taylor.convert_to_float_list pp true yy;;
+
+g1 2 y1' y1';;
+dest_int (g0 2 y0' y0');;
+
+partial4;;
+
+
+(***)
+
+List.nth ddf0 5;;
+List.nth (dest_list ddf1) 5;;
+
+
+
+
+d2_th;;
+dest_dom d2;;
+
+
+m_p_verify_list0 n p_split eval_ineq l2 xx1 zz1 ths1;;
+
+List.nth cp1 26;;
+
+
+
+
+
+
+
+
+
+let x = 2;;
+
+
+
+
+(***)
+(* schwefel *)
+let pp = 12;;
+let n = 3;;
+let xx = `[-- &10; -- &10; -- &10]` and
+    zz = `[&10; &10; &10]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx2 = Informal_taylor.convert_to_float_list pp true xx and
+    zz2 = Informal_taylor.convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_schwefel, tf_schwefel, i_schwefel = mk_verification_functions pp schwefel_poly true schwefel_min;;
+let c00 = run_test tf_schwefel xx_float zz_float false 0.0 true true false false 0.0;;
+let c0 = run_test tf_schwefel xx_float zz_float false 0.0 true true false true 0.0;;
+result_stat c0;;
+let c1' = run_test tf_schwefel xx_float zz_float false 0.0 true true true true 0.0;;
+let c1 = transform_result xx_float zz_float c1';;
+
+let p_split = pp and
+    p_min = 1 and p_max = pp;;
+
+reset_all();;
+let cp0 = Informal_verifier.m_verify_raw0 p_split p_min p_max i_schwefel c0 xx2 zz2;;
+
+(* 10: 27.006 *)
+reset_all();;
+test 1 (m_verify_raw0 n pp eval_schwefel c0 xx1) zz1;;
+
+(* 10: 24.642 *)
+reset_all();;
+test 1 (m_p_verify_raw0 n p_split eval_schwefel cp0 xx1) zz1;;
+
+
+(* 10: 136.257 *)
+reset_all();;
+test 1 (m_verify_raw0 n pp eval_schwefel c00 xx1) zz1;;
+
+let cp00 = Informal_verifier.m_verify_raw0 p_split p_min p_max i_schwefel c00 xx2 zz2;;
+
+(* 10: 126.400 *)
+reset_all();;
+test 1 (m_p_verify_raw0 n p_split eval_schwefel cp00 xx1) zz1;;
+
+(* 10: 23.297 *)
+reset_all();;
+test 1 (m_verify_list n pp eval_schwefel c1 xx1) zz1;;
+
+let cp1 = Informal_verifier.m_verify_list p_split p_min p_max i_schwefel c1 xx2 zz2;;
+
+(* 10: 21.205 *)
+reset_all();;
+test 1 (m_p_verify_list n p_split eval_schwefel cp1 xx1) zz1;;
+
+
+(***)
+(* rd *)
+
+let pp = 12;;
+let n = 3;;
+let xx = `[-- &5; -- &5; -- &5]` and
+    zz = `[&5; &5; &5]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx2 = Informal_taylor.convert_to_float_list pp true xx and
+    zz2 = Informal_taylor.convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_rd, tf_rd, i_rd = mk_verification_functions pp rd_poly true rd_min;;
+let certificate = run_test tf_rd xx_float zz_float false 0.0 true true true false 0.0;;
+(* 1 *)
+result_size certificate;;
+m_verify_raw0 n pp eval_rd certificate xx1 zz1;;
+
+let p_split = pp and
+    p_min = 1 and
+    p_max = pp;;
+
+Informal_verifier.m_verify_raw0 p_split p_min p_max i_rd certificate xx2 zz2;;
+
+
+(***)
+(* caprasse *)
+
+let pp = 8;;
+let n = 4;;
+let xx = `[-- #0.5; -- #0.5; -- #0.5; -- #0.5]` and
+    zz = `[#0.5; #0.5; #0.5; #0.5]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx2 = Informal_taylor.convert_to_float_list pp true xx and
+    zz2 = Informal_taylor.convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_caprasse, tf_caprasse, ti_caprasse = mk_verification_functions pp caprasse_poly true caprasse_min;;
+let c0 = run_test tf_caprasse xx_float zz_float false 0.0 true true false true 0.0;;
+let certificate = run_test tf_caprasse xx_float zz_float false 0.0 true true true true 0.0;;
+let c1 = transform_result xx_float zz_float certificate;;
+
+(* 10: 1.668 *)
+reset_all();;
+test 1 (m_verify_list n pp eval_caprasse c1 xx1) zz1;;
+
+let p_split = pp and
+    p_min = 1 and
+    p_max = pp;;
+
+let cp1 = Informal_verifier.m_verify_list p_split p_min p_max ti_caprasse c1 xx2 zz2;;
+
+(* 10: 1.552 *)
+reset_all();;
+test 1 (m_p_verify_list n p_split eval_caprasse cp1 xx1) zz1;;
+
+
+(***)
+(* magnetism *)
+
+let pp = 8;;
+let n = 7;;
+let xx = `[-- &1; -- &1; -- &1; -- &1; -- &1; -- &1; -- &1]` and
+    zz = `[&1; &1; &1; &1; &1; &1; &1]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx2 = Informal_taylor.convert_to_float_list pp true xx and
+    zz2 = Informal_taylor.convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_magnetism, tf_magnetism, ti_magnetism = 
+  mk_verification_functions pp magnetism_poly true magnetism_min;;
+let certificate = run_test tf_magnetism xx_float zz_float false 0.0 true true true true 0.0;;
+result_stat certificate;;
+
+let c1 = transform_result xx_float zz_float certificate;;
+
+(* 10: 1.34 *)
+reset_all();;
+test 1 (m_verify_list n pp eval_magnetism c1 xx1) zz1;;
+
+let p_split = pp and
+    p_min = 1 and
+    p_max = pp;;
+
+let cp1 = Informal_verifier.m_verify_list p_split p_min p_max ti_magnetism c1 xx2 zz2;;
+
+(* 10: 1.372 *)
+reset_all();;
+test 1 (m_p_verify_list n p_split eval_magnetism cp1 xx1) zz1;;
+
+
+(***)
+(* heart *)
+
+let pp = 10;;
+let pp0 = 6;;
+let n = 8;;
+let xx = `[-- #0.1; #0.4; -- #0.7; -- #0.7; #0.1; -- #0.1; -- #0.3; -- #1.1]` and
+    zz = `[#0.4; &1; -- #0.4; #0.4; #0.2; #0.2; #1.1; -- #0.3]`;;
+
+let xx1 = convert_to_float_list pp0 true xx and
+    zz1 = convert_to_float_list pp0 false zz;;
+let xx2 = Informal_taylor.convert_to_float_list pp0 true xx and
+    zz2 = Informal_taylor.convert_to_float_list pp0 false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let eval_heart, tf_heart, ti_heart = mk_verification_functions pp heart_poly true heart_min;;
+let certificate = run_test tf_heart xx_float zz_float false 0.0 true true true true 1e-10;;
+let c1 = transform_result xx_float zz_float certificate;;
+
+let p_split = pp and
+    p_min = 1 and
+    p_max = 10;;
+
+let cp1 = Informal_verifier.m_verify_list p_split p_min p_max ti_heart c1 xx2 zz2;;
+
+(* 10: 1.528 *)
+reset_all();;
+test 1 (m_verify_list n pp eval_heart c1 xx1) zz1;;
+
+(* 10: 1.496 *)
+reset_all();;
+test 1 (m_p_verify_list n p_split eval_heart cp1 xx1) zz1;;
+

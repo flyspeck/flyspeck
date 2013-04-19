@@ -109,6 +109,17 @@ namespace LP_HL
         {
             IndexedInequality newIneq = new IndexedInequality(ineq, marginal, hypermap);
             string name = ineq.Id.name;
+
+            // Ad hoc treatment of sums over faces
+            if (name == "sol_sum" || name == "tau_sum")
+            {
+                DartList face = hypermap.Manager.TranslateIneq(hypermap, ineq.Id) as DartList;
+                if (face == null)
+                    throw new Exception("A face is expected for the constraint " + name);
+
+                name += face.list.Count.ToString();
+            }
+
             if (ineq.type == Inequality.IneqType.Eq && ineq.NegFlag)
                 name += "_neg";
 
@@ -168,8 +179,8 @@ namespace LP_HL
                 mul *= 10;
 
             // Head
-            writer.WriteLine("needs \"nobranching_lp.hl\";;\n");
-            writer.WriteLine("module Test_case = struct");
+//            writer.WriteLine("needs \"nobranching_lp.hl\";;\n");
+//            writer.WriteLine("module Test_case = struct");
 
             // Parameters
             writer.WriteLine("let hypermap_string = \"" + hypermap.rawString + "\";;");
@@ -263,10 +274,10 @@ namespace LP_HL
             writer.WriteLine("];;");
 
             // Tail
-            writer.WriteLine("let result = prove_hypermap_lp hypermap_string precision constraints target_variables variable_bounds;;");
-            writer.WriteLine("end;;");
-            writer.WriteLine();
-            writer.WriteLine("concl (Test_case.result)");
+//            writer.WriteLine("let result = prove_hypermap_lp hypermap_string precision constraints target_variables variable_bounds;;");
+//            writer.WriteLine("end;;");
+//            writer.WriteLine();
+//            writer.WriteLine("concl (Test_case.result)");
 
             writer.Flush();
 

@@ -1,0 +1,134 @@
+(* Tests *)
+needs "../formal_lp/formal_interval/m_verifier.hl";;
+
+let reset_all () =
+  Arith_cache.reset_stat();
+  Arith_cache.reset_cache();
+  Arith_float.reset_stat();
+  Arith_float.reset_cache();;
+
+let dest_int int =
+  let f1, f2 = Informal_interval.dest_interval int in
+    Informal_float.dest_float f1, Informal_float.dest_float f2;;
+
+let dest_f = Informal_float.dest_float;;
+
+let dest_dom dom =
+  map dest_f dom.Informal_taylor.lo,
+  map dest_f dom.Informal_taylor.hi,
+  map dest_f dom.Informal_taylor.y,
+  map dest_f dom.Informal_taylor.w;;
+
+let dest_ti ti =
+  dest_int ti.Informal_taylor.f, 
+  map dest_int ti.Informal_taylor.df, 
+  map (map dest_int) ti.Informal_taylor.ddf;;
+
+
+(***)
+let beale = expr_to_vector_fun `(#1.5 - x1 + x1 * x2) pow 2 + (#2.25 - x1 + x1 * x2 pow 2) pow 2 + (#2.625 - x1 + x1 * x2 pow 3) pow 2` and
+    beale_dom = `[-- &10; -- &10], [&10; &10]` and
+    beale_min = `-- (#0.1 pow 6)`;;
+
+let camelback = expr_to_vector_fun `&12 * x1 pow 2 - #6.3 * x1 pow 4 + x1 pow 6 + &3 * x1 * x2 - &12 * x2 pow 2 + &12 * x2 pow 4` and
+    camelback_dom = `[-- &5; -- &5], [&5; &5]` and
+    camelback_min = `-- #3.0949288079362787`;;
+
+let goldstein_price = expr_to_vector_fun 
+  `(&1 + (x1 + x2 + &1) pow 2 * 
+      (&19 - &14 * x1 + &13 * x1 pow 2 - &14 * x2 + &6 * x1 * x2 + &3 * x2 pow 2)) * 
+  (&30 + (&2 * x1 - &3 * x2) pow 2 * 
+     (&18 - &32 * x1 + &12 * x1 pow 2 + &48 * x2 - &36 * x1 * x2 + &27 * x2 pow 2))` and
+    goldstein_price_dom = `[-- &2; -- &2], [&2; &2]` and
+    goldstein_price_min = `#2.999948501586914`;;
+
+(**********************)
+
+let mk_doms pp dom_tm =
+  let xx, zz = dest_pair dom_tm in
+  let xx1, zz1 = convert_to_float_list pp true xx, convert_to_float_list pp false zz in
+  let xx2, zz2 = 
+    let conv = Informal_taylor.convert_to_float_list pp in
+      conv true xx, conv false zz in
+  let xf, zf =
+    let conv = map float_of_float_tm o dest_list in
+      conv xx1, conv zz1 in
+    (xx1, zz1), (xx2, zz2), (xf, zf);;
+
+
+let p_split = 8 and
+    p_min = 1 and
+    p_max = 10;;
+
+(****************)
+
+let n = 2;;
+let ineq_tm, dom_tm, min_tm = beale, beale_dom, beale_min;;
+let (xx1, zz1), (xx2, zz2), (xx_float, zz_float) = mk_doms p_split dom_tm;;
+
+let eval_ineq, tf_ineq, ti_ineq = mk_verification_functions p_split ineq_tm true min_tm;;
+let certificate = run_test tf_ineq xx_float zz_float false 0.0 true true true true 0.0;;
+(* pass = 4585 (raw = 4500); pass_min = 59 *)
+result_stat certificate;;
+let c1 = transform_result xx_float zz_float certificate;;
+
+let cp1 = Informal_verifier.m_verify_list p_split p_min p_max ti_ineq c1 xx2 zz2;;
+map (result_p_stat false o snd) cp1;;
+
+(* 100 (cached): 67.984 *)
+reset_all();;
+test 1 (m_p_verify_list n p_split eval_ineq cp1 xx1) zz1;;
+
+
+(****************)
+
+let n = 2;;
+let ineq_tm, dom_tm, min_tm = camelback, camelback_dom, camelback_min;;
+let (xx1, zz1), (xx2, zz2), (xx_float, zz_float) = mk_doms p_split dom_tm;;
+
+let eval_ineq, tf_ineq, ti_ineq = mk_verification_functions p_split ineq_tm true min_tm;;
+let certificate = run_test tf_ineq xx_float zz_float false 0.0 true true true true 0.0;;
+let c0 = run_test tf_ineq xx_float zz_float false 0.0 true true false true 0.0;;
+(* pass = 78 (raw = 4); pass_min = 90 *)
+result_stat certificate;;
+(* pass = 272 (raw = 68); mono = 118 *)
+result_stat c0;;
+let c1 = transform_result xx_float zz_float certificate;;
+
+let cp1 = Informal_verifier.m_verify_list p_split p_min p_max ti_ineq c1 xx2 zz2;;
+let cp0 = Informal_verifier.m_verify_raw0 p_split p_min p_max ti_ineq c0 xx2 zz2;;
+(* 100 - 4: 34; 3: 74; 2: 234; 1: 48 *)
+result_p_stat false cp0;;
+
+(* 100 (cached): 3.68 *)
+reset_all();;
+test 1 (m_p_verify_list n p_split eval_ineq cp1 xx1) zz1;;
+(* 100: 2.268 *)
+test 1 (m_p_verify_list n p_split eval_ineq cp1 xx1) zz1;;
+
+(* 100 (cached): 6.208 *)
+reset_all();;
+test 1 (m_p_verify_raw0 n p_split eval_ineq cp0 xx1) zz1;;
+(* 100: 3.676 *)
+test 1 (m_p_verify_raw0 n p_split eval_ineq cp0 xx1) zz1;;
+
+(************)
+
+let n = 2;;
+let ineq_tm, dom_tm, min_tm = goldstein_price, goldstein_price_dom, goldstein_price_min;;
+let (xx1, zz1), (xx2, zz2), (xx_float, zz_float) = mk_doms p_split dom_tm;;
+
+let eval_ineq, tf_ineq, ti_ineq = mk_verification_functions p_split ineq_tm true min_tm;;
+let certificate = run_test tf_ineq xx_float zz_float false 0.0 true true true true 0.0;;
+(* pass = 2153 (raw = 333); pass_min = 29 *)
+result_stat certificate;;
+let c1 = transform_result xx_float zz_float certificate;;
+
+let cp1 = Informal_verifier.m_verify_list p_split p_min p_max ti_ineq c1 xx2 zz2;;
+(* map (result_p_stat false o snd) cp1;; *)
+
+(* 100 (cached): 428.127 *)
+reset_all();;
+test 1 (m_p_verify_list n p_split eval_ineq cp1 xx1) zz1;;
+
+

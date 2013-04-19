@@ -1,0 +1,183 @@
+let pp = 10 and
+    n = 8 and
+    xx = `[-- #0.1; #0.4; -- #0.7; -- #0.7; #0.1; -- #0.1; -- #0.3; -- #1.1]` and
+    zz = `[#0.4; &1; -- #0.4; #0.4; #0.2; #0.2; #1.1; -- #0.3]`;;
+
+let xx1 = convert_to_float_list pp true xx and
+    zz1 = convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+(* let eval_heart, tf_heart = mk_verification_functions pp heart_poly true heart_min;; *)
+let certificate = run_test tf_heart xx_float zz_float false 0.0 true false;;
+result_size certificate;;
+m_verify_raw n pp eval_heart certificate xx1 zz1;;
+m_verify_raw_old n pp eval_heart certificate xx1 zz1;;
+
+
+
+
+let m_verify_raw n pp eval_taylor certificate xx zz =
+  let r_size = result_size certificate in
+  let k = ref 0 in
+  let domain_th = mk_m_center_domain n pp xx zz in
+
+
+  let rec rec_verify =
+    let rec apply_trans sub_ths th0 acc =
+      match sub_ths with
+	| [] -> rev acc
+	| th :: ths -> 
+	    let th' = eval_subset_trans th th0 in
+	      apply_trans ths th' (th' :: acc) in
+
+    let rec mk_domains mono th0 acc =
+      match mono with
+	| [] -> rev acc
+	| j :: js ->
+	    let j, flag = if j < 0 then (-j), true else j, false in
+	    let ths = restrict_domain n j flag th0 in
+	      mk_domains js (fst ths) (ths :: acc) in
+
+
+    let verify_mono mono domain_th certificate =
+      let taylor_th = eval_taylor domain_th in
+      let _, diff2_th, _, _ = dest_m_taylor_thms n taylor_th in
+      let domain_ths = mk_domains mono domain_th [] in
+
+      let mono_ths = map (fun j -> if j < 0 then
+			    eval_m_taylor_upper_partial n pp (-j) taylor_th else
+			      eval_m_taylor_lower_partial n pp j taylor_th) mono in
+      let _ = map (fun i ->
+		     let j = List.nth mono (i - 1) and
+			 th = List.nth mono_ths (i - 1) in
+		     let f = if j < 0 then rand else lhand in
+		       (string_of_term o f o rand o snd o dest_forall o concl) th) (1--(length mono)) in
+
+      let pass_th0 = rec_verify ((fst o last) domain_ths) certificate in
+      let sub_th0 = (eval_subset_refl o rand o concl o snd o hd) domain_ths in
+      let sub_ths = apply_trans (sub_th0 :: map snd (butlast domain_ths)) sub_th0 [] in
+      let th = rev_itlist (fun ((j, mono_th), sub_th) pass_th ->
+			     let j, flag = if j < 0 then (-j), true else j, false in
+			       m_mono_pass_gen n j flag diff2_th mono_th sub_th pass_th)
+	(rev (zip (zip mono mono_ths) sub_ths)) pass_th0 in
+	if hyp th <> [] then failwith ("hyp <> []: "^string_of_thm th) else th in
+		      
+	
+	
+
+      fun domain_th certificate ->
+	match certificate with
+	  | Result_pass (mono, xx, zz) -> 
+	      if mono = [] then
+		let _ = k := !k + 1 in
+		let _ = report (sprintf "Verifying: %d/%d" !k r_size) in
+		let taylor_th = eval_taylor domain_th in
+		  m_taylor_cell_pass n pp taylor_th  
+	      else
+		let _ = report (sprintf "Mono: [%s]" (String.concat ";" (map string_of_int (hd mono)))) in
+		  verify_mono (hd mono) domain_th (Result_pass (tl mono, xx, zz))
+		  
+	  | Result_glue (mono, i, r1, r2) ->
+	      let _ = report "Result_glue" in
+	      if mono = [] then
+		let domain1_th, domain2_th = split_domain n pp (i + 1) domain_th in
+		let th1 = rec_verify domain1_th r1 in
+		let th2 = rec_verify domain2_th r2 in
+		  m_glue_cells n (i + 1) th1 th2
+	      else
+		let _ = report (sprintf "GlueMono: [%s]" (String.concat ";" (map string_of_int (hd mono)))) in
+		  verify_mono (hd mono) domain_th (Result_glue (tl mono, i, r1, r2))
+		      
+	  | _ -> failwith "False result" in
+    
+    rec_verify domain_th certificate;;
+
+
+m_verify_raw_old n pp eval_heart certificate xx1 zz1;;
+m_verify_raw n pp eval_heart certificate xx1 zz1;;
+
+
+
+let rec test_computations tf x z certificate =
+  let rec mono_test mono ti x z =
+    match mono with
+      | [] -> x,z
+      | j :: js ->
+	  let bound = if j < 0 then upper_partial ti (-j - 1) else lower_partial ti (j - 1) in
+	  let setj u = 
+	    if j < 0 then
+	      table (fun i -> (if i=j then mth x j else mth u i))
+	    else
+	      table (fun i -> (if i=j then mth z j else mth u i)) in
+	    
+	  let _ = report (sprintf "j = %d, bound = %f" j bound) in
+	    mono_test js ti (setj x) (setj z) in
+	      
+
+  match certificate with
+    | Result_pass (mono, _, _) ->
+	let _ = report (sprintf "Pass: |mono| = %d" (length mono)) in
+	let ti = evalf tf x z in
+	let x,z = mono_test mono ti x z in
+
+	let ti = evalf tf x z in
+	let bound = upper_bound ti in
+	  report (sprintf "bound = %f" bound)
+    | Result_glue (mono, j, r1, r2) ->
+	let _ = report (sprintf "Glue: |mono| = %d" (length mono)) in
+	let ( ++ ), ( / ) = up(); upadd, updiv in
+	let yj = (mth x j ++ mth z j) / 2.0 in
+	let delta b v = table (fun i -> if (i = j && b) then yj else mth v i) in
+	let _ = test_computations tf (delta false x) (delta true z) r1 in
+	let _ = test_computations tf (delta true x) (delta false z) r2 in
+	  ();;
+
+
+test_computations tf_heart xx_float zz_float certificate;;
+
+
+
+(***)
+
+
+let rec apply_trans sub_ths th0 acc =
+  match sub_ths with
+    | [] -> rev acc
+    | th :: ths -> 
+	let th' = eval_subset_trans th th0 in
+	  apply_trans ths th' (th' :: acc);;
+
+let rec mk_domains mono th0 acc =
+  match mono with
+    | [] -> rev acc
+    | j :: js ->
+	let j, flag = if j < 0 then (-j), true else j, false in
+	let ths = restrict_domain n j flag th0 in
+	  mk_domains js (fst ths) (ths :: acc);;
+
+
+let mono = [-1;-2] and domain_th = mk_m_center_domain n pp xx1 zz1;;
+
+let verify_mono mono domain_th certificate = 0;;
+let taylor_th = eval_taylor domain_th;;
+let _, diff2_th, _, _ = dest_m_taylor_thms n taylor_th;;
+let domain_ths = mk_domains mono domain_th [];;
+
+let mono_ths = map (fun j -> if j < 0 then
+		      eval_m_taylor_upper_partial n pp (-j) taylor_th else
+			eval_m_taylor_lower_partial n pp j taylor_th) mono;;
+
+let domain0 = (fst o last) domain_ths;;
+let taylor0 = eval_taylor domain0;;
+let pass_th0 = m_taylor_cell_pass n pp taylor0;;
+
+let sub_th0 = (eval_subset_refl o rand o concl o snd o hd) domain_ths;;
+let sub_ths = apply_trans (sub_th0 :: map snd (butlast domain_ths)) sub_th0 [];;
+zip (zip mono mono_ths) sub_ths;;
+
+rev_itlist (fun ((j, mono_th), sub_th) pass_th ->
+	      let j, flag = if j < 0 then (-j), true else j, false in
+		m_mono_pass_gen n j flag diff2_th mono_th sub_th pass_th)
+  (rev (zip (zip mono mono_ths) sub_ths)) pass_th0;;
+		      

@@ -1,0 +1,313 @@
+needs "../formal_lp/formal_interval/m_taylor_arith.hl";;
+
+let reset_all () =
+  Arith_cache.reset_stat();
+  Arith_cache.reset_cache();
+  Arith_float.reset_stat();
+  Arith_float.reset_cache();;
+
+(*************)
+
+let pp = 4;;
+
+let poly1 = expr_to_vector_fun `x1 * x2 * x3 + x2 * (x4 + x5) pow 3`;;
+let n = (get_dim o fst o dest_abs) poly1;;
+let xx = `[-- &3; -- &3; -- &3; -- &3; -- &3]` and
+    zz = `[&2; &2; &2; &2; &2]`;;
+
+let xx1 = convert_to_float_list n true xx and
+    zz1 = convert_to_float_list n false zz;;
+
+let eval_poly, tf, ti = mk_verification_functions pp poly1 false `&0`;;
+let dom_th = mk_m_center_domain n pp xx1 zz1;;
+
+let th = eval_poly.taylor pp pp dom_th;;
+
+(* 100: 0.524 *)
+reset_all();;
+test 100 (eval_poly.taylor pp pp) dom_th;;
+(* 100: 0.512 *)
+test 100 (eval_poly.taylor pp pp) dom_th;;
+
+(************)
+
+(* 100: 4.120 *)
+reset_all();;
+test 100 (eval_m_taylor_add n pp pp th) th;;
+(* 100: 4.184 *)
+test 100 (eval_m_taylor_add n pp pp th) th;;
+
+
+(*****************)
+
+let p_lin = pp and p_second = pp and
+    taylor1_th = th and taylor2_th = th;;
+
+(****************)
+
+let domain_th, diff2_f1_th, lin1_th, second1_th = dest_m_taylor_thms n taylor1_th;;
+let _, diff2_f2_th, lin2_th, second2_th = dest_m_taylor_thms n taylor2_th;;
+let f1_tm = (rand o concl) diff2_f1_th and
+    f2_tm = (rand o concl) diff2_f2_th;;
+let domain_tm, y_tm, w_tm = dest_m_cell_domain (concl domain_th);;
+let ty = type_of y_tm;;
+
+let x_var = mk_var ("x", ty) and
+    y_var = mk_var ("y", ty) and
+    w_var = mk_var ("w", ty) and
+    f_var = mk_var ("f", type_of f1_tm) and
+    g_var = mk_var ("g", type_of f2_tm) and
+    domain_var = mk_var ("domain", type_of domain_tm);;
+
+let _, bounds1_th, df1_th = m_lin_approx_components n lin1_th and
+    _, bounds2_th, df2_th = m_lin_approx_components n lin2_th;;
+
+let bounds_th = float_interval_add p_lin bounds1_th bounds2_th;;
+let bounds_tm = (rand o concl) bounds_th;;
+
+let add_lemma0 = (INST[f1_tm, f_var; f2_tm, g_var; y_tm, x_var] o 
+		    INST_TYPE[n_type_array.(n), nty]) add_partial_lemma';;
+
+let add th1 th2 =
+  let add_th = float_interval_add p_lin th1 th2 in
+  let int_tm = rand (concl add_th) and
+      i_tm = (rand o rator o rator o lhand) (concl th1) in
+  let th0 = INST[i_tm, i_var_num; int_tm, int_var] add_lemma0 in
+    EQ_MP th0 add_th;;
+
+let df_th = eval_all_n2 df1_th df2_th true add;;
+let d_bounds_list = (rand o rator o concl) df_th;;
+
+
+let dd1 = second_bounded_components n second1_th;;
+let dd2 = second_bounded_components n second2_th;;
+
+let add_second_lemma0 = (INST[f1_tm, f_var; f2_tm, g_var] o 
+			   INST_TYPE[n_type_array.(n), nty]) add_second_lemma';;
+
+let add_second_lemma1 = (INST[f1_tm, f_var; f2_tm, g_var] o 
+			   INST_TYPE[n_type_array.(n), nty]) add_second_lemma'';;
+
+
+let add_second2 th1 th2 =
+  let i_tm = (rand o rator o concl) th1 in
+  let th1, th2 = BETA_RULE th1, BETA_RULE th2 in
+  let lemma = INST[i_tm, i_var_num] add_second_lemma0 in
+  let add_second th1 th2 =
+    let add_th = float_interval_add p_second th1 th2 in
+    let int_tm = rand (concl add_th) and
+	j_tm = (rand o rator o rator o rator o lhand) (concl th1) in
+    let th0 = INST[j_tm, j_var_num; int_tm, int_var] lemma in
+      EQ_MP th0 add_th in
+  let add_th = eval_all_n2 th1 th2 true add_second in
+  let list_tm = (rand o rator o concl) add_th in
+  let lemma1 = INST[i_tm, i_var_num; list_tm, list_var_real_pair] add_second_lemma1 in
+    EQ_MP lemma1 add_th;;
+
+
+let dd_th0 = eval_all_n2 dd1 dd2 false add_second2;;
+let dd_list = (rand o rator o concl) dd_th0;;
+let dd_th = GEN x_var (DISCH_ALL dd_th0);;
+
+let th = (MY_PROVE_HYP dd_th o MY_PROVE_HYP diff2_f1_th o MY_PROVE_HYP diff2_f2_th o 
+	    MY_PROVE_HYP bounds_th o MY_PROVE_HYP df_th o MY_PROVE_HYP domain_th o 
+	    INST[f1_tm, f_var; f2_tm, g_var; 
+		 domain_tm, domain_var; y_tm, y_var; w_tm, w_var;
+		 bounds_tm, bounds_var; d_bounds_list, d_bounds_list_var; 
+		 dd_list, dd_bounds_list_var] o
+	    INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_ADD';;
+let eq_th = binary_beta_gen_eq f1_tm f2_tm x_var add_op_real;;
+m_taylor_interval_norm th eq_th;;
+
+
+(********************)
+reset_all();;
+
+(* 0.028 *)
+test 100 (dest_m_taylor_thms n) taylor1_th;;
+(* 0.028 *)
+test 100 (dest_m_taylor_thms n) taylor2_th;;
+
+(* 0.000 *)
+let f () = 
+  let a =(rand o concl) diff2_f1_th and
+      b = (rand o concl) diff2_f2_th in
+    a, b;;
+test 100 f ();;
+
+
+(* 0.000 *)
+test 100 dest_m_cell_domain (concl domain_th);;
+(* 0.000 *)
+test 100 type_of y_tm;;
+
+(* 0.000 *)
+let f () =
+  let x_var = mk_var ("x", ty) and
+      y_var = mk_var ("y", ty) and
+      w_var = mk_var ("w", ty) and
+      f_var = mk_var ("f", type_of f1_tm) and
+      g_var = mk_var ("g", type_of f2_tm) and
+      domain_var = mk_var ("domain", type_of domain_tm) in
+    x_var, y_var, w_var, f_var, g_var, domain_var;;
+test 100 f ();;
+
+(* 0.052 *)
+let f () =
+  let _, bounds1_th, df1_th = m_lin_approx_components n lin1_th and
+      _, bounds2_th, df2_th = m_lin_approx_components n lin2_th in
+    bounds1_th, df1_th, bounds2_th, df2_th;;
+test 100 f ();;
+
+(* 0.012 *)
+test 100 (float_interval_add p_lin bounds1_th) bounds2_th;;
+(* 0.000 *)
+test 100 (rand o concl) bounds_th;;
+
+(* 0.008 *)
+test 100 (INST[f1_tm, f_var; f2_tm, g_var; y_tm, x_var] o 
+   INST_TYPE[n_type_array.(n), nty]) add_partial_lemma';;
+
+let add th1 th2 =
+  let add_th = float_interval_add p_lin th1 th2 in
+  let int_tm = rand (concl add_th) and
+      i_tm = (rand o rator o rator o lhand) (concl th1) in
+  let th0 = INST[i_tm, i_var_num; int_tm, int_var] add_lemma0 in
+    EQ_MP th0 add_th;;
+
+(* 0.688 *)
+test 100 (eval_all_n2 df1_th df2_th true) add;;
+(* 0.000 *)
+test 100 (rand o rator o concl) df_th;;
+
+(* 0.044 *)
+test 100 (second_bounded_components n) second1_th;;
+(* 0.040 *)
+test 100 (second_bounded_components n) second2_th;;
+
+(* 0.011 *)
+test 100 (INST[f1_tm, f_var; f2_tm, g_var] o 
+   INST_TYPE[n_type_array.(n), nty]) add_second_lemma';;
+
+(* 0.020 *)
+test 100 (INST[f1_tm, f_var; f2_tm, g_var] o 
+   INST_TYPE[n_type_array.(n), nty]) add_second_lemma'';;
+
+
+let add_second2 th1 th2 =
+  let i_tm = (rand o rator o concl) th1 in
+  let th1, th2 = BETA_RULE th1, BETA_RULE th2 in
+  let lemma = INST[i_tm, i_var_num] add_second_lemma0 in
+  let add_second th1 th2 =
+    let add_th = float_interval_add p_second th1 th2 in
+    let int_tm = rand (concl add_th) and
+	j_tm = (rand o rator o rator o rator o lhand) (concl th1) in
+    let th0 = INST[j_tm, j_var_num; int_tm, int_var] lemma in
+      EQ_MP th0 add_th in
+  let add_th = eval_all_n2 th1 th2 true add_second in
+  let list_tm = (rand o rator o concl) add_th in
+  let lemma1 = INST[i_tm, i_var_num; list_tm, list_var_real_pair] add_second_lemma1 in
+    EQ_MP lemma1 add_th;;
+
+
+(* 3.016 *)
+test 100 (eval_all_n2 dd1 dd2 false) add_second2;;
+(* 0.000 *)
+test 100 (rand o rator o concl) dd_th0;;
+(* 0.004 *)
+test 100 (GEN x_var o DISCH_ALL) dd_th0;;
+
+(* 0.096 *)
+test 100 (MY_PROVE_HYP dd_th o MY_PROVE_HYP diff2_f1_th o MY_PROVE_HYP diff2_f2_th o 
+	    MY_PROVE_HYP bounds_th o MY_PROVE_HYP df_th o MY_PROVE_HYP domain_th o 
+	    INST[f1_tm, f_var; f2_tm, g_var; 
+		 domain_tm, domain_var; y_tm, y_var; w_tm, w_var;
+		 bounds_tm, bounds_var; d_bounds_list, d_bounds_list_var; 
+		 dd_list, dd_bounds_list_var] o
+	    INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_ADD';;
+(* 0.000 *)
+test 100 (binary_beta_gen_eq f1_tm f2_tm x_var) add_op_real;;
+(* 0.004 *)
+test 100 (m_taylor_interval_norm th) eq_th;;
+
+
+(***********************)
+
+test 100 (eval_all_n2 df1_th df2_th true) add;;
+
+(* Constructs all_n n (map2 s list1 list2) *)
+let all_n1_th = df1_th and all_n2_th = df2_th and beta_flag = true and s = add;;
+
+(***)
+
+let ths1', suc_ths = all_n_components all_n1_th;;
+let ths2', _ = all_n_components all_n2_th;;
+let ths1, ths2 = 
+  if beta_flag then map BETA_RULE ths1', map BETA_RULE ths2' else ths1', ths2';;
+
+let ths1, ths2, suc_ths = List.rev ths1, List.rev ths2, List.rev suc_ths;;
+let ths = map2 s ths1 ths2;;
+build_all_n ths suc_ths;;
+
+
+(***)
+
+(* 0.040 *)
+test 100 all_n_components all_n1_th;;
+(* 0.052 *)
+test 100 all_n_components all_n2_th;;
+(* 0.244 *)
+test 100 (map BETA_RULE) ths1';;
+(* 0.240 *)
+test 100 (map BETA_RULE) ths2';;
+
+hd ths1';;
+BETA_RULE (hd ths1');;
+
+(* 0.000 *)
+let f () =
+  let ths1, ths2, suc_ths = List.rev ths1, List.rev ths2, List.rev suc_ths in
+    ths1, ths2, suc_ths;;
+test 100 f ();;
+
+(* 0.052 *)
+test 100 (map2 s ths1) ths2;;
+(* 0.056 *)
+test 100 (build_all_n ths) suc_ths;;
+
+
+(*************)
+
+let th0 = hd ths1';;
+BETA_RULE th0;;
+
+(* 0.436 *)
+test 1000 BETA_RULE th0;;
+
+
+let MY_BETA_RULE th =
+  let rec beta tm =
+    let op, arg = dest_comb tm in
+      if is_comb op then
+	let op_th = AP_THM (beta op) arg in
+	let beta_th = BETA_CONV (rand (concl op_th)) in
+	  TRANS op_th beta_th
+      else
+	BETA_CONV tm in
+    EQ_MP (beta (concl th)) th;;
+
+
+let MY_BETA_RULE2 th0 =
+  let c = concl th0 in
+  let lhs, rhs = dest_comb c in
+
+  let th1 = BETA_CONV lhs in
+  let th2 = AP_THM th1 rhs in
+  let th3 = BETA_CONV (rand (concl th2)) in
+    EQ_MP (TRANS th2 th3) th0;;
+
+MY_BETA_RULE2 th0;;
+(* 0.036 *)
+test 1000 MY_BETA_RULE2 th0;;
+
+

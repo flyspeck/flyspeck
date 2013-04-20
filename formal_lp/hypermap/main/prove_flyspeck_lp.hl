@@ -29,7 +29,7 @@ let rec plus_assoc_conv tm =
 
 
 needs "../formal_lp/glpk/ex1/bb1_out.hl";;
-needs "../formal_lp/glpk/ex2/bb2_5_out.hl";;
+needs "../formal_lp/glpk/ex2/bb2_1_out.hl";;
 
 open List_hypermap_computations;;
 open List_conversions;;
@@ -41,7 +41,7 @@ open List_conversions;;
 
 
 let test_list = (to_num o create_hol_list_str) hypermap_string;;
-let split_list = eval_split_list_hyp test_list (to_num `0,1`);;
+let split_list = eval_split_list_hyp test_list (to_num `1,2`);;
 let test_list = (rand o concl) split_list;;
 
 
@@ -52,6 +52,7 @@ let prove_flyspeck_lp hyp_list precision constraints target_variables variable_b
     let hyp = Hashtbl.create 10 in
     let _ = map (fun set, name -> Hashtbl.add hyp set (Hashtbl.find list_thm name))
       [
+	"list_of_elements", "elements";
 	"list_of_darts", "darts";
 	"list_of_nodes", "nodes";
 	"list_of_faces", "faces";
@@ -60,7 +61,6 @@ let prove_flyspeck_lp hyp_list precision constraints target_variables variable_b
       ] in
       hyp in
 
-  (* Rewrites subterms in the inequality *)
   let rewrite_ineq ineq =
     let rec rewrite_lhs tm =
       let rewrite_one tm =
@@ -73,13 +73,9 @@ let prove_flyspeck_lp hyp_list precision constraints target_variables variable_b
 	      let ltm, sub_arg' = dest_comb arg in
 	      let const_name = (fst o dest_const) (if (is_const ltm) then ltm else rator ltm) in
 		(* Str.first_chars const_name 1 = "D" is a hack *)
-		if (Str.first_chars const_name 1 = "D" or const_name = "_0" or const_name = "CONS" or const_name = "INSERT") then
+		if (Str.first_chars const_name 1 = "D" or const_name = "_0" 
+		    or const_name = "," or const_name = "CONS" or const_name = "INSERT") then
 		  REFL arg
-		else if const_name = "," then
-		  let pair_op, ltm = dest_comb ltm in
-		  let l_th = convert_arg ltm in
-		  let r_th = convert_arg sub_arg' in
-		    MK_COMB (AP_TERM pair_op l_th, r_th)
 		else
 		  try
 		    let sub_arg_th = convert_arg sub_arg' in
@@ -92,6 +88,10 @@ let prove_flyspeck_lp hyp_list precision constraints target_variables variable_b
 			fst_conv rtm
 		      else if (const_name = "SND") then
 			snd_conv rtm
+		      else if (const_name = "HD") then
+			hd_conv rtm
+		      else if (const_name = "e_list") then
+			e_list_conv_num rtm
 		      else
 			let table = Hashtbl.find fun_table const_name in
 			  Hashtbl.find table ((num_pair_hash o rand) rtm) in
@@ -100,13 +100,13 @@ let prove_flyspeck_lp hyp_list precision constraints target_variables variable_b
 		    failwith ("convert_arg: "^const_name)
 	    else
 	      REFL arg in
-	  
+	    
 	  let arg_th = convert_arg arg in
 	    AP_TERM mul_tm (AP_TERM var_f arg_th)
 	      
-	else
-	  (* tm should be list_sum *)
-	  list_sum_conv BETA_CONV tm in
+      else
+	(* tm should be list_sum *)
+	list_sum_conv BETA_CONV tm in
 	
 	if (is_binop add_op_real tm) then
 	  let lhs, rhs = dest_binop add_op_real tm in
@@ -120,14 +120,13 @@ let prove_flyspeck_lp hyp_list precision constraints target_variables variable_b
 	      th1
 	else
 	  rewrite_one tm in
-
+      
     let th0 = MY_BETA_RULE ineq in
     let ltm, rtm = dest_comb(concl th0) in
     let op_tm, l_tm = dest_comb ltm in
     let lhs_th = rewrite_lhs l_tm in
       EQ_MP (AP_THM (AP_TERM op_tm lhs_th) rtm) th0 in
-
-
+    
   (* This function generates all inequalities from a given base inequality *)
   let get_ineqs ineq indices =
     let t0 = INST[hyp_list, l_cap_var] ineq in
@@ -173,6 +172,12 @@ let prove_flyspeck_lp hyp_list precision constraints target_variables variable_b
 
 (****************)
 prove_flyspeck_lp test_list precision constraints target_variables variable_bounds;;
+(* 10, bb1: 2.376 *)
+(* 10, bb2_1: 2.224 *)
+(* 10, bb2_2: 2.532 *)
+(* 10, bb2_3: *)
+(* 10, bb2_4: *)
+(* 10, bb2_5: 2.580 *)
 test 1 (prove_flyspeck_lp test_list precision constraints target_variables) variable_bounds;;
 
 
@@ -183,6 +188,7 @@ let table_set_rewrites =
   let hyp = Hashtbl.create 10 in
   let _ = map (fun set, name -> Hashtbl.add hyp set (Hashtbl.find list_thm name))
     [
+      "list_of_elements", "elements";
       "list_of_darts", "darts";
       "list_of_nodes", "nodes";
       "list_of_faces", "faces";
@@ -205,13 +211,9 @@ let rewrite_ineq ineq =
 	    let ltm, sub_arg' = dest_comb arg in
 	    let const_name = (fst o dest_const) (if (is_const ltm) then ltm else rator ltm) in
 	      (* Str.first_chars const_name 1 = "D" is a hack *)
-	      if (Str.first_chars const_name 1 = "D" or const_name = "_0" or const_name = "CONS" or const_name = "INSERT") then
+	      if (Str.first_chars const_name 1 = "D" or const_name = "_0" 
+		  or const_name = "," or const_name = "CONS" or const_name = "INSERT") then
 		REFL arg
-	      else if const_name = "," then
-		let pair_op, ltm = dest_comb ltm in
-		let l_th = convert_arg ltm in
-		let r_th = convert_arg sub_arg' in
-		  MK_COMB (AP_TERM pair_op l_th, r_th)
 	      else
 		try
 		  let sub_arg_th = convert_arg sub_arg' in
@@ -224,6 +226,10 @@ let rewrite_ineq ineq =
 		      fst_conv rtm
 		    else if (const_name = "SND") then
 		      snd_conv rtm
+		    else if (const_name = "HD") then
+		      hd_conv rtm
+		    else if (const_name = "e_list") then
+		      e_list_conv_num rtm
 		    else
 		      let table = Hashtbl.find fun_table const_name in
 			Hashtbl.find table ((num_pair_hash o rand) rtm) in
@@ -308,11 +314,10 @@ concl (MATCH_MP REAL_LE_TRANS (CONJ r8 r9));;
 
 
   (* Find all sums *)
-let cc = List.nth constraints 29;;
+let cc = List.nth constraints 17;;
 let name, indices, c = cc;;
 let ineq = find_ineq precision name;;
 let ineqs = map concl (get_ineqs ineq indices);;
-
 
 (* 0.872 *)
 test 100 sum_step cc;;

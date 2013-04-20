@@ -187,7 +187,7 @@ Lemma split_list_explicit L d: `let f = find_pair_list L d in
 	==> split_list_face (rotr 1 (rot k f)) 
 		= [[y; FST d; SND d]; [y; SND d] ++ dropl 3 (rotr 1 (rot k f))]
 	/\ perm_eq (list_of_darts (split_list_face (rotr 1 (rot k f)))) 
-		([list_hyp_diag L d; e_list L (list_hyp_diag L d)] ++ list_pairs f))`.
+		([list_hyp_diag L d; e_list (list_hyp_diag L d)] ++ list_pairs f))`.
 do !"CONV_TAC let_CONV".
 case mem_d: `MEM d (list_of_darts L)` => /=; last first.
   move: mem_d; rewrite -find_pair_list_empty => ->.
@@ -229,12 +229,12 @@ Qed.
 
 Lemma darts_of_list_split L d: `3 < sizel (find_pair_list L d)
 	==> perm_eq (list_of_darts (split_list_hyp L d))
-		   ([list_hyp_diag L d; e_list L (list_hyp_diag L d)] ++ list_of_darts L)`.
+		   ([list_hyp_diag L d; e_list (list_hyp_diag L d)] ++ list_of_darts L)`.
 Proof.
 move => f_size; rewrite perm_eq_sym.
 have mem_d: `MEM d (list_of_darts L)`.
   by apply: contraLR f_size; rewrite -find_pair_list_empty => ->; rewrite size_nil; arith.
-rewrite "let_RULE split_list_hyp_alt" // {4}("let_RULE list_eq_cat_find_pair_list" L d) //.
+rewrite "let_RULE split_list_hyp_alt" // {3}("let_RULE list_eq_cat_find_pair_list" L d) //.
 have [split_eq darts_perm] := "let_RULE split_list_explicit" f_size.
 set f := `find_pair_list L d`.
 set n := `indexl f L`.
@@ -464,10 +464,10 @@ Theorem f_split_list L d: `let L2 = split_list_hyp L d and g = list_hyp_diag L d
 		/\ ~(FST g = SND g)
 	==> f_list L2 d = g
 	/\ f_list L2 g = prev_el f d
-	/\ f_list L2 (e_list L g) = f_list L d
-	/\ f_list L2 (prev_el f (prev_el f d)) = e_list L g
+	/\ f_list L2 (e_list g) = f_list L d
+	/\ f_list L2 (prev_el f (prev_el f d)) = e_list g
 	/\ (!x. MEM x (list_of_darts L2)
-		/\ ~(x = d \/ x = g \/ x = e_list L g \/ x = prev_el f (prev_el f d))
+		/\ ~(x = d \/ x = g \/ x = e_list g \/ x = prev_el f (prev_el f d))
 			==> f_list L2 x = f_list L x)`.
 Proof.
 "CONV_TAC let_CONV".
@@ -533,7 +533,7 @@ have s'_pairs_eq: `list_pairs s' = prev_el f d :: d :: dropl 2 (list_pairs s')`.
   move: (prev_el_list_pairs_general `FST d` `SND d` s); "ANTS_TAC".
     by rewrite -pair_expand fs_eq -f_def -dart_in_face.
   by move => [z]; rewrite -pair_expand fs_eq => ->.
-have s2_pairs_eq: `list_pairs s2 = e_list L g :: dropl 2 (list_pairs s')`.
+have s2_pairs_eq: `list_pairs s2 = e_list g :: dropl 2 (list_pairs s')`.
   rewrite s'_eq1 -s1_def -s2_def !cat !list_pairs !rot1_cons !rcons !zip.
   by rewrite TWO ONE !drop -g_def list_hyp_diag e_list /= f_def.
 have size_uneqs: `0 < sizel (dropl 2 (list_pairs s')) /\ 1 < sizel (dropl 2 (list_pairs s')) 
@@ -545,17 +545,17 @@ have last_s': `last d (list_pairs s') = prev_el f (prev_el f d)`.
   by rewrite -prev_el_hd // {2}s'_pairs_eq "GEN_ALL HD" -prev_el_fs' // mem_prev_el.
 have last_s2: `last d (list_pairs s2) = prev_el f (prev_el f d)`.
   by rewrite -last_s' s2_pairs_eq last last_drop //; apply last_eq.
-have memL2 x: `MEM x (list_of_darts L2) <=> x = g \/ x = e_list L g \/ MEM x (list_of_darts L)`.
+have memL2 x: `MEM x (list_of_darts L2) <=> x = g \/ x = e_list g \/ MEM x (list_of_darts L)`.
   by rewrite (perm_eq_mem dartsL2) mem_cat !MEM orbF !orbA.
 have find_s1: `find_face L2 d = list_pairs s1 /\ find_face L2 g = list_pairs s1
 		/\ find_face L2 (prev_el f d) = list_pairs s1`.
   rewrite !find_face_eq ?(uniqL2, memL2, mem_d, s12_pairs_mem) /= ?mem_f_darts ?mem_prev_el //.
   by rewrite s1_pairs_eq !MEM.
-have find_s2: `find_face L2 (e_list L g) = list_pairs s2 
+have find_s2: `find_face L2 (e_list g) = list_pairs s2 
 	/\ find_face L2 (prev_el f (prev_el f d)) = list_pairs s2`.
   rewrite !find_face_eq ?(uniqL2, memL2) /= ?mem_f_darts ?mem_prev_el //.
   rewrite s12_pairs_mem s2_pairs_eq MEM /= -last_s' -(last_drop d `2`) //.
-  by rewrite (last_eq d `e_list L g`) // mem_last.
+  by rewrite (last_eq d `e_list g`) // mem_last.
 rewrite !f_list !find_s1 !find_s2.
 split.
   by rewrite -(next_el_rot_eq `1`) // s1_pairs_eq rot1_cons !rcons next_el_hd_cons2.
@@ -908,7 +908,7 @@ case eq2: `a,b = w,w'` => /=.
   rewrite R_eq_f -?hypV ?lemma_dart_inveriant_under_inverse_maps //.
   rewrite -(hyp_iso_inverse_comm f_iso) // hypL.
   by rewrite f_list_ext_inverse // res darts_of_list IN_SET_OF_LIST.
-have Rw'w_eq: `R (w',w) = e_list L (R (w,w'))`.
+have Rw'w_eq: `R (w',w) = e_list (R (w,w'))`.
   by rewrite -R_def eq_sym !fan_list_iso e_list.
 case eq3: `a,b = w',w` => /=.
   rewrite eq3 f_fan_eq Rw'w_eq f_list_eq eq_sym.

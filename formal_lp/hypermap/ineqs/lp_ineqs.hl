@@ -1,263 +1,282 @@
+needs "../formal_lp/hypermap/ineqs/lp_gen_ineqs.hl";;
 needs "../formal_lp/hypermap/ineqs/lp_approx_ineqs.hl";;
 needs "../formal_lp/hypermap/ineqs/lp_ineqs_defs.hl";;
+needs "../formal_lp/hypermap/ineqs/lp_ineqs_proofs-compiled.hl";;
 needs "../formal_lp/hypermap/arith_link.hl";;
 
 
-let constraints = Hashtbl.create 100;;
-let add_constraints = map (uncurry (Hashtbl.add constraints));;
+type ineq_tag = Compute | Conditions | Std | Done;;
+
+type lp_ineq = {
+  name : string;
+  tm : term;
+  tag: ineq_tag;
+  proof: thm option;
+};;
 
 
-add_constraints
-[
-(* done *)  "azim_lo", `ALL (\x. &0 <= azim_list (g,fan) x) (list_of_darts L)`;
-(* done *)  "azim_hi", `ALL (\x. azim_list (g,fan) x <= pi) (list_of_darts L)`;
-(* done *)  "azim2_lo", `ALL (\x. &0 <= azim2_list (g,fan) x) (list_of_darts L)`;
-(* done *)  "azim2_hi", `ALL (\x. azim2_list (g,fan) x <= pi) (list_of_darts L)`;
-(* done *)  "azim3_lo", `ALL (\x. &0 <= azim3_list (g,fan) x) (list_of_darts L)`;
-(* done *)  "azim3_hi", `ALL (\x. azim3_list (g,fan) x <= pi) (list_of_darts L)`;
-
-(* done *)  "rhazim_lo", `ALL (\x. &0 <= rhazim_list (g,fan) x) (list_of_darts L)`;
-(* done *)  "rhazim_hi", `ALL (\x. rhazim_list (g,fan) x <= pi + sol0) (list_of_darts L)`;
-(* done *)  "rhazim2_lo", `ALL (\x. &0 <= rhazim2_list (g,fan) x) (list_of_darts L)`;
-(* done *)  "rhazim2_hi", `ALL (\x. rhazim2_list (g,fan) x <= pi + sol0) (list_of_darts L)`;
-(* done *)  "rhazim3_lo", `ALL (\x. &0 <= rhazim3_list (g,fan) x) (list_of_darts L)`;
-(* done *)  "rhazim3_hi", `ALL (\x. rhazim3_list (g,fan) x <= pi + sol0) (list_of_darts L)`;
-
-(* done *)  "ln_lo", `ALL (\x. &0 <= ln_list h x) (list_of_elements L)`;
-(* done *)  "ln_hi", `ALL (\x. ln_list h x <= &1) (list_of_elements L)`;
-(* done *)  "rho_lo", `ALL (\x. &1 <= rho_list h x) (list_of_elements L)`;
-(* done *)  "rho_hi", `ALL (\x. rho_list h x <= &1 + sol0 / pi) (list_of_elements L)`;
-(* done *)  "yn_lo", `ALL (\x. &2 <= yn_list h x) (list_of_elements L)`;
-(* done *)  "yn_hi", `ALL (\x. yn_list h x <= #2.52) (list_of_elements L)`;
-
-(* done *)  "ye_lo", `ALL (\x. &2 <= ye_list g x) (list_of_darts L)`;
-(* c *)     "ye_hi", `ALL (\x. ye_list g x <= &3) (list_of_darts L)`;
-
-(* done *)  "y1_lo", `ALL (\x. &2 <= y1_list g x) (list_of_darts L)`;
-(* done *)  "y1_hi", `ALL (\x. y1_list g x <= #2.52) (list_of_darts L)`;
-(* done *)  "y2_lo", `ALL (\x. &2 <= y2_list g x) (list_of_darts L)`;
-(* done *)  "y2_hi", `ALL (\x. y2_list g x <= #2.52) (list_of_darts L)`;
-(* done *)  "y3_lo", `ALL (\x. &2 <= y3_list (g,fan) x) (list_of_darts L)`;
-(* done *)  "y3_hi", `ALL (\x. y3_list (g,fan) x <= #2.52) (list_of_darts L)`;
-(* done *)  "y4_lo", `ALL (\x. &2 <= y4_list (g,fan) x) (list_of_darts L)`;
-(* c *)     "y4_hi", `ALL (\x. y4_list (g,fan) x <= &3) (list_of_darts L)`;
-(* done *)  "y5_lo", `ALL (\x. &2 <= y5_list (g,fan) x) (list_of_darts L)`;
-(* c *)     "y5_hi", `ALL (\x. y5_list (g,fan) x <= &3) (list_of_darts L)`;
-(* done *)  "y6_lo", `ALL (\x. &2 <= y6_list g x) (list_of_darts L)`;
-(* c *)     "y6_hi", `ALL (\x. y6_list g x <= &3) (list_of_darts L)`;
-(* done *)  "y8_lo", `ALL (\x. &2 <= y8_list (g,fan) x) (list_of_darts L)`;
-(* c *)     "y8_hi", `ALL (\x. y8_list (g,fan) x <= #2.52) (list_of_darts L)`;
-(* done *)  "y9_lo", `ALL (\x. &2 <= y9_list (g,fan) x) (list_of_darts L)`;
-(* c *)     "y9_hi", `ALL (\x. y9_list (g,fan) x <= #2.52) (list_of_darts L)`;
-
-(* done *)  "sol_lo", `ALL (\f. &0 <= sol_list (g,fan) f) (faces_of_list L)`;
-  "sol_hi", `ALL (\f. sol_list (g,fan) f <= &4 * pi) (faces_of_list L)`;
-(* done *)  "tau_lo", `ALL (\f. &0 <= tau_list (g,fan) f) (faces_of_list L)`;
-  "tau_hi", `ALL (\f. tau_list (g,fan) f <= tgt) (faces_of_list L)`;
-];;
+let add_ineq, find_ineq, find_all_ineqs = 
+  let table = ref [] in
+    (fun name tag tm th -> 
+       table := {name = name; tm = tm; tag = tag; proof = th} :: !table),
+  (fun name -> find (fun x -> x.name = name) !table),
+  (fun tag -> filter (fun x -> x.tag = tag) !table);;
 
 
-add_constraints
-[
-(* done *)  "azim_sum", `ALL (\n. list_sum n (azim_list (g,fan)) = &2 * pi) (list_of_nodes L)`;
-(* done *)  "rhazim_sum", `ALL (\n. list_sum n (rhazim_list (g,fan)) = &2 * pi * rho_list h (FST (HD n))) (list_of_nodes L)`;
+let my_parser s type_hints =
+  let hints = map (fun var, ty -> var, pretype_of_type ty) type_hints in
+  let ptm, l = (parse_preterm o lex o explode) s in
+    if l = [] then
+      (term_of_preterm o retypecheck hints) ptm
+    else
+      failwith "Unparsed input following term";;
 
-  "sol_sum3", `ALL (\f. 
-	LENGTH f = 3 ==>
-		list_sum f (azim_list (g,fan)) = sol_list (g,fan) (set_of_list f) + pi) (list_of_faces L)`;
-  "sol_sum4", `ALL (\f. 
-	LENGTH f = 4 ==>
-		list_sum f (azim_list (g,fan)) = sol_list (g,fan) (set_of_list f) + &2 * pi) (list_of_faces L)`;
-  "sol_sum5", `ALL (\f. 
-	LENGTH f = 5 ==>
-		list_sum f (azim_list (g,fan)) = sol_list (g,fan) (set_of_list f) + &3 * pi) (list_of_faces L)`;
-  "sol_sum6", `ALL (\f. 
-	LENGTH f = 6 ==>
-		list_sum f (azim_list (g,fan)) = sol_list (g,fan) (set_of_list f) + &4 * pi) (list_of_faces L)`;
-  "tau_sum3", `ALL (\f. 
-	LENGTH f = 3 ==>
-		list_sum f (rhazim_list (g,fan)) = tau_list (g,fan) (set_of_list f) + (pi + sol0)) (list_of_faces L)`;
-  "tau_sum4", `ALL (\f. 
-	LENGTH f = 4 ==>
-		list_sum f (rhazim_list (g,fan)) = tau_list (g,fan) (set_of_list f) + &2 * (pi + sol0)) (list_of_faces L)`;
-  "tau_sum5", `ALL (\f. 
-	LENGTH f = 5 ==>
-		list_sum f (rhazim_list (g,fan)) = tau_list (g,fan) (set_of_list f) + &3 * (pi + sol0)) (list_of_faces L)`;
-  "tau_sum6", `ALL (\f. 
-	LENGTH f = 6 ==>
-		list_sum f (rhazim_list (g,fan)) = tau_list (g,fan) (set_of_list f) + &4 * (pi + sol0)) (list_of_faces L)`;
 
-(* done *)  "ln_def", `ALL (\x. ln_list h x = (#2.52 - yn_list h x) / #0.52) (list_of_elements L)`;
-(* done *)  "rho_def", `ALL (\x. rho_list h x = (&1 + sol0 / pi) - ln_list h x * sol0 / pi) (list_of_elements L)`;
-(* done *)  "edge_sym", `ALL (\d. ye_list g d = ye_list g (e_list d)) (list_of_darts L)`;
-
-(* done *)  "y1_def", `ALL (\d. y1_list g d = yn_list h (FST d)) (list_of_darts L)`;
-(* done *)  "y2_def", `ALL (\d. y2_list g d = yn_list h (FST (f_list_ext L d))) (list_of_darts L)`;
-(* done *)  "y3_def", `ALL (\d. y3_list (g,fan) d = yn_list h (FST (inverse (f_list_ext L) d))) (list_of_darts L)`;
-(* done *)  "y4_def", `ALL (\d. y4_list (g,fan) d = ye_list g (f_list_ext L d)) (list_of_darts L)`;
-(* done *)  "y5_def", `ALL (\d. y5_list (g,fan) d = ye_list g (inverse (f_list_ext L) d)) (list_of_darts L)`;
-(* done *)  "y6_def", `ALL (\d. y6_list g d = ye_list g d) (list_of_darts L)`;
-(* done *)  "y9_def", `ALL (\d. y9_list (g,fan) d = ye_list g (f_list_ext L d)) (list_of_darts L)`;
-(* done *)  "y8_def", `ALL (\d. y8_list (g,fan) d = y5_list (g,fan) (inverse (f_list_ext L) d)) (list_of_darts L)`;
-
-(* done *)  "azim2c", `ALL (\d. azim2_list (g,fan) d = azim_list (g,fan) (f_list_ext L d)) (list_of_darts L)`;
-(* done *)  "azim3c", `ALL (\d. azim3_list (g,fan) d = azim_list (g,fan) (inverse (f_list_ext L) d)) (list_of_darts L)`;
-(* done *)  "rhazim2c", `ALL (\d. rhazim2_list (g,fan) d = rhazim_list (g,fan) (f_list_ext L d)) (list_of_darts L)`;
-(* done *)  "rhazim3c", `ALL (\d. rhazim3_list (g,fan) d = rhazim_list (g,fan) (inverse (f_list_ext L) d)) (list_of_darts L)`;
-];;
+let my_add_ineq (name, tag, s_tm, th) =
+  let tm = my_parser s_tm ["H", `:(A)hypermap`; "V", `:C->bool`; "node_mod", `:A->C`] in
+    add_ineq name tag tm th;;
 
 
 
-(* inequality constraints *)
+map my_add_ineq
+  [
+    "azim_lo", Done, "!d. d IN dart H ==> &0 <= azim_mod d", Some Lp_ineqs_proofs.azim_lo;
+    "azim_hi", Done, "!d. d IN dart H ==> azim_mod d <= pi", Some Lp_ineqs_proofs.azim_hi;
+    "azim2_lo", Done, "!d. d IN dart H ==> &0 <= azim2_mod d", Some Lp_ineqs_proofs.azim2_lo;
+    "azim2_hi", Done, "!d. d IN dart H ==> azim2_mod d <= pi", Some Lp_ineqs_proofs.azim2_hi;
+    "azim3_lo", Done, "!d. d IN dart H ==> &0 <= azim3_mod d", Some Lp_ineqs_proofs.azim3_lo;
+    "azim3_hi", Done, "!d. d IN dart H ==> azim3_mod d <= pi", Some Lp_ineqs_proofs.azim3_hi;
+    "rhazim_lo", Done, "!d. d IN dart H ==> &0 <= rhazim_mod d", Some Lp_ineqs_proofs.rhazim_lo;
+    "rhazim_hi", Done, "!d. d IN dart H ==> rhazim_mod d <= pi + sol0", Some Lp_ineqs_proofs.rhazim_hi;
+    "rhazim2_lo", Done, "!d. d IN dart H ==> &0 <= rhazim2_mod d", Some Lp_ineqs_proofs.rhazim2_lo;
+    "rhazim2_hi", Done, "!d. d IN dart H ==> rhazim2_mod d <= pi + sol0", Some Lp_ineqs_proofs.rhazim2_hi;
+    "rhazim3_lo", Done, "!d. d IN dart H ==> &0 <= rhazim3_mod d", Some Lp_ineqs_proofs.rhazim3_lo;
+    "rhazim3_hi", Done, "!d. d IN dart H ==> rhazim3_mod d <= pi + sol0", Some Lp_ineqs_proofs.rhazim3_hi;
 
-add_constraints
-[
-(* done *)  "RHA", `ALL (\d. rhazim_list (g,fan) d >= azim_list (g,fan) d) (list_of_darts L)`;
-(* done *)  "RHB", `ALL (\d. rhazim_list (g,fan) d <= azim_list (g,fan) d * (&1 + sol0 / pi)) (list_of_darts L)`;
-];;
+    "ln_lo", Done, "!x. x IN V ==> &0 <= ln_mod x", Some Lp_ineqs_proofs.ln_lo;
+    "ln_hi", Done, "!x. x IN V ==> ln_mod x <= &1", Some Lp_ineqs_proofs.ln_hi;
+    "rho_lo", Done, "!x. x IN V ==> &1 <= rho_mod x", Some Lp_ineqs_proofs.rho_lo;
+    "rho_hi", Done, "!x. x IN V ==> rho_mod x <= &1 + sol0 / pi", Some Lp_ineqs_proofs.rho_hi;
+    "yn_lo", Done, "!x. x IN V ==> &2 <= yn_mod x", Some Lp_ineqs_proofs.yn_lo;
+    "yn_hi", Done, "!x. x IN V ==> yn_mod x <= #2.52", Some Lp_ineqs_proofs.yn_hi;
+
+    "ye_lo", Done, "!d. d IN dart H ==> &2 <= ye_mod d", Some Lp_ineqs_proofs.ye_lo;
+    "ye_hi", Compute, "!d. d IN dart H ==> ye_mod d <= &3", None;
+
+    "y1_lo", Done, "!d. d IN dart H ==> &2 <= y1_mod d", Some Lp_ineqs_proofs.y1_lo;
+    "y1_hi", Done, "!d. d IN dart H ==> y1_mod d <= #2.52", Some Lp_ineqs_proofs.y1_hi;
+    "y2_lo", Done, "!d. d IN dart H ==> &2 <= y2_mod d", Some Lp_ineqs_proofs.y2_lo;
+    "y2_hi", Done, "!d. d IN dart H ==> y2_mod d <= #2.52", Some Lp_ineqs_proofs.y2_hi;
+    "y3_lo", Done, "!d. d IN dart H ==> &2 <= y3_mod d", Some Lp_ineqs_proofs.y3_lo;
+    "y3_hi", Done, "!d. d IN dart H ==> y3_mod d <= #2.52", Some Lp_ineqs_proofs.y3_hi;
+    "y4_lo", Done, "!d. d IN dart H ==> &2 <= y4_mod d", Some Lp_ineqs_proofs.y4_lo;
+    "y5_lo", Done, "!d. d IN dart H ==> &2 <= y5_mod d", Some Lp_ineqs_proofs.y5_lo;
+    "y6_lo", Done, "!d. d IN dart H ==> &2 <= y6_mod d", Some Lp_ineqs_proofs.y6_lo;
+    "y8_lo", Done, "!d. d IN dart H ==> &2 <= y8_mod d", Some Lp_ineqs_proofs.y8_lo;
+    "y9_lo", Done, "!d. d IN dart H ==> &2 <= y9_mod d", Some Lp_ineqs_proofs.y9_lo;
+    "y4_hi", Compute, "!d. d IN dart H ==> y4_mod d <= &3", None;
+    "y5_hi", Compute, "!d. d IN dart H ==> y5_mod d <= &3", None;
+    "y6_hi", Compute, "!d. d IN dart H ==> y6_mod d <= &3", None;
+    "y8_hi", Compute, "!d. d IN dart H ==> y8_mod d <= #2.52", None;
+    "y9_hi", Compute, "!d. d IN dart H ==> y9_mod d <= #2.52", None;
+
+    "sol_lo", Done, "!f. f IN face_set H ==> &0 <= sol_mod f", Some Lp_ineqs_proofs.sol_lo;
+    "sol_hi", Done, "!f. f IN face_set H ==> sol_mod f <= &4 * pi", None;
+    "tau_lo", Done, "!f. f IN face_set H ==> &0 <= tau_mod f", Some Lp_ineqs_proofs.tau_lo;
+    "tau_hi", Done, "!f. f IN face_set H ==> tau_mod f <= tgt", None;
+
+    "azim_sum", Done, "!n. n IN node_set H ==> sum n azim_mod = &2 * pi", Some Lp_ineqs_proofs.azim_sum;
+    "rhazim_sum", Done, "!n. n IN node_set H ==> sum n rhazim_mod = &2 * pi * rho_mod (node_mod (CHOICE n))", 
+                       Some Lp_ineqs_proofs.rhazim_sum;
+
+    "sol_sum3", Conditions, "!f. f IN face_set H ==> (CARD f = 3 ==> sum f azim_mod = sol_mod f + pi)", None;
+    "sol_sum4", Conditions, "!f. f IN face_set H ==> (CARD f = 4 ==> sum f azim_mod = sol_mod f + &2 * pi)", None;
+    "sol_sum5", Conditions, "!f. f IN face_set H ==> (CARD f = 5 ==> sum f azim_mod = sol_mod f + &3 * pi)", None;
+    "sol_sum6", Conditions, "!f. f IN face_set H ==> (CARD f = 6 ==> sum f azim_mod = sol_mod f + &4 * pi)", None;
+    "tau_sum3", Conditions, "!f. f IN face_set H ==> (CARD f = 3 ==> sum f rhazim_mod = tau_mod f + (pi + sol0))", None;
+    "tau_sum4", Conditions, "!f. f IN face_set H ==> (CARD f = 3 ==> sum f rhazim_mod = tau_mod f + &2 * (pi + sol0))", None;
+    "tau_sum5", Conditions, "!f. f IN face_set H ==> (CARD f = 3 ==> sum f rhazim_mod = tau_mod f + &3 * (pi + sol0))", None;
+    "tau_sum6", Conditions, "!f. f IN face_set H ==> (CARD f = 3 ==> sum f rhazim_mod = tau_mod f + &4 * (pi + sol0))", None;
+
+    "ln_def", Done, "!x. x IN V ==> ln_mod x = (#2.52 - yn_mod x) / #0.52", Some Lp_ineqs_proofs.ln_def;
+    "rho_def", Done, "!x. x IN V ==> rho_mod x = (&1 + sol0 / pi) - ln_mod x * sol0 / pi", Some Lp_ineqs_proofs.rho_def;
+    "edge_sym", Done, "!d. d IN dart H ==> ye_mod d = ye_mod (edge_map H d):real", Some Lp_ineqs_proofs.edge_sym;
+
+    "y1_def", Done, "!d. d IN dart H ==> y1_mod d = yn_mod (node_mod d):real", Some Lp_ineqs_proofs.y1_def;
+    "y2_def", Done, "!d. d IN dart H ==> y2_mod d = yn_mod (node_mod (face_map H d)):real", Some Lp_ineqs_proofs.y2_def;
+    "y3_def", Done, "!d. d IN dart H ==> y3_mod d = yn_mod (node_mod (inverse (face_map H) d)):real", Some Lp_ineqs_proofs.y3_def;
+    "y4_def", Done, "!d. d IN dart H ==> y4_mod d = ye_mod (face_map H d):real", Some Lp_ineqs_proofs.y4_def;
+    "y5_def", Done, "!d. d IN dart H ==> y5_mod d = ye_mod (inverse (face_map H) d):real", Some Lp_ineqs_proofs.y5_def;
+    "y6_def", Done, "!d. d IN dart H ==> y6_mod d = ye_mod d:real", Some Lp_ineqs_proofs.y6_def;
+    "y8_def", Done, "!d. d IN dart H ==> y8_mod d = y5_mod (inverse (face_map H) d):real", Some Lp_ineqs_proofs.y8_def;
+    "y9_def", Done, "!d. d IN dart H ==> y9_mod d = ye_mod (face_map H d):real", Some Lp_ineqs_proofs.y9_def;
+
+    "azim2c", Done, "!d. d IN dart H ==> azim2_mod d = azim_mod (face_map H d):real", Some Lp_ineqs_proofs.azim2c;
+    "azim3c", Done, "!d. d IN dart H ==> azim3_mod d = azim_mod (inverse (face_map H) d):real", Some Lp_ineqs_proofs.azim3c;
+    "rhazim2c", Done, "!d. d IN dart H ==> rhazim2_mod d = rhazim_mod (face_map H d):real", Some Lp_ineqs_proofs.rhazim2c;
+    "rhazim3c", Done, "!d. d IN dart H ==> rhazim3_mod d = rhazim_mod (inverse (face_map H) d):real", Some Lp_ineqs_proofs.rhazim3c;
+
+    "RHA", Done, "!d. d IN dart H ==> rhazim_mod d >= azim_mod d:real", Some Lp_ineqs_proofs.RHA;
+    "RHB", Done, "!d. d IN dart H ==> rhazim_mod d <= azim_mod d * (&1 + sol0 / pi)", Some Lp_ineqs_proofs.RHB;
+
+    "yy10", Compute, "!d. d IN dart H ==> ye_mod d <= #2.52", None;
+    "yy15", Compute, "!d. d IN dart H ==> ye_mod d <= sqrt8", None;
+
+    "tau3", Std, "!f. f IN face_set H ==> (CARD f = 3 ==> tau_mod f >= &0)", None;
+    "tau4", Std, "!f. f IN face_set H ==> (CARD f = 4 ==> tau_mod f >= #0.206)", None;
+    "tau5", Std, "!f. f IN face_set H ==> (CARD f = 5 ==> tau_mod f >= #0.4819)", None;
+    "tau6", Std, "!f. f IN face_set H ==> (CARD f = 6 ==> tau_mod f >= #0.7120)", None;
+  ];;
 
 
-(* definitional inequalities *)
-
-
-
-(* y bounds *)
-add_constraints
-[
-(* c *)  "yy10", `ALL (\d. ye_list g d <= #2.52) (list_of_darts L)`;
-(* c *)  "yy15", `ALL (\d. y4_list (g,fan) d <= sqrt8) (list_of_darts L)`;
-];;
-
-
-
-(* tau tame table D inequality (Main Estimate) *)
-add_constraints
-[
-  "tau3", `ALL (\f. tau_list (g,fan) f >= &0) (faces_of_list L)`;
-  "tau4", `ALL (\f. tau_list (g,fan) f >= #0.206) (faces_of_list L)`;
-  "tau5", `ALL (\f. tau_list (g,fan) f >= #0.4819) (faces_of_list L)`;
-  "tau6", `ALL (\f. tau_list (g,fan) f >= #0.7120) (faces_of_list L)`;
-];;
-
-
-add_constraints
-[
-	"ineq30", `ALL (\d.
-	  ((((rhazim3_list (g,fan) d) - #1.08) + (((#0.6362 * (y1_list g d - #2.0)) - 
-	  (#0.565 * (y3_list (g,fan) d - #2.0))) + ((#0.359 * (y2_list g d - #2.0)) + 
-	  (((#0.416 * (y4_list (g,fan) d - #2.52)) - (#0.666 * (y6_list g d - #2.0))) + 
-	  (#0.061 * (y5_list (g,fan) d - #2.0)))))) - #0.0) >= #0.0) (list_of_darts L)`;
-
-	"ineq31", `ALL (\d.
-	  ((((azim3_list (g,fan) d) - #1.083) + (((#0.6365 * (y1_list g d - #2.0)) 
-	  - (#0.198 * (y3_list (g,fan) d - #2.0))) + ((#0.352 * (y2_list g d - #2.0)) 
-	  + (((#0.416 * (y4_list (g,fan) d - #2.52)) - (#0.66 * (y6_list g d - #2.0))) 
-	  + (#0.071 * (y5_list (g,fan) d - #2.0)))))) - #0.0) >= #0.0) (list_of_darts L)`;
-
-	  
-	"ineq97", `ALL (\d.
-  ((((rhazim2_list (g,fan) d) - #1.08) + (((#0.6362 * (y1_list g d - #2.0)) - 
-	(#0.565 * (y2_list g d - #2.0))) + ((#0.359 * (y3_list (g,fan) d - #2.0)) + 
-	(((#0.416 * (y4_list (g,fan) d - #2.52)) - (#0.666 * (y5_list (g,fan) d - #2.0))) + 
-	(#0.061 * (y6_list g d - #2.0)))))) - #0.0) >= #0.0) (list_of_darts L)`;
-
-	"ineq98", `ALL (\d.
-  (((((rhazim_list (g,fan) d) - #1.629) - (#0.866 * (y1_list g d - #2.0))) + 
-	(((#0.3805 * (y2_list g d + (y3_list (g,fan) d - #4.0))) - 
-	(#0.841 * (y4_list (g,fan) d - #2.52))) + 
-		(#0.501 * (y5_list (g,fan) d + (y6_list g d - #4.0))))) - #0.0) >= #0.0) (list_of_darts L)`;
-
-	"ineq99", `ALL (\d.
-	  ((((azim2_list (g,fan) d) - #1.083) + (((#0.6365 * (y1_list g d - #2.0)) 
-	  - (#0.198 * (y2_list g d - #2.0))) + ((#0.352 * (y3_list (g,fan) d - #2.0)) 
-	  + (((#0.416 * (y4_list (g,fan) d - #2.52)) - (#0.66 * (y5_list (g,fan) d - #2.0))) 
-	  + (#0.071 * (y6_list g d - #2.0)))))) - #0.0) >= #0.0) (list_of_darts L)`;
-
-		
-(* done/c *)	"ineq101", `ALL (\d. 
-(*	#2.52 <= y4_list (g,fan) d /\ y4_list (g,fan) d <= sqrt8
-	/\ y5_list (g,fan) d <= #2.52 /\ y6_list g d <= #2.52
-		==>*)
-	  ((((azim_list (g,fan) d) - #1.629) + (((#0.414 * (y2_list g d + 
-	  (y3_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #8.0))))) 
-		- (#0.763 * (y4_list (g,fan) d - #2.52))) - 
-		(#0.315 * (y1_list g d - #2.0)))) - #0.0) >= #0.0) (list_of_darts L)`;
+map my_add_ineq [
+  "ineq30", Conditions, "!d. d IN dart H ==> 
+	  ((((rhazim3_mod d) - #1.08) + (((#0.6362 * (y1_mod d - #2.0)) - 
+	  (#0.565 * (y3_mod d - #2.0))) + ((#0.359 * (y2_mod d - #2.0)) + 
+	  (((#0.416 * (y4_mod d - #2.52)) - (#0.666 * (y6_mod d - #2.0))) + 
+	  (#0.061 * (y5_mod d - #2.0)))))) - #0.0) >= #0.0", None;
+  
+  "ineq31", Conditions, "!d. d IN dart H ==>
+	  ((((azim3_mod d) - #1.083) + (((#0.6365 * (y1_mod d - #2.0)) 
+	  - (#0.198 * (y3_mod d - #2.0))) + ((#0.352 * (y2_mod d - #2.0)) 
+	  + (((#0.416 * (y4_mod d - #2.52)) - (#0.66 * (y6_mod d - #2.0))) 
+	  + (#0.071 * (y5_mod d - #2.0)))))) - #0.0) >= #0.0", None;
+  
+  "ineq97", Conditions, "!d. d IN dart H ==>
+  ((((rhazim2_mod d) - #1.08) + (((#0.6362 * (y1_mod d - #2.0)) - 
+	(#0.565 * (y2_mod d - #2.0))) + ((#0.359 * (y3_mod d - #2.0)) + 
+	(((#0.416 * (y4_mod d - #2.52)) - (#0.666 * (y5_mod d - #2.0))) + 
+	(#0.061 * (y6_mod d - #2.0)))))) - #0.0) >= #0.0", None;
+  
+  "ineq98", Conditions, "!d. d IN dart H ==>
+  (((((rhazim_mod d) - #1.629) - (#0.866 * (y1_mod d - #2.0))) + 
+	(((#0.3805 * (y2_mod d + (y3_mod d - #4.0))) - 
+	(#0.841 * (y4_mod d - #2.52))) + 
+		(#0.501 * (y5_mod d + (y6_mod d - #4.0))))) - #0.0) >= #0.0", None;
+  
+  "ineq99", Conditions, "!d. d IN dart H ==>
+	  ((((azim2_mod d) - #1.083) + (((#0.6365 * (y1_mod d - #2.0)) 
+	  - (#0.198 * (y2_mod d - #2.0))) + ((#0.352 * (y3_mod d - #2.0)) 
+	  + (((#0.416 * (y4_mod d - #2.52)) - (#0.66 * (y5_mod d - #2.0))) 
+	  + (#0.071 * (y6_mod d - #2.0)))))) - #0.0) >= #0.0", None;
+  
+  "ineq101", Conditions, 
+  "!d. d IN dart H ==> 
+	  ((((azim_mod d) - #1.629) + (((#0.414 * (y2_mod d + 
+	  (y3_mod d + (y5_mod d + (y6_mod d - #8.0))))) 
+		- (#0.763 * (y4_mod d - #2.52))) - 
+		(#0.315 * (y1_mod d - #2.0)))) - #0.0) >= #0.0", None;
 	
-	"ineq102", `ALL (\d.
-	  (((((((tau_list (g,fan) (face (hypermap_of_list L) d)) - #0.1) - 
-	  (#0.265 * (y5_list (g,fan) d + (y6_list g d - #4.0)))) - 
-	  (#0.06 * (y4_list (g,fan) d - #2.52))) - (#0.16 * (y1_list g d - #2.0))) - 
-	  (#0.115 * (y2_list g d + (y3_list (g,fan) d - #4.0)))) - #0.0) >= #0.0) (list_of_darts L)`;
+  "ineq102", Conditions, "!d. d IN dart H ==>
+	  (((((((tau_mod (face H d)) - #0.1) - 
+	  (#0.265 * (y5_mod d + (y6_mod d - #4.0)))) - 
+	  (#0.06 * (y4_mod d - #2.52))) - (#0.16 * (y1_mod d - #2.0))) - 
+	  (#0.115 * (y2_mod d + (y3_mod d - #4.0)))) - #0.0) >= #0.0", None;
 
-	"ineq104", `ALL (\d.
-	  ((((azim_list (g,fan) d) - #2.09) + ((#0.578 * (y2_list g d + 
-	  (y3_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #8.0))))) - 
-	  (#0.54 * (y1_list g d - #2.0)))) - #0.0) >= #0.0) (list_of_darts L)`;
+  "ineq104", Conditions, "!d. d IN dart H ==>
+	  ((((azim_mod d) - #2.09) + ((#0.578 * (y2_mod d + 
+	  (y3_mod d + (y5_mod d + (y6_mod d - #8.0))))) - 
+	  (#0.54 * (y1_mod d - #2.0)))) - #0.0) >= #0.0", None;
+  
+  "ineq105", Conditions, "!d. d IN dart H ==> 
+    ((((azim_mod d) - #1.91) + ((#0.458 * (y2_mod d + (y3_mod d + (y5_mod d + (y6_mod d - #8.0))))) - 
+		(#0.342 * (y1_mod d - #2.0)))) - #0.0) >= #0.0", None;
+  
+  "ineq106", Conditions, "!d. d IN dart H ==>  
+	((((azim_mod d) - #1.629) + ((#0.402 * (y2_mod d + (y3_mod d + (y5_mod d + (y6_mod d - #8.0))))) - 
+		(#0.315 * (y1_mod d - #2.0)))) - #0.0) >= #0.0", None;
+  
+
+  "ineq107", Conditions, "!d. d IN dart H ==>
+    ((((rhazim_mod d) - #1.2308) + (((#0.3639 * (y2_mod d + (y3_mod d + (y5_mod d + (y6_mod d - #8.0))))) - 
+		(#0.6 * (y1_mod d - #2.0))) - (#0.685 * (y4_mod d - #2.0)))) - #0.0) >= #0.0", None;
+
+  "ineq108", Conditions, "!d. d IN dart H ==>
+    (((--(azim_mod d)) + ((#1.231 - (#0.152 * (y2_mod d + (y3_mod d + (y5_mod d + (y6_mod d - #8.0)))))) + ((#0.5 * (y1_mod d - #2.0)) 
+		+ (#0.773 * (y4_mod d - #2.0))))) - #0.0) >= #0.0", None;
+  
+  "ineq109", Conditions, "!d. d IN dart H ==>
+		  ((((azim_mod d) - #1.2308) + (((#0.3639 * (y2_mod d + (y3_mod d + 
+			(y5_mod d + (y6_mod d - #8.0))))) - (#0.235 * (y1_mod d - #2.0))) - 
+			(#0.685 * (y4_mod d - #2.0)))) - #0.0) >= #0.0", None;
+	
+  "ineq110", Conditions, "!d. d IN dart H ==>
+        (((--(sol_mod (face H d))) + (#0.5513 + ((#0.3232 * (y4_mod d + (y5_mod d + (y6_mod d - #6.0)))) - (#0.151 * (y1_mod d + (y2_mod d + (y3_mod d - #6.0))))))) - #0.0) >= #0.0", None;
+  
+"ineq111", Conditions, "!d. d IN dart H ==>
+        (((((sol_mod (face H d)) - #0.55125) - (#0.196 * (y4_mod d + (y5_mod d + (y6_mod d - #6.0))))) + (#0.38 * (y1_mod d + (y2_mod d + (y3_mod d - #6.0))))) - #0.0) >= #0.0", None;
+
+"ineq112", Conditions, "!d. d IN dart H ==>
+        (((tau_mod (face H d)) + ((#0.001 - (#0.18 * (y1_mod d + (y2_mod d + (y3_mod d - #6.0))))) - (#0.125 * (y4_mod d + (y5_mod d + (y6_mod d - #6.0)))))) - #0.0) >= #0.0", None;
+  
+"ineq113", Conditions, "!d. d IN dart H ==>
+        ((((tau_mod (face H d)) - (#0.507 * (azim_mod d))) + #0.724) - #0.0) >= #0.0", None;
+
+  "ineq114", Conditions, "!d. d IN dart H ==>
+        ((((tau_mod (face H d)) - (#0.259 * (azim_mod d))) + #0.32) - #0.0) >= #0.0", None;
+
+  "ineq115", Conditions, "!d. d IN dart H ==>
+        (((tau_mod (face H d)) + ((#0.626 * (azim_mod d)) - #0.77)) - #0.0) >= #0.0", None;
+
+  "ineq116", Conditions, "!d. d IN dart H ==>
+        (#1.893 - (azim_mod d)) >= #0.0", None;
+
+  "ineq117", Conditions, "!d. d IN dart H ==>
+        ((azim_mod d) - #0.852) >= #0.0", None;
+
+   "ineq118", Conditions, "!d. d IN dart H ==>
+	((tau_mod (face H d)) - #0.467) >= #0.0", None;
+
+  "ineq119", Conditions, "!d. d IN dart H ==>
+        ((((tau_mod (face H d)) - (#0.453 * (azim_mod d))) + #0.777) - #0.0) >= #0.0", None;
+
+  "ineq120", Conditions, "!d. d IN dart H ==>
+        (((tau_mod (face H d)) + ((#0.7573 * (azim_mod d)) - #1.433)) - #0.0) >= #0.0", None;
+
+  "ineq121", Conditions, "!d. d IN dart H ==>
+        (((tau_mod (face H d)) + ((#0.972 * (azim_mod d)) - #1.707)) - #0.0) >= #0.0", None;
+
+  "ineq122", Conditions, "!d. d IN dart H ==>
+        (((tau_mod (face H d)) + ((#4.72 * (azim_mod d)) - #6.248)) - #0.0) >= #0.0", None;
+
+  ];;
 
 
-  "ineq105", `ALL (\d. 
-    ((((azim_list (g,fan) d) - #1.91) + ((#0.458 * (y2_list g d + (y3_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #8.0))))) - 
-		(#0.342 * (y1_list g d - #2.0)))) - #0.0) >= #0.0) (list_of_darts L)`;
 
-  "ineq106", `ALL (\d.  
-	((((azim_list (g,fan) d) - #1.629) + ((#0.402 * (y2_list g d + (y3_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #8.0))))) - 
-		(#0.315 * (y1_list g d - #2.0)))) - #0.0) >= #0.0) (list_of_darts L)`;
-
-
-  "ineq107", `ALL (\d.
-    ((((rhazim_list (g,fan) d) - #1.2308) + (((#0.3639 * (y2_list g d + (y3_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #8.0))))) - 
-		(#0.6 * (y1_list g d - #2.0))) - (#0.685 * (y4_list (g,fan) d - #2.0)))) - #0.0) >= #0.0) (list_of_darts L)`;
-
-  "ineq108", `ALL (\d.
-    (((--(azim_list (g,fan) d)) + ((#1.231 - (#0.152 * (y2_list g d + (y3_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #8.0)))))) + ((#0.5 * (y1_list g d - #2.0)) 
-		+ (#0.773 * (y4_list (g,fan) d - #2.0))))) - #0.0) >= #0.0) (list_of_darts L)`;
-
-  "ineq109", `ALL (\d.
-		  ((((azim_list (g,fan) d) - #1.2308) + (((#0.3639 * (y2_list g d + (y3_list (g,fan) d + 
-			(y5_list (g,fan) d + (y6_list g d - #8.0))))) - (#0.235 * (y1_list g d - #2.0))) - 
-			(#0.685 * (y4_list (g,fan) d - #2.0)))) - #0.0) >= #0.0) (list_of_darts L)`;
-		
-  "ineq110", `ALL (\d.
-        (((--(sol_list (g,fan) (face (hypermap_of_list L) d))) + (#0.5513 + ((#0.3232 * (y4_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #6.0)))) - (#0.151 * (y1_list g d + (y2_list g d + (y3_list (g,fan) d - #6.0))))))) - #0.0) >= #0.0) (list_of_darts L)`;
-
-  "ineq111", `ALL (\d.
-        (((((sol_list (g,fan) (face (hypermap_of_list L) d)) - #0.55125) - (#0.196 * (y4_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #6.0))))) + (#0.38 * (y1_list g d + (y2_list g d + (y3_list (g,fan) d - #6.0))))) - #0.0) >= #0.0) (list_of_darts L)`;
-
-  "ineq112", `ALL (\d.
-        (((tau_list (g,fan) (face (hypermap_of_list L) d)) + ((#0.001 - (#0.18 * (y1_list g d + (y2_list g d + (y3_list (g,fan) d - #6.0))))) - (#0.125 * (y4_list (g,fan) d + (y5_list (g,fan) d + (y6_list g d - #6.0)))))) - #0.0) >= #0.0) (list_of_darts L)`;
+let add_lp_hyp =
+  let lp_fan_ths = (CONJUNCTS o UNDISCH_ALL o MATCH_MP EQ_IMP o SPEC_ALL) lp_fan in
+  let lp_cond_ths = (CONJUNCTS o UNDISCH_ALL o MATCH_MP EQ_IMP o SPEC_ALL o INST_TYPE[`:num`, aty]) lp_cond in
+    fun th ->
+      let th0 = (UNDISCH_ALL o SPEC_ALL) th in
+      let th1 = itlist PROVE_HYP lp_fan_ths th0 in
+	itlist PROVE_HYP lp_cond_ths th1;;
 
 
-  "ineq113", `ALL (\d.
-        ((((tau_list (g,fan) (face (hypermap_of_list L) d)) - (#0.507 * (azim_list (g,fan) d))) + #0.724) - #0.0) >= #0.0) (list_of_darts L)`;
+let generate_ineq ineq =
+  let th0 = Lp_gen_ineqs.generate_ineq ineq.tm in
+  let th1 = add_lp_hyp th0 in
+  let proof = 
+    match ineq.proof with
+      | Some th -> add_lp_hyp th
+      | None -> TRUTH in
+    ineq.name, ineq.tag, PROVE_HYP proof th1;;
 
-  "ineq114", `ALL (\d.
-        ((((tau_list (g,fan) (face (hypermap_of_list L) d)) - (#0.259 * (azim_list (g,fan) d))) + #0.32) - #0.0) >= #0.0) (list_of_darts L)`;
+let ineqs = find_all_ineqs Done;;
+let l = map generate_ineq ineqs;;
+List.nth l 3;;
 
-  "ineq115", `ALL (\d.
-        (((tau_list (g,fan) (face (hypermap_of_list L) d)) + ((#0.626 * (azim_list (g,fan) d)) - #0.77)) - #0.0) >= #0.0) (list_of_darts L)`;
 
-  "ineq116", `ALL (\d.
-        (#1.893 - (azim_list (g,fan) d)) >= #0.0) (list_of_darts L)`;
+let ineqs = find_all_ineqs Conditions;;
+let l = map generate_ineq ineqs;;
+List.nth l 30;;
 
-  "ineq117", `ALL (\d.
-        ((azim_list (g,fan) d) - #0.852) >= #0.0) (list_of_darts L)`;
+let _,_,ineq = List.nth l 30;;
 
-   "ineq118", `ALL (\d.
-     ((tau_list (g,fan) (face (hypermap_of_list L) d)) - #0.467) >= #0.0) (list_of_darts L)`;
+let pos_thms =
+  let inst = INST[`V:real^3->bool,E:(real^3->bool)->bool`, `fan:(real^3->bool)#((real^3->bool)->bool)`] in
+    map inst Lp_ineqs_def.list_var_pos;;
 
-		
-  "ineq119", `ALL (\d.
-        ((((tau_list (g,fan) (face (hypermap_of_list L) d)) - (#0.453 * (azim_list (g,fan) d))) + #0.777) - #0.0) >= #0.0) (list_of_darts L)`;
-
-  "ineq120", `ALL (\d.
-        (((tau_list (g,fan) (face (hypermap_of_list L) d)) + ((#0.7573 * (azim_list (g,fan) d)) - #1.433)) - #0.0) >= #0.0) (list_of_darts L)`;
-
-  "ineq121", `ALL (\d.
-        (((tau_list (g,fan) (face (hypermap_of_list L) d)) + ((#0.972 * (azim_list (g,fan) d)) - #1.707)) - #0.0) >= #0.0) (list_of_darts L)`;
-
-  "ineq122", `ALL (\d.
-        (((tau_list (g,fan) (face (hypermap_of_list L) d)) + ((#4.72 * (azim_list (g,fan) d)) - #6.248)) - #0.0) >= #0.0) (list_of_darts L)`;
-];;
+Lp_approx_ineqs.generate_ineqs pos_thms [3] ineq;;
 
 
 (*****************************************)

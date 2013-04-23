@@ -245,31 +245,43 @@ map generalize_hyp ths;;
 (*******************************)
 
 
-let generate_ineqs pos_ths precision_list ineq_th =
-  let create_approxs original_th precision_list =
-    let var, ineq = (dest_abs o rand o rator o concl) original_th in
+let generate_ineqs =
+  let imp_th = TAUT `(A ==> B) ==> ((P ==> A) ==> (P ==> B))` in
+  let and_imp_th = TAUT `(A ==> B /\ C) <=> ((A ==> B) /\ (A ==> C))` in
+  let p_bool = `P:bool` in
+  let strip_imp = splitlist dest_imp in
+  let list_mk_imp = itlist (curry mk_imp) in
+
+  let create_approxs pos_ths original_th precision_list =
+    let var, ineq' = (dest_abs o rand o rator o concl) original_th in
+    let cond_tms, ineq = strip_imp ineq' in
     let final_step = fun approx_th ->
       let p_tm', q_tm' = dest_imp (concl approx_th) in
-      let p_tm, q_tm = mk_abs(var, p_tm'), mk_abs(var, q_tm') in
+      let p_tm, q_tm = mk_abs(var, list_mk_imp cond_tms p_tm'), mk_abs(var, list_mk_imp cond_tms q_tm') in
       let list_tm = (rand o concl) original_th in
       let mono_th = BETA_RULE (ISPECL[p_tm; q_tm; list_tm] (GEN_ALL MONO_ALL)) in
-      let s1 = MATCH_MP mono_th (GEN var approx_th) in
-        MATCH_MP s1 original_th in
-
+      let approx_th2 =
+	if cond_tms = [] then approx_th else
+	  let p_tm = end_itlist (curry mk_imp) cond_tms in
+	    MATCH_MP (INST [p_tm, p_bool] imp_th) approx_th in
+      let s1 = MATCH_MP mono_th (GEN var approx_th2) in
+	MATCH_MP s1 original_th in
+    
     let approx_ths0 = map generalize_hyp (create_approximations precision_list ineq) in
     let approx_ths1 = map (itlist PROVE_HYP pos_ths) approx_ths0 in
     let approx_ths = map (REWRITE_RULE[GSYM LIST_SUM_LMUL]) approx_ths1 in
       map final_step approx_ths in
 
+    fun pos_ths precision_list ineq_th ->
+      let _, ineq = (strip_imp o snd o dest_abs o rand o rator o concl) ineq_th in
+	if (is_eq ineq) then
+	  let eq_th = REWRITE_RULE[GSYM REAL_LE_ANTISYM; and_imp_th; GSYM AND_ALL] ineq_th in
+	  let ths1 = create_approxs pos_ths (CONJUNCT1 eq_th) precision_list in
+	  let ths2 = create_approxs pos_ths (CONJUNCT2 eq_th) precision_list in
+            ths1, ths2
+	else
+	  create_approxs pos_ths ineq_th precision_list, [];;
 
-  let ineq = (snd o dest_abs o rand o rator o concl) ineq_th in
-    if (is_eq ineq) then
-      let eq_th = REWRITE_RULE[GSYM REAL_LE_ANTISYM; GSYM AND_ALL] ineq_th in
-      let ths1 = create_approxs (CONJUNCT1 eq_th) precision_list in
-      let ths2 = create_approxs (CONJUNCT2 eq_th) precision_list in
-        ths1, ths2
-    else
-      create_approxs ineq_th precision_list, [];;
 
 
 (*

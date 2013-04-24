@@ -15,16 +15,31 @@ Module Lp_ineqs_proofs.
   /\ good_list_nodes L
   /\ hyp_iso g (hypermap_of_list L, hypermap_of_fan (V,E))
   /\ BIJ h (elements_of_list L) V
-  /\ (!d. g d = h (FST d), h (SND d))`".
+  /\ (!d. g d = h (FST d), h (SND d))
+  /\ (!x. x IN elements_of_list L <=> h x IN V)`".
+
+"let add_diag = new_definition `add_diag (V,E) (v,w)
+			= if (v,w) IN dart1_of_fan (V,E) then
+				{w, sigma_fan (vec 0) V E v w} INSERT E 
+				else E`".
+
+"let add_diag_list = new_definition 
+	`add_diag_list (g,V,E) diags = foldr (\d E'. add_diag (V,E') (g d)) E diags`".
+
+"let split_list_list = new_definition
+	`split_list_list L ds = foldr (\d L. split_list_hyp L d) L ds`".
 
 
 "open Ssrbool".
 "open Ssrnat".
+"open Seq".
+"open Seq2".
 "open Fan_defs".
 "open Hypermap".
 "open Hypermap_and_fan".
 "open Pack_defs".
 "open Tame_defs".
+"open Hypermap_iso".
 "open Add_triangle".
 "open List_hypermap".
 "open List_hypermap_iso".
@@ -38,14 +53,249 @@ Proof. by rewrite -sol0_over_pi_EQ_const1 real_div REAL_LT_MUL sol0_POS REAL_LT_
 Lemma const1_ge0: `&0 <= const1`.
 Proof. by rewrite REAL_LT_IMP_LE const1_gt0. Qed.
 
+(* FunctionPair *)
+Section FunctionPair.
+
+Lemma res_inv_subset f s s' t x: `s' SUBSET s /\ BIJ f s t /\ x IN IMAGE f s'
+	==> res_inv f s' x = res_inv f s x`.
+Proof.
+rewrite SUBSET IN_IMAGE => [] [s'_sub] [bij_f] [y] [->] y_in.
+rewrite (res_inv_bij bij_f) ?s'_sub //.
+rewrite (res_inv_left y_in) // => a b h.
+move: (bij_f); rewrite BIJ INJ => [] [] [_ f_inj] _.
+by apply: f_inj; rewrite h /= !s'_sub.
+Qed.
+
+
+Variable h1: `:A->B`.
+Variable h2: `:C->D`.
+Variable g: `:A#C -> B#D`.
+
+Hypothesis g_eq: `!x. g x = h1 (FST x), h2 (SND x)`.
+
+Lemma INJ_pair s1 t1 s2 t2: `INJ h1 s1 t1 /\ INJ h2 s2 t2
+	==> INJ g (s1 CROSS s2) (t1 CROSS t2)`.
+Proof.
+rewrite !INJ => [] [[h1_in h1_inj]] [h2_in h2_inj].
+split => [[a b] | [a b] [c d]]; rewrite !g_eq /= !IN_CROSS ?PAIR_EQ.
+  by move => ab_in; rewrite h1_in // h2_in.
+by move => [ab_in] [cd_in] [/h1_inj] -> // /h2_inj ->.
+Qed.
+
+Lemma SURJ_pair s1 t1 s2 t2: `SURJ h1 s1 t1 /\ SURJ h2 s2 t2
+	==> SURJ g (s1 CROSS s2) (t1 CROSS t2)`.
+rewrite !SURJ => [] [[h1_in h1_surj]] [h2_in h2_surj].
+split => [] [a b]; rewrite !g_eq /= !IN_CROSS ?PAIR_EQ.
+  by move => ab_in; rewrite h1_in // h2_in.
+move => [/h1_surj] [y1] y1_eq /h2_surj [y2] y2_eq.
+by exists `y1,y2`; rewrite IN_CROSS /= !y1_eq !y2_eq.
+Qed.
+
+Lemma BIJ_pair s1 t1 s2 t2: `BIJ h1 s1 t1 /\ BIJ h2 s2 t2
+	==> BIJ g (s1 CROSS s2) (t1 CROSS t2)`.
+Proof. by rewrite !BIJ => h; rewrite INJ_pair // SURJ_pair. Qed.
+
+Lemma res_inv_pair s1 t1 s2 t2: `BIJ h1 s1 t1 /\ BIJ h2 s2 t2
+   ==> (!a b. a IN t1 /\ b IN t2 
+	==> res_inv g (s1 CROSS s2) (a,b) = res_inv h1 s1 a, res_inv h2 s2 b)`.
+Proof.
+move => [bij_h1 bij_h2] a b [a_in b_in].
+have bij_g := BIJ_pair bij_h1 bij_h2.
+move: (bij_g); rewrite BIJ INJ => [] [] [g_in g_inj] _.
+apply: g_inj.
+rewrite !(res_inv_bij bij_g) ?IN_CROSS //.
+by rewrite g_eq /= !(res_inv_bij bij_h1) // !(res_inv_bij bij_h2).
+Qed.
+
+End FunctionPair.
+
+
+Lemma darts_of_list_subset L v w: 
+	`v,w IN darts_of_list L ==> v IN elements_of_list L /\ w IN elements_of_list L`.
+Proof.
+rewrite darts_of_list elements_of_list !IN_SET_OF_LIST.
+rewrite mem_list_of_darts => [] [l] [mem_l] /mem_list_pairs mem_vw.
+rewrite !list_of_elements !mem_undup !mem_flatten.
+by split; exists l.
+Qed.
+
 
 (* Lp_cond *)
 Section Lp_cond.
 
+Variable V: `:real^3->bool`.
+Variable E: `:(real^3->bool)->bool`.
+Variable L: `:((A)list)list`.
 
+
+Lemma lp_cond_lemma f: `lp_fan (V,E) /\ good_list L /\ good_list_nodes L
+	/\ hyp_iso f (hypermap_of_fan (V,E), hypermap_of_list L)
+	==> ?g h. lp_cond (L, g, h) (V,E) 
+	       /\ (!x. h x = if x IN elements_of_list L then 
+			res_inv (fan_list_nodes_iso (f,V,E)) V x else vec 0)`.
+Proof.
+rewrite lp_cond lp_fan => [] [] [fanV] [f_surr] [subV packV] [goodL] [good_nodes] iso_f.
+rewrite fanV f_surr subV packV goodL good_nodes !andTb.
+set f' := `fan_list_iso (f, V, E)`.
+set h' := `fan_list_nodes_iso (f, V, E)`.
+have f'_eq d: `f' d = h' (FST d), h' (SND d)`.
+  by case: d => v w; rewrite -f'_def fan_list_iso h'_def.
+have [dartV _] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+have [dartL _] := components_hypermap_of_list goodL.
+have iso_f': `hyp_iso f' (hypermap_of_fan (V,E), hypermap_of_list L)`.
+  apply: (hyp_iso_ext iso_f); rewrite dartV => d d_in.
+  by rewrite -f'_def -(hyp_iso_eq_fan_list_iso goodL fanV iso_f).
+have bij_h': `BIJ h' V (elements_of_list L)`.
+  by rewrite -h'_def (fan_list_nodes_iso_BIJ fanV iso_f).
+set h := `\x. if x IN elements_of_list L then res_inv h' V x else vec 0`.
+set g := `\d. h (FST d), h (SND d)`.
+exists g h.
+split; last by move => x; rewrite -h_def /=.
+split; last first.
+  rewrite -g_def /=; split.
+    by apply: (bij_ext (bij_res_inv bij_h')) => x x_in; rewrite -h_def /= x_in.
+  rewrite -h_def /= => x.
+  case x_in: `x IN _` => /=; first by rewrite (res_inv_bij bij_h').
+  apply: contraL subV; rewrite SUBSET NOT_FORALL_THM NOT_IMP => v0.
+  by exists `vec 0`; rewrite Ckqowsa_3_points.in_ball_annulus !negb_and negbK.
+apply: (hyp_iso_ext (hyp_iso_inv iso_f')).
+rewrite dartL -g_def => [] [v w] vw_in /=.
+have bij_f' := BIJ_pair bij_h' bij_h' f'_eq.
+rewrite (res_inv_subset bij_f'); last first.
+  have vw_in2 := darts_of_list_subset vw_in.
+  by rewrite (res_inv_pair f'_eq bij_h' bij_h') // -h_def /= !vw_in2.
+rewrite -(iso_dart iso_f') dartL vw_in andbT dartV SUBSET.
+by move => [a b] /(PAIR_IN_DART_OF_FAN fanV); rewrite IN_CROSS.
+Qed.
+
+
+Lemma lp_cond_trans1 g h d: `lp_cond (L,g,h) (V,E) 
+	==> lp_cond (split_list_hyp L d,g,h) (V, add_diag (V,E) (g d))`.
+Proof.
+case: d => v w.
+rewrite !lp_cond => [] [fan_cond] [goodL] [good_nodes] [iso_g] [bij_h] [g_eq] h_cond.
+move: (fan_cond); rewrite lp_fan => [] [fanV] [f_surr] [subV packV].
+have dart1_eq := fully_surrounded_dart_of_fan_eq fanV f_surr.
+have [dartV _] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+have [dartL _] := components_hypermap_of_list goodL.
+case vw_in: `v,w IN darts_of_list L` => /=; last first.
+  rewrite d_not_in_dart_split_eq -?IN_SET_OF_LIST -?darts_of_list //.
+  suff ->: `add_diag (V,E) (g (v,w)) = E` by [].
+  rewrite g_eq /= add_diag -dart1_eq.
+  suff ->: `~(h v, h w IN dart_of_fan (V,E))` by [].
+  apply: contra vw_in => hvw_in.
+  suff <-: `res_inv g (darts_of_list L) (h v, h w) = v,w`.
+    move: (hyp_iso_dart (hyp_iso_inv iso_g)).
+    by rewrite dartV dartL => ->.
+  have hvw_inV := PAIR_IN_DART_OF_FAN fanV hvw_in.
+  have vw_in: `v IN elements_of_list L /\ w IN elements_of_list L` by rewrite !h_cond.
+  have bij_g := BIJ_pair bij_h bij_h g_eq.
+  rewrite (res_inv_subset bij_g); last first.
+    by rewrite (res_inv_pair bij_h bij_h g_eq) // !(res_inv_bij bij_h).
+  rewrite -{2}dartL -(iso_dart iso_g) dartV hvw_in andbT SUBSET.
+  by move => [a b] /darts_of_list_subset; rewrite IN_CROSS.
+have els_eq: `elements_of_list (split_list_hyp L (v,w)) = elements_of_list L`.
+  rewrite !elements_of_list eq_sym; apply perm_eq_set_of_list_eq.
+  by rewrite list_of_elements_split.
+have iso_inv_g := hyp_iso_inv iso_g.
+have good_split := iso_imp_good_list_split iso_inv_g fanV goodL good_nodes f_surr.
+rewrite good_split // (iso_imp_good_list_nodes_split iso_inv_g) //.
+rewrite els_eq h_cond bij_h -g_eq lp_fan subV packV /= g_eq /=.
+have hvw_eq: `g (v,w) = h v, h w` by [].
+have hvw_in: `h v, h w IN dart_of_fan (V,E)`.
+  by rewrite -hvw_eq -dartV (hyp_iso_dart iso_g) dartL.
+have add_eq: `V, add_diag (V,E) (h v,h w) = split_fan_face (V,E) (h v,h w)`.
+  by rewrite add_diag split_fan_face -dart1_eq hvw_in.
+have [fan2 [_] f_surr2] := fan_split_fan_face fanV f_surr hvw_in.
+rewrite add_eq fan2 f_surr2 !andTb.
+set f := `fan_list_iso (res_inv g (dart (hypermap_of_list L)), V, E)`.
+have iso_f: `hyp_iso f (hypermap_of_fan (V,E), hypermap_of_list L)`.
+  apply: (hyp_iso_ext iso_inv_g) => d d_in.
+  by rewrite -f_def -(hyp_iso_eq_fan_list_iso) // -dartV.
+set h' := `fan_list_nodes_iso (res_inv g (dart (hypermap_of_list L)),V,E)`.
+have bij_g := BIJ_pair bij_h bij_h g_eq.
+have h'_eq x: `x IN elements_of_list L ==> h' (h x) = x`.
+  rewrite h_cond => x_in; move: (DART_EXISTS x_in E) => [hy] hxy_in.
+  have := hyp_iso_eq_fan_list_iso fanV goodL iso_inv_g hxy_in.
+  rewrite fan_list_iso h'_def (res_inv_subset bij_g).
+    rewrite -(iso_dart iso_g) dartV hxy_in andbT SUBSET dartL.
+    by case => a b /darts_of_list_subset; rewrite IN_CROSS.
+  rewrite (res_inv_pair bij_h bij_h g_eq) ?(PAIR_IN_DART_OF_FAN fanV hxy_in) //.
+  by rewrite (res_inv_bij bij_h) // PAIR_EQ => <-.
+have fh_eq: `f (h v, h w) = v,w`.
+  by rewrite -f_def fan_list_iso h'_def !h'_eq // (darts_of_list_subset vw_in).
+have := split_list_hyp_iso fanV goodL iso_f good_nodes f_surr hvw_in.
+rewrite -{1}f_def fan_list_iso_invariant f_def fh_eq => iso2_f.
+apply: (hyp_iso_ext (hyp_iso_inv iso2_f)) => [[a b]] ab_in.
+have := fan_list_nodes_iso_BIJ fanV goodL iso_inv_g good_nodes.
+rewrite h'_def => bij_h'.
+have := BIJ_pair bij_h' bij_h' f; "ANTS_TAC".
+  by case => x y; rewrite -f_def fan_list_iso h'_def.
+move => bij_f'; rewrite (res_inv_subset bij_f').
+  rewrite -(iso_dart iso2_f) ab_in andbT SUBSET => [] [x y].
+  rewrite -add_eq in fan2 *; rewrite COMPONENTS_HYPERMAP_OF_FAN // IN_CROSS.
+  by move/(PAIR_IN_DART_OF_FAN fan2).
+move: ab_in; rewrite (components_hypermap_of_list (good_split `v,w`)).
+move/darts_of_list_subset; rewrite els_eq => ab_in2.
+rewrite (res_inv_pair bij_h' bij_h').
+  by rewrite !ab_in2 !andbT; case => x y; rewrite -f_def fan_list_iso h'_def.
+have hab_inV: `h a IN V /\ h b IN V`.
+  by move: bij_h; rewrite BIJ INJ => [] [] [h_in] _ _; rewrite !h_in.
+by rewrite -{1}(h'_eq a) // -{1}(h'_eq b) // !(res_inv_bij bij_h').
+Qed.
 
 
 End Lp_cond.
+
+
+Lemma lp_cond_trans L V E g h ds: `lp_cond (L,g,h) (V,E)
+	==> lp_cond (split_list_list L ds, g, h) (V, add_diag_list (g,V,E) ds)`.
+Proof.
+move => cond.
+elim: ds => [|h t Ih]; rewrite split_list_list add_diag_list !foldr //.
+by rewrite -split_list_list -add_diag_list /= lp_cond_trans1.
+Qed.
+
+
+(* Contravening *)
+Section Contravening.
+
+Variable V: `:real^3->bool`.
+Hypothesis cV: `contravening V`.
+
+Let fanV: `FAN (vec 0,V,ESTD V)`. Proof. by rewrite CONTRAVENING_FAN. Qed.
+
+Lemma contravening_lp_fan: `lp_fan (V,ESTD V)`.
+Proof.
+rewrite lp_fan fanV CONTRAVENING_IMP_FULLY_SURROUNDED //.
+by rewrite contravening in cV; rewrite !cV.
+Qed.
+
+Lemma contravening_lp_cond L f: `good_list L /\ good_list_nodes L
+	/\ hyp_iso f (hypermap_of_fan (V,ESTD V), hypermap_of_list L)
+	==> ?g h. lp_cond (L, g, h) (V, ESTD V)`.
+Proof.
+move => [goodL] [good_nodes] iso_f.
+have [g [h] [cond] _] := lp_cond_lemma contravening_lp_fan goodL good_nodes iso_f.
+by exists g h.
+Qed.
+
+Lemma contravening_lp_cond_alt L: `good_list L 
+	/\ 2 * (sizel (list_of_elements L) + sizel (list_of_faces L)) = sizel (list_of_darts L) + 4
+	/\ (iso) (hypermap_of_fan (V,ESTD V)) (hypermap_of_list L)
+	==> ?g h. lp_cond (L, g, h) (V, ESTD V)`.
+Proof.
+move => [goodL] [eq] iso.
+have [f iso_f] := iso_imp_hyp_iso iso.
+apply: (contravening_lp_cond goodL iso_f).
+rewrite (good_list_nodes_size_condition goodL) //.
+rewrite -(iso_planar iso) -(iso_connected iso) -(iso_edge_nondegenerate iso).
+by rewrite Jgtdebu.JGTDEBU5 // Jgtdebu.JGTDEBU3 // Jgtdebu.JGTDEBU1.
+Qed.
+
+
+End Contravening.
+
 
 
 Section Fan.

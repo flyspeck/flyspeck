@@ -4,7 +4,6 @@ needs "../formal_lp/hypermap/ineqs/lp_ineqs_defs.hl";;
 needs "../formal_lp/hypermap/ineqs/lp_ineqs_proofs-compiled.hl";;
 needs "../formal_lp/hypermap/arith_link.hl";;
 
-
 type ineq_tag = Compute | Conditions | Std | Done;;
 
 type lp_ineq = {
@@ -15,10 +14,11 @@ type lp_ineq = {
 };;
 
 
-let add_ineq, find_ineq, find_all_ineqs = 
+let raw_ineq_list, add_raw_ineq, find_raw_ineq, find_all_raw_ineqs = 
   let table = ref [] in
-    (fun name tag tm th -> 
-       table := {name = name; tm = tm; tag = tag; proof = th} :: !table),
+    (fun () -> !table),
+  (fun name tag tm th -> 
+     table := {name = name; tm = tm; tag = tag; proof = th} :: !table),
   (fun name -> find (fun x -> x.name = name) !table),
   (fun tag -> filter (fun x -> x.tag = tag) !table);;
 
@@ -34,7 +34,7 @@ let my_parser s type_hints =
 
 let my_add_ineq (name, tag, s_tm, th) =
   let tm = my_parser s_tm ["H", `:(A)hypermap`; "V", `:C->bool`; "node_mod", `:A->C`] in
-    add_ineq name tag tm th;;
+    add_raw_ineq name tag tm th;;
 
 
 
@@ -94,9 +94,9 @@ map my_add_ineq
     "sol_sum5", Conditions, "!f. f IN face_set H ==> (CARD f = 5 ==> sum f azim_mod = sol_mod f + &3 * pi)", None;
     "sol_sum6", Conditions, "!f. f IN face_set H ==> (CARD f = 6 ==> sum f azim_mod = sol_mod f + &4 * pi)", None;
     "tau_sum3", Conditions, "!f. f IN face_set H ==> (CARD f = 3 ==> sum f rhazim_mod = tau_mod f + (pi + sol0))", None;
-    "tau_sum4", Conditions, "!f. f IN face_set H ==> (CARD f = 3 ==> sum f rhazim_mod = tau_mod f + &2 * (pi + sol0))", None;
-    "tau_sum5", Conditions, "!f. f IN face_set H ==> (CARD f = 3 ==> sum f rhazim_mod = tau_mod f + &3 * (pi + sol0))", None;
-    "tau_sum6", Conditions, "!f. f IN face_set H ==> (CARD f = 3 ==> sum f rhazim_mod = tau_mod f + &4 * (pi + sol0))", None;
+    "tau_sum4", Conditions, "!f. f IN face_set H ==> (CARD f = 4 ==> sum f rhazim_mod = tau_mod f + &2 * (pi + sol0))", None;
+    "tau_sum5", Conditions, "!f. f IN face_set H ==> (CARD f = 5 ==> sum f rhazim_mod = tau_mod f + &3 * (pi + sol0))", None;
+    "tau_sum6", Conditions, "!f. f IN face_set H ==> (CARD f = 6 ==> sum f rhazim_mod = tau_mod f + &4 * (pi + sol0))", None;
 
     "ln_def", Done, "!x. x IN V ==> ln_mod x = (#2.52 - yn_mod x) / #0.52", Some Lp_ineqs_proofs.ln_def;
     "rho_def", Done, "!x. x IN V ==> rho_mod x = (&1 + sol0 / pi) - ln_mod x * sol0 / pi", Some Lp_ineqs_proofs.rho_def;
@@ -120,7 +120,7 @@ map my_add_ineq
     "RHB", Done, "!d. d IN dart H ==> rhazim_mod d <= azim_mod d * (&1 + sol0 / pi)", Some Lp_ineqs_proofs.RHB;
 
     "yy10", Compute, "!d. d IN dart H ==> ye_mod d <= #2.52", None;
-    "yy15", Compute, "!d. d IN dart H ==> ye_mod d <= sqrt8", None;
+    "yy15", Compute, "!d. d IN dart H ==> y4_mod d <= sqrt8", None;
 
     "tau3", Std, "!f. f IN face_set H ==> (CARD f = 3 ==> tau_mod f >= &0)", None;
     "tau4", Std, "!f. f IN face_set H ==> (CARD f = 4 ==> tau_mod f >= #0.206)", None;
@@ -135,7 +135,7 @@ map my_add_ineq [
 	  (#0.565 * (y3_mod d - #2.0))) + ((#0.359 * (y2_mod d - #2.0)) + 
 	  (((#0.416 * (y4_mod d - #2.52)) - (#0.666 * (y6_mod d - #2.0))) + 
 	  (#0.061 * (y5_mod d - #2.0)))))) - #0.0) >= #0.0", None;
-  
+
   "ineq31", Conditions, "!d. d IN dart H ==>
 	  ((((azim3_mod d) - #1.083) + (((#0.6365 * (y1_mod d - #2.0)) 
 	  - (#0.198 * (y3_mod d - #2.0))) + ((#0.352 * (y2_mod d - #2.0)) 
@@ -242,16 +242,20 @@ map my_add_ineq [
   ];;
 
 
+(******************************)
 
+
+(* Replaces all general hypotheses with lp_cond *)
 let add_lp_hyp =
-  let lp_fan_ths = (CONJUNCTS o UNDISCH_ALL o MATCH_MP EQ_IMP o SPEC_ALL) lp_fan in
-  let lp_cond_ths = (CONJUNCTS o UNDISCH_ALL o MATCH_MP EQ_IMP o SPEC_ALL o INST_TYPE[`:num`, aty]) lp_cond in
+  let lp_fan_ths = (CONJUNCTS o UNDISCH_ALL o MATCH_MP EQ_IMP o SPEC_ALL) Lp_ineqs_proofs.lp_fan in
+  let lp_cond_ths = (CONJUNCTS o UNDISCH_ALL o MATCH_MP EQ_IMP o SPEC_ALL o INST_TYPE[`:num`, aty]) Lp_ineqs_proofs.lp_cond in
     fun th ->
       let th0 = (UNDISCH_ALL o SPEC_ALL) th in
       let th1 = itlist PROVE_HYP lp_fan_ths th0 in
 	itlist PROVE_HYP lp_cond_ths th1;;
 
 
+(* Generates a general form of an inequality *)
 let generate_ineq ineq =
   let th0 = Lp_gen_ineqs.generate_ineq ineq.tm in
   let th1 = add_lp_hyp th0 in
@@ -259,58 +263,50 @@ let generate_ineq ineq =
     match ineq.proof with
       | Some th -> add_lp_hyp th
       | None -> TRUTH in
-    ineq.name, ineq.tag, PROVE_HYP proof th1;;
-
-let ineqs = find_all_ineqs Done;;
-let l = map generate_ineq ineqs;;
-List.nth l 3;;
+    PROVE_HYP proof th1;;
 
 
-let ineqs = find_all_ineqs Conditions;;
-let l = map generate_ineq ineqs;;
-List.nth l 30;;
+let generate_all, find_ineq =
+  let ineq_table = Array.init 6 (fun i -> Hashtbl.create 10) in
+  let add i name tag ineq_th = Hashtbl.add (ineq_table.(i)) name (tag, ineq_th) in
+  let DECIMAL_INT = prove(`!n. DECIMAL n 1 = &n`, REWRITE_TAC[DECIMAL; REAL_DIV_1]) in
+  let report s =
+    Format.print_string s; Format.print_newline(); Format.print_flush() in
+  let pos_thms =
+    let inst = INST[`V:real^3->bool,E:(real^3->bool)->bool`, `fan:(real^3->bool)#((real^3->bool)->bool)`] in
+      map inst Lp_ineqs_def.list_var_pos in
+  let counter = ref 0 and
+      total = ref 0 in
 
-let _,_,ineq = List.nth l 30;;
-
-let pos_thms =
-  let inst = INST[`V:real^3->bool,E:(real^3->bool)->bool`, `fan:(real^3->bool)#((real^3->bool)->bool)`] in
-    map inst Lp_ineqs_def.list_var_pos;;
-
-Lp_approx_ineqs.generate_ineqs pos_thms [3] ineq;;
-
-
-(*****************************************)
-
-open Lp_approx_ineqs;;
-open Lp_ineqs_def;;
-
-let ineq_table = Array.init 6 (fun i -> Hashtbl.create 10);;
-let ineq_test_table = Array.init 6 (fun i -> Hashtbl.create 10);;
-
-
-let DECIMAL_INT = prove(`!n. DECIMAL n 1 = &n`, REWRITE_TAC[DECIMAL; REAL_DIV_1]);;
-
-
-let add_everything_to_table table =
-  let add_approximations_to_table = fun name ineq ->
-    let approxs', neg_approxs' = generate_ineqs list_var_pos [3;4;5] (ASSUME ineq) in
-    let approxs = zip (3--5) approxs' in
-    let neg_approxs = if (neg_approxs' = []) then [] else zip (3--5) neg_approxs' in
-    let r0 = CONV_RULE (REWRITE_CONV[DECIMAL_INT]) in
+  let process_ineq ineq =
+    let _ = counter := !counter + 1 in
+    let _ = report (sprintf "Processing: %s (%d / %d)" ineq.name !counter !total) in
+    let th1 = 
+      match ineq.tag with
+	| Done | Conditions ->
+	    generate_ineq ineq
+	| _ ->
+	    generate_ineq ineq in
+    let approx_ths, neg_approx_ths = Lp_approx_ineqs.generate_ineqs pos_thms [3;4;5] th1 in
+    let approx_ths = zip (3--5) approx_ths in
+    let neg_approx_ths = if (neg_approx_ths = []) then [] else zip (3--5) neg_approx_ths in
     let r = CONV_RULE (REWRITE_CONV[DECIMAL_INT] THENC DEPTH_CONV Arith_nat.NUMERAL_TO_NUM_CONV) in
-    let _ = map (fun (i, t) -> Hashtbl.add (ineq_test_table.(i)) name (r0 t);
-                               Hashtbl.add (ineq_table.(i)) name (r t)) approxs in
-    let _ = map (fun (i, t) -> Hashtbl.add (ineq_test_table.(i)) (name^"_neg") (r0 t);
-                               Hashtbl.add (ineq_table.(i)) (name^"_neg") (r t)) neg_approxs in
+    let _ = map (fun (i, t) -> add i ineq.name ineq.tag (r t)) approx_ths in
+    let _ = map (fun (i, t) -> add i (ineq.name^"_neg") ineq.tag (r t)) neg_approx_ths in
       () in
 
-    Hashtbl.iter (fun name ineq -> add_approximations_to_table name ineq) table;;
+    (* generate_all *)
+    (fun () -> 
+       let ineqs = raw_ineq_list() in
+       let _ = counter := 0 in
+       let _ = total := length ineqs in
+       let _ = map process_ineq (raw_ineq_list()) in
+	 ()),
+    (* find_ineq *)
+    (fun precision name -> Hashtbl.find ineq_table.(precision) name);;
 
 
-let find_ineq precision name = Hashtbl.find ineq_table.(precision) name;;
-let find_test_ineq precision name = Hashtbl.find ineq_test_table.(precision) name;;
 
-
-(* Generate and add inequalities for constraints *)
-add_everything_to_table constraints;;
+(* Generate all inequalities *)
+generate_all();;
 

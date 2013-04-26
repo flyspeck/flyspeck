@@ -12,8 +12,29 @@ open Arith_nat;;
 open Misc_vars;;
 open List_hypermap_computations;;
 open List_conversions;;
+open Lp_approx_ineqs;;
 
 
+(* Prepare theorems for the final inequality: &12 <= scriptL V *)
+let to_lin_f_ineq ineq_th =
+  let lhs, rhs = dest_binop le_op_real (concl ineq_th) in
+  let lhs_th = LIN_F_CONV lhs in
+    EQ_MP (AP_THM (AP_TERM le_op_real lhs_th) rhs) ineq_th;;
+
+let FINAL_INEQ = (MY_RULE_NUM o prove)(`lin_f [] <= -- &n <=> n = 0`,
+		     REWRITE_TAC[LIN_F_EMPTY; REAL_NEG_GE0; REAL_OF_NUM_LE; LE]);;
+
+let lnsum_ineqs =
+  let DECIMAL_INT = prove(`!n. DECIMAL n 1 = &n`, REWRITE_TAC[DECIMAL; REAL_DIV_1]) in
+  let ineq_th = (add_lp_hyp o REWRITE_RULE[GSYM IMP_IMP]) Lp_ineqs_proofs.lnsum_ineq in
+  let ineq_tm = concl ineq_th in
+  let ths1 = create_approximations [9;12;15] ineq_tm in
+  let ths2 = map generalize_hyp ths1 in
+  let ths3 = map (itlist PROVE_HYP Lp_ineqs_def.list_var_pos) ths2 in
+  let ths4 = map (C MP ineq_th) ths3 in
+  let r = CONV_RULE(REWRITE_CONV[DECIMAL_INT; GSYM LIST_SUM_LMUL] THENC DEPTH_CONV Arith_nat.NUMERAL_TO_NUM_CONV) in
+  let ths5 = map r ths4 in
+    zip (3--5) ths5;;
 
 
 
@@ -38,7 +59,7 @@ let plus_assoc_conv =
 
 (**********************)
 
-let rewrite_ineq hyp_fun =
+let convert_ineq hyp_fun =
   let rec rewrite_lhs tm =
     let rewrite_one tm =
       if (is_binop mul_op_real tm) then
@@ -97,31 +118,118 @@ let rewrite_ineq hyp_fun =
       else
 	rewrite_one tm in
       
-    fun ineq_th ->
-      let ltm, rtm = dest_comb (concl ineq_th) in
+    fun ineq_tm ->
+      let ltm, rtm = dest_comb ineq_tm in
       let op_tm, l_tm = dest_comb ltm in
-      let lhs_th = rewrite_lhs l_tm in
-	EQ_MP (AP_THM (AP_TERM op_tm lhs_th) rtm) ineq_th;;
+      let lhs_eq_th = rewrite_lhs l_tm in
+	AP_THM (AP_TERM op_tm lhs_eq_th) rtm;;
 
 
 
-let get_ineqs (hyp_list_tm, hyp_set, hyp_fun) precision name indices =
-  let tag, ineq0_th = find_ineq precision name in
+
+let convert_tm =
+  let num_str = (fst o dest_const) Arith_hash.num_const in
+  let rec convert hyp_fun tm =
+    if (is_comb tm) then
+      let ltm, rtm = dest_comb tm in
+      let op_tm = if is_comb ltm then rator ltm else ltm in
+	if is_const op_tm then
+	  let const_name = (fst o dest_const) op_tm in
+	  let rtm_th = convert hyp_fun rtm in
+	  let th0 = AP_TERM ltm rtm_th in
+	  let arg = rand (concl th0) in
+	  let th1 =
+	    if const_name = num_str then
+	      INST[rand arg, n_var_num] Arith_hash.NUM_THM
+	    else
+	      match const_name with
+		| "set_of_list" -> set_of_list_conv arg
+		| "FST" -> fst_conv arg
+		| "SND" -> snd_conv arg
+		| "HD" -> hd_conv arg
+		| "e_list" -> e_list_conv_num arg
+		| "LENGTH" -> length_conv arg
+		| _ ->
+		    (try hyp_fun const_name (rand arg)
+		     with Not_found -> REFL arg) in
+	    TRANS th0 th1
+	else
+	  REFL tm
+    else
+      REFL tm in
+    convert;;
+
+
+let convert_condition hyp_fun tm =
+  if is_comb tm then
+    let ltm, rtm = dest_comb tm in
+    let r_th = convert_tm hyp_fun rtm in
+      if is_comb ltm then
+	let op_tm, larg = dest_comb ltm in
+	let l_th = convert_tm hyp_fun larg in
+	  MK_COMB (AP_TERM op_tm l_th, r_th)
+      else
+	AP_TERM ltm r_th
+  else
+    convert_tm hyp_fun tm;;
+
+
+
+let rec simplify_ineq_tm hyp_fun tm =
+  if is_imp tm then
+    let ltm, q_tm = dest_comb tm in
+    let imp_tm, p_tm = dest_comb ltm in
+    let p_eq_th = convert_condition hyp_fun p_tm in
+    let q_eq_th = simplify_ineq_tm hyp_fun q_tm in
+      MK_COMB (AP_TERM imp_tm p_eq_th, q_eq_th)
+  else
+    convert_ineq hyp_fun tm;;
+
+
+let simplify_ineq hyp_fun ineq_th =
+  let eq_th = simplify_ineq_tm hyp_fun (concl ineq_th) in
+    EQ_MP eq_th ineq_th;;
+
+
+let rec prove_conditions ineq_th =
+  let concl_tm = concl ineq_th in
+    if is_imp concl_tm then
+      let p_tm = lhand concl_tm in
+      let flag, p_th =
+	if is_eq p_tm then
+	  let ltm, rtm = dest_eq p_tm in
+	    if ltm = rtm then
+	      true, REFL ltm
+	    else
+	      false, TRUTH
+	else
+	  false, TRUTH in
+      let th1 =
+	if flag then
+	  MP ineq_th p_th
+	else
+	  UNDISCH ineq_th in
+	prove_conditions th1
+    else
+      ineq_th;;
+      
+
+let get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices =
+  let tag, ineq0_th = find_ineq std_flag precision name in
   let ineq1_th = INST[hyp_list_tm, l_cap_var] ineq0_th in
   let all_tm, set_tm = dest_comb (concl ineq1_th) in
   let set_eq_th = hyp_set ((fst o dest_const o rator) set_tm) in
   let ineq2_th = EQ_MP (AP_TERM all_tm set_eq_th) ineq1_th in
   let ineq0_ths = select_all ineq2_th indices in
   let ineq1_ths = map MY_BETA_RULE ineq0_ths in
-  let ineq2_ths = map UNDISCH_ALL ineq1_ths in
-  let ineqs = map (rewrite_ineq hyp_fun) ineq2_ths in
-    ineqs;;
-
+  let ineq2_ths = map (simplify_ineq hyp_fun) ineq1_ths in
+  let ineq3_ths = map prove_conditions ineq2_ths in
+    ineq3_ths;;
 
 
 (****************************)
 
-let prove_flyspeck_lp hyp_list_tm precision constraints target_variables variable_bounds =
+let prove_flyspeck_lp hyp_list_tm std_flag precision constraints target_variables variable_bounds =
   let list_thm, fun_table = compute_all hyp_list_tm in
   let hyp_fun name dart_tm = 
     let table = Hashtbl.find fun_table name in
@@ -139,15 +247,14 @@ let prove_flyspeck_lp hyp_list_tm precision constraints target_variables variabl
       fun const_name ->
 	let name = assoc const_name set_list in
 	  Hashtbl.find list_thm name in
-  let precision_constant = Int 10 **/ (Int precision) and
-      target_bound = `&12` in
+  let precision_constant = Int 10 **/ (Int precision) in
 
 (* This function generates all inequalities with the given name and indices,
    multiplies these inequalities by given coefficients, and finds the sum of 
    the generated inequalities *)
   let sum_step = fun (name, indices, c) ->
     try
-      let ineqs = get_ineqs (hyp_list_tm, hyp_set, hyp_fun) precision name indices in
+      let ineqs = get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices in
       let s1 = map transform_le_ineq (zip ineqs c) in
 	List.fold_left add_step' dummy s1
     with _ ->
@@ -159,13 +266,18 @@ let prove_flyspeck_lp hyp_list_tm precision constraints target_variables variabl
   let s3 = List.fold_left add_step' dummy (map sum_step variable_bounds) in
   let s4 = add_step' (add_step' s1 s2) s3 in
 
-  (* Final transformations *)
-  let r6 = CONV_RULE (DEPTH_CONV NUM_TO_NUMERAL_CONV) s4 in
-  let m = term_of_rat (precision_constant */ precision_constant */ precision_constant) in
-  let r7 = mul_rat_step r6 (mk_comb (`(/) (&1)`, m)) in
-  let r8 = REWRITE_RULE[lin_f; ITLIST; REAL_ADD_RID] r7 in
-  let r9 = EQT_ELIM (REAL_RAT_LE_CONV (mk_binop le_op_real ((rand o concl) r8) target_bound)) in
-    MATCH_MP REAL_LE_TRANS (CONJ r8 r9);;
+  let ineq_th0 = assoc precision lnsum_ineqs in
+  let ineq_th1 = (INST[hyp_list_tm, l_cap_var] o add_lp_hyp) ineq_th0 in
+  let ineq_th2 = EQ_MP (term_rewrite (concl ineq_th1) (hyp_set "list_of_elements")) ineq_th1 in
+  let ineq_th3 = simplify_ineq hyp_fun ineq_th2 in
+  let ineq_th4 = to_lin_f_ineq ineq_th3 in
+
+  let r1 = add_step' ineq_th4 s4 in
+  let n_tm = (rand o rand o rand o concl) r1 in
+  let r_eq_th = INST[n_tm, n_var_num] FINAL_INEQ in
+  let not_zero_th = NUM_EQ0_HASH_CONV n_tm in
+    EQ_MP not_zero_th (EQ_MP r_eq_th r1);;
+
 
 
 (*************************)
@@ -187,19 +299,21 @@ let split_list = eval_split_list_hyp test_list (to_num `0,1`);;
 let test_list = (rand o concl) split_list;;
 
 
-prove_flyspeck_lp test_list precision constraints target_variables variable_bounds;;
-(* 10, bb1: 2.376 *)
+prove_flyspeck_lp test_list false precision constraints target_variables variable_bounds;;
+(* 10, bb1: 2.256 *)
 (* 10, bb2_1: 2.224 *)
 (* 10, bb2_2: 2.532 *)
 (* 10, bb2_3: *)
 (* 10, bb2_4: *)
 (* 10, bb2_5: 2.580 *)
-test 1 (prove_flyspeck_lp test_list precision constraints target_variables) variable_bounds;;
+test 1 (prove_flyspeck_lp test_list false precision constraints target_variables) variable_bounds;;
 
 
 (************************)
 
 let hyp_list_tm = test_list;;
+let std_flag = false;;
+
 let list_thm, fun_table = compute_all hyp_list_tm;;
 let hyp_fun name dart_tm = 
   let table = Hashtbl.find fun_table name in
@@ -239,7 +353,7 @@ let precision_constant = Int 10 **/ (Int precision) and
    the generated inequalities *)
 let sum_step = fun (name, indices, c) ->
   try
-    let ineqs = get_ineqs (hyp_list_tm, hyp_set, hyp_fun) precision name indices in
+    let ineqs = get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices in
     let s1 = map transform_le_ineq (zip ineqs c) in
       List.fold_left add_step' dummy s1
   with _ ->
@@ -251,7 +365,21 @@ let s2 = List.fold_left add_step' dummy (map sum_step target_variables);;
 let s3 = List.fold_left add_step' dummy (map sum_step variable_bounds);;
 let s4 = add_step' (add_step' s1 s2) s3;;
 
-  (* Final transformations *)
+let ineq_th0 = assoc precision lnsum_ineqs;;
+let ineq_th1 = (INST[hyp_list_tm, l_cap_var] o add_lp_hyp) ineq_th0;;
+let ineq_th2 = EQ_MP (term_rewrite (concl ineq_th1) (hyp_set "list_of_elements")) ineq_th1;;
+let ineq_th3 = simplify_ineq hyp_fun ineq_th2;;
+let ineq_th4 = to_lin_f_ineq ineq_th3;;
+
+let r1 = add_step' ineq_th4 s4;;
+let n_tm = (rand o rand o rand o concl) r1;;
+let r_eq_th = INST[n_tm, n_var_num] FINAL_INEQ;;
+let not_zero_th = NUM_EQ0_HASH_CONV n_tm;;
+EQ_MP not_zero_th (EQ_MP r_eq_th r1);;
+
+
+
+(* (old) Final transformations *)
 let r6 = CONV_RULE (DEPTH_CONV NUM_TO_NUMERAL_CONV) s4;;
 let m = term_of_rat (precision_constant */ precision_constant */ precision_constant);;
 let r7 = mul_rat_step r6 (mk_comb (`(/) (&1)`, m));;

@@ -35,8 +35,16 @@ let my_parser s type_hints =
 
 let my_add_ineq (name, tag, s_tm, th, std_th) =
   let tm = my_parser s_tm ["H", `:(A)hypermap`; "V", `:C->bool`; "node_mod", `:A->C`] in
+    (* Modify the inequality for the computation case *)
+  let tm', tag' =
+    match tag with
+      | Compute ->
+	  let var, bod = dest_forall tm in
+	  let set, c = dest_imp bod in
+	    mk_forall (var, mk_imp (set, mk_imp (c, c))), Conditions
+      | _ -> tm, tag in
     (* Add a general inequality *)
-  let _ = add_raw_ineq name tag false tm th in
+  let _ = add_raw_ineq name tag' false tm' th in
     (* Add an inequality for a standard fan *)
     match std_th with
       | Some _ ->
@@ -271,14 +279,52 @@ let add_lp_hyp =
 
 
 (* Generates a general form of an inequality *)
-let generate_ineq ineq =
-  let th0 = Lp_gen_ineqs.generate_ineq ineq.tm in
-  let th1 = add_lp_hyp th0 in
-  let proof = 
-    match ineq.proof with
-      | Some th -> add_lp_hyp th
-      | None -> TRUTH in
-    PROVE_HYP proof th1;;
+let generate_ineq0 ineq =
+      let th0 = Lp_gen_ineqs.generate_ineq ineq.tm in
+      let th1 = add_lp_hyp th0 in
+      let proof = 
+	match ineq.proof with
+	  | Some th -> add_lp_hyp th
+	  | None -> TRUTH in
+	PROVE_HYP proof th1;;
+	
+
+let generate_ineq =
+  let strip_ALL th =
+    let ltm, set_tm = dest_comb (concl th) in
+    let p_tm = rand ltm in
+    let var_tm, _ = dest_abs p_tm in
+    let th1 = (BETA_RULE o SPEC var_tm o PURE_REWRITE_RULE[GSYM ALL_MEM]) th in
+    let mem_tm = (fst o dest_imp o concl) th1 in
+      UNDISCH th1, (var_tm, mem_tm) in
+
+  let def_ths = 
+    let defs =
+      map (fst o strip_ALL o generate_ineq0 o find_raw_ineq)
+	["y1_def"; "y2_def"; "y3_def"; "y4_def"; "y5_def"; "y6_def"; "y9_def"] in
+    let def8 = (fst o strip_ALL o add_lp_hyp o REWRITE_RULE[GSYM IMP_IMP]) Lp_ineqs_proofs.y8_list_def in
+      def8 :: defs in
+
+  let rec simplify tm =
+    if is_imp tm then
+      let ltm, q_tm = dest_comb tm in
+      let imp_tm, p_tm = dest_comb ltm in
+      let p_tm, q_tm = dest_imp tm in
+      let p_th = PURE_REWRITE_CONV def_ths p_tm in
+      let q_th = simplify q_tm in
+	MK_COMB (AP_TERM imp_tm p_th, q_th)
+    else
+      REFL tm in
+
+    fun ineq ->
+      let th1 = generate_ineq0 ineq in
+      let th2, (var_tm, mem_tm) = strip_ALL th1 in
+      let eq_th = simplify (concl th2) in
+      let th3 = EQ_MP eq_th th2 in
+      let th4 = (GEN var_tm o DISCH mem_tm) th3 in
+	PURE_REWRITE_RULE[ALL_MEM] th4;;
+
+
 
 
 let generate_all, find_ineq =
@@ -287,27 +333,53 @@ let generate_all, find_ineq =
   let add i name tag ineq_th = Hashtbl.add (ineq_table.(i)) name (tag, ineq_th) in
   let add_std i name tag ineq_th = Hashtbl.add (std_ineq_table.(i)) name (tag, ineq_th) in
   let DECIMAL_INT = prove(`!n. DECIMAL n 1 = &n`, REWRITE_TAC[DECIMAL; REAL_DIV_1]) in
-  let report s =
-    Format.print_string s; Format.print_newline(); Format.print_flush() in
+
   let pos_thms =
     let inst = INST[`V:real^3->bool,E:(real^3->bool)->bool`, `fan:(real^3->bool)#((real^3->bool)->bool)`] in
       map inst Lp_ineqs_def.list_var_pos in
+
+  let rec rewrite_num_conv real_flag tm =
+    match tm with
+      | Var _ -> REFL tm
+      | Const _ -> REFL tm
+      | Abs (v_tm, b_tm) ->
+	  ABS v_tm (rewrite_num_conv real_flag b_tm)
+      | Comb (Const ("NUMERAL", _), _) ->
+	  Arith_nat.NUMERAL_TO_NUM_CONV tm
+      | Comb (Const ("real_of_num", _) as ltm, rtm) ->
+	  if real_flag then
+	    AP_TERM ltm (rewrite_num_conv real_flag rtm)
+	  else
+	    REFL tm
+      | Comb (Comb (Const ("DECIMAL", _), _), _) ->
+	  REFL tm
+      | Comb (ltm, rtm) ->
+	  MK_COMB (rewrite_num_conv real_flag ltm, rewrite_num_conv real_flag rtm) in
+
+  let rewrite_num ineq_th =
+    let th1 = PURE_REWRITE_RULE[DECIMAL_INT] ineq_th in
+    let imp_flag = (is_imp o snd o dest_abs o lhand o concl) th1 in
+      if imp_flag then
+	let th2 = PURE_REWRITE_RULE[IMP_IMP] th1 in
+	let th3 = CONV_RULE ((LAND_CONV o ABS_CONV o RAND_CONV) (rewrite_num_conv true)) th2 in
+	let th4 = CONV_RULE ((LAND_CONV o ABS_CONV o LAND_CONV) (rewrite_num_conv false)) th3 in
+	  PURE_REWRITE_RULE[GSYM IMP_IMP] th4
+      else
+	CONV_RULE (rewrite_num_conv true) th1 in
+  
+  let report s =
+    Format.print_string s; Format.print_newline(); Format.print_flush() in
   let counter = ref 0 and
       total = ref 0 in
 
   let process_ineq ineq =
     let _ = counter := !counter + 1 in
     let _ = report (sprintf "Processing: %s (%d / %d)" ineq.name !counter !total) in
-    let th1 = 
-      match ineq.tag with
-	| Done | Conditions ->
-	    generate_ineq ineq
-	| _ ->
-	    generate_ineq ineq in
+    let th1 = generate_ineq ineq in
     let approx_ths, neg_approx_ths = Lp_approx_ineqs.generate_ineqs pos_thms [3;4;5] th1 in
     let approx_ths = zip (3--5) approx_ths in
     let neg_approx_ths = if (neg_approx_ths = []) then [] else zip (3--5) neg_approx_ths in
-    let r = CONV_RULE (REWRITE_CONV[DECIMAL_INT] THENC DEPTH_CONV Arith_nat.NUMERAL_TO_NUM_CONV) in
+    let r = rewrite_num in
       if ineq.std then
 	let _ = map (fun (i, t) -> add_std i ineq.name ineq.tag (r t)) approx_ths in
 	let _ = map (fun (i, t) -> add_std i (ineq.name^"_neg") ineq.tag (r t)) neg_approx_ths in

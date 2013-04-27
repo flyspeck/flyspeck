@@ -85,12 +85,12 @@ let build_iso_th =
   ] in
     fun ineq ->
       let iso_trans_th = get_iso_thm ineq in
-      let th0 = UNDISCH_ALL (REWRITE_RULE[GSYM IMP_IMP] iso_trans_th) in
+      let th0 = UNDISCH_ALL (PURE_REWRITE_RULE[GSYM IMP_IMP] iso_trans_th) in
       let gen_var, rtm = dest_forall(concl th0) in
       let ants = lhand rtm in
       let th1 = UNDISCH (SPEC_ALL th0) in
 	(* General isomorphism rewrites *)
-      let th2 = REWRITE_RULE ths th1 in
+      let th2 = PURE_REWRITE_RULE ths th1 in
 	GEN gen_var (DISCH ants th2);;
 
 
@@ -119,21 +119,21 @@ let build_list_th =
       let s1 = INST_TYPE [`:real^3#real^3`, aty; `:num#num`, bty; `:real^3`, `:C`; `:num`, `:D`] iso_th in
       let s2 = INST[`hypermap_of_list (L:((num)list)list)`, `G:(num#num)hypermap`; `elements_of_list L:num->bool`, `R:num->bool`] s1 in
 	(* Convert conditions in the form !d. d IN set_of_list s to !d. MEM d s *)
-      let s3 = REWRITE_RULE ths_all s2 in
+      let s3 = PURE_REWRITE_RULE ths_all s2 in
       let gen_var2, rtm = dest_forall (concl s3) in
       let ants2 = lhand rtm in
       let s4 = UNDISCH (SPEC_ALL s3) in
 	(* Instantiate all variables *)
       let s5 = INST var_inst_list s4 in
 	(* Additional rewrites *)
-      let s6 = REWRITE_RULE ths_more s5 in
+      let s6 = PURE_REWRITE_RULE ths_more s5 in
       let s7 = GEN gen_var2 (DISCH ants2 s6) in
-      let s8 = REWRITE_RULE list_var_rewrites s7 in
-      let s9 = REWRITE_RULE[ALL_MEM] s8 in
+      let s8 = PURE_REWRITE_RULE list_var_rewrites s7 in
+      let s9 = PURE_REWRITE_RULE[ALL_MEM] s8 in
 	(* Rewrite the main inequality hypothesis with the COMPONENTS_HYPERMAP_OF_FAN theorem*)
       let gen_hyp = find is_forall (hyp s9) in
       let eq_th = REWRITE_CONV[UNDISCH_ALL (ISPECL [`V:real^3->bool`; `E:(real^3->bool)->bool`] COMPONENTS_HYPERMAP_OF_FAN)] gen_hyp in
-      let imp_th = UNDISCH (MATCH_MP EQ_IMP (SYM eq_th)) in
+      let imp_th = if (rand (concl eq_th) = `T`) then EQT_ELIM eq_th else UNDISCH (MATCH_MP EQ_IMP (SYM eq_th)) in
 	PROVE_HYP imp_th s9;;
 
 
@@ -177,3 +177,4 @@ generate_ineq y2_def;;
 generate_ineq y8_def;;
 generate_ineq rhazim_sum;;
 *)
+

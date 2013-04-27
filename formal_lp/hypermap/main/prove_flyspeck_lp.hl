@@ -125,8 +125,6 @@ let convert_ineq hyp_fun =
 	AP_THM (AP_TERM op_tm lhs_eq_th) rtm;;
 
 
-
-
 let convert_tm =
   let num_str = (fst o dest_const) Arith_hash.num_const in
   let rec convert hyp_fun tm =
@@ -135,24 +133,27 @@ let convert_tm =
       let op_tm = if is_comb ltm then rator ltm else ltm in
 	if is_const op_tm then
 	  let const_name = (fst o dest_const) op_tm in
-	  let rtm_th = convert hyp_fun rtm in
-	  let th0 = AP_TERM ltm rtm_th in
-	  let arg = rand (concl th0) in
-	  let th1 =
-	    if const_name = num_str then
-	      INST[rand arg, n_var_num] Arith_hash.NUM_THM
+	    if const_name = "real_of_num" or const_name = "DECIMAL" then
+	      REFL tm
 	    else
-	      match const_name with
-		| "set_of_list" -> set_of_list_conv arg
-		| "FST" -> fst_conv arg
-		| "SND" -> snd_conv arg
-		| "HD" -> hd_conv arg
-		| "e_list" -> e_list_conv_num arg
-		| "LENGTH" -> length_conv arg
-		| _ ->
-		    (try hyp_fun const_name (rand arg)
-		     with Not_found -> REFL arg) in
-	    TRANS th0 th1
+	      let rtm_th = convert hyp_fun rtm in
+	      let th0 = AP_TERM ltm rtm_th in
+	      let arg = rand (concl th0) in
+	      let th1 =
+		if const_name = num_str then
+		  INST[rand arg, n_var_num] Arith_hash.NUM_THM
+		else
+		  match const_name with
+		    | "set_of_list" -> set_of_list_conv arg
+		    | "FST" -> fst_conv arg
+		    | "SND" -> snd_conv arg
+		    | "HD" -> hd_conv arg
+		    | "e_list" -> e_list_conv_num arg
+		    | "LENGTH" -> length_conv arg
+		    | _ ->
+			(try hyp_fun const_name (rand arg)
+			 with Not_found -> REFL arg) in
+		TRANS th0 th1
 	else
 	  REFL tm
     else
@@ -308,6 +309,10 @@ prove_flyspeck_lp test_list false precision constraints target_variables variabl
 (* 10, bb2_5: 2.580 *)
 test 1 (prove_flyspeck_lp test_list false precision constraints target_variables) variable_bounds;;
 
+let th = it;;
+length (filter (is_binop le_op_real) (hyp th));;
+
+
 
 (************************)
 
@@ -335,12 +340,13 @@ let hyp_set =
 
 
 (********************)
-let name, indices, _ = List.nth constraints 4;;
-get_ineqs (hyp_list_tm, hyp_set, hyp_fun) precision name indices;;
+let name, indices, _ = List.nth constraints 29;;
+let name, indices, _ = List.nth variable_bounds 22;;
+get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices;;
 
+generate_ineq (find_raw_ineq "y9_def");;
 
 let x = 2;;
-
 
 
 (******************)

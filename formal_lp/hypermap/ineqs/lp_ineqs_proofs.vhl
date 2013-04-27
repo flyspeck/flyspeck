@@ -329,6 +329,42 @@ Variable E: `:(real^3->bool)->bool`.
 
 Hypothesis fanV: `FAN (vec 0,V,E)`.
 Hypothesis f_surr: `fully_surrounded (V,E)`.
+
+
+Lemma fan_sol_pos v w: `v,w IN dart_of_fan (V,E) 
+	==> &0 <= sol (vec 0) (dart_leads_into (vec 0) V E v w)`.
+Proof.
+move => vw_in.
+move: (fully_surrounded_imp_conforming fanV f_surr); 
+rewrite Conforming.conforming_fan => [] [_] [_] [_] [_] [c_angle] _.
+move: c_angle; rewrite "let_RULE Conforming.conforming_solid_angle_fan" => c_angle.
+have iso := fan_hypermaps_iso_explicit2 fanV.
+have [dartH _] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+have vw_in2: `v,w IN dart (hypermap_of_fan (V,E))` by rewrite dartH.
+have [_ [f_eq] _] := iso_components iso vw_in2.
+move: f_eq; set f1 := `face _1 _2`; move => f1_eq.
+move: (c_angle f1); "ANTS_TAC".
+  by rewrite -f1_def -lemma_in_face_set (hyp_iso_dart iso).
+rewrite f1_eq -dart_leads_into_eq1 //.
+move => [r1] [r2] _.
+move: r2; rewrite Sphere.eventually_radial => [] [r] [r_gt0] rad.
+rewrite (Vol1.sol_spec r_gt0 rad) INTER_COMM ?r1 //.
+rewrite REAL_LE_MUL REAL_LE_DIV; last by arith.
+rewrite REAL_POW_LE; first by move: r_gt0; arith.
+by rewrite -real_ge Vol1.VOLUME_PROPS_MEASURABLE.
+Qed.
+
+
+Lemma sol_fan_eq v w: `v,w IN dart_of_fan (V,E)
+	==> sol_fan (V,E) (face (hypermap_of_fan (V,E)) (v, w)) 
+		= sol (vec 0) (dart_leads_into (vec 0) V E v w)`.
+Proof.
+rewrite sol_fan => vw_in; rewrite fully_surrounded_sol // REAL_ADD_SYM.
+by rewrite REAL_ABS_REFL -fully_surrounded_sol // fan_sol_pos.
+Qed.
+
+
+(* Additional hypotheses *)
 Hypothesis packV: `packing V`.
 Hypothesis subV: `V SUBSET ball_annulus`.
 
@@ -363,6 +399,24 @@ Proof.
 move => vV; rewrite REAL_LE_ADD REAL_LE_MUL; last by arith.
 rewrite const1_ge0 ln_fan lmfun yn_fan h0.
 by move: (norm_v vV); arith.
+Qed.
+
+
+Lemma ln_fan_ly v: `v IN V ==> ln_fan v = ly (norm v)`.
+Proof.
+rewrite ln_fan yn_fan => vV.
+have ->: `v = FST (v,v)` by [].
+rewrite -h_dart ly_EQ_lmfun //.
+by move: (norm_v vV); rewrite h0; arith.
+Qed.
+
+
+Lemma rho_fan_eq_rho v: `v IN V ==> rho_fan v = rho (norm v)`.
+Proof.
+rewrite rho_fan Sphere.rho => vV; rewrite -ln_fan_ly //.
+set x := `&1 + _`.
+suff ->: `abs x = x` by rewrite -x_def; arith.
+by rewrite REAL_ABS_REFL -x_def rho_pos.
 Qed.
 
 
@@ -682,6 +736,9 @@ move/lemma_face_representation: f_in => [[v w]] h.
 by exists v w; rewrite -dartH.
 Qed.
 
+Let confV: `conforming_fan (vec 0,V,E)`.
+Proof. by rewrite (fully_surrounded_imp_conforming fanV f_surr). Qed.
+
 
 Lemma sol_lo: `&0 <= sol_fan (V,E) f`.
 Proof. by rewrite sol_fan REAL_ABS_POS. Qed.
@@ -689,10 +746,53 @@ Proof. by rewrite sol_fan REAL_ABS_POS. Qed.
 Lemma tau_lo: `&0 <= tau_fan (V,E) f`.
 Proof. by rewrite tau_fan REAL_ABS_POS. Qed.
 
+Lemma sol_hi: `sol_fan (V,E) f <= &4 * pi`.
+Proof.
+have [v [w] [vw_in] ->] := f_repr.
+rewrite sol_fan_eq //.
+have iso := fan_hypermaps_iso_explicit2 fanV.
+have [dartH _] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+have vw_in2: `v,w IN dart (hypermap_of_fan (V,E))` by rewrite dartH.
+have [_ [f_eq] _] := iso_components iso vw_in2.
+rewrite dart_leads_into_eq1 // -f_eq.
+have := Conforming.SUM_SOL_IN_FACE_SET_EQ_4PI fanV confV.
+move/REAL_EQ_IMP_LE => /SUM_POS_BOUND; "ANTS_TAC"; last first.
+  move: f_eq; set f1 := `face _1 _2`; move => f_eq.
+  move/(_ f1) => ->.
+  by rewrite -f1_def -lemma_in_face_set (hyp_iso_dart iso).
+rewrite FINITE_HYPERMAP_ORBITS andTb /=.
+move => f1 /lemma_face_representation [d] [d_in] ->.
+rewrite -(ext_contracted d fanV) -?(hypermap_of_fan_rep_alt fanV) //.
+have cd_in: `contracted_dart d IN dart (hypermap_of_fan (V,E))`.
+  by rewrite (hyp_iso_dart (fan_hypermaps_iso_explicit fanV)).
+rewrite (iso_components iso) //.
+rewrite (pair_expand `contracted_dart d`) -dart_leads_into_eq1 -?pair_expand -?dartH //.
+by rewrite fan_sol_pos -pair_expand -dartH.
+Qed.
+
+
 Lemma sol_sum: `sum f (azim_dart (V,E)) = sol_fan (V,E) f + &(CARD f - 2) * pi`.
 Proof.
-rewrite sol_fan.
-Abort.
+have [v [w] [vw_in] ->] := f_repr.
+rewrite sol_fan_eq // fully_surrounded_sol //.
+rewrite SUM_SUB ?FACE_FINITE // (SUM_CONST `pi`) ?FACE_FINITE // (ETA_AX `azim_dart (V,E)`).
+rewrite -REAL_OF_NUM_SUB; last by arith.
+by move: (FULLY_SURROUNDED_IMP_CARD_FACE_GE_3 fanV f_surr vw_in); arith.
+Qed.
+
+Lemma sol_sum3: `CARD f = 3 ==> sum f (azim_dart (V,E)) = sol_fan (V,E) f + pi`.
+Proof. by rewrite sol_sum => ->; arith. Qed.
+
+Lemma sol_sum4: `CARD f = 4 ==> sum f (azim_dart (V,E)) = sol_fan (V,E) f + &2 * pi`.
+Proof. by rewrite sol_sum => ->; arith. Qed.
+
+Lemma sol_sum5: `CARD f = 5 ==> sum f (azim_dart (V,E)) = sol_fan (V,E) f + &3 * pi`.
+Proof. by rewrite sol_sum => ->; arith. Qed.
+
+Lemma sol_sum6: `CARD f = 6 ==> sum f (azim_dart (V,E)) = sol_fan (V,E) f + &4 * pi`.
+Proof. by rewrite sol_sum => ->; arith. Qed.
+
+
 
 End Face.
 
@@ -700,6 +800,11 @@ End Face.
 
 (* Test *)
 Section Test.
+
+Hypothesis n101: "(hd (Ineq.getprefix \"3318775219\")).ineq".
+Hypothesis n107: "(hd (Ineq.getprefix \"5957966880\")).ineq".
+
+Section Inner.
 
 Variable d: `:real^3#real^3`.
 Hypothesis d_in: `d IN dart_of_fan (V,E)`.
@@ -712,7 +817,6 @@ Proof. by rewrite y1_lo // y2_lo // y3_lo // y1_hi // y2_hi // y3_hi. Qed.
 Let y456_bounds: `&2 <= y4_fan (V,E) d /\ &2 <= y5_fan (V,E) d /\ &2 <= y6_fan d`.
 Proof. by rewrite y4_lo // y5_lo // y6_lo. Qed.
 
-Hypothesis ineqs: "(hd (Ineq.getprefix \"3318775219\")).ineq".
 
 (* TODO: introduce the dart3 set and eliminate the cardinality assumption *)
 Lemma ineq101: `CARD (face (hypermap_of_fan (V,E)) d) = 3
@@ -738,10 +842,44 @@ have ->: `dist (v,w') = y5_fan (V,E) (v,w)`.
   by rewrite res dart1_eq vw_in /= w'_def DIST_SYM.
 have ->: `dist (v,w) = y6_fan (v,w)` by rewrite y6_fan.
 rewrite real_ge REAL_LT_IMP_LE -real_gt.
-rewrite INEQ_ALT Ineq.apex_flat in ineqs; apply: ineqs.
+rewrite INEQ_ALT Ineq.apex_flat in n101; apply: n101.
 have ->: `#2.0 = &2` by arith.
 by rewrite !"GEN_ALL ALL".
 Qed.
+
+
+Lemma ineq107: `CARD (face (hypermap_of_fan (V,E)) d) = 3
+	/\ y4_fan (V,E) d <= #2.52
+	/\ y5_fan (V,E) d <= #2.52 /\ y6_fan d <= #2.52
+	==> (((rhazim_fan (V,E) d) - #1.2308) + (((#0.3639 * (y2_fan d + 
+	  (y3_fan (V,E) d + (y5_fan (V,E) d + (y6_fan d - #8.0))))) 
+		- (#0.6 * (y1_fan d - #2.0))) - 
+		(#0.685 * (y4_fan (V,E) d - #2.0)))) >= #0.0`.
+Proof.
+case: d d_in y123_bounds y456_bounds => v w vw_in y123_bounds y456_bounds [card_f bounds].
+have vw_inV := PAIR_IN_DART_OF_FAN vw_in fanV.
+rewrite rhazim_fan h_dart -yn_fan -ln_fan -rho_fan rho_fan_eq_rho FST //.
+rewrite "let_RULE fully_surrounded_azim_eq_dih_y" //.
+set w' := `sigma_fan _ V E v w`.
+have ->: `norm v = y1_fan (v,w)` by rewrite y1_fan.
+have ->: `norm w = y2_fan (v,w)` by rewrite y2_fan.
+have ->: `norm w' = y3_fan (V,E) (v,w)`.
+  rewrite y3_fan INVERSE_F_FAN_PAIR_EXT_EXPLICIT //.
+  by rewrite res dart1_eq vw_in /= w'_def.
+have ->: `dist (w,w') = y4_fan (V,E) (v,w)`.
+  by rewrite y4_fan f_fan_pair_ext dart1_eq vw_in /= f_fan_pair3.
+have ->: `dist (v,w') = y5_fan (V,E) (v,w)`.
+  rewrite y5_fan INVERSE_F_FAN_PAIR_EXT_EXPLICIT //.
+  by rewrite res dart1_eq vw_in /= w'_def DIST_SYM.
+have ->: `dist (v,w) = y6_fan (v,w)` by rewrite y6_fan.
+rewrite real_ge REAL_LT_IMP_LE -real_gt.
+rewrite INEQ_ALT Ineq.dart_std3 Sphere.rhazim in n107.
+apply: n107.
+have ->: `#2.0 = &2` by arith.
+by rewrite !"GEN_ALL ALL".
+Qed.
+
+End Inner.
 
 
 End Test.

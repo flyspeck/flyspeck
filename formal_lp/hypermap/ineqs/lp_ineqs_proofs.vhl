@@ -29,6 +29,9 @@ Module Lp_ineqs_proofs.
 "let split_list_list = new_definition
 	`split_list_list L ds = foldr (\d L. split_list_hyp L d) L ds`".
 
+(* A special definition for efficient computations *)
+"let y4_list_diag = new_definition `y4_list_diag L (v,w) = w, FST (inverse (f_list_ext L) (v,w))`".
+
 
 "open Ssrbool".
 "open Ssrnat".
@@ -303,7 +306,7 @@ Proof.
 rewrite contravening => [] [bij_h] [_] [_] [ineq] _.
 suff ->: `list_sum (list_of_elements L) (ln_list h) = scriptL V` by move: ineq; arith.
 rewrite list_sum_set_of_list ?uniq_list_of_elements -elements_of_list.
-rewrite scriptL "end_itlist CONJ list_defs" (Basics.BIJ_SUM bij_h).
+rewrite scriptL list_defs_th (Basics.BIJ_SUM bij_h).
 by apply SUM_EQ => v vV /=; rewrite ln_fan yn_fan.
 Qed.
 
@@ -314,12 +317,30 @@ Lemma y8_list_def V E L g: `FAN (vec 0,V,E) /\ good_list L /\
   	   = ye_list g (inverse (f_list_ext L) (inverse (f_list_ext L) d))) (list_of_darts L)`.
 Proof.
 rewrite -ALL_MEM /= => [] [fanV] [goodL] iso_g d mem_d.
-rewrite !"end_itlist CONJ list_defs" !o_THM.
+rewrite !list_defs_th !o_THM.
 have [dartL [_] [_] faceL] := components_hypermap_of_list goodL.
 move: mem_d; rewrite -IN_SET_OF_LIST -darts_of_list -dartL => d_in.
 rewrite -faceL -!(hyp_iso_inverse_comm iso_g) ?lemma_dart_inveriant_under_inverse_maps //.
 by rewrite y8_fan y5_fan !(COMPONENTS_HYPERMAP_OF_FAN fanV) ye_fan.
 Qed.
+
+
+Lemma y4'_list_def V E L g h: `FAN (vec 0,V,E) /\ good_list L /\
+	hyp_iso g (hypermap_of_list L, hypermap_of_fan (V,E)) /\
+	(!x. g x = h (FST x), h (SND x))
+	==> ALL (\d. y4'_list (g,V,E) d
+		= ye_list g (y4_list_diag L d)) (list_of_darts L)`.
+Proof.
+move => [fanV] [goodL] [iso_g] g_eq.
+rewrite -ALL_MEM /= !list_defs_th !o_THM y4'_fan ye_fan => d mem_d.
+rewrite {3}(pair_expand d) y4_list_diag -pair_expand.
+have [dartL [_] [_] faceL] := components_hypermap_of_list goodL.
+have [dartH [_] [_] faceH] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+have d_in: `d IN dart (hypermap_of_list L)`.
+  by rewrite dartL darts_of_list IN_SET_OF_LIST.
+by rewrite !g_eq /= -g_eq -faceH (hyp_iso_inverse_comm iso_g).
+Qed.
+
 
 
 Section Fan.
@@ -399,24 +420,6 @@ Proof.
 move => vV; rewrite REAL_LE_ADD REAL_LE_MUL; last by arith.
 rewrite const1_ge0 ln_fan lmfun yn_fan h0.
 by move: (norm_v vV); arith.
-Qed.
-
-
-Lemma ln_fan_ly v: `v IN V ==> ln_fan v = ly (norm v)`.
-Proof.
-rewrite ln_fan yn_fan => vV.
-have ->: `v = FST (v,v)` by [].
-rewrite -h_dart ly_EQ_lmfun //.
-by move: (norm_v vV); rewrite h0; arith.
-Qed.
-
-
-Lemma rho_fan_eq_rho v: `v IN V ==> rho_fan v = rho (norm v)`.
-Proof.
-rewrite rho_fan Sphere.rho => vV; rewrite -ln_fan_ly //.
-set x := `&1 + _`.
-suff ->: `abs x = x` by rewrite -x_def; arith.
-by rewrite REAL_ABS_REFL -x_def rho_pos.
 Qed.
 
 
@@ -561,6 +564,17 @@ Proof. by rewrite y6_fan pack_dist. Qed.
 End Dart.
 
 
+(* Dart3 *)
+Section Dart3.
+
+Variable d: `:real^3#real^3`.
+Hypothesis d_in: `d IN darts_k 3 (hypermap_of_fan (V,E))`.
+
+
+
+
+End Dart3.
+
 Let fd_in d: `d IN dart_of_fan (V,E) ==> f_fan_pair_ext (V,E) d IN dart_of_fan (V,E)`.
 Proof. by rewrite -dartH -fH => d_in; rewrite Hypermap.lemma_dart_invariant. Qed.
 
@@ -613,8 +627,8 @@ End StdDart.
 
 
 
-(* Dart2 *)
-Section Dart2.
+(* DartMore *)
+Section DartMore.
 
 Variable d: `:real^3#real^3`.
 Hypothesis d_in: `d IN dart_of_fan (V,E)`.
@@ -662,6 +676,16 @@ Proof. by rewrite y8_fan y5_fan pack_dist !ifd_in. Qed.
 Lemma y9_lo: `&2 <= y9_fan (V,E) d`.
 Proof. by rewrite y9_fan pack_dist fd_in. Qed.
 
+Lemma y4'_lo: `&2 <= y4'_fan (V,E) d`.
+Proof. 
+move: packV.
+rewrite Ckqowsa.packing y4'_fan; apply.
+rewrite (in_dart_inV d_in) (in_dart_inV (ifd_in d_in)) /=.
+case: d d_in => v w vw_in.
+rewrite INVERSE_F_FAN_PAIR_EXT_EXPLICIT // res dart1_eq vw_in /=.
+by rewrite -sigma_fan_not_fixed.
+Qed.
+
 Lemma azim2c: `azim2_fan (V,E) d = azim_dart (V,E) (f_fan_pair_ext (V,E) d)`.
 Proof. by rewrite azim2_fan. Qed.
 
@@ -687,7 +711,7 @@ rewrite rhazim_fan h_dart -yn_fan -ln_fan -rho_fan REAL_MUL_SYM.
 by rewrite REAL_LE_LMUL azim_lo // rho_hi // in_dart_inV.
 Qed.
 
-End Dart2.
+End DartMore.
 
 
 (* Node *)
@@ -793,8 +817,73 @@ Lemma sol_sum6: `CARD f = 6 ==> sum f (azim_dart (V,E)) = sol_fan (V,E) f + &4 *
 Proof. by rewrite sol_sum => ->; arith. Qed.
 
 
-
 End Face.
+
+
+(* Connections between nonlinear inequalities and fan inequalities *)
+Section Nonlinear.
+
+(* V *)
+Section V.
+
+Variable v: `:real^3`.
+Hypothesis vV: `v IN V`.
+
+Lemma ln_fan_ly: `ln_fan v = ly (norm v)`.
+Proof.
+rewrite ln_fan yn_fan.
+have ->: `v = FST (v,v)` by [].
+rewrite -h_dart ly_EQ_lmfun //.
+by move: (norm_v vV); rewrite h0; arith.
+Qed.
+
+Lemma rho_fan_eq_rho: `rho_fan v = rho (norm v)`.
+Proof.
+rewrite rho_fan Sphere.rho -ln_fan_ly.
+set x := `&1 + _`.
+suff ->: `abs x = x` by rewrite -x_def; arith.
+by rewrite REAL_ABS_REFL -x_def rho_pos.
+Qed.
+
+End V.
+
+(* Dart *)
+Section Dart.
+
+Variable d: `:real^3#real^3`.
+Hypothesis d_in: `d IN dart_of_fan (V,E)`.
+
+Lemma azim_fan_eq_dih_y: `azim_dart (V,E) d 
+   = dih_y (y1_fan d) (y2_fan d) (y3_fan (V,E) d) (y4'_fan (V,E) d) (y5_fan (V,E) d) (y6_fan d)`.
+Proof.
+case: d d_in => v w vw_in.
+rewrite "let_RULE fully_surrounded_azim_eq_dih_y" //.
+set w' := `sigma_fan _ V E v w`.
+have ->: `norm v = y1_fan (v,w)` by rewrite y1_fan.
+have ->: `norm w = y2_fan (v,w)` by rewrite y2_fan.
+have ->: `norm w' = y3_fan (V,E) (v,w)`.
+  rewrite y3_fan INVERSE_F_FAN_PAIR_EXT_EXPLICIT //.
+  by rewrite res dart1_eq vw_in /= w'_def.
+have ->: `dist (w,w') = y4'_fan (V,E) (v,w)`.
+  rewrite y4'_fan SND INVERSE_F_FAN_PAIR_EXT_EXPLICIT //.
+  by rewrite res dart1_eq vw_in /= w'_def.
+have ->: `dist (v,w') = y5_fan (V,E) (v,w)`.
+  rewrite y5_fan INVERSE_F_FAN_PAIR_EXT_EXPLICIT //.
+  by rewrite res dart1_eq vw_in /= w'_def DIST_SYM.
+suff ->: `dist (v,w) = y6_fan (v,w)` by [].
+by rewrite y6_fan.
+Qed.
+
+Lemma rhazim_fan_eq_rhazim: `rhazim_fan (V,E) d
+   = rhazim (y1_fan d) (y2_fan d) (y3_fan (V,E) d) (y4'_fan (V,E) d) (y5_fan (V,E) d) (y6_fan d)`.
+Proof.
+rewrite Sphere.rhazim -azim_fan_eq_dih_y rhazim_fan.
+by rewrite h_dart -yn_fan -ln_fan -rho_fan y1_fan rho_fan_eq_rho // (in_dart_inV d_in).
+Qed.
+
+End Dart.
+
+End Nonlinear.
 
 
 
@@ -819,8 +908,8 @@ Proof. by rewrite y4_lo // y5_lo // y6_lo. Qed.
 
 
 (* TODO: introduce the dart3 set and eliminate the cardinality assumption *)
-Lemma ineq101: `CARD (face (hypermap_of_fan (V,E)) d) = 3
-	/\ #2.52 <= y4_fan (V,E) d /\ y4_fan (V,E) d <= sqrt8
+Lemma ineq101: `CARD (face (hypermap_of_fan (V,E)) d) = 3 /\
+	#2.52 <= y4_fan (V,E) d /\ y4_fan (V,E) d <= sqrt8
 	/\ y5_fan (V,E) d <= #2.52 /\ y6_fan d <= #2.52
 	==> (((azim_dart (V,E) d) - #1.629) + (((#0.414 * (y2_fan d + 
 	  (y3_fan (V,E) d + (y5_fan (V,E) d + (y6_fan d - #8.0))))) 

@@ -20,12 +20,28 @@ Variable G: `:(B)hypermap`.
 Variable H: `:(A)hypermap`.
 Variable g: `:B->A`.
 
+Lemma darts_k_subset k d: `d IN darts_k k G ==> d IN dart G`.
+Proof. by rewrite darts_k inE => ->. Qed.
+
+Lemma face_set_k_subset k f: `f IN face_set_k k G ==> f IN face_set G`.
+Proof. by rewrite face_set_k inE => ->. Qed.
+
 Hypothesis g_iso: `hyp_iso g (G,H)`.
 
 Lemma components_iso_image d: `d IN dart G ==>
 	node H (g d) = IMAGE g (node G d)
 	/\ face H (g d) = IMAGE g (face G d)`.
 Proof. by move/(iso_components g_iso) => /=. Qed.
+
+Lemma components_iso_image_face_map d: `d IN dart G
+	==> node H (g (face_map G d)) = IMAGE g (node G (face_map G d))
+	/\ face H (g (face_map G d)) = IMAGE g (face G (face_map G d))
+	/\ node H (g (inverse (face_map G) d)) = IMAGE g (node G (inverse (face_map G) d))
+	/\ face H (g (inverse (face_map G) d)) = IMAGE g (face G (inverse (face_map G) d))`.
+Proof.
+by move => d_in; rewrite !components_iso_image // 
+	(lemma_dart_invariant, lemma_dart_inveriant_under_inverse_maps).
+Qed.
 
 Lemma hyp_iso_comm_special d: `d IN dart G
 	==> face_map H (g d) = g (face_map G d)
@@ -44,6 +60,21 @@ move/lemma_face_representation => [d] [d_in] ->.
 by rewrite -(iso_components g_iso) // (hyp_iso_card_components g_iso).
 Qed.
 
+Lemma hyp_iso_face_set_k k: `face_set_k k H = IMAGE (IMAGE g) (face_set_k k G)`.
+Proof.
+rewrite !face_set_k EXTENSION IN_IMAGE !inE => f.
+rewrite (iso_face_set g_iso) IN_IMAGE.
+split => [[] [f'] [->] f'_in card_f' | [f'] [->] h].
+  by exists f'; rewrite -card_face_iso.
+by rewrite card_face_iso // h /=; exists f'.
+Qed.
+
+Lemma hyp_iso_darts_k_eq k: `darts_k k H = IMAGE g (darts_k k G)`.
+Proof. by rewrite !darts_k_union_face_set_k IMAGE_UNIONS hyp_iso_face_set_k. Qed.
+
+Lemma hyp_iso_darts_k k d: `d IN darts_k k G ==> g d IN darts_k k H`.
+Proof. by rewrite hyp_iso_darts_k_eq IN_IMAGE => d_in; exists d. Qed.
+
 Lemma sum_node_iso r n: `n IN node_set G ==> sum (IMAGE g n) r = sum n (r o g)`.
 Proof.
 move/lemma_node_representation => [d] [d_in] ->.
@@ -61,19 +92,22 @@ Qed.
 Lemma iso_dart_trans P: `(!d. d IN dart H ==> P d) ==> (!d. d IN dart G ==> P (g d))`.
 Proof. by move => h d d_in; rewrite h (hyp_iso_dart g_iso). Qed.
 
+Lemma iso_darts_k_trans k P: `(!d. d IN darts_k k H ==> P d) 
+	==> (!d. d IN darts_k k G ==> P (g d))`.
+Proof. by move => h d d_in; rewrite h hyp_iso_darts_k. Qed.
+
 Lemma iso_face_trans P: `(!f. f IN face_set H ==> P f) 
 	==> (!f. f IN face_set G ==> P (IMAGE g f))`.
-Proof.
-move => h f /lemma_face_representation [d] [d_in] ->.
-by rewrite -(iso_components g_iso) // h -lemma_in_face_set (hyp_iso_dart g_iso).
-Qed.
+Proof. by rewrite (iso_face_set g_iso) IN_IMAGE => h f f_in; rewrite h; exists f. Qed.
 
 Lemma iso_node_trans P: `(!n. n IN node_set H ==> P n) 
 	==> (!n. n IN node_set G ==> P (IMAGE g n))`.
-Proof.
-move => h f /lemma_node_representation [d] [d_in] ->.
-by rewrite -(iso_components g_iso) // h -lemma_in_node_set (hyp_iso_dart g_iso).
-Qed.
+Proof. by rewrite (iso_node_set g_iso) IN_IMAGE => h n n_in; rewrite h; exists n. Qed.
+
+Lemma iso_face_k_trans k P: `(!f. f IN face_set_k k H ==> P f) 
+	==> (!f. f IN face_set_k k G ==> P (IMAGE g f))`.
+Proof. by rewrite hyp_iso_face_set_k IN_IMAGE => h f f_in; rewrite h; exists f. Qed.
+
 
 End IsoLemmas.
 
@@ -102,6 +136,25 @@ Proof. by move => uniq_s; rewrite FUN_EQ_THM => f; rewrite list_sum_set_of_list.
 Section ListLemmas.
 
 Variable L: `:((A)list)list`.
+
+Lemma list_of_faces3_subset f: `MEM f (list_of_faces3 L) ==> MEM f (list_of_faces L)`.
+Proof. by rewrite list_of_faces3 mem_filter => ->. Qed.
+
+Lemma list_of_faces4_subset f: `MEM f (list_of_faces4 L) ==> MEM f (list_of_faces L)`.
+Proof. by rewrite list_of_faces4 mem_filter => ->. Qed.
+
+Lemma list_of_darts3_subset d: `MEM d (list_of_darts3 L) ==> MEM d (list_of_darts L)`.
+Proof.
+rewrite list_of_darts3 list_of_darts_alt list_of_faces3.
+by rewrite !mem_flatten mem_filter /= => [] [l] h; exists l.
+Qed.
+
+Lemma list_of_darts4_subset d: `MEM d (list_of_darts4 L) ==> MEM d (list_of_darts L)`.
+Proof.
+rewrite list_of_darts4 list_of_darts_alt list_of_faces4.
+by rewrite !mem_flatten mem_filter /= => [] [l] h; exists l.
+Qed.
+
 
 Lemma e_list_ext_eq_e_list d: `MEM d (list_of_darts L) ==> e_list_ext L d = e_list d`.
 Proof. by rewrite e_list_ext res darts_of_list IN_SET_OF_LIST => ->. Qed.
@@ -135,6 +188,14 @@ Proof. by move => mem_n; rewrite card_set_of_list_uniq ?(uniq_face goodL) // Seq
 Lemma dart_list_all P: `(!d. d IN dart (hypermap_of_list L) ==> P d)
 	<=> (!d. MEM d (list_of_darts L) ==> P d)`.
 Proof. by rewrite (components_hypermap_of_list goodL) darts_of_list IN_SET_OF_LIST. Qed.
+
+Lemma dart3_list_all P: `(!d. d IN darts_k 3 (hypermap_of_list L) ==> P d)
+	<=> (!d. MEM d (list_of_darts3 L) ==> P d)`.
+Proof. by rewrite darts3_eq_list_of_darts3 // IN_SET_OF_LIST. Qed.
+
+Lemma dart4_list_all P: `(!d. d IN darts_k 4 (hypermap_of_list L) ==> P d)
+	<=> (!d. MEM d (list_of_darts4 L) ==> P d)`.
+Proof. by rewrite darts4_eq_list_of_darts4 // IN_SET_OF_LIST. Qed.
 
 Lemma elements_list_all P: `(!x. x IN elements_of_list L ==> P x)
 	<=> (!x. MEM x (list_of_elements L) ==> P x)`.

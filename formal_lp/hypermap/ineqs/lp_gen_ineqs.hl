@@ -45,6 +45,7 @@ let var_inst_list =
       `y6_fan`, mk_mod "y6_mod" "dart";
       `y8_fan (V,E)`, mk_mod "y8_mod" "dart";
       `y9_fan (V,E)`, mk_mod "y9_mod" "dart";
+      `y4'_fan (V,E)`, mk_mod "y4'_mod" "dart";
       `sol_fan (V,E)`, mk_mod "sol_mod" "face";
       `tau_fan (V,E)`, mk_mod "tau_mod" "face";
     ];;
@@ -52,11 +53,15 @@ let var_inst_list =
 
 (*****************)
 
+
+
 (* For a term in the form `!x. x IN set H ==> P x` returns a theorem
    hyp_iso g (G,H), !x. x IN set H ==> P x |- !y. y IN set G ==> P (g y) *)
 let get_iso_thm =
   let iso_list =
     [
+      `darts_k 4 (H:(A)hypermap)`, spec_var_th iso_darts_k_trans 0 `4`;
+      `darts_k 3 (H:(A)hypermap)`, spec_var_th iso_darts_k_trans 0 `3`;
       `dart (H:(A)hypermap)`, iso_dart_trans;
       `face_set (H:(A)hypermap)`, iso_face_trans;
       `node_set (H:(A)hypermap)`, iso_node_trans;
@@ -71,7 +76,6 @@ let get_iso_thm =
       let th1 = (SPEC_ALL o ONCE_REWRITE_RULE[RIGHT_IMP_FORALL_THM] o REWRITE_RULE[IMP_IMP]) set_th in
 	BETA_RULE (INST[p_tm, p_var] th1);;
 
-
 (* For an inequality term returns an isomorphism theorem *)
 let build_iso_th =
   let th_rule th = (UNDISCH_ALL o SPEC_ALL o REWRITE_RULE[RIGHT_IMP_FORALL_THM]) th in
@@ -80,9 +84,15 @@ let build_iso_th =
     th_rule hyp_iso_comm_special;
     th_rule hyp_iso_inv_comm;
     th_rule card_face_iso;
+    th_rule card_face_dart_iso;
     th_rule sum_node_iso;
     th_rule sum_face_iso;
   ] in
+  let sub_ths = [
+    `d IN darts_k 3 (G:(B)hypermap)`, (INST[`3`, `k:num`] o th_rule) darts_k_subset;
+    `d IN darts_k 4 (G:(B)hypermap)`, (INST[`4`, `k:num`] o th_rule) darts_k_subset;
+  ] in
+
     fun ineq ->
       let iso_trans_th = get_iso_thm ineq in
       let th0 = UNDISCH_ALL (PURE_REWRITE_RULE[GSYM IMP_IMP] iso_trans_th) in
@@ -91,7 +101,12 @@ let build_iso_th =
       let th1 = UNDISCH (SPEC_ALL th0) in
 	(* General isomorphism rewrites *)
       let th2 = PURE_REWRITE_RULE ths th1 in
-	GEN gen_var (DISCH ants th2);;
+      let th3 =
+	try
+	  let sub_th = assoc ants sub_ths in
+	    PROVE_HYP sub_th th2
+	with Failure _ -> th2 in
+	GEN gen_var (DISCH ants th3);;
 
 
 let build_list_th =
@@ -103,8 +118,11 @@ let build_list_th =
       sum_node_list_all;
       sum_face_list_all;
       dart_list_all;
+      dart3_list_all;
+      dart4_list_all;
       elements_list_all;
     ] in
+
   let ths_more =
   [
     th_rule card_set_of_list_face;
@@ -114,6 +132,13 @@ let build_list_th =
     th_rule e_list_ext_eq_e_list;
     th_rule fst_iso_trans;
   ] in
+
+  let ths_mem =
+    [
+      `MEM (d:num#num) (list_of_darts3 L)`, th_rule list_of_darts3_subset;
+      `MEM (d:num#num) (list_of_darts4 L)`, th_rule list_of_darts4_subset;
+    ] in
+
     fun iso_th ->
       (* G -> hypermap_of_list (L:((num)list)list) *)
       let s1 = INST_TYPE [`:real^3#real^3`, aty; `:num#num`, bty; `:real^3`, `:C`; `:num`, `:D`] iso_th in
@@ -127,14 +152,19 @@ let build_list_th =
       let s5 = INST var_inst_list s4 in
 	(* Additional rewrites *)
       let s6 = PURE_REWRITE_RULE ths_more s5 in
-      let s7 = GEN gen_var2 (DISCH ants2 s6) in
-      let s8 = PURE_REWRITE_RULE list_var_rewrites s7 in
-      let s9 = PURE_REWRITE_RULE[ALL_MEM] s8 in
+      let s7 =
+	try
+	  let mem_th = assoc ants2 ths_mem in
+	    PROVE_HYP mem_th s6
+	with Failure _ -> s6 in
+      let s8 = GEN gen_var2 (DISCH ants2 s7) in
+      let s9 = PURE_REWRITE_RULE list_var_rewrites s8 in
+      let s10 = PURE_REWRITE_RULE[ALL_MEM] s9 in
 	(* Rewrite the main inequality hypothesis with the COMPONENTS_HYPERMAP_OF_FAN theorem*)
-      let gen_hyp = find is_forall (hyp s9) in
+      let gen_hyp = find is_forall (hyp s10) in
       let eq_th = REWRITE_CONV[UNDISCH_ALL (ISPECL [`V:real^3->bool`; `E:(real^3->bool)->bool`] COMPONENTS_HYPERMAP_OF_FAN)] gen_hyp in
       let imp_th = if (rand (concl eq_th) = `T`) then EQT_ELIM eq_th else UNDISCH (MATCH_MP EQ_IMP (SYM eq_th)) in
-	PROVE_HYP imp_th s9;;
+	PROVE_HYP imp_th s10;;
 
 
 let generate_ineq ineq_tm =
@@ -144,7 +174,6 @@ let generate_ineq ineq_tm =
 
 
 end;;
-
 
 
 (*
@@ -161,8 +190,12 @@ let y1_def = `!d. d IN dart (H:(A)hypermap) ==> y1_mod d = yn_mod (node_mod d:C)
 let y2_def = `!d. d IN dart (H:(A)hypermap) ==> y2_mod d = yn_mod (node_mod (face_map H d):C):real`;;
 let y8_def = `!d. d IN dart (H:(A)hypermap) ==> y8_mod d = y5_mod (inverse (face_map H) d):real`;;
 let rhazim_sum = `!n. n IN node_set (H:(A)hypermap) ==> sum n rhazim_mod = &2 * pi * rho_mod (node_mod (CHOICE n):C)`;;
-let test_ineq6 = `!d. d IN dart (H:(A)hypermap) ==>
+let test_ineq6 = `!d. d IN darts_k 4 (H:(A)hypermap) ==>
         (((tau_mod (face H d)) + ((#4.72 * (azim_mod d)) - #6.248)) - #0.0) >= #0.0`;;
+let test_ineq7 = `!d. d IN dart (H:(A)hypermap) ==> CARD (face H d) = 3 ==> y4_mod d = y8_mod d:real`;;
+let test_ineq8 = `!d. d IN dart (H:(A)hypermap) ==> &2 <= y4'_mod d`;;
+let test_ineq9 = `!d. d IN darts_k 3 (H:(A)hypermap) ==> y4_mod d = ye_mod (face_map H d):real`;;
+let test_ineq10 = `!d. d IN darts_k 3 (H:(A)hypermap) ==> ye_mod d = ye_mod (edge_map H d):real`;;
 
 
 generate_ineq test_ineq1;;
@@ -171,6 +204,11 @@ generate_ineq test_ineq3;;
 generate_ineq test_ineq4;;
 generate_ineq test_ineq5;;
 generate_ineq test_ineq6;;
+generate_ineq test_ineq7;;
+generate_ineq test_ineq8;;
+generate_ineq test_ineq9;;
+generate_ineq test_ineq10;;
+
 generate_ineq edge_sym;;
 generate_ineq y1_def;;
 generate_ineq y2_def;;

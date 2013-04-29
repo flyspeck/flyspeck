@@ -244,7 +244,7 @@ by rewrite fully_surrounded_card_set_of_edge1.
 Qed.
 
 
-Lemma dart_leads_into_same f v w x y: `f IN face_set (hypermap_of_fan (V,E))
+Lemma dart_leads_into_same f v w x y: `f IN face_set (hypermap_of_fan (V,E)) 
 	/\ (v,w) IN f /\ (x,y) IN f
 	==> dart_leads_into (vec 0) V E v w = dart_leads_into (vec 0) V E x y`.
 Proof.
@@ -274,6 +274,23 @@ rewrite SUM_IMAGE.
   by rewrite dartH => ->.
 apply SUM_EQ; move => [a b] /in_face d_in.
 by rewrite o_THM /= ext_dart Fan.pr2 Fan.pr3 /= azim_dart_eq_azim_fan.
+Qed.
+
+
+Lemma fully_surrounded_sum_sol:
+   `sum (face_set (hypermap_of_fan (V,E)))
+	(\f. sol (vec 0) (dartset_leads_into_fan (vec 0) V E  (IMAGE (ext_dart (V,E)) f))) 
+	= &4 * pi`.
+Proof.
+have iso := fan_hypermaps_iso_explicit2 fanV.
+have := Conforming.SUM_SOL_IN_FACE_SET_EQ_4PI fanV confV.
+rewrite (iso_face_set iso) SUM_IMAGE; last first.
+  by move => <-; apply SUM_EQ => f _ /=; rewrite o_THM.
+move => f1 f2.
+move => [/lemma_face_representation [x] [x_in] ->] [/lemma_face_representation [y] [y_in] ->].
+move/(image_inj_gen `dart (hypermap_of_fan (V,E))`) => -> //.
+rewrite !lemma_face_subset // !andbT.
+exact: (hyp_iso_inj iso).
 Qed.
 
 
@@ -388,6 +405,17 @@ by move: PI_POS; "CONV_TAC REAL_FIELD".
 Qed.
 
 
+Lemma tauVEF_alt2_alt f: `f IN face_set (hypermap_of_fan (V,E))
+   ==> tauVEF (V,E,f) 
+	= sol (vec 0) (dartset_leads_into_fan (vec 0) V E  (IMAGE (ext_dart (V,E)) f)) 
+		* (&1 + sol0 / pi) 
+		- sol0 / pi * sum f (\x. azim_dart (V,E) x * lmfun (h_dart x))`.
+Proof.
+move/lemma_face_representation => [[v w]]; rewrite dartH => [] [vw_in] f_eq.
+by rewrite {1}f_eq "let_RULE tauVEF_alt2" // dart_leads_into_eq1.
+Qed.
+
+
 Lemma tauVEF_alt3 v w: `v,w IN dart_of_fan (V,E)
 	==> let f = face (hypermap_of_fan (V,E)) (v,w) in
 	tauVEF (V,E,f) = sum f (\x. (&1 + sol0 / pi * (&1 - lmfun (h_dart x))) 
@@ -399,6 +427,22 @@ set H := `hypermap_of_fan _`.
 have fin_f := FACE_FINITE H `v,w`.
 rewrite SUM_SUB // (SUM_CONST `pi + sol0`) //.
 by rewrite Tame_defs.tauVEF; arith.
+Qed.
+
+
+Lemma sum_tauVEF_upper_bound: `&12 <= scriptL V ==>
+	 sum (face_set (hypermap_of_fan (V,E))) (\f. tauVEF (V,E,f)) 
+		<= &4 * pi - &20 * sol0`.
+Proof.
+rewrite (SUM_EQ tauVEF_alt2_alt) => ineq.
+rewrite SUM_SUB ?FINITE_HYPERMAP_ORBITS // (SUM_LMUL `sol0 / pi`) (SUM_RMUL `&1 + sol0 / pi`).
+rewrite fully_surrounded_sum_sol.
+rewrite -Tame_defs.face_set_of_fan Hrxefdm_tame.HRXEFDM_lemma1 //.
+have -> v s: `(&4 * pi) * (&1 + s / pi) - s / pi * &2 * pi * v = &4 * pi - (&2 * v - &4) * s`.
+  by move: PI_NZ; "CONV_TAC REAL_FIELD".
+rewrite !real_sub REAL_LE_LADD REAL_LE_NEG REAL_LE_RMUL.
+rewrite (REAL_LT_IMP_LE sol0_POS).
+by move: ineq; arith.
 Qed.
 
 

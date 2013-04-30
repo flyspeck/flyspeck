@@ -68,6 +68,25 @@ rewrite lp_tau => [] [tau_h]; move/tau_h.
 by rewrite tau_fan REAL_ABS_REFL.
 Qed.
 
+Lemma face_map_in_darts_k H k d: `d IN darts_k k H
+	==> face_map H d IN darts_k k H /\ inverse (face_map H) d IN darts_k k H`.
+Proof.
+rewrite darts_k !inE => [] [d_in <-].
+rewrite lemma_dart_invariant // lemma_dart_inveriant_under_inverse_maps //=.
+split; congr `CARD _`; rewrite eq_sym; apply lemma_face_identity.
+  by rewrite -POWER_1 lemma_in_face.
+by rewrite -POWER_1 lemma_power_inverse_in_face face_refl.
+Qed.
+
+Lemma f_fan_pair_ext_in_darts_k V E k d: `FAN (vec 0,V,E) 
+		/\ d IN darts_k k (hypermap_of_fan (V,E))
+	==> f_fan_pair_ext (V,E) d IN darts_k k (hypermap_of_fan (V,E))
+		/\ inverse (f_fan_pair_ext (V,E)) d IN darts_k k (hypermap_of_fan (V,E))`.
+Proof.
+move => [fanV d_in].
+by rewrite -(COMPONENTS_HYPERMAP_OF_FAN fanV) !face_map_in_darts_k.
+Qed.
+
 
 (* FunctionPair *)
 Section FunctionPair.
@@ -709,6 +728,18 @@ Proof. by rewrite y4_fan pack_dist fd_in. Qed.
 Lemma y5_lo: `&2 <= y5_fan (V,E) d`.
 Proof. by rewrite y5_fan pack_dist ifd_in. Qed.
 
+Lemma y7_lo: `&2 <= y7_fan (V,E) d`.
+Proof.
+rewrite y7_fan {2}TWO POWER POWER_1 o_THM norm_v.
+by rewrite (in_dart_inV (ifd_in (ifd_in d_in))).
+Qed.
+
+Lemma y7_hi: `y7_fan (V,E) d <= #2.52`.
+Proof.
+rewrite y7_fan TWO POWER POWER_1 o_THM norm_v.
+by rewrite (in_dart_inV (ifd_in (ifd_in d_in))).
+Qed.
+
 Lemma y8_lo: `&2 <= y8_fan (V,E) d`.
 Proof. by rewrite y8_fan y5_fan pack_dist !ifd_in. Qed.
 
@@ -1066,6 +1097,16 @@ rewrite Sphere.rhazim -azim_fan_eq_dih_y rhazim_fan.
 by rewrite h_dart -yn_fan -ln_fan -rho_fan y1_fan rho_fan_eq_rho // (in_dart_inV d_in).
 Qed.
 
+Lemma delta_y_not_neg: 
+   `~(delta_y (y1_fan d) (y2_fan d) (y3_fan (V,E) d) (y4'_fan (V,E) d) (y5_fan (V,E) d) (y6_fan d)
+		< &0)`.
+Proof.
+case: d d_in => v w vw_in.
+have := "let_RULE delta_y_pos" v w `sigma_fan (vec 0) V E v w`.
+by rewrite REAL_NOT_LT !ys_eq.
+Qed.
+
+
 End Dart.
 
 (* Dart3 *)
@@ -1079,6 +1120,44 @@ Proof. by move: d_in; rewrite darts_k inE => ->. Qed.
 
 Let d_in_dart: `d IN dart_of_fan (V,E)`.
 Proof. by move: d_in; rewrite darts_k inE dartH => ->. Qed.
+
+
+Lemma dart3_yf_eq: `y1_fan (f_fan_pair_ext (V,E) d) = y2_fan d
+	/\ y2_fan (f_fan_pair_ext (V,E) d) = y3_fan (V,E) d
+	/\ y3_fan (V,E) (f_fan_pair_ext (V,E) d) = y1_fan d
+	/\ y4_fan (V,E) (f_fan_pair_ext (V,E) d) = y5_fan (V,E) d
+	/\ y5_fan (V,E) (f_fan_pair_ext (V,E) d) = y6_fan d
+	/\ y6_fan (f_fan_pair_ext (V,E) d) = y4_fan (V,E) d`.
+Proof.
+rewrite 12!(y1_fan, y2_fan, y3_fan, y4_fan, y5_fan, y6_fan) /=.
+rewrite (PERMUTES_INVERSES (F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN fanV)) /=.
+case: d d_in_dart card_f => v w vw_in card_f.
+rewrite INVERSE_F_FAN_PAIR_EXT_EXPLICIT // res dart1_eq vw_in /=.
+move: (vw_in); rewrite -dart1_eq => vw_in1.
+rewrite !f_fan_pair_ext dart1_eq vw_in /=.
+have eq := f_fan_pair3 fanV vw_in1 card_f.
+by rewrite -dart1_eq !eq.
+Qed.
+
+
+Lemma dart3_y_invf_eq: `y1_fan (inverse (f_fan_pair_ext (V,E)) d) = y3_fan (V,E) d
+	/\ y2_fan (inverse (f_fan_pair_ext (V,E)) d) = y1_fan d
+	/\ y3_fan (V,E) (inverse (f_fan_pair_ext (V,E)) d) = y2_fan d
+	/\ y4_fan (V,E) (inverse (f_fan_pair_ext (V,E)) d) = y6_fan d
+	/\ y5_fan (V,E) (inverse (f_fan_pair_ext (V,E)) d) = y4_fan (V,E) d
+	/\ y6_fan (inverse (f_fan_pair_ext (V,E)) d) = y5_fan (V,E) d`.
+Proof.
+rewrite 12!(y1_fan, y2_fan, y3_fan, y4_fan, y5_fan, y6_fan) /=.
+rewrite (PERMUTES_INVERSES (F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN fanV)) /=.
+case: d d_in_dart card_f => v w vw_in card_f.
+move: (vw_in); rewrite -dart1_eq => vw_in1.
+have := "let_RULE inverse_f_fan_pair_ext_power2" vw_in.
+rewrite TWO POWER POWER_1 o_THM => ->.
+rewrite "let_RULE TRIANGULAR_FACE" //.
+rewrite INVERSE_F_FAN_PAIR_EXT_EXPLICIT // res vw_in1 /=.
+by rewrite f_fan_pair_ext vw_in1 /= (f_fan_pair3 card_f).
+Qed.
+
 
 Lemma dart3_azim_fan_eq_dih_y: `azim_dart (V,E) d 
    = dih_y (y1_fan d) (y2_fan d) (y3_fan (V,E) d) (y4_fan (V,E) d) (y5_fan (V,E) d) (y6_fan d)`.
@@ -1097,6 +1176,43 @@ by rewrite sol_fan_eq // "let_RULE fully_surrounded_sol_eq_sol_y" // !ys_eq.
 Qed.
 
 End Dart3.
+
+(* Dart3_more *)
+Section Dart3_more.
+
+Variable d: `:real^3#real^3`.
+Hypothesis d_in: `d IN darts_k 3 (hypermap_of_fan (V,E))`.
+
+Lemma dart3_azim2_fan_eq_dih2_y: `azim2_fan (V,E) d
+   = dih2_y (y1_fan d) (y2_fan d) (y3_fan (V,E) d) (y4_fan (V,E) d) (y5_fan (V,E) d) (y6_fan d)`.
+Proof.
+rewrite dih2_y azim2_fan dart3_azim_fan_eq_dih_y ?f_fan_pair_ext_in_darts_k //.
+by rewrite !dart3_yf_eq // Nonlinear_lemma.dih_y_sym.
+Qed.
+
+Lemma dart3_azim3_fan_eq_dih3_y: `azim3_fan (V,E) d
+   = dih3_y (y1_fan d) (y2_fan d) (y3_fan (V,E) d) (y4_fan (V,E) d) (y5_fan (V,E) d) (y6_fan d)`.
+Proof.
+rewrite dih3_y azim3_fan dart3_azim_fan_eq_dih_y ?f_fan_pair_ext_in_darts_k //.
+by rewrite !dart3_y_invf_eq.
+Qed.
+
+Lemma dart3_rhazim2_fan_eq_rhazim2: `rhazim2_fan (V,E) d
+   = rhazim2 (y1_fan d) (y2_fan d) (y3_fan (V,E) d) (y4_fan (V,E) d) (y5_fan (V,E) d) (y6_fan d)`.
+Proof.
+rewrite rhazim2 rhazim2_fan dart3_rhazim_fan_eq_rhazim ?f_fan_pair_ext_in_darts_k //.
+by rewrite node2_y !dart3_yf_eq.
+Qed.
+
+Lemma dart3_rhazim3_fan_eq_rhazim3: `rhazim3_fan (V,E) d
+   = rhazim3 (y1_fan d) (y2_fan d) (y3_fan (V,E) d) (y4_fan (V,E) d) (y5_fan (V,E) d) (y6_fan d)`.
+Proof.
+rewrite rhazim3 rhazim3_fan dart3_rhazim_fan_eq_rhazim ?f_fan_pair_ext_in_darts_k //.
+by rewrite node3_y !dart3_y_invf_eq.
+Qed.
+
+End Dart3_more.
+
 
 (* Tau *)
 Section Tau.

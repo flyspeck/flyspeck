@@ -12,6 +12,13 @@ $ {
 end;;
 }
 
+/Symmetry section/ {
+	i\
+];;\
+\
+let sym_data = [
+}
+
 /ineq[[:alnum:]]* '/ {
 	s/\(ineq[[:alnum:]]*\)/"\1", /
 	s/'ID\[\([[:alnum:][:space:]]*\)\]'/"\1", /

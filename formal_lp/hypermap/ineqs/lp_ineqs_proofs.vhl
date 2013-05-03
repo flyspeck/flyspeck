@@ -8,8 +8,7 @@ Module Lp_ineqs_proofs.
 
 "let lp_fan = new_definition `lp_fan (V,E) <=> FAN (vec 0,V,E) 
   /\ fully_surrounded (V,E)
-  /\ (!d. d IN dart_of_fan (V,E) /\ 3 < CARD (face (hypermap_of_fan (V,E)) d)
-	==> #2.52 <= y4'_fan (V,E) d)
+  /\ (!v w. v IN V /\ w IN V /\ ~(v = w) /\ ~({v,w} IN E) ==> #2.52 <= dist (v,w))
   /\ V SUBSET ball_annulus 
   /\ packing V`".
 
@@ -171,7 +170,7 @@ Lemma lp_cond_lemma f: `lp_fan (V,E) /\ good_list L /\ good_list_nodes L
 	       /\ (!x. h x = if x IN elements_of_list L then 
 			res_inv (fan_list_nodes_iso (f,V,E)) V x else vec 0)`.
 Proof.
-rewrite lp_cond lp_fan => [] [] [fanV] [f_surr] [subV packV] [goodL] [good_nodes] iso_f.
+rewrite lp_cond lp_fan => [] [] [fanV] [f_surr] [diag_dist] [subV packV] [goodL] [good_nodes] iso_f.
 rewrite fanV f_surr subV packV goodL good_nodes !andTb.
 set f' := `fan_list_iso (f, V, E)`.
 set h' := `fan_list_nodes_iso (f, V, E)`.
@@ -188,6 +187,7 @@ set h := `\x. if x IN elements_of_list L then res_inv h' V x else vec 0`.
 set g := `\d. h (FST d), h (SND d)`.
 exists g h.
 split; last by move => x; rewrite -h_def /=.
+split; first by rewrite andbT => v w /diag_dist.
 split; last first.
   rewrite -g_def /=; split.
     by apply: (bij_ext (bij_res_inv bij_h')) => x x_in; rewrite -h_def /= x_in.
@@ -211,7 +211,7 @@ Lemma lp_cond_trans1 g h d: `lp_cond (L,g,h) (V,E)
 Proof.
 case: d => v w.
 rewrite !lp_cond => [] [fan_cond] [goodL] [good_nodes] [iso_g] [bij_h] [g_eq] h_cond.
-move: (fan_cond); rewrite lp_fan => [] [fanV] [f_surr] [subV packV].
+move: (fan_cond); rewrite lp_fan => [] [fanV] [f_surr] [diag_dist] [subV packV].
 have dart1_eq := fully_surrounded_dart_of_fan_eq fanV f_surr.
 have [dartV _] := COMPONENTS_HYPERMAP_OF_FAN fanV.
 have [dartL _] := components_hypermap_of_list goodL.
@@ -245,6 +245,9 @@ have add_eq: `V, add_diag (V,E) (h v,h w) = split_fan_face (V,E) (h v,h w)`.
   by rewrite add_diag split_fan_face -dart1_eq hvw_in.
 have [fan2 [_] f_surr2] := fan_split_fan_face fanV f_surr hvw_in.
 rewrite add_eq fan2 f_surr2 !andTb.
+split => [a b|].
+  rewrite add_diag -dart1_eq hvw_in /= IN_INSERT negb_or => cond.
+  by apply: diag_dist.
 set f := `fan_list_iso (res_inv g (dart (hypermap_of_list L)), V, E)`.
 have iso_f: `hyp_iso f (hypermap_of_fan (V,E), hypermap_of_list L)`.
   apply: (hyp_iso_ext iso_inv_g) => d d_in.
@@ -305,7 +308,8 @@ Let fanV: `FAN (vec 0,V,ESTD V)`. Proof. by rewrite CONTRAVENING_FAN. Qed.
 Lemma contravening_lp_fan: `lp_fan (V,ESTD V)`.
 Proof.
 rewrite lp_fan fanV CONTRAVENING_IMP_FULLY_SURROUNDED //.
-by rewrite contravening in cV; rewrite !cV.
+rewrite contravening in cV; rewrite !cV /= => v w [vV] [wV] [vw_neq].
+by apply: contraR; rewrite IN_ESTD vV wV vw_neq; arith.
 Qed.
 
 Lemma contravening_lp_cond L f: `good_list L /\ good_list_nodes L
@@ -1573,36 +1577,299 @@ Variable V: `:real^3->bool`.
 Variable E: `:(real^3->bool)->bool`.
 
 Hypothesis h_fan: `lp_fan (V,E)`.
-Hypothesis h_tau: `lp_tau (V,E)`.
 
-Section Ineq121.
+Lemma y4'_lo k d: `3 < k /\ d IN darts_k k (hypermap_of_fan (V,E)) 
+	==> #2.52 <= y4'_fan (V,E) d`.
+Proof.
+move: h_fan; rewrite lp_fan => [] [fanV] [f_surr] [diag_dist] _.
+case: d => v w.
+rewrite darts_k inE (COMPONENTS_HYPERMAP_OF_FAN fanV) => [] [k_gt] [vw_in] card_f.
+move: (vw_in); rewrite fully_surrounded_dart_of_fan_eq // => vw_in1.
+rewrite y4'_fan INVERSE_F_FAN_PAIR_EXT_EXPLICIT // res vw_in1 /= diag_dist.
+rewrite (PAIR_IN_DART_OF_FAN vw_in) // sigma_fan_inV // -sigma_fan_not_fixed //.
+rewrite inE_eq_in_dart1 -fully_surrounded_dart_of_fan_eq //=.
+by rewrite fully_surrounded_diag_not_in_dart.
+Qed.
 
-Hypothesis ineq121: "(hd (Ineq.getexact \"6944699408 a\")).ineq".
-Hypothesis ineq121r: "(hd (Ineq.getexact \"6944699408 a reduced\")).ineq".
+Lemma dart4_y4'_lo d: `d IN darts_k 4 (hypermap_of_fan (V,E)) 
+	==> #2.52 <= y4'_fan (V,E) d`.
+Proof. by apply/y4'_lo; arith. Qed.
 
+Lemma y4'_hi d: `d IN dart_of_fan (V,E)
+	==> y4'_fan (V,E) d <= &4 * h0`.
+Proof.
+rewrite lp_fan SUBSET in h_fan.
+case: d => v w vw_in.
+move: (vw_in); rewrite fully_surrounded_dart_of_fan_eq // => vw_in1.
+rewrite y4'_fan INVERSE_F_FAN_PAIR_EXT_EXPLICIT // res vw_in1 /=.
+set w' := `sigma_fan _ V E v w`.
+apply DIST_TRIANGLE_LE; exists `vec 0`; rewrite !DIST_0.
+have ->: `&4 * h0 = &2 * h0 + &2 * h0` by arith.
+rewrite REAL_LE_ADD2 (iffLR (Fnjlbxs.in_ball_annulus w)) ?(iffLR (Fnjlbxs.in_ball_annulus w')) //.
+  by rewrite h_fan (PAIR_IN_DART_OF_FAN vw_in).
+by rewrite -w'_def h_fan sigma_fan_inV.
+Qed.
 
-Lemma ineq121 d: `d IN darts_k 4 (hypermap_of_fan (V,E)) ==>
-	#2.52 <= y4'_fan (V,E) d
-	/\ #2.52 <= y4'_fan (V,E) (f_fan_pair_ext (V,E) d)
-	/\ y4'_fan (V,E) d <= #4.37
-	/\ y5_fan (V,E) d <= #2.52
+Section Y4_hi_bound.
+
+Hypothesis ineq: "(hd (Ineq.getexact \"3287695934\")).ineq".
+
+Lemma dart4_y4'_hi d: `d IN darts_k 4 (hypermap_of_fan (V,E))
+	==> y5_fan (V,E) d <= #2.52
 	/\ y6_fan d <= #2.52
-	/\ y7_fan (V,E) d <= #2.52
 	/\ y8_fan (V,E) d <= #2.52
 	/\ y9_fan (V,E) d <= #2.52
-   ==> tau_fan (V,E) (face (hypermap_of_fan (V,E)) d) + #0.972 * azim_dart (V,E) d - #1.707 >= &0`.
+	==> y4'_fan (V,E) d <= #4.37`.
 Proof.
-move => d_in4 bounds; rewrite lp_fan in h_fan.
+move: (h_fan); rewrite lp_fan => [] [fanV] [f_surr] h_fan2.
+have [dartH [_] [_] fH] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+case: d => v w vw_in4.
+move: (vw_in4); rewrite darts_k inE dartH => [] [vw_in] card_f bounds.
+case: (REAL_LE_TOTAL `y4'_fan (V,E) (v,w)` `#4.37`) => // y4_bound.
+move: (ineq `y4'_fan (V,E) (v,w)` `y9_fan (V,E) (v,w)` `y6_fan (v,w)`
+	  `y4'_fan (V,E) (f_fan_pair_ext (V,E) (v,w))` `y5_fan (V,E) (v,w)` `y8_fan (V,E) (v,w)`).
+rewrite INEQ_ALT !ALL /=; "ANTS_TAC".
+  have ->: `&2 * h0 = #2.52` by rewrite h0; arith.
+  have ->: `#2.0 = &2` by arith.
+  rewrite y4_bound y4'_hi // !bounds /= (y6_lo vw_in) //.
+  rewrite (y9_lo vw_in) // (y5_lo vw_in) // (y8_lo vw_in) //.
+  rewrite dart4_y4'_lo ?f_fan_pair_ext_in_darts_k //.
+  by rewrite y4'_hi // -fH -dartH lemma_dart_invariant dartH.
+rewrite !(ys_eq fanV) // ("let_RULE y78_eq" fanV) // ("let_RULE y9_eq" fanV) //.
+set w' := `sigma_fan _ V E v w`.
+set u := `sigma_fan _ V E w' v`.
+rewrite dart4_cross_eq_y4' //.
+rewrite y4'_fan -[`FST _`](o_THM `inverse _`) -POWER_2.
+rewrite "let_RULE inverse_f_fan_pair_ext_power2" // w'_def u_def.
+rewrite INVERSE_F_FAN_PAIR_EXT_EXPLICIT // res.
+rewrite -fully_surrounded_dart_of_fan_eq // vw_in /=.
+rewrite delta_y -!REAL_POW_2 -DELTA_EQ_DELTA_X.
+rewrite !(DIST_SYM v).
+have := Collect_geom.DELTA_POS_4POINTS w w' u v.
+by arith.
+Qed.
+
+
+Section Std.
+
+Hypothesis std: `E = ESTD V`.
+
+Lemma dart4_y4'_hi_std d: `d IN darts_k 4 (hypermap_of_fan (V,E))
+	==> y4'_fan (V,E) d <= #4.37`.
+move => d_in4; move: (d_in4); rewrite darts_k inE => [] [d_in _].
+apply: (dart4_y4'_hi d_in4).
+rewrite lp_fan in h_fan; rewrite COMPONENTS_HYPERMAP_OF_FAN // in d_in.
+by rewrite y5_hi_std2 // (y6_hi_std2 std) // y8_hi_std // y9_hi_std.
+Qed.
+
+End Std.
+
+End Y4_hi_bound.
+
+
+Lemma dart4_delta_y_not_neg2 d: `d IN darts_k 4 (hypermap_of_fan (V,E))
+	==> ~(delta_y (y7_fan (V,E) d) (y2_fan d) (y3_fan (V,E) d)
+		(y4'_fan (V,E) d) (y8_fan (V,E) d) (y9_fan (V,E) d) < &0)`.
+Proof.
+move: h_fan; rewrite lp_fan => [] [fanV] [f_surr] [_] [subV packV] d_in4.
+have [dartH [_] [_] fH] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+move: (d_in4); rewrite darts_k inE dartH => [] [d_in _].
+set f := `f_fan_pair_ext (V,E)`.
+have [ffd_in fd_in]: `f (f d) IN dart_of_fan (V,E) /\ f d IN dart_of_fan (V,E)`.
+  rewrite -(o_THM f) -POWER_2 -fH -dartH lemma_dart_invariant_power_face //.
+  by rewrite lemma_dart_invariant.
+have fd_in4: `f d IN darts_k 4 (hypermap_of_fan (V,E))`.
+  by rewrite -f_def f_fan_pair_ext_in_darts_k.
+have := delta_y_not_neg fanV f_surr packV subV ffd_in.
+rewrite -{1 3 5 7 9 11}f_def !dart4_yf_eq // dart4_cross_eq_y4' //.
+rewrite -f_def (PERMUTES_INVERSES (F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN fanV)).
+rewrite !dart4_yf_eq //.
+by rewrite "(GEN_ALL o CONJUNCT2 o SPEC_ALL) Merge_ineq.delta_y_sym".
+Qed.
+
+
+Hypothesis h_tau: `lp_tau (V,E)`.
+
+(* Ineq119 *)
+Section Ineq119.
+
+Hypothesis h_main: "(hd (Ineq.getexact \"3862621143 revised\")).ineq".
+Hypothesis h_reduced: "(hd (Ineq.getexact \"3862621143 side\")).ineq".
+Hypothesis h_front: "(hd (Ineq.getexact \"3862621143 front\")).ineq".
+Hypothesis h_back: "(hd (Ineq.getexact \"3862621143 back\")).ineq".
+Hypothesis h_back2: "(hd (Ineq.getexact \"6988401556\")).ineq".
+Hypothesis h_y4: "(hd (Ineq.getexact \"3287695934\")).ineq".
+
+Lemma ineq119 d: `d IN darts_k 4 (hypermap_of_fan (V,E)) ==>
+	y5_fan (V,E) d <= #2.52
+	/\ y6_fan d <= #2.52
+	/\ y8_fan (V,E) d <= #2.52
+	/\ y9_fan (V,E) d <= #2.52
+   ==> tau_fan (V,E) (face (hypermap_of_fan (V,E)) d) - #0.453 * azim_dart (V,E) d + #0.777 >= &0`.
+Proof.
+move => d_in4 bounds; move: (h_fan); rewrite lp_fan => h_fan2.
+have d_in: `d IN dart_of_fan (V,E)`.
+  by move: d_in4; rewrite darts_k inE COMPONENTS_HYPERMAP_OF_FAN // => ->.
+rewrite dart4_tau_fan_eq_tauq // real_ge.
+have eqs: `#2.0 = &2 /\ &2 * h0 = #2.52 /\ #0.0 = &0 /\ tame_table_d 2 1 = #0.103`.
+  by rewrite h0 tame_table_d; arith.
+rewrite Ineq.dart_std4 Ineq.apex_flat !eqs !INEQ_ALT !real_gt 
+	in h_main h_reduced h_front h_back h_back2.
+move: (h_main `y1_fan d` `y2_fan d` `y3_fan (V,E) d` `y4'_fan (V,E) d` `y5_fan (V,E) d`
+		`y6_fan d` `y7_fan (V,E) d` `y8_fan (V,E) d` `y9_fan (V,E) d`); "ANTS_TAC".
+  rewrite !ALL /= !bounds /= (y1_lo d_in) // (y2_lo d_in) // (y3_lo d_in) // (y5_lo d_in) //.
+  rewrite (y1_hi d_in) // (y2_hi d_in) // (y3_hi d_in) // (y6_lo d_in) // y7_hi //.
+  rewrite  (y7_lo d_in) // (y8_lo d_in) // (y9_lo d_in) // dart4_y4'_lo //.
+  by rewrite (dart4_y4'_hi h_y4).
+case; first by rewrite azim_fan_eq_dih_y //; move/REAL_LT_IMP_LE.
+rewrite delta_y_not_neg // dart4_delta_y_not_neg2 // orFb orbF.
+case.
+  rewrite -dart4_cross_eq_enclosed // => /REAL_LT_IMP_LE cross_le.
+  rewrite tauq_cross_split // dart4_azim_cross_split //.
+  set c_diag := `y4'_fan _1 _2`.
+  set t1 := `taum _1 _2 _3 _4 _5 _6`.
+  set t2 := `taum _1 _2 _3 _4 _5 _6`.
+  set a1 := `dih_y _1 _2 _3 _4 _5 _6`.
+  set a2 := `dih_y _1 _2 _3 _4 _5 _6`.
+  suff: `&0 < t1 - #0.453 * a1 + #0.777 / &2 /\ &0 < t2 - #0.453 * a2 + #0.777 / &2` by arith.
+  rewrite -t1_def -a1_def -t2_def -a2_def.
+  split; apply: h_reduced; rewrite !ALL /= !bounds cross_le /=.
+    rewrite (y1_lo d_in) // (y3_lo d_in) // (y5_lo d_in) // y7_lo // y7_hi // y8_lo //.
+    rewrite (y1_hi d_in) // (y3_hi d_in) // -c_diag_def dart4_y4'_lo //.
+    by rewrite f_fan_pair_ext_in_darts_k.
+  rewrite (y1_lo d_in) // (y2_lo d_in) // (y6_lo d_in) // y7_lo // y7_hi // y9_lo //.
+  rewrite (y1_hi d_in) // (y2_hi d_in) // -c_diag_def dart4_y4'_lo //.
+  by rewrite f_fan_pair_ext_in_darts_k.
+move/REAL_LT_IMP_LE => diag_le.
+move: h_reduced h_main h_y4 => _ _ _.
+rewrite tauq azim_fan_eq_dih_y //.
+set t1 := `taum _1 _2 _3 _4 _5 _6`.
+set t2 := `taum _1 _2 _3 _4 _5 _6`.
+set a := `dih_y _1 _2 _3 _4 _5 _6`.
+suff: `&0 < t1 + #0.103 - #0.453 * a + #0.777 /\ #0.103 < t2` by arith.
+rewrite -t1_def -t2_def -a_def; split.
+  apply: h_front; rewrite !ALL /= !bounds diag_le /=.
+  rewrite (y1_lo d_in) // (y2_lo d_in) // y3_lo // y5_lo // (y6_lo d_in) //.
+  by rewrite (y1_hi d_in) // (y2_hi d_in) // (y3_hi d_in) // dart4_y4'_lo.
+case y4'_ineq: `y4'_fan (V,E) d <= sqrt8` => /=.
+  apply: h_back2; rewrite !ALL /= !bounds y4'_ineq.
+  rewrite y7_lo // y7_hi // (y2_lo d_in) // (y2_hi d_in) //.
+  by rewrite y3_lo // y3_hi // y8_lo // y9_lo // dart4_y4'_lo.
+move: y4'_ineq; rewrite REAL_NOT_LE => /REAL_LT_IMP_LE y4'_ineq.
+apply: h_back; rewrite !ALL /= !bounds y4'_ineq.
+rewrite y7_lo // y7_hi // (y2_lo d_in) // (y2_hi d_in) //.
+rewrite y3_lo // y3_hi // y8_lo // y9_lo //.
+by move: diag_le; arith.
+Qed.
+
+Section Std.
+
+Hypothesis std: `E = ESTD V`.
+
+Lemma ineq119_std d: `d IN darts_k 4 (hypermap_of_fan (V,E))
+   ==> tau_fan (V,E) (face (hypermap_of_fan (V,E)) d) - #0.453 * azim_dart (V,E) d + #0.777 >= &0`.
+Proof.
+move => d_in4; move: (d_in4); rewrite darts_k inE => [] [d_in _].
+apply: (ineq119 d_in4).
+rewrite lp_fan in h_fan; rewrite COMPONENTS_HYPERMAP_OF_FAN // in d_in.
+by rewrite y5_hi_std2 // (y6_hi_std2 std) // y8_hi_std // y9_hi_std.
+Qed.
+
+End Std.
+
+End Ineq119.
+
+
+(* Ineq120 *)
+Section Ineq120.
+
+Hypothesis h_120: "(hd (Ineq.getexact \"4240815464 a\")).ineq".
+Hypothesis h_120r: "(hd (Ineq.getexact \"4240815464 a reduced\")).ineq".
+Hypothesis h_y4: "(hd (Ineq.getexact \"3287695934\")).ineq".
+
+Lemma ineq120 d: `d IN darts_k 4 (hypermap_of_fan (V,E)) ==>
+	y5_fan (V,E) d <= #2.52
+	/\ y6_fan d <= #2.52
+	/\ y8_fan (V,E) d <= #2.52
+	/\ y9_fan (V,E) d <= #2.52
+  ==> tau_fan (V,E) (face (hypermap_of_fan (V,E)) d) + #0.7573 * azim_dart (V,E) d - #1.433 >= &0`.
+Proof.
+move => d_in4 bounds; move: (h_fan); rewrite lp_fan => h_fan2.
 have d_in: `d IN dart_of_fan (V,E)`.
   by move: d_in4; rewrite darts_k inE COMPONENTS_HYPERMAP_OF_FAN // => ->.
 rewrite dart4_tau_fan_eq_tauq // real_ge.
 have eqs: `#2.0 = &2 /\ &2 * h0 = #2.52 /\ #0.0 = &0` by rewrite h0; arith.
-rewrite Ineq.dart_std4 !eqs !INEQ_ALT !real_gt in ineq121 ineq121r.
-move: (ineq121 `y1_fan d` `y2_fan d` `y3_fan (V,E) d` `y4'_fan (V,E) d` `y5_fan (V,E) d`
+rewrite Ineq.dart_std4 !eqs !INEQ_ALT !real_gt in h_120 h_120r.
+move: (h_120 `y1_fan d` `y2_fan d` `y3_fan (V,E) d` `y4'_fan (V,E) d` `y5_fan (V,E) d`
 		`y6_fan d` `y7_fan (V,E) d` `y8_fan (V,E) d` `y9_fan (V,E) d`); "ANTS_TAC".
   rewrite !ALL /= !bounds /= (y1_lo d_in) // (y2_lo d_in) // (y3_lo d_in) // (y5_lo d_in) //.
-  rewrite (y1_hi d_in) // (y2_hi d_in) // (y3_hi d_in) // (y6_lo d_in) //.
-  by rewrite  (y7_lo d_in) // (y8_lo d_in) // (y9_lo d_in).
+  rewrite (y1_hi d_in) // (y2_hi d_in) // (y3_hi d_in) // (y6_lo d_in) // y7_hi //.
+  rewrite  (y7_lo d_in) // (y8_lo d_in) // (y9_lo d_in) // dart4_y4'_lo //.
+  by rewrite (dart4_y4'_hi h_y4).
+case; first by rewrite azim_fan_eq_dih_y //; move/REAL_LT_IMP_LE.
+rewrite delta_y_not_neg // dart4_delta_y_not_neg2 // !orbF.
+rewrite -dart4_cross_eq_enclosed // => /REAL_LT_IMP_LE cross_le.
+rewrite tauq_cross_split // dart4_azim_cross_split //.
+set c_diag := `y4'_fan _1 _2`.
+set t1 := `taum _1 _2 _3 _4 _5 _6`.
+set t2 := `taum _1 _2 _3 _4 _5 _6`.
+set a1 := `dih_y _1 _2 _3 _4 _5 _6`.
+set a2 := `dih_y _1 _2 _3 _4 _5 _6`.
+suff: `&0 < t1 + #0.7573 * a1 - #1.433 / &2 /\ &0 < t2 + #0.7573 * a2 - #1.433 / &2` by arith.
+rewrite -t1_def -a1_def -t2_def -a2_def.
+split; apply: h_120r; rewrite !ALL /= !bounds cross_le /=.
+  rewrite (y1_lo d_in) // (y3_lo d_in) // (y5_lo d_in) // y7_lo // y7_hi // y8_lo //.
+  rewrite (y1_hi d_in) // (y3_hi d_in) // -c_diag_def dart4_y4'_lo //.
+  by rewrite f_fan_pair_ext_in_darts_k.
+rewrite (y1_lo d_in) // (y2_lo d_in) // (y6_lo d_in) // y7_lo // y7_hi // y9_lo //.
+rewrite (y1_hi d_in) // (y2_hi d_in) // -c_diag_def dart4_y4'_lo //.
+by rewrite f_fan_pair_ext_in_darts_k.
+Qed.
+
+Section Std.
+
+Hypothesis std: `E = ESTD V`.
+
+Lemma ineq120_std d: `d IN darts_k 4 (hypermap_of_fan (V,E))
+   ==> tau_fan (V,E) (face (hypermap_of_fan (V,E)) d) + #0.7573 * azim_dart (V,E) d - #1.433 >= &0`.
+Proof.
+move => d_in4; move: (d_in4); rewrite darts_k inE => [] [d_in _].
+apply: (ineq120 d_in4).
+rewrite lp_fan in h_fan; rewrite COMPONENTS_HYPERMAP_OF_FAN // in d_in.
+by rewrite y5_hi_std2 // (y6_hi_std2 std) // y8_hi_std // y9_hi_std.
+Qed.
+
+End Std.
+
+End Ineq120.
+
+
+(* Ineq121 *)
+Section Ineq121.
+
+Hypothesis h_121: "(hd (Ineq.getexact \"6944699408 a\")).ineq".
+Hypothesis h_121r: "(hd (Ineq.getexact \"6944699408 a reduced\")).ineq".
+Hypothesis h_y4: "(hd (Ineq.getexact \"3287695934\")).ineq".
+
+Lemma ineq121 d: `d IN darts_k 4 (hypermap_of_fan (V,E)) ==>
+	y5_fan (V,E) d <= #2.52
+	/\ y6_fan d <= #2.52
+	/\ y8_fan (V,E) d <= #2.52
+	/\ y9_fan (V,E) d <= #2.52
+   ==> tau_fan (V,E) (face (hypermap_of_fan (V,E)) d) + #0.972 * azim_dart (V,E) d - #1.707 >= &0`.
+Proof.
+move => d_in4 bounds; move: (h_fan); rewrite lp_fan => h_fan2.
+have d_in: `d IN dart_of_fan (V,E)`.
+  by move: d_in4; rewrite darts_k inE COMPONENTS_HYPERMAP_OF_FAN // => ->.
+rewrite dart4_tau_fan_eq_tauq // real_ge.
+have eqs: `#2.0 = &2 /\ &2 * h0 = #2.52 /\ #0.0 = &0` by rewrite h0; arith.
+rewrite Ineq.dart_std4 !eqs !INEQ_ALT !real_gt in h_121 h_121r.
+move: (h_121 `y1_fan d` `y2_fan d` `y3_fan (V,E) d` `y4'_fan (V,E) d` `y5_fan (V,E) d`
+		`y6_fan d` `y7_fan (V,E) d` `y8_fan (V,E) d` `y9_fan (V,E) d`); "ANTS_TAC".
+  rewrite !ALL /= !bounds /= (y1_lo d_in) // (y2_lo d_in) // (y3_lo d_in) // (y5_lo d_in) //.
+  rewrite (y1_hi d_in) // (y2_hi d_in) // (y3_hi d_in) // (y6_lo d_in) // y7_hi //.
+  rewrite  (y7_lo d_in) // (y8_lo d_in) // (y9_lo d_in) // dart4_y4'_lo //.
+  by rewrite (dart4_y4'_hi h_y4).
 case; first by rewrite azim_fan_eq_dih_y //; move/REAL_LT_IMP_LE.
 rewrite -dart4_cross_eq_enclosed // => /REAL_LT_IMP_LE cross_le.
 rewrite tauq_cross_split // dart4_azim_cross_split //.
@@ -1613,13 +1880,94 @@ set a1 := `dih_y _1 _2 _3 _4 _5 _6`.
 set a2 := `dih_y _1 _2 _3 _4 _5 _6`.
 suff: `&0 < t1 + #0.972 * a1 - #1.707 / &2 /\ &0 < t2 + #0.972 * a2 - #1.707 / &2` by arith.
 rewrite -t1_def -a1_def -t2_def -a2_def.
-split; apply: ineq121r; rewrite !ALL /= !bounds cross_le /=.
-  rewrite (y1_lo d_in) // (y3_lo d_in) // (y5_lo d_in) // (y7_lo d_in) // (y8_lo d_in) //.
-  by rewrite (y1_hi d_in) // (y3_hi d_in).
-rewrite (y1_lo d_in) // (y2_lo d_in) // (y6_lo d_in) // (y7_lo d_in) // (y9_lo d_in) //.
-by rewrite (y1_hi d_in) // (y2_hi d_in).
+split; apply: h_121r; rewrite !ALL /= !bounds cross_le /=.
+  rewrite (y1_lo d_in) // (y3_lo d_in) // (y5_lo d_in) // y7_lo // y7_hi // y8_lo //.
+  rewrite (y1_hi d_in) // (y3_hi d_in) // -c_diag_def dart4_y4'_lo //.
+  by rewrite f_fan_pair_ext_in_darts_k.
+rewrite (y1_lo d_in) // (y2_lo d_in) // (y6_lo d_in) // y7_lo // y7_hi // y9_lo //.
+rewrite (y1_hi d_in) // (y2_hi d_in) // -c_diag_def dart4_y4'_lo //.
+by rewrite f_fan_pair_ext_in_darts_k.
 Qed.
 
+Section Std.
+
+Hypothesis std: `E = ESTD V`.
+
+Lemma ineq121_std d: `d IN darts_k 4 (hypermap_of_fan (V,E))
+   ==> tau_fan (V,E) (face (hypermap_of_fan (V,E)) d) + #0.972 * azim_dart (V,E) d - #1.707 >= &0`.
+Proof.
+move => d_in4; move: (d_in4); rewrite darts_k inE => [] [d_in _].
+apply: (ineq121 d_in4).
+rewrite lp_fan in h_fan; rewrite COMPONENTS_HYPERMAP_OF_FAN // in d_in.
+by rewrite y5_hi_std2 // (y6_hi_std2 std) // y8_hi_std // y9_hi_std.
+Qed.
+
+End Std.
+
 End Ineq121.
+
+
+(* Ineq122 *)
+Section Ineq122.
+
+Hypothesis h_main: "(hd (Ineq.getexact \"7043724150 a\")).ineq".
+Hypothesis h_reduced: "(hd (Ineq.getexact \"7043724150 a reduced v2\")).ineq".
+Hypothesis h_y4: "(hd (Ineq.getexact \"3287695934\")).ineq".
+
+Lemma ineq122 d: `d IN darts_k 4 (hypermap_of_fan (V,E)) ==>
+	y5_fan (V,E) d <= #2.52
+	/\ y6_fan d <= #2.52
+	/\ y8_fan (V,E) d <= #2.52
+	/\ y9_fan (V,E) d <= #2.52
+   ==> tau_fan (V,E) (face (hypermap_of_fan (V,E)) d) + #4.72 * azim_dart (V,E) d - #6.248 >= &0`.
+Proof.
+move => d_in4 bounds; move: (h_fan); rewrite lp_fan => h_fan2.
+have d_in: `d IN dart_of_fan (V,E)`.
+  by move: d_in4; rewrite darts_k inE COMPONENTS_HYPERMAP_OF_FAN // => ->.
+rewrite dart4_tau_fan_eq_tauq // real_ge.
+have eqs: `#2.0 = &2 /\ &2 * h0 = #2.52 /\ #0.0 = &0` by rewrite h0; arith.
+rewrite Ineq.dart_std4 !eqs !INEQ_ALT !real_gt in h_main h_reduced.
+move: (h_main `y1_fan d` `y2_fan d` `y3_fan (V,E) d` `y4'_fan (V,E) d` `y5_fan (V,E) d`
+		`y6_fan d` `y7_fan (V,E) d` `y8_fan (V,E) d` `y9_fan (V,E) d`); "ANTS_TAC".
+  rewrite !ALL /= !bounds /= (y1_lo d_in) // (y2_lo d_in) // (y3_lo d_in) // (y5_lo d_in) //.
+  rewrite (y1_hi d_in) // (y2_hi d_in) // (y3_hi d_in) // (y6_lo d_in) // y7_hi //.
+  rewrite  (y7_lo d_in) // (y8_lo d_in) // (y9_lo d_in) // dart4_y4'_lo //.
+  by rewrite (dart4_y4'_hi h_y4).
+case; first by rewrite azim_fan_eq_dih_y //; move/REAL_LT_IMP_LE.
+rewrite -dart4_cross_eq_enclosed // => /REAL_LT_IMP_LE cross_le.
+rewrite tauq_cross_split // dart4_azim_cross_split //.
+set c_diag := `y4'_fan _1 _2`.
+set t1 := `taum _1 _2 _3 _4 _5 _6`.
+set t2 := `taum _1 _2 _3 _4 _5 _6`.
+set a1 := `dih_y _1 _2 _3 _4 _5 _6`.
+set a2 := `dih_y _1 _2 _3 _4 _5 _6`.
+suff: `&0 < t1 + #4.72 * a1 - #6.248 / &2 /\ &0 < t2 + #4.72 * a2 - #6.248 / &2` by arith.
+rewrite -t1_def -a1_def -t2_def -a2_def.
+split; apply: h_reduced; rewrite !ALL /= !bounds cross_le /=.
+  rewrite (y1_lo d_in) // (y3_lo d_in) // (y5_lo d_in) // y7_lo // y7_hi // y8_lo //.
+  rewrite (y1_hi d_in) // (y3_hi d_in) // -c_diag_def dart4_y4'_lo //.
+  by rewrite f_fan_pair_ext_in_darts_k.
+rewrite (y1_lo d_in) // (y2_lo d_in) // (y6_lo d_in) // y7_lo // y7_hi // y9_lo //.
+rewrite (y1_hi d_in) // (y2_hi d_in) // -c_diag_def dart4_y4'_lo //.
+by rewrite f_fan_pair_ext_in_darts_k.
+Qed.
+
+Section Std.
+
+Hypothesis std: `E = ESTD V`.
+
+Lemma ineq122_std d: `d IN darts_k 4 (hypermap_of_fan (V,E))
+  ==> tau_fan (V,E) (face (hypermap_of_fan (V,E)) d) + #4.72 * azim_dart (V,E) d - #6.248 >= &0`.
+Proof.
+move => d_in4; move: (d_in4); rewrite darts_k inE => [] [d_in _].
+apply: (ineq122 d_in4).
+rewrite lp_fan in h_fan; rewrite COMPONENTS_HYPERMAP_OF_FAN // in d_in.
+by rewrite y5_hi_std2 // (y6_hi_std2 std) // y8_hi_std // y9_hi_std.
+Qed.
+
+End Std.
+
+End Ineq122.
+
 
 End QuadIneqs.

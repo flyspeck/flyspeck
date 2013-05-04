@@ -10,8 +10,18 @@ open Lp_ineqs_proofs;;
 open Tame_general;;
 open Lp_ineqs;;
 
-let lp_ineqs_def = 
-  let lp_ineqs = Ineq.getfield Lp in
+
+let lp_ineqs_def =
+  let check_lp_tags =
+    let rec check tags =
+      match tags with
+	| Lp :: _ -> true
+	| Tablelp :: _ -> true
+	| Lp_aux _ :: _ -> true
+	| h :: t -> check t
+	| [] -> false in
+      fun ineq -> check ineq.tags in
+  let lp_ineqs = filter check_lp_tags !Ineq.ineqs in
   let lp_tms = map (fun t -> t.ineq) lp_ineqs in
   let lp_tm = end_itlist (curry mk_conj) lp_tms in
     new_definition (mk_eq (`lp_ineqs:bool`, lp_tm));;
@@ -34,41 +44,45 @@ let skip_list = [
   "ineq89";
   "ineq90";
   "ineq118";
+];;
+
+(* Temporary use only these inequalities *)
+let data_list = [
+  "ineq30";
+  "ineq31";
+  "ineq97";
+  "ineq98";
+  "ineq99";
+  "ineq101";
+  "ineq102";
+  "ineq104";
+  "ineq105";
+  "ineq106";
+  "ineq107";
+  "ineq108";
+  "ineq109";
+  "ineq110";
+  "ineq111";
+  "ineq112";
+  "ineq113";
+  "ineq114";
+  "ineq115";
+  "ineq116";
+  "ineq118";
   "ineq119";
   "ineq120";
   "ineq121";
   "ineq122";
 ];;
 
-(* Temporary use only these inequalities *)
-let data_list = [
-	"ineq30";
-	"ineq31";
-	"ineq97";
-	"ineq98";
-	"ineq99";
-	"ineq101";
-	"ineq102";
-	"ineq104";
-	"ineq105";
-	"ineq106";
-	"ineq107";
-	"ineq108";
-	"ineq109";
-	"ineq110";
-	"ineq111";
-	"ineq112";
-	"ineq113";
-	"ineq114";
-	"ineq115";
-	"ineq116";
-	"ineq118";
-	"ineq119";
-	"ineq120";
-	"ineq121";
-	"ineq122";
-];;
-
+let special_list =
+  let r = add_lp_ineqs_hyp o add_lp_hyp in
+    [
+      "ineq119", (r ineq119, r ineq119_std);
+      "ineq120", (r ineq120, r ineq120_std);
+      "ineq121", (r ineq121, r ineq121_std);
+      "ineq122", (r ineq122, r ineq122_std);
+    ];;
 
 (**********************)
 
@@ -303,7 +317,9 @@ let add_body_ineqs () =
   let add2 sym_flag (lp_name, ineq_id, set_name) =
     let _ = counter := !counter + 1 in
     let _ = report (sprintf "Adding %s (%d / %d)" lp_name !counter total) in
-    let gen_th, std_th = gen_body_ineq_ths sym_flag ineq_id set_name in
+    let gen_th, std_th = 
+		try assoc lp_name special_list
+			with Failure _ -> gen_body_ineq_ths sym_flag ineq_id set_name in
     let _ = add false lp_name gen_th in
     let _ = if std_th <> TRUTH then add true lp_name std_th else () in
       () in
@@ -342,3 +358,4 @@ let gen_th2 = finalize_th data gen_th1;;
 let std_th2 = finalize_th data std_th1;;
 
 *)
+

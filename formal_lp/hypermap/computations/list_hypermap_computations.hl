@@ -137,7 +137,10 @@ let convert_to_list  =
   let split_sp=  Str.split (regexp " +") in
   let strip_ = global_replace (regexp "_") "" in
   let rec movelist n (x,a) = 
-    if n=0 then (x,a) else match x with y::ys -> movelist (n-1) (ys, y::a) in
+    if n = 0 then (x,a) else 
+      match x with
+	| [] -> failwith "convert_to_list"
+	| y::ys -> movelist (n-1) (ys, y::a) in
   let getone (x,a) = match x with
     | [] -> ([],a)
     | y::ys -> let (u,v) = movelist y (ys,[]) in (u,v::a) in 
@@ -760,54 +763,116 @@ test 10 (build_f_list_ext_table test_list good_th) faces_th;;
 let compute_all hyp_list good_th_opt =
   let thm_table = Hashtbl.create 10 in
   let fun_table = Hashtbl.create 10 in
-  let elements_th = eval_list_of_elements hyp_list in
   let faces_th = eval_list_of_faces hyp_list in
-  let faces3_th = eval_list_of_faces3 hyp_list faces_th and
-      faces4_th = eval_list_of_faces4 hyp_list faces_th and
-      darts_th = eval_list_of_darts0 hyp_list faces_th in
-  let darts3_th = eval_list_of_darts3 hyp_list faces3_th and
-      darts4_th = eval_list_of_darts4 hyp_list faces4_th in
+  let darts_th = eval_list_of_darts0 hyp_list faces_th in
   let good_th = 
     match good_th_opt with
       | Some th -> th
       | None -> eval_good_list0 hyp_list darts_th in
-  let nodes_th = eval_list_of_nodes0 hyp_list darts_th elements_th in
-  let set_faces_th = eval_faces_of_list0 hyp_list faces_th in
-  let set_nodes_th = eval_nodes_of_list0 hyp_list nodes_th in
-    
-  let table_of_nodes = build_table_of_nodes hyp_list nodes_th and
-      table_of_faces = build_table_of_faces hyp_list good_th faces_th and
-      f_table, inv_f_table = build_f_list_ext_table hyp_list good_th faces_th in
-
   let add = fun str thm -> Hashtbl.add thm_table str thm in
+  let add_fun = fun str table -> Hashtbl.add fun_table str table in
   let _ =
     add "good_list" good_th;
-    add "elements" elements_th;
-    add "darts" darts_th;
-    add "darts3" darts3_th;
-    add "darts4" darts4_th;
-    add "faces" faces_th;
-    add "faces3" faces3_th;
-    add "faces4" faces4_th;
-    add "nodes" nodes_th;
-    add "set_faces" set_faces_th;
-    add "set_nodes" set_nodes_th in
-    
-  let add = fun str table -> Hashtbl.add fun_table str table in
-  let _ =
-    add "face" table_of_faces;
-    add "node" table_of_nodes;
-    add "f_list_ext" f_table;
-    add "inverse" inv_f_table in
+    add "list_of_darts" darts_th;
+    add "list_of_faces" faces_th in
 
-    thm_table, fun_table;;
+  let rec hyp_set name =
+    try Hashtbl.find thm_table name
+    with Not_found ->
+      (match name with
+	 | "list_of_darts3" ->
+	     let faces3_th = eval_list_of_faces3 hyp_list faces_th in
+	     let darts3_th = eval_list_of_darts3 hyp_list faces3_th in
+	     let _ = add "list_of_darts3" darts3_th in
+	       darts3_th
+	 | "list_of_darts4" ->
+	     let faces4_th = eval_list_of_faces4 hyp_list faces_th in
+	     let darts4_th = eval_list_of_darts4 hyp_list faces4_th in
+	     let _ = add "list_of_darts4" darts4_th in
+	       darts4_th
+	 | "list_of_elements" ->
+	     let elements_th = eval_list_of_elements hyp_list in
+	     let _ = add "list_of_elements" elements_th in
+	       elements_th
+	 | "list_of_nodes" ->
+	     let nodes_th = eval_list_of_nodes0 hyp_list darts_th (hyp_set "list_of_elements") in
+	     let _ = add "list_of_nodes" nodes_th in
+	       nodes_th
+	 | "nodes_of_list" ->
+	     let set_nodes_th = eval_nodes_of_list0 hyp_list (hyp_set "list_of_nodes") in	     
+	     let _ = add "nodes_of_list" set_nodes_th in
+	       set_nodes_th
+	 | "faces_of_list" ->
+	     let set_faces_th = eval_faces_of_list0 hyp_list (hyp_set "list_of_faces") in
+	     let _ = add "faces_of_list" set_faces_th in
+	       set_faces_th
+	 | _ -> failwith ("Bad hypermap set: " ^ name)) in
+
+  let hyp_fun name dart_tm =
+    let table =
+      try Hashtbl.find fun_table name 
+      with Not_found ->
+	(match name with
+	   | "face" -> 
+	       let table_of_faces = build_table_of_faces hyp_list good_th faces_th in
+	       let _ = add_fun "face" table_of_faces in
+		 table_of_faces
+	   | "node" ->
+	       let table_of_nodes = build_table_of_nodes hyp_list (hyp_set "list_of_nodes") in
+	       let _ = add_fun "node" table_of_nodes in
+		 table_of_nodes
+	   | "f_list_ext" | "inverse" ->
+	       let f_table, inv_f_table = build_f_list_ext_table hyp_list good_th faces_th in
+	       let _ = add_fun "f_list_ext" f_table in
+	       let _ = add_fun "inverse" inv_f_table in
+		 if name = "inverse" then inv_f_table else f_table
+	   | _ -> failwith ("Bad hypermap function: " ^ name)) in
+      try Hashtbl.find table (num_pair_hash dart_tm)
+      with Not_found -> failwith ("Bad dart index: " ^ num_pair_hash dart_tm) in
+
+    hyp_set, hyp_fun;;
 
 
-(*
-let t1, t2 = compute_all test_list None;;
-(* 10: 2.635 *)
-test 10 (compute_all test_list) None;;
-*)
+let add_eq eq1_th eq2_th =
+  let th0 = MK_COMB (AP_TERM add_op_num eq1_th, eq2_th) in
+  let r_th = raw_add_conv_hash (rand (concl th0)) in
+    TRANS th0 r_th;;
+
+let mul_eq eq1_th eq2_th =
+  let th0 = MK_COMB (AP_TERM mul_op_num eq1_th, eq2_th) in
+  let r_th = raw_mul_conv_hash (rand (concl th0)) in
+    TRANS th0 r_th;;
+
+let eq_eq eq1_th eq2_th =
+  let th0 = MK_COMB (AP_TERM eq_op_num eq1_th, eq2_th) in
+  let r_th = raw_eq_hash_conv (rand (concl th0)) in
+    TRANS th0 r_th;;
+
+
+let eval_good_list_nodes_condition0 =
+  let two = to_num `2` and
+      four = to_num `4` in
+    fun elements_th darts_th faces_th ->
+      let length_darts = apply_op darts_th eval_length and
+	  length_faces = apply_op faces_th eval_length and
+	  length_elements = apply_op elements_th eval_length in
+	(* 2 * (sizel (list_of_elements L) + sizel (list_of_faces L)) = sizel (list_of_darts L) + 4 *)
+      let (+), ( * ), (!), (==) = add_eq, mul_eq, REFL, eq_eq in
+	(!two * (length_elements + length_faces)) == (length_darts + !four);;
+  
+let eval_good_list_nodes_condition hyp_set =
+  eval_good_list_nodes_condition0 (hyp_set "list_of_elements") (hyp_set "list_of_darts") (hyp_set "list_of_faces");;
 
 
 end;;
+
+(*
+open List_hypermap_computations;;
+
+let t1, t2 = compute_all test_list None;;
+(* 10: 2.635 *)
+test 10 (compute_all test_list) None;;
+
+num_pair_hash (to_num `1,0`);;
+t2 "node" (to_num `0,1`);;
+*)

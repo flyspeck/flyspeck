@@ -1561,5 +1561,84 @@ let NKEZBFC = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let azim_dart_azim_in_fan = prove_by_refinement(
+  `!V E x. FAN((vec 0),V,E) /\ ({FST x,SND x} IN E)
+    ==> azim_dart (V,E) x = azim_in_fan x E`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[FORALL_PAIR_THM;FST;SND];
+  REWRITE_TAC[Fan_defs.azim_dart;(* L *)azim_in_fan;Fan_defs.azim_fan];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[LET_DEF;LET_END_DEF];
+  TYPIFY `~(p1 = p2)` (C SUBGOAL_THEN ASSUME_TAC);
+    DISCH_TAC;
+    RULE_ASSUM_TAC (REWRITE_RULE[Fan.FAN;Fan.graph]);
+    REPEAT (FIRST_X_ASSUM MP_TAC) THEN REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [`{p1,p2}`]);
+    REWRITE_TAC[Local_lemmas1.SET2_HAS_SIZE2];
+    BY(ASM_MESON_TAC[IN]);
+  ASM_SIMP_TAC[GSYM (* L *)EE_elim];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC Wrgcvdr_cizmrrh.AZIM_CYCLE_EQ_SIGMA_FAN;
+  TYPIFY `V` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  ASM_SIMP_TAC[GSYM (* L *)EE_elim];
+  BY(ASM_REWRITE_TAC[(* L *)EE;IN_ELIM_THM])
+  ]);;
+  (* }}} *)
+
+let rho_fun = new_definition `rho_fun y =  &1 + (inv (&2 * h0 - &2)) * (inv pi) * sol0 * (y - &2)`;;
+
+let rho_rho_fun = prove_by_refinement(
+  `!y. rho_fun y = rho y`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.rho;rho_fun;Sphere.const1;Sphere.ly;Sphere.interp];
+  REWRITE_TAC[GSYM Nonlinear_lemma.sol0_EQ_sol_y;Sphere.h0];
+  REWRITE_TAC[arith `a + b = a + c <=> c = b`];
+  GEN_TAC;
+  MATCH_MP_TAC (arith `(sol0/pi)*(&1 - a) = (sol0/pi)*(c*e) ==> sol0/pi - sol0/pi * a = c * inv pi * sol0 * e`);
+  AP_TERM_TAC;
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let h_dart = new_definition `h_dart (x:real^3#B) = norm (FST x)  / &2`;;
+
+let tauVEF = new_definition `tauVEF (V,E,f) = 
+  sum f ( \ x. azim_dart (V,E) x * (&1 + (sol0/pi) * (&1 - lmfun (h_dart x))))   + (pi + sol0)*(&2 - &(CARD(f)))`;;
+
+let tau_fun = new_definition `tau_fun V E f =  sum (f) (\e. rho_fun(norm(FST e)) * (azim_in_fan e E)) - (pi + sol0) * &(CARD f -2)`;;
+
+let ly_EQ_lmfun = prove(`!x:real^3#real^3. norm (FST x) <= &2 * h0 ==> lmfun (h_dart x) = ly (norm (FST x))`,
+   REWRITE_TAC[Pack_defs.lmfun; Sphere.ly; Sphere.interp; h_dart; Pack_defs.h0] THEN
+     REAL_ARITH_TAC);;
+
+let tauVEF_tau_fun = prove_by_refinement(
+  `!V E f. FAN ((vec 0),V,E) /\ 
+    2 <= CARD f /\ 
+    (!x. x IN f ==> norm(FST x) <= &2 * h0) /\
+    (!x. x IN f ==> {FST x,SND x} IN E)
+  ==> tau_fun V E f = tauVEF (V,E,f)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[tauVEF;tau_fun];
+  GMATCH_SIMP_TAC (GSYM REAL_OF_NUM_SUB);
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[arith `x - u * (v - w) = x' + u * (w - v) <=> x = x'`];
+  MATCH_MP_TAC SUM_EQ;
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[];
+  MATCH_MP_TAC (arith `x = x' /\ y = y' ==> x*y' = y*x'`);
+  REWRITE_TAC[rho_rho_fun;Sphere.rho;Nonlinear_lemma.sol0_over_pi_EQ_const1];
+  CONJ_TAC;
+    MATCH_MP_TAC (arith `(l = l') ==> &1 + c - c * l = &1 + c *(&1 - l')`);
+    BY(ASM_SIMP_TAC[ly_EQ_lmfun]);
+  GMATCH_SIMP_TAC azim_dart_azim_in_fan;
+  BY(ASM_SIMP_TAC[])
+  ]);;
+  (* }}} *)
+
 
  end;;

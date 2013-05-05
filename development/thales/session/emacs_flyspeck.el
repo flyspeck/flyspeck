@@ -8,11 +8,10 @@
 (hol-light-run-process-if-needed)
 
 (setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
-(setq hol-light-interactive-buffer-name "*mar2*")
+(setq hol-light-interactive-buffer-name "*may5*")
+(setq hol-light-interactive-buffer-name "*may3-hol*")
 (setq hol-light-interactive-buffer-name "*mar17*")
-(setq hol-light-interactive-buffer-name "*feb18*")
 
-(setq hol-light-interactive-buffer-name "*feb17*")
 
 (system-name)
 ; thackmac

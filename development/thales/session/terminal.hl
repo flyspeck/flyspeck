@@ -13,7 +13,7 @@ Terminal cases of main estimate.
 flyspeck_needs "local/appendix_main_estimate.hl";;
 
 module Terminal = struct
-
+end;;
 
 open Hales_tactic;;
 
@@ -2584,7 +2584,164 @@ let vv_split_azim_generic = prove_by_refinement(
   ]);;
   (* }}} *)
 
-end;;
+let muR_ALT = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6 y7 y8 y9. muR y1 y2 y3 y4 y5 y6 y7 y8 y9  =
+         cayleyR (y6 * y6) (y5 * y5) (y1 * y1) (y7 * y7) (y4 * y4) (y2 * y2)
+         (y8 * y8)
+         (y3 * y3)
+         (y9 * y9)
+          `,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[FUN_EQ_THM;Mur.muR])
+  ]);;
+  (* }}} *)
+
+let enclosed4_lemma = prove_by_refinement(
+  `!(v0:real^3) v1 v2 v3. 
+   (let y1 = norm (v1) in
+   let y2 = norm (v2) in
+   let y3 = norm (v0) in
+   let y4 = dist(v0, v2) in
+   let y5 = dist(v0, v1) in
+   let y6 = dist(v1, v2) in
+   let y7 = norm (v3) in
+   let y8 = dist(v0,v3) in
+   let y9 = dist(v2,v3) in
+    (
+    &0 < ups_x (norm (v0) * norm (v0)) (norm (v2) * norm (v2)) (dist(v0,v2) * dist(v0,v2)) /\
+      chi_msb [(vec 0);v0;v2] v1 * chi_msb [(vec 0);v0;v2] v3 <= &0
+    ==> dist(v1 ,v3) = 
+	enclosed y1 y5 y6 y4 y2 y3 y7 y8 y9))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LET_DEF;LET_END_DEF];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Enclosed.enclosed];
+  INTRO_TAC (REWRITE_RULE[LET_DEF;LET_END_DEF] Collect_geom2.CAYLEYR_5POINTS) [`(vec 0):real^3`;`v0`;`v2`;`v1`;`v3`];
+  REWRITE_TAC[DIST_0];
+  TYPIFY `dist(v2,v1) = dist(v1,v2)` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(MESON_TAC[DIST_SYM]);
+  DISCH_TAC;
+  TYPED_ABBREV_TAC `p = muR (norm (v1:real^3)) (dist (v0,v1)) (dist (v1,v2)) (dist (v0,v2)) (norm v2)       (norm v0)      (norm v3)      (dist (v0,v3))     (dist (v2,v3))`;
+  TYPIFY `quadratic_root_plus (abc_of_quadratic p) = dist (v1,v3) pow 2` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN SUBST1_TAC;
+    GMATCH_SIMP_TAC POW_2_SQRT;
+    BY(REWRITE_TAC[DIST_POS_LE]);
+  FIRST_X_ASSUM_ST `muR` MP_TAC;
+  REWRITE_TAC[muR_ALT];
+  DISCH_THEN (SUBST1_TAC o GSYM);
+  TYPIFY `a = ups_x (norm (v0) * norm (v0)) (norm (v2) * norm (v2)) (dist(v0,v2) * dist(v0,v2))` TYPED_ABBREV_TAC;
+  TYPIFY `b = cayleytr (norm v0 * norm v0) (norm v2 * norm v2) (norm v1 * norm v1)   (norm v3 * norm v3)  (dist (v0,v2) * dist (v0,v2))  (dist (v0,v1) * dist (v0,v1))  (dist (v0,v3) * dist (v0,v3))  (dist (v1,v2) * dist (v1,v2))  (dist (v2,v3) * dist (v2,v3)) (&0)` TYPED_ABBREV_TAC;
+  TYPIFY `c = cayleyR (norm v0 * norm v0) (norm v2 * norm v2) (norm v1 * norm v1)   (norm v3 * norm v3)  (dist (v0,v2) * dist (v0,v2))  (dist (v0,v1) * dist (v0,v1))  (dist (v0,v3) * dist (v0,v3))  (dist (v1,v2) * dist (v1,v2))  (dist (v2,v3) * dist (v2,v3)) (&0)` TYPED_ABBREV_TAC;
+  TYPIFY ` cayleyR (norm v0 * norm v0) (norm v2 * norm v2) (norm v1 * norm v1)   (norm v3 * norm v3)  (dist (v0,v2) * dist (v0,v2))  (dist (v0,v1) * dist (v0,v1))  (dist (v0,v3) * dist (v0,v3))  (dist (v1,v2) * dist (v1,v2))  (dist (v2,v3) * dist (v2,v3))  = (\x. a * x pow 2 + b * x + c)` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[FUN_EQ_THM];
+    ONCE_REWRITE_TAC[Collect_geom.LTCTBAN];
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[Nonlinear_lemma.abc_quadratic];
+  TYPIFY `b pow 2 - &4 * a * c = &16 *  delta_y (norm v0) (norm v2) (norm v1) (dist (v2,v1)) (dist (v0,v1)) (dist (v0,v2)) * delta_y (norm v0) (norm v2) (norm v3) (dist (v2,v3)) (dist (v0,v3)) (dist (v0,v2))` (C SUBGOAL_THEN ASSUME_TAC);
+    EXPAND_TAC "a";
+    EXPAND_TAC "b";
+    EXPAND_TAC "c";
+    REWRITE_TAC[Collect_geom.DISCRIMINANT_OF_CAY];
+    REWRITE_TAC[Merge_ineq.delta_delta_x;GSYM Sphere.delta_y];
+    BY(MESON_TAC[DIST_SYM]);
+  TYPIFY `&0 <= delta_y (norm v0) (norm v2) (norm v1) (dist (v2,v1)) (dist (v0,v1))       (dist (v0,v2))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(MESON_TAC[REWRITE_RULE[LET_DEF;LET_END_DEF] Tame_lemmas.delta_y_pos]);
+  TYPIFY `&0 <= delta_y (norm v0) (norm v2) (norm v3) (dist (v2,v3)) (dist (v0,v3))       (dist (v0,v2))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(MESON_TAC[REWRITE_RULE[LET_DEF;LET_END_DEF] Tame_lemmas.delta_y_pos]);
+  TYPIFY `&0 <= b pow 2 - &4 * a * c` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC REAL_LE_MUL;
+    CONJ_TAC;
+      BY(REAL_ARITH_TAC);
+    GMATCH_SIMP_TAC REAL_LE_MUL;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `(x:real) = dist(v1,v3) pow 2` TYPED_ABBREV_TAC;
+  TYPIFY `a * x pow 2 + b * x + c = &0` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `cayleyR` MP_TAC;
+    REWRITE_TAC[FUN_EQ_THM];
+    DISCH_THEN (C INTRO_TAC [`x`]);
+    DISCH_THEN (SUBST1_TAC o GSYM);
+    FIRST_X_ASSUM kill;
+    BY(ASM_REWRITE_TAC[arith ` x * x = x pow 2`]);
+  ASM_CASES_TAC `b pow 2 - &4 * a * c = &0`;
+    MATCH_MP_TAC Tame_lemmas.quadratic_root_plus_disc0_eq;
+    FIRST_X_ASSUM_ST `&0 < a` MP_TAC;
+    REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC);
+    BY(REAL_ARITH_TAC);
+  COMMENT "pos discr. case";
+  MATCH_MP_TAC Tame_lemmas.quadratic_root_plus_gt_eq;
+  TYPED_ABBREV_TAC `(n:real^3) =  v0 cross v2`;
+  TYPIFY `(v1':real^3) = reflection n v1` TYPED_ABBREV_TAC;
+  TYPIFY `(y:real) = dist(v1',v3) pow 2` TYPED_ABBREV_TAC;
+  TYPIFY `y` EXISTS_TAC;
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `&0 <= x` MP_TAC;
+    BY(REWRITE_TAC[]);
+  FIRST_X_ASSUM_ST `a * x pow 2` MP_TAC;
+  DISCH_THEN (SUBST1_TAC);
+  REWRITE_TAC[];
+  COMMENT "cayleyR again";
+  INTRO_TAC (REWRITE_RULE[LET_DEF;LET_END_DEF] Collect_geom2.CAYLEYR_5POINTS) [`(vec 0):real^3`;`v0`;`v2`;`v1'`;`v3`];
+  ASM_REWRITE_TAC[];
+  EXPAND_TAC "v1'";
+  TYPIFY `!v. dist(v,reflection n v1) =dist(reflection n v1,v)` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    BY(MESON_TAC[DIST_SYM]);
+  REPEAT (GMATCH_SIMP_TAC Tame_lemmas.dist_reflection_special);
+  EXPAND_TAC "n";
+  REWRITE_TAC[DOT_LZERO];
+  REWRITE_TAC[Collect_geom2.ORTHOGONAL_CROSS_PRODUCT];
+  REWRITE_TAC[DIST_0];
+  TYPIFY `dist(v1,v0) = dist(v0,v1)` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(MESON_TAC[DIST_SYM]);
+  ASM_REWRITE_TAC[arith `x pow 2 = x * x`];
+  DISCH_THEN SUBST1_TAC;
+  REWRITE_TAC[];
+  COMMENT "y < x";
+  EXPAND_TAC "x";
+  EXPAND_TAC "y";
+  EXPAND_TAC "v1'";
+  REWRITE_TAC[Tame_lemmas.dist_reflection_lemma];
+  MATCH_MP_TAC (arith `&0 < ( --r )/ nn   ==> d + &4 * r / nn < d`);
+  GMATCH_SIMP_TAC REAL_LT_DIV;
+  TYPIFY `~(n = vec 0)` (C SUBGOAL_THEN ASSUME_TAC);
+    EXPAND_TAC "n";
+    FIRST_X_ASSUM_ST `&0 < a` MP_TAC;
+    EXPAND_TAC "a";
+    REWRITE_TAC[GSYM DIST_0;arith `x * x = x pow 2`];
+    REWRITE_TAC[GSYM Collect_geom2.NORM_CROSS_PRODUCT_UPS_X];
+    REWRITE_TAC[arith `&0 < &4 * x <=> &0 < x`;arith `(v0:real^3) - vec 0 = v0`];
+    REWRITE_TAC[GSYM NORM_POS_LT];
+    REWRITE_TAC[GSYM Trigonometry2.NOT_ZERO_EQ_POW2_LT];
+    BY(MESON_TAC[NORM_POS_LE;arith `&0 <= x /\ ~(x = &0) ==> &0 < x`]);
+  CONJ2_TAC;
+    BY(FIRST_X_ASSUM MP_TAC THEN MESON_TAC[DOT_POS_LT]);
+  REWRITE_TAC[arith `&0 < -- r <=> r < &0`];
+  EXPAND_TAC "n";
+  TYPIFY `!v. v dot (v0 cross v2) = chi_msb [vec 0;v0;v2] v` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    REWRITE_TAC[Leaf_cell.chi_msb;Basics.EL_EXPLICIT];
+    REWRITE_TAC[arith `(v:real^3) - vec 0 = v`];
+    BY(MESON_TAC[DOT_SYM]);
+  FIRST_X_ASSUM_ST `chi_msb` MP_TAC;
+  TYPIFY `~(chi_msb [vec 0;v0;v2] v1 * chi_msb [vec 0;v0;v2] v3 = &0)` ENOUGH_TO_SHOW_TAC;
+    BY(REAL_ARITH_TAC);
+  REWRITE_TAC[REAL_ENTIRE;DE_MORGAN_THM];
+  REWRITE_TAC[GSYM Leaf_cell.CHI_MSB_COPLANAR];
+  REWRITE_TAC[Oxlzlez.coplanar_delta_y;DIST_0];
+  REWRITE_TAC[arith `&0 < x <=> (&0 <= x /\ ~(x = &0))`];
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[GSYM DE_MORGAN_THM;GSYM REAL_ENTIRE];
+  DISCH_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `b pow 2 - &4 * a *c` MP_TAC);
+  ASM_REWRITE_TAC[];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
 
 (*
 let delta_top_4680581274 = prove_by_refinement(
@@ -2593,6 +2750,7 @@ let delta_top_4680581274 = prove_by_refinement(
   [
   st/r
 rt[Sphere.delta_y;Sphere.delta_x;arith `&2 * &2 = &4`]
+rt[GSYM
   ]);;
   (* }}} *)
 

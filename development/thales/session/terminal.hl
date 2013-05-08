@@ -814,6 +814,31 @@ let tau3_taum = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let tau3_taum_40 = prove_by_refinement(
+  `!(v0:real^3) v1 v2.
+    v0 IN ball_annulus /\ v1 IN ball_annulus /\ v2 IN ball_annulus /\
+    &2 <= dist(v0,v1) /\ &2 <= dist(v0,v2) /\ &2 <= dist(v1,v2) /\
+    dist(v0,v1) < &4 /\ dist(v0,v2) < &4 /\ dist(v1,v2) < &4 ==>
+    tau3 v0 v1 v2 = taum (norm v0) (norm v1) (norm v2) (dist(v1,v2)) (dist(v0,v2)) (dist(v0,v1))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Appendix.tau3;Nonlinear_lemma.taum_123;Sphere.rhazim2;Sphere.rhazim3;Sphere.node2_y;Sphere.node3_y];
+  REWRITE_TAC[Sphere.rhazim;Nonlinear_lemma.sol0_const1];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `dihV (vec 0) v0 v1 v2 = dih_y (norm v0) (norm v1) (norm v2) (dist (v1,v2)) (dist (v0,v2)) (dist (v0,v1)) /\ dihV (vec 0) v1 v2 v0  = dih_y (norm v1) (norm v2) (norm v0) (dist (v0,v2)) (dist (v0,v1)) (dist (v1,v2)) /\ dihV (vec 0) v2 v0 v1 = dih_y (norm v2) (norm v0) (norm v1) (dist (v0,v1)) (dist (v1,v2))  (dist (v0,v2))` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN (unlist REWRITE_TAC);
+    BY(REAL_ARITH_TAC);
+  REPEAT (GMATCH_SIMP_TAC (REWRITE_RULE[LET_DEF;LET_END_DEF] Merge_ineq.DIHV_EQ_DIH_Y));
+  REWRITE_TAC[DIST_0];
+  TYPIFY `dist(v2,v0) = dist(v0,v2) /\ dist(v2,v1) = dist(v1,v2) /\ dist(v1,v0) = dist(v0,v1)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(MESON_TAC[DIST_SYM]);
+  ASM_REWRITE_TAC[];
+  REPEAT (GMATCH_SIMP_TAC NONPARALLEL_BALL_ANNULUS40_ALT);
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+
 let DELTA_Y_POS_4POINTS = prove_by_refinement(
   `!v0 v1 v2 (v3:real^3).
     &0 <= delta_y (dist(v0,v1)) (dist(v0,v2)) (dist(v0,v3)) (dist(v2,v3)) (dist(v1,v3)) (dist(v1,v2))`,
@@ -1546,12 +1571,36 @@ let funlist_diag = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let funlistA_diag = prove_by_refinement(
+  `!j1 j2 j3 k i. funlistA_v28 j1 j2 j3 k i i = (j2:A)`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Appendix.funlistA_v28;LET_DEF;LET_END_DEF])
+  ]);;
+  (* }}} *)
+
 let funlistA_empty = prove_by_refinement(
   `!k. funlistA_v28 [] F F k = ( \ i j. F) `,
   (* {{{ proof *)
   [
   REWRITE_TAC[Appendix.funlistA_v28;FUN_EQ_THM;MAP;LET_DEF;LET_END_DEF;Appendix.ASSOCD_v28];
   BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let funlist_kik = prove_by_refinement(
+  `!b b0 k i. funlist_v28 b b0 k i k = funlist_v28 b b0 k 0 i`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `k MOD k = 0 MOD k` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(MESON_TAC[arith `k = 1*k + 0`;MOD_MULT_ADD]);
+  REWRITE_TAC[Appendix.funlist_v28;LET_DEF;LET_END_DEF];
+  TYPIFY `psort k (i,k) = psort k (0,i)` (C SUBGOAL_THEN SUBST1_TAC);
+    ASM_REWRITE_TAC[Appendix.psort;LET_DEF;LET_END_DEF];
+    BY(COND_CASES_TAC THEN COND_CASES_TAC THEN REWRITE_TAC[PAIR_EQ] THEN (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  BY(COND_CASES_TAC THEN ASM_REWRITE_TAC[])
   ]);;
   (* }}} *)
 
@@ -1594,19 +1643,6 @@ let periodic2_mod_reduce = prove_by_refinement(
   ]);;
   (* }}} *)
 
-let periodic_mod_reduce = prove_by_refinement(
-  `!P k. ~(k = 0) /\ periodic P k /\ (!i. i < k ==> P i) ==> (!i. P i)`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAKER_STRIP_TAC;
-  TYPIFY `P i = P (i MOD k)` (C SUBGOAL_THEN SUBST1_TAC);
-    MATCH_MP_TAC Oxl_def.periodic_mod;
-    BY(ASM_REWRITE_TAC[]);
-  FIRST_X_ASSUM MATCH_MP_TAC;
-  BY(ASM_MESON_TAC[DIVISION])
-  ]);;
-  (* }}} *)
-
 let periodic2_mod_sym_reduce = prove_by_refinement(
   `!P k. ~(k = 0) /\ periodic2 P k /\ (!i. P i i) /\
     (!i j. P i j = P j i) /\ (!i j. i < j /\ j < k ==> P i j) ==> (!i j. P i j)`,
@@ -1641,6 +1677,24 @@ let periodic2_SUC_periodic = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let periodic_vv_inj = prove_by_refinement(
+  `!vv k. periodic (vv:num->A) k /\ ~(k = 0) /\
+      (!i j. i < k /\ j < k /\ vv i = vv j ==> (i = j)) ==>
+   (!i j. (vv i = vv j) <=> (i MOD k = j MOD k))
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  CONJ2_TAC;
+    BY(ASM_MESON_TAC[Oxl_def.periodic_mod]);
+  INTRO_TAC Oxl_def.periodic_mod [`vv`;`k`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN (unlist ONCE_REWRITE_TAC);
+  BY(ASM_MESON_TAC[DIVISION])
+  ]);;
+  (* }}} *)
+
 let I_LT_J_LT_3_EXPLICIT = prove_by_refinement(
   `!i j. (i < j /\ j < 3) <=> ((i = 0 /\ j = 1) \/ (i = 0 /\ j = 2) \/ (i = 1 /\ j = 2))`,
   (* {{{ proof *)
@@ -1665,14 +1719,6 @@ let I_LT_J_LT_4_EXPLICIT = prove_by_refinement(
       BY(ARITH_TAC);
     BY(ARITH_TAC);
   BY(ARITH_TAC)
-  ]);;
-  (* }}} *)
-
-let funlistA_diag = prove_by_refinement(
-  `!j1 j2 j3 k i. funlistA_v28 j1 j2 j3 k i i = (j2:A)`,
-  (* {{{ proof *)
-  [
-  BY(REWRITE_TAC[Appendix.funlistA_v28;LET_DEF;LET_END_DEF])
   ]);;
   (* }}} *)
 
@@ -1797,22 +1843,6 @@ let is_ear_scs3 = prove_by_refinement(
   RULE_ASSUM_TAC (REWRITE_RULE[ (TAUT `~ ~ x = x`)]);
   ASM_REWRITE_TAC[];
   BY(REWRITE_TAC[Appendix.unadorned_v28;Appendix.scs_v28_explicit])
-  ]);;
-  (* }}} *)
-
-let funlist_kik = prove_by_refinement(
-  `!b b0 k i. funlist_v28 b b0 k i k = funlist_v28 b b0 k 0 i`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAKER_STRIP_TAC;
-  TYPIFY `k MOD k = 0 MOD k` (C SUBGOAL_THEN ASSUME_TAC);
-    BY(MESON_TAC[arith `k = 1*k + 0`;MOD_MULT_ADD]);
-  REWRITE_TAC[Appendix.funlist_v28;LET_DEF;LET_END_DEF];
-  TYPIFY `psort k (i,k) = psort k (0,i)` (C SUBGOAL_THEN SUBST1_TAC);
-    ASM_REWRITE_TAC[Appendix.psort;LET_DEF;LET_END_DEF];
-    BY(COND_CASES_TAC THEN COND_CASES_TAC THEN REWRITE_TAC[PAIR_EQ] THEN (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN ARITH_TAC);
-  ASM_REWRITE_TAC[];
-  BY(COND_CASES_TAC THEN ASM_REWRITE_TAC[])
   ]);;
   (* }}} *)
 
@@ -2066,7 +2096,10 @@ let  terminal_tri_5766053833_empty  = prove_by_refinement(
   ]);;
   (* }}} *)
 
-(* end of triangle cases *)
+
+(* ************************************************************************** *)
+(* START OF QUAD CASES *)
+(* ************************************************************************** *)
 
 let MOD_4_EXPLICIT = prove_by_refinement(
   `0 MOD 4 = 0 /\ 1 MOD 4 = 1 /\ 2 MOD 4 = 2 /\ 3 MOD 4 = 3 /\ 4 MOD 4 = 0 /\
@@ -2212,7 +2245,7 @@ let ineq_5691615370_asym = prove_by_refinement(
   (&2,y5,#2.52);
   (&2,y6,#2.52)
   ]
-  (delta_y y1 y2 y3 y4 y5 y6 < &0) \/ (y2 + y3 + y5 + y6 > #8.472))`,
+  ((delta_y y1 y2 y3 y4 y5 y6 < &0) \/ (y2 + y3 + y5 + y6 > #8.472)))`,
   (* {{{ proof *)
   [
   DISCH_TAC;
@@ -2365,24 +2398,6 @@ let tau_fun_azim = prove_by_refinement(
   FIRST_X_ASSUM (C INTRO_TAC [`SUC x`]);
   ASM_REWRITE_TAC[];
   BY(ASM_SIMP_TAC[arith `3 <= k ==> SUC x + k - 2 = x + k - 1`])
-  ]);;
-  (* }}} *)
-
-let periodic_vv_inj = prove_by_refinement(
-  `!vv k. periodic (vv:num->A) k /\ ~(k = 0) /\
-      (!i j. i < k /\ j < k /\ vv i = vv j ==> (i = j)) ==>
-   (!i j. (vv i = vv j) <=> (i MOD k = j MOD k))
-    `,
-  (* {{{ proof *)
-  [
-  REPEAT WEAKER_STRIP_TAC;
-  REWRITE_TAC[Geomdetail.EQ_EXPAND];
-  CONJ2_TAC;
-    BY(ASM_MESON_TAC[Oxl_def.periodic_mod]);
-  INTRO_TAC Oxl_def.periodic_mod [`vv`;`k`];
-  ASM_REWRITE_TAC[];
-  DISCH_THEN (unlist ONCE_REWRITE_TAC);
-  BY(ASM_MESON_TAC[DIVISION])
   ]);;
   (* }}} *)
 
@@ -3047,9 +3062,39 @@ let terminal_quad_lemma = prove_by_refinement(
   ]);;
   (* }}} *)
 
-end;;
-
-(*
+let convex_local_fan_azim_le_pi = prove_by_refinement(
+  `!vv k i. (let V = IMAGE vv (:num) in
+   let E = IMAGE (\i. {vv i, vv (SUC i)}) (:num) in
+   let f = IMAGE (\i. vv i,vv (SUC i)) (:num) in
+    (periodic vv k /\ 
+   3 <= k /\ (!i j. i < k /\ j < k /\ vv i = vv j ==> i = j) /\
+       convex_local_fan (V,E,f) /\
+   V SUBSET ball_annulus 
+    ==>
+   (azim (vec 0) (vv i) (vv (SUC i)) (vv (i + k - 1)) <= pi)))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LET_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Localization.convex_local_fan [`IMAGE (\i. vv i,vv (SUC i)) (:num)`;`IMAGE vv (:num)`;`IMAGE (\i. {vv i, vv (SUC i)}) (:num)`;];
+  ASM_REWRITE_TAC[IN_IMAGE;IN_UNIV];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [ `vv i, vv (SUC i)`]);
+  ANTS_TAC;
+    BY(MESON_TAC[]);
+  GMATCH_SIMP_TAC Local_lemmas.LOFA_DETERMINE_AZIM_IN_FA;
+  CONJ_TAC;
+    GEXISTL_TAC [`IMAGE vv (:num)`;`IMAGE (\i. vv i,vv (SUC i)) (:num)`];
+    ASM_REWRITE_TAC[];
+    BY(MESON_TAC[IN_IMAGE;IN_UNIV]);
+  GMATCH_SIMP_TAC EE_vv;
+  TYPIFY `k` EXISTS_TAC;
+  CONJ_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[Local_lemmas.AZIM_CYCLE_TWO_POINT_SET];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
 
 let vv_quad_split012 = prove_by_refinement(
   `!vv. 
@@ -3074,21 +3119,351 @@ let vv_quad_split012 = prove_by_refinement(
          tau3 (vv 0) (vv 1) (vv 2) + tau3 (vv 2) (vv 3) (vv 0)))`,
   (* {{{ proof *)
   [
-  rt[Appendix.tau3]
-st/r
-typ `azim (vec 0) ((vv 0)) ((vv 1)) ((vv 3)) = azim (vec 0) ((vv 0)) ((vv 1)) ((vv 2)) + azim(vec 0) ((vv 0)) ((vv 2)) ((vv 3)) /\ (azim (vec 0) ((vv 2)) ((vv 3)) ((vv 5)) = azim (vec 0) ((vv 2)) ((vv 3)) ((vv 0)) + azim(vec 0) ((vv 2)) ((vv 0)) ((vv 1)))` sat
-xxd
-dthen (unlist rt)
-typ `(vv 4) = (vv 0) /\ (vv 5) = (vv 1) /\ (vv 6) = (vv 2)` ets
-dthen (unlist rt)
-rat
+  REWRITE_TAC[LET_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY ` azim (vec 0) (vv 0) (vv (SUC 0)) (vv (0 + 4 - 1)) <= pi /\ azim (vec 0) (vv 1) (vv (SUC 1)) (vv (1 + 4 - 1)) <= pi /\ azim (vec 0) (vv 2) (vv (SUC 2)) (vv (2 + 4 - 1)) <= pi /\ azim (vec 0) (vv 3) (vv (SUC 3)) (vv (3 + 4 -1)) <= pi` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REPEAT CONJ_TAC THEN MATCH_MP_TAC (REWRITE_RULE[LET_THM] convex_local_fan_azim_le_pi) THEN ASM_REWRITE_TAC[arith `3 <= 4`]);
+  REWRITE_TAC[Appendix.tau3];
+  TYPIFY `vv 6 = vv 2 /\ vv 5 = vv 1 /\ vv 4 = vv 0` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REPEAT (CONJ_TAC) THEN GMATCH_SIMP_TAC periodic_vv_inj THEN TYPIFY `4` EXISTS_TAC THEN ASM_REWRITE_TAC[MOD_4_EXPLICIT;arith `~(4 = 0)`]);
+  TYPIFY `azim (vec 0) ((vv 0)) ((vv (SUC 0))) ((vv (0 + 4 - 1))) = azim (vec 0) ((vv 0)) ((vv (SUC 0))) ((vv 2)) + azim(vec 0) ((vv 0)) ((vv 2)) ((vv (0 + 4 - 1))) /\ (azim (vec 0) ((vv 2)) ((vv (SUC 2))) ((vv (2 + 4 - 1))) = azim (vec 0) ((vv 2)) ((vv (SUC 2))) ((vv 0)) + azim(vec 0) ((vv 2)) ((vv 0)) ((vv (2 + 4 -1))))` (C SUBGOAL_THEN ASSUME_TAC);
+    CONJ_TAC THEN MATCH_MP_TAC (REWRITE_RULE[LET_THM] vv_split_azim) THEN ASM_REWRITE_TAC[arith `3 <= 4 /\ ~( 0 = 2)`;MOD_4_EXPLICIT;arith `SUC  0 = 1 /\ 0 + 4 - 1 = 3`;arith `SUC 2 = 3 /\ 2 + 4 - 1 = 5`];
+    BY(ASM_MESON_TAC[DIST_SYM]);
+  RULE_ASSUM_TAC (REWRITE_RULE[arith `SUC 0 = 1 /\ SUC 1 = 2 /\ SUC 2 = 3 /\ SUC 3 = 4 /\ 0+4-1 = 3 /\ 1+4-1=4 /\ 2+4-1=5 /\ 3+4-1=6`]);
+  FIRST_X_ASSUM_ST `6` (RULE_ASSUM_TAC o (unlist REWRITE_RULE));
+  ASM_REWRITE_TAC[];
+  TYPIFY `azim (vec 0) (vv 0) (vv 1) (vv 2) <= pi /\ azim (vec 0) (vv 0) (vv 2) (vv 3) <= pi /\ azim (vec 0) (vv 2 ) (vv 3) (vv 0) <= pi /\ azim (vec 0) (vv 2) (vv 0) (vv 1) <= pi` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Counting_spheres.AZIM_NN;arith `&0 <= x /\ &0 <= y /\ x + y <= pi ==> (x <= pi /\ y <= pi)`]);
+  COMMENT "azim to dih";
+  TYPIFY `~collinear {vec 0,vv 0,vv 1} /\ ~collinear {vec 0,vv 0, vv 2} /\ ~collinear {vec 0,vv 0,vv 3} /\ ~collinear {vec 0,vv 1,vv 2} /\ ~collinear {vec 0,vv 2, vv 3}` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT (GMATCH_SIMP_TAC NONPARALLEL_BALL_ANNULUS40_ALT);
+    RULE_ASSUM_TAC (REWRITE_RULE[IMAGE_SUBSET_IN;IN_UNIV]);
+    ASM_REWRITE_TAC[];
+    BY(REPEAT CONJ_TAC THEN (FIRST_X_ASSUM_ST `dist` MATCH_MP_TAC) THEN GMATCH_SIMP_TAC periodic_vv_inj THEN (TYPIFY `4` EXISTS_TAC) THEN ASM_REWRITE_TAC[arith `~(4 = 0)`;MOD_4_EXPLICIT;arith `~(2 = 3) /\ ~(1 = 2) /\ ~(0=3) /\ ~(0=1) /\ ~(0=2)`]);
+  COMMENT "azim to dih";
+  TYPIFY `azim (vec 0) (vv 0) (vv 1) (vv 2) = dihV (vec 0) (vv 0) (vv 1) (vv 2) /\ azim (vec 0) (vv 0) (vv 2) (vv 3) = dihV (vec 0) (vv 0) (vv 2) (vv 3) /\ azim (vec 0) (vv 1) (vv 2) (vv 0) = dihV (vec 0) (vv 1) (vv 2) (vv 0) /\ azim (vec 0) (vv 2) (vv 3) (vv 0) = dihV (vec 0) (vv 2) (vv 3) (vv 0) /\ azim (vec 0) (vv 2) (vv 0) (vv 1) = dihV (vec 0) (vv 2) (vv 0) (vv 1) /\ azim (vec 0) (vv 3) (vv 0) (vv 2) = dihV (vec 0) (vv 3) (vv 0) (vv 2)` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN (unlist REWRITE_TAC);
+    REWRITE_TAC[Appendix.rho_rho_fun];
+    BY(REAL_ARITH_TAC);
+  BY(REPEAT CONJ_TAC THEN MATCH_MP_TAC (REWRITE_RULE[TAUT `(a ==> b ==> c) <=> (a /\ b ==> c)`] Local_lemmas.AZIM_LE_PI_EQ_DIHV) THEN ASM_REWRITE_TAC[] THEN ONCE_REWRITE_TAC[SET_RULE `{a,b,c}={a,c,b}`] THEN ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let vv_quad_split123 = prove_by_refinement(
+  `!vv. 
+    (let V = IMAGE vv (:num) in
+   let E = IMAGE (\i. {vv i, vv (SUC i)}) (:num) in
+   let f = IMAGE (\i. vv i,vv (SUC i)) (:num) in
+    (periodic vv 4 /\
+   V SUBSET ball_annulus /\
+   dist(vv 0, vv 1) < &4 /\
+   dist(vv 0, vv 3) < &4 /\
+   dist(vv 1,vv 2) < &4 /\
+   dist(vv 1,vv 3) < &4 /\
+   dist(vv 2,vv 3) < &4 /\
+   (!i j. ~(vv i = vv j) ==> &2 <= dist(vv i,vv j) ) /\
+   convex_local_fan (V,E,f) /\
+        (!i j. i < 4 /\ j < 4 /\ vv i = vv j ==> (i = j))
+     ==> (rho_fun (norm (vv 0)) * azim (vec 0) (vv 0) (vv 1) (vv 3) +
+          rho_fun (norm (vv 1)) * azim (vec 0) (vv 1) (vv 2) (vv 0) +
+          rho_fun (norm (vv 2)) * azim (vec 0) (vv 2) (vv 3) (vv 1) +
+          rho_fun (norm (vv 3)) * azim (vec 0) (vv 3) (vv 0) (vv 2)) -
+         (pi + sol0) * &2 =
+         tau3 (vv 1) (vv 2) (vv 3) + tau3 (vv 3) (vv 0) (vv 1)))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LET_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY ` azim (vec 0) (vv 0) (vv (SUC 0)) (vv (0 + 4 - 1)) <= pi /\ azim (vec 0) (vv 1) (vv (SUC 1)) (vv (1 + 4 - 1)) <= pi /\ azim (vec 0) (vv 2) (vv (SUC 2)) (vv (2 + 4 - 1)) <= pi /\ azim (vec 0) (vv 3) (vv (SUC 3)) (vv (3 + 4 -1)) <= pi` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REPEAT CONJ_TAC THEN MATCH_MP_TAC (REWRITE_RULE[LET_THM] convex_local_fan_azim_le_pi) THEN ASM_REWRITE_TAC[arith `3 <= 4`]);
+  REWRITE_TAC[Appendix.tau3];
+  TYPIFY `vv 6 = vv 2 /\ vv 5 = vv 1 /\ vv 4 = vv 0` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REPEAT (CONJ_TAC) THEN GMATCH_SIMP_TAC periodic_vv_inj THEN TYPIFY `4` EXISTS_TAC THEN ASM_REWRITE_TAC[MOD_4_EXPLICIT;arith `~(4 = 0)`]);
+  TYPIFY `azim (vec 0) ((vv 1)) ((vv (SUC 1))) ((vv (1 + 4 - 1))) = azim (vec 0) ((vv 1)) ((vv (SUC 1))) ((vv 3)) + azim(vec 0) ((vv 1)) ((vv 3)) ((vv (1 + 4 - 1))) /\ (azim (vec 0) ((vv 3)) ((vv (SUC 3))) ((vv (3 + 4 - 1))) = azim (vec 0) ((vv 3)) ((vv (SUC 3))) ((vv 1)) + azim(vec 0) ((vv 3)) ((vv 1)) ((vv (3 + 4 -1))))` (C SUBGOAL_THEN ASSUME_TAC);
+    CONJ_TAC THEN MATCH_MP_TAC (REWRITE_RULE[LET_THM] vv_split_azim) THEN ASM_REWRITE_TAC[arith `3 <= 4 /\ ~( 1 = 3)`;MOD_4_EXPLICIT;arith `SUC  1 = 2 /\ 1 + 4 - 1 = 4`;arith `SUC 3 = 4 /\ 3 + 4 - 1 = 6`];
+      BY(ASM_MESON_TAC[DIST_SYM]);
+    BY(ASM_MESON_TAC[DIST_SYM]);
+  RULE_ASSUM_TAC (REWRITE_RULE[arith `SUC 0 = 1 /\ SUC 1 = 2 /\ SUC 2 = 3 /\ SUC 3 = 4 /\ 0+4-1 = 3 /\ 1+4-1=4 /\ 2+4-1=5 /\ 3+4-1=6`]);
+  FIRST_X_ASSUM_ST `vv 6 = vv 2` (RULE_ASSUM_TAC o (unlist REWRITE_RULE));
+  ASM_REWRITE_TAC[];
+  TYPIFY `azim (vec 0) (vv 1) (vv 2) (vv 3) <= pi /\ azim (vec 0) (vv 1) (vv 3) (vv 0) <= pi /\ azim (vec 0) (vv 3 ) (vv 0) (vv 1) <= pi /\ azim (vec 0) (vv 3) (vv 1) (vv 2) <= pi` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Counting_spheres.AZIM_NN;arith `&0 <= x /\ &0 <= y /\ x + y <= pi ==> (x <= pi /\ y <= pi)`]);
+  COMMENT "collinearity";
+  TYPIFY `~collinear {vec 0,vv 0,vv 1} /\ ~collinear {vec 0,vv 0, vv 3} /\ ~collinear {vec 0,vv 1,vv 3} /\ ~collinear {vec 0,vv 1,vv 2} /\ ~collinear {vec 0,vv 2, vv 3}` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT (GMATCH_SIMP_TAC NONPARALLEL_BALL_ANNULUS40_ALT);
+    RULE_ASSUM_TAC (REWRITE_RULE[IMAGE_SUBSET_IN;IN_UNIV]);
+    ASM_REWRITE_TAC[];
+    BY(REPEAT CONJ_TAC THEN (FIRST_X_ASSUM_ST `dist` MATCH_MP_TAC) THEN GMATCH_SIMP_TAC periodic_vv_inj THEN (TYPIFY `4` EXISTS_TAC) THEN ASM_REWRITE_TAC[arith `~(4 = 0)`;MOD_4_EXPLICIT;arith `~(2 = 3) /\ ~(1 = 2) /\ ~(0=3) /\ ~(0=1) /\ ~(1=3)`]);
+  COMMENT "azim to dih";
+  TYPIFY `azim (vec 0) (vv 0) (vv 1) (vv 3) = dihV (vec 0) (vv 0) (vv 1) (vv 3) /\ azim (vec 0) (vv 1) (vv 2) (vv 3) = dihV (vec 0) (vv 1) (vv 2) (vv 3) /\ azim (vec 0) (vv 1) (vv 3) (vv 0) = dihV (vec 0) (vv 1) (vv 3) (vv 0) /\ azim (vec 0) (vv 2) (vv 3) (vv 1) = dihV (vec 0) (vv 2) (vv 3) (vv 1) /\ azim (vec 0) (vv 3) (vv 0) (vv 1) = dihV (vec 0) (vv 3) (vv 0) (vv 1) /\ azim (vec 0) (vv 3) (vv 1) (vv 2) = dihV (vec 0) (vv 3) (vv 1) (vv 2)` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN (unlist REWRITE_TAC);
+    REWRITE_TAC[Appendix.rho_rho_fun];
+    BY(REAL_ARITH_TAC);
+  BY(REPEAT CONJ_TAC THEN MATCH_MP_TAC (REWRITE_RULE[TAUT `(a ==> b ==> c) <=> (a /\ b ==> c)`] Local_lemmas.AZIM_LE_PI_EQ_DIHV) THEN ASM_REWRITE_TAC[] THEN ONCE_REWRITE_TAC[SET_RULE `{a,b,c}={a,c,b}`] THEN ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let vv_quad_split_short = prove_by_refinement(
+  `!vv. (let V = IMAGE vv (:num) in
+          let E = IMAGE (\i. {vv i, vv (SUC i)}) (:num) in
+          let f = IMAGE (\i. vv i,vv (SUC i)) (:num) in
+          (periodic vv 4 /\
+          V SUBSET ball_annulus /\
+          dist (vv 0,vv 1) < &4 /\
+          dist (vv 0,vv 3) < &4 /\
+          dist (vv 0,vv 2) < &4 /\
+          dist (vv 1,vv 2) < &4 /\
+          dist (vv 1,vv 3) < &4 /\
+          dist (vv 2,vv 3) < &4 /\
+          (!i j. ~(vv i = vv j) ==> &2 <= dist (vv i,vv j)) /\
+          convex_local_fan (V,E,f) /\
+          (!i j. i < 4 /\ j < 4 /\ vv i = vv j ==> i = j)
+          ==> (?i. (dist(vv i,vv (i+2)) <= dist(vv (i+1),vv(i+3))) /\
+	       (rho_fun (norm (vv 0)) * azim (vec 0) (vv 0) (vv 1) (vv 3) +
+               rho_fun (norm (vv 1)) * azim (vec 0) (vv 1) (vv 2) (vv 0) +
+               rho_fun (norm (vv 2)) * azim (vec 0) (vv 2) (vv 3) (vv 1) +
+               rho_fun (norm (vv 3)) * azim (vec 0) (vv 3) (vv 0) (vv 2)) -
+              (pi + sol0) * &2 =
+              tau3 (vv i) (vv (i+1)) (vv (i+2)) + tau3 (vv (i+2)) (vv (i+3)) (vv i))))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LET_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `dist(vv 0,vv 2) <= dist(vv 1,vv 3)` ASM_CASES_TAC;
+    TYPIFY `0` EXISTS_TAC;
+    ASM_REWRITE_TAC[arith `0+x = x`];
+    MATCH_MP_TAC (REWRITE_RULE[LET_THM] vv_quad_split012);
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `1` EXISTS_TAC;
+  REWRITE_TAC[arith `1+2 = 3 /\ 1+1 = 2 /\ 1 + 3 = 4`];
+  TYPIFY `vv 4 = vv 0` (C SUBGOAL_THEN SUBST1_TAC);
+    BY( GMATCH_SIMP_TAC periodic_vv_inj THEN TYPIFY `4` EXISTS_TAC THEN ASM_REWRITE_TAC[MOD_4_EXPLICIT;arith `~(4 = 0)`]);
+  CONJ_TAC;
+    BY(FIRST_X_ASSUM MP_TAC THEN MESON_TAC[DIST_SYM;arith `~(x <= y) ==> y <= x`]);
+  MATCH_MP_TAC (REWRITE_RULE[LET_THM] vv_quad_split123);
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let SUC_EXPLICIT = prove_by_refinement(
+  `SUC 0 = 1 /\ SUC 1 = 2 /\ SUC 2 = 3 /\ SUC 4 = 5 /\ SUC 5 = 6 /\ SUC 6 = 7 /\ SUC 7 = 8 /\ SUC 8 = 9`,
+  (* {{{ proof *)
+  [
+    ARITH_TAC
   ]);;
   (* }}} *)
 
 
+let cs_adj4_EXPLICIT = prove_by_refinement(
+  `!a b. 
+    cs_adj 4 a b 0 0 = &0 /\
+    cs_adj 4 a b 0 1 = a /\
+    cs_adj 4 a b 0 2 = b /\
+    cs_adj 4 a b 0 3 = a /\
+    cs_adj 4 a b 1 0 = a /\
+    cs_adj 4 a b 1 1 = &0 /\
+    cs_adj 4 a b 1 2 = a /\
+    cs_adj 4 a b 1 3 = b /\
+    cs_adj 4 a b 2 0 = b /\
+    cs_adj 4 a b 2 1 = a /\
+    cs_adj 4 a b 2 2 = &0 /\
+    cs_adj 4 a b 2 3 = a /\
+    cs_adj 4 a b 3 0 = a /\
+    cs_adj 4 a b 3 1 = b /\
+    cs_adj 4 a b 3 2 = a /\
+    cs_adj 4 a b 3 3 = &0 
+`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Appendix.cs_adj;MOD_4_EXPLICIT;SUC_EXPLICIT];
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let terminal_adhoc_quad_9563139965B_empty = prove_by_refinement(
+  `main_nonlinear_v28 ==> 
+	(let s = mk_unadorned_v28 4  #0.467 (cs_adj 4 (&2) (&3)) (cs_adj 4 (&2 * h0) (&3)) in
+	   (!vv. BBs_v28 s vv ==> &0 <= taustar_v28 s vv))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[LET_THM];
+  MATCH_MP_TAC (REWRITE_RULE[LET_THM] (UNDISCH terminal_quad_lemma));
+  COMMENT "digression";
+  TYPIFY `(!i j. i < 4 /\ j < 4 /\ ~(i = j) ==> &2 <= cs_adj 4 (&2) (&3) i j) ` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[arith `i < 4 <=> (i = 0 \/ i = 1 \/ i = 2 \/ i = 3)`];
+    REWRITE_TAC[TAUT `(a \/ b) /\ c <=> a /\ c \/ b /\ c`;TAUT `a /\ (b \/ c) <=> (a /\ b) \/ a /\ c`];
+    REWRITE_TAC[Appendix.cs_adj];
+    REPEAT WEAKER_STRIP_TAC;
+    BY(REPEAT (FIRST_X_ASSUM DISJ_CASES_TAC) THEN ASM_REWRITE_TAC[arith `SUC 0 = 1 /\ SUC 1 = 2 /\ SUC 2 = 3 /\ SUC 3 = 4`;MOD_4_EXPLICIT;arith `&2 <= &2 /\ &2 <= &3`;arith `~(0=1) /\ ~(0=2) /\ ~(0=3) /\ ~(1 =2) /\ ~(1 = 3) /\ ~(2 = 3)`] THEN ASM_MESON_TAC[]);
+  COMMENT "digress2";
+  TYPIFY `!i j. i < 4 /\ j < 4 /\ ~(i = j) ==>  cs_adj 4 (&2 * h0) (&3) i j < &4` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[arith `i < 4 <=> (i = 0 \/ i = 1 \/ i = 2 \/ i = 3)`];
+    REWRITE_TAC[TAUT `(a \/ b) /\ c <=> a /\ c \/ b /\ c`;TAUT `a /\ (b \/ c) <=> (a /\ b) \/ a /\ c`];
+    REWRITE_TAC[Appendix.cs_adj;Sphere.h0];
+    REPEAT WEAKER_STRIP_TAC;
+    BY(REPEAT (FIRST_X_ASSUM DISJ_CASES_TAC) THEN ASM_REWRITE_TAC[arith `SUC 0 = 1 /\ SUC 1 = 2 /\ SUC 2 = 3 /\ SUC 3 = 4`;MOD_4_EXPLICIT;arith `&2 * #1.26 < &4 /\ &3 < &4`;arith `~(0=1) /\ ~(0=2) /\ ~(0=3) /\ ~(1 =2) /\ ~(1 = 3) /\ ~(2 = 3)`] THEN ASM_MESON_TAC[]);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[arith `&2 <= x ==> &0 < x`]);
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[arith `x + &0 = x /\ &4 - &2 = &2`];
+  TYPIFY `(!i j. i < 4 /\ j < 4 /\ vv i = vv j ==> i = j)` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    PROOF_BY_CONTR_TAC;
+    BY(ASM_MESON_TAC[DIST_REFL;REAL_LE_TRANS;arith `~(&2 <= &0)`]);
+  COMMENT "vv";
+  TYPIFY `vv 4 = vv 0 /\ vv 5 = vv 1 /\ vv 6 = vv 2` (C SUBGOAL_THEN ASSUME_TAC);
+    BY((REPEAT CONJ_TAC) THEN GMATCH_SIMP_TAC periodic_vv_inj THEN TYPIFY `4` EXISTS_TAC THEN ASM_REWRITE_TAC[MOD_4_EXPLICIT;arith `~(4 = 0)`]);
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC (REWRITE_RULE[LET_THM] vv_quad_split012);
+  ASM_REWRITE_TAC[];
+  COMMENT "dist";
+  SUBCONJ_TAC;
+    TYPIFY `(!i j. ~(vv i = vv j) ==> &2 <= dist (vv i,vv j))` (C SUBGOAL_THEN ASSUME_TAC);
+      MATCH_MP_TAC periodic2_mod_reduce;
+      TYPIFY `4` EXISTS_TAC;
+      REWRITE_TAC[Appendix.periodic2;arith `~(4 = 0)`];
+      TYPIFY `!i. vv (i + 4) = vv i` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+        BY(ASM_MESON_TAC[Oxl_def.periodic;arith `~(4 = 0)`]);
+      REPEAT WEAKER_STRIP_TAC;
+      BY(ASM_MESON_TAC[REAL_LE_TRANS]);
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[REAL_LET_TRANS;arith `0 < 4 /\ 1 < 4 /\ 2 < 4 /\ 3 < 4 /\ ~(0=1) /\ ~(0=2) /\ ~(0=3) /\ ~(1=2) /\ ~(2 =3)`]);
+  COMMENT "tau3";
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (GMATCH_SIMP_TAC tau3_taum_40);
+  ASM_REWRITE_TAC[];
+  RULE_ASSUM_TAC(REWRITE_RULE[IMAGE_SUBSET_IN;IN_UNIV]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `dist (vv 2,vv 0) < &4 /\   dist (vv 3,vv 0) < &4 ` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    ONCE_REWRITE_TAC[DIST_SYM];
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[TAUT `a /\ b /\ c <=> (a /\ b) /\ c`];
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[REAL_LE_TRANS;arith `1 < 4 /\ 2 < 4 /\ 3 < 4 /\ 0 < 4 /\ ~(2=3) /\ ~(2  =0) /\ ~(3 =0) /\ ~(0 = 1) /\ ~(0=2) /\ ~(1 = 2)`]);
+  TYPIFY `dist(vv 3,vv 0) = dist(vv 0,vv 3) /\ dist(vv 2, vv 0) = dist(vv 0,vv 2)` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    BY(MESON_TAC[DIST_SYM]);
+  COMMENT "prep dist";
+  TYPIFY `(!i j d. d <= cs_adj 4 (&2) (&3) i j  ==> d <= dist (vv i,vv j)) /\ (!i j d. cs_adj 4 (&2 * h0) (&3) i j        <= d ==>   dist (vv i,vv j) <= d)` (C SUBGOAL_THEN MP_TAC);
+    BY(ASM_MESON_TAC[REAL_LE_TRANS]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC cs_adj4_EXPLICIT [`&2`;`&3`];
+  INTRO_TAC cs_adj4_EXPLICIT [`&2 * h0`;`&3`];
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "fist get";
+  INTRO_TAC (UNDISCH ineq_5691615370_asym) [`dist (vv 0,vv 2)`;`dist(vv 0, vv 1)`;`dist(vv 0, vv 3)`;`dist(vv 1,vv 3)`;`dist(vv 2,vv 3)`;`dist(vv 2,vv 1)`];
+  TYPIFY `~(delta_y (dist (vv 0,vv 2)) (dist (vv 0,vv 1)) (dist (vv 0,vv 3))       (dist (vv 1,vv 3))      (dist (vv 2,vv 3))      (dist (vv 2,vv 1)) <      &0)` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+    MATCH_MP_TAC (arith `&0 <= d ==> ~(d < &0)`);
+    BY(REWRITE_TAC[DELTA_Y_POS_4POINTS]);
+  REWRITE_TAC[];
+  TYPIFY `dist(vv 2,vv 1) = dist(vv 1, vv 2)` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(MESON_TAC[DIST_SYM]);
+  REWRITE_TAC[Sphere.ineq];
+  REWRITE_TAC[TAUT `(a ==> b==> c) <=> (a /\ b) ==> c `;TAUT `(a /\ b) /\ c <=> a /\ b /\ c`];
+  ANTS_TAC;
+    BY(REPEAT CONJ_TAC THEN (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[Sphere.h0] THEN TRY REAL_ARITH_TAC);
+  DISCH_TAC;
+  COMMENT "norms";
+  RULE_ASSUM_TAC(REWRITE_RULE[Fnjlbxs.in_ball_annulus]);
+  COMMENT "second get";
+  TYPIFY `dist (vv 0,vv 1) <= #2.472 /\ dist(vv 1,vv 2) <= #2.472 /\ dist(vv 2,vv 3) <= #2.472 /\ dist(vv 0,vv 3) <= #2.472` ASM_CASES_TAC;
+    INTRO_TAC (Appendix.get_main_nonlinear "9563139965 d") [`norm(vv 1)`;`norm (vv 2)`;`norm (vv 0)`;`dist(vv 0,vv 2)`;`dist(vv 0,vv 1)`;`dist(vv 1,vv 2)`];
+    REWRITE_TAC[Sphere.ineq];
+    REWRITE_TAC[TAUT `(a ==> b==> c) <=> (a /\ b) ==> c `;TAUT `(a /\ b) /\ c <=> a /\ b /\ c`];
+    ANTS_TAC;
+      ASM_REWRITE_TAC[];
+      BY(REPEAT CONJ_TAC THEN (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[Sphere.h0] THEN TRY REAL_ARITH_TAC);
+    DISCH_TAC;
+    INTRO_TAC (Appendix.get_main_nonlinear "9563139965 d") [`norm(vv 3)`;`norm (vv 2)`;`norm (vv 0)`;`dist(vv 0,vv 2)`;`dist(vv 0,vv 3)`;`dist(vv 2,vv 3)`];
+    REWRITE_TAC[Sphere.ineq];
+    REWRITE_TAC[TAUT `(a ==> b==> c) <=> (a /\ b) ==> c `;TAUT `(a /\ b) /\ c <=> a /\ b /\ c`];
+    ANTS_TAC;
+      ASM_REWRITE_TAC[];
+      BY(REPEAT CONJ_TAC THEN (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[Sphere.h0] THEN TRY REAL_ARITH_TAC);
+    DISCH_TAC;
+    TYPIFY `taum (norm (vv 0)) (norm (vv 1)) (norm (vv 2)) (dist (vv 1,vv 2))  (dist (vv 0,vv 2)) (dist (vv 0,vv 1)) = taum (norm (vv 1)) (norm (vv 2)) (norm (vv 0)) (dist (vv 0,vv 2))      (dist (vv 0,vv 1))      (dist (vv 1,vv 2)) /\ taum (norm (vv 2)) (norm (vv 3)) (norm (vv 0)) (dist (vv 0,vv 3)) (dist (vv 0,vv 2)) (dist (vv 2,vv 3)) = taum (norm (vv 3)) (norm (vv 2)) (norm (vv 0)) (dist (vv 0,vv 2))      (dist (vv 0,vv 3))      (dist (vv 2,vv 3))` ENOUGH_TO_SHOW_TAC;
+      DISCH_THEN (unlist REWRITE_TAC);
+      BY(REPLICATE_TAC 4 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    BY(MESON_TAC[taum_sym]);
+  COMMENT "third get";
+  INTRO_TAC (Appendix.get_main_nonlinear "9563139965 f") [`norm(vv 1)`;`norm (vv 2)`;`norm (vv 0)`;`dist(vv 0,vv 2)`;`dist(vv 0,vv 1)`;`dist(vv 1,vv 2)`];
+  REWRITE_TAC[Sphere.ineq];
+  REWRITE_TAC[TAUT `(a ==> b==> c) <=> (a /\ b) ==> c `;TAUT `(a /\ b) /\ c <=> a /\ b /\ c`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    BY(REPEAT CONJ_TAC THEN (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[Sphere.h0] THEN TRY REAL_ARITH_TAC);
+  TYPIFY `taum (norm (vv 1)) (norm (vv 2)) (norm (vv 0)) (dist (vv 0,vv 2)) (dist (vv 0,vv 1)) (dist (vv 1,vv 2)) = taum (norm (vv 0)) (norm (vv 1)) (norm (vv 2)) (dist (vv 1,vv 2))     (dist (vv 0,vv 2))     (dist (vv 0,vv 1))` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(MESON_TAC[taum_sym]);
+  DISCH_TAC;
+  INTRO_TAC (Appendix.get_main_nonlinear "9563139965 f") [`norm(vv 3)`;`norm (vv 2)`;`norm (vv 0)`;`dist(vv 0,vv 2)`;`dist(vv 0,vv 3)`;`dist(vv 2,vv 3)`];
+  REWRITE_TAC[Sphere.ineq];
+  REWRITE_TAC[TAUT `(a ==> b==> c) <=> (a /\ b) ==> c `;TAUT `(a /\ b) /\ c <=> a /\ b /\ c`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    BY(REPEAT CONJ_TAC THEN (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[Sphere.h0] THEN TRY REAL_ARITH_TAC);
+  TYPIFY `taum (norm (vv 3)) (norm (vv 2)) (norm (vv 0)) (dist (vv 0,vv 2)) (dist (vv 0,vv 3)) (dist (vv 2,vv 3)) = taum (norm (vv 2)) (norm (vv 3)) (norm (vv 0)) (dist (vv 0,vv 3))     (dist (vv 0,vv 2))     (dist (vv 2,vv 3))` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(MESON_TAC[taum_sym]);
+  DISCH_TAC;
+  FIRST_X_ASSUM_ST `~` MP_TAC;
+  REWRITE_TAC[DE_MORGAN_THM];
+  COMMENT "four cases on top edge";
+  DISCH_TAC THEN REPEAT (FIRST_X_ASSUM DISJ_CASES_TAC);
+        INTRO_TAC (Appendix.get_main_nonlinear "9563139965 e") [`norm(vv 1)`;`norm (vv 2)`;`norm (vv 0)`;`dist(vv 0,vv 2)`;`dist(vv 0,vv 1)`;`dist(vv 1,vv 2)`];
+        REWRITE_TAC[Sphere.ineq];
+        REWRITE_TAC[TAUT `(a ==> b==> c) <=> (a /\ b) ==> c `;TAUT `(a /\ b) /\ c <=> a /\ b /\ c`];
+        ANTS_TAC;
+          ASM_REWRITE_TAC[];
+          TYPIFY `#2.467 <= dist(vv 0,vv 1)` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+            BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
+          BY(REPEAT CONJ_TAC THEN (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[Sphere.h0] THEN FIRST_X_ASSUM MP_TAC THEN TRY REAL_ARITH_TAC);
+        TYPIFY `taum (norm (vv 1)) (norm (vv 2)) (norm (vv 0)) (dist (vv 0,vv 2)) (dist (vv 0,vv 1)) (dist (vv 1,vv 2)) = taum (norm (vv 0)) (norm (vv 1)) (norm (vv 2)) (dist (vv 1,vv 2))     (dist (vv 0,vv 2))     (dist (vv 0,vv 1))` (C SUBGOAL_THEN SUBST1_TAC);
+          BY(MESON_TAC[taum_sym]);
+        BY(REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+      COMMENT "3 left";
+      INTRO_TAC (Appendix.get_main_nonlinear "9563139965 e") [`norm(vv 1)`;`norm (vv 0)`;`norm (vv 2)`;`dist(vv 0,vv 2)`;`dist(vv 1,vv 2)`;`dist(vv 0,vv 1)`];
+      REWRITE_TAC[Sphere.ineq];
+      REWRITE_TAC[TAUT `(a ==> b==> c) <=> (a /\ b) ==> c `;TAUT `(a /\ b) /\ c <=> a /\ b /\ c`];
+      ANTS_TAC;
+        ASM_REWRITE_TAC[];
+        TYPIFY `#2.467 <= dist(vv 1,vv 2)` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+          BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
+        BY(REPEAT CONJ_TAC THEN (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[Sphere.h0] THEN FIRST_X_ASSUM MP_TAC THEN TRY REAL_ARITH_TAC);
+      TYPIFY `taum (norm (vv 1)) (norm (vv 0)) (norm (vv 2)) (dist (vv 0,vv 2)) (dist (vv 1,vv 2)) (dist (vv 0,vv 1)) = taum (norm (vv 0)) (norm (vv 1)) (norm (vv 2)) (dist (vv 1,vv 2))     (dist (vv 0,vv 2))     (dist (vv 0,vv 1))` (C SUBGOAL_THEN SUBST1_TAC);
+        BY(MESON_TAC[taum_sym]);
+      BY(REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    COMMENT "2 left";
+    INTRO_TAC (Appendix.get_main_nonlinear "9563139965 e") [`norm(vv 3)`;`norm (vv 0)`;`norm (vv 2)`;`dist(vv 0,vv 2)`;`dist(vv 2,vv 3)`;`dist(vv 0,vv 3)`];
+    REWRITE_TAC[Sphere.ineq];
+    REWRITE_TAC[TAUT `(a ==> b==> c) <=> (a /\ b) ==> c `;TAUT `(a /\ b) /\ c <=> a /\ b /\ c`];
+    ANTS_TAC;
+      ASM_REWRITE_TAC[];
+      TYPIFY `#2.467 <= dist(vv 2,vv 3)` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+        BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
+      BY(REPEAT CONJ_TAC THEN (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[Sphere.h0] THEN FIRST_X_ASSUM MP_TAC THEN TRY REAL_ARITH_TAC);
+    TYPIFY `taum (norm (vv 3)) (norm (vv 0)) (norm (vv 2)) (dist (vv 0,vv 2)) (dist (vv 2,vv 3)) (dist (vv 0,vv 3)) = taum (norm (vv 2)) (norm (vv 3)) (norm (vv 0)) (dist (vv 0,vv 3))     (dist (vv 0,vv 2))     (dist (vv 2,vv 3))` (C SUBGOAL_THEN SUBST1_TAC);
+      BY(MESON_TAC[taum_sym]);
+    BY(REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  COMMENT "1 left";
+  INTRO_TAC (Appendix.get_main_nonlinear "9563139965 e") [`norm(vv 3)`;`norm (vv 2)`;`norm (vv 0)`;`dist(vv 0,vv 2)`;`dist(vv 0,vv 3)`;`dist(vv 2,vv 3)`];
+  REWRITE_TAC[Sphere.ineq];
+  REWRITE_TAC[TAUT `(a ==> b==> c) <=> (a /\ b) ==> c `;TAUT `(a /\ b) /\ c <=> a /\ b /\ c`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    TYPIFY `#2.467 <= dist(vv 0,vv 3)` (C SUBGOAL_THEN (unlist REWRITE_TAC));
+      BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
+    BY(REPEAT CONJ_TAC THEN (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[] THEN REWRITE_TAC[Sphere.h0] THEN FIRST_X_ASSUM MP_TAC THEN TRY REAL_ARITH_TAC);
+  TYPIFY `taum (norm (vv 3)) (norm (vv 2)) (norm (vv 0)) (dist (vv 0,vv 2)) (dist (vv 0,vv 3)) (dist (vv 2,vv 3)) =  taum (norm (vv 2)) (norm (vv 3)) (norm (vv 0)) (dist (vv 0,vv 3))     (dist (vv 0,vv 2))     (dist (vv 2,vv 3))` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(MESON_TAC[taum_sym]);
+  BY(REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
+ end;;
+
+(*
 Appendix.terminal_hex;;
-Appendix.terminal_pent;; 
-Appendix.terminal_adhoc_quad_9563139965B;; 
+Appendix.terminal_pent_lo2;; 
 Appendix.terminal_adhoc_quad_4680581274;; (* shorter diag [3.01,3.166], top edge 3.01 *)
 Appendix.terminal_adhoc_quad_7697147739;; (* shorter diag [3.01,3.108], top edge sqrt8 *)
 

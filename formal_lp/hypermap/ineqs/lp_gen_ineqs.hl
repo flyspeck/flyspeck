@@ -4,9 +4,6 @@ needs "../formal_lp/hypermap/ineqs/lp_gen_theory-compiled.hl";;
 module Lp_gen_ineqs = struct
 
 
-(* let create tm = mk_fthm ([], tm);; *)
-
-
 open Lp_ineqs_def;;
 open Hypermap_and_fan;;
 open Hypermap_iso;;
@@ -58,8 +55,10 @@ let var_inst_list =
 (* For a term in the form `!x. x IN set H ==> P x` returns a theorem
    hyp_iso g (G,H), !x. x IN set H ==> P x |- !y. y IN set G ==> P (g y) *)
 let get_iso_thm =
-  let iso_list =
+  let iso_list0 =
     [
+      `darts_k 6 (H:(A)hypermap)`, spec_var_th iso_darts_k_trans 0 `6`;
+      `darts_k 5 (H:(A)hypermap)`, spec_var_th iso_darts_k_trans 0 `5`;
       `darts_k 4 (H:(A)hypermap)`, spec_var_th iso_darts_k_trans 0 `4`;
       `darts_k 3 (H:(A)hypermap)`, spec_var_th iso_darts_k_trans 0 `3`;
       `dart (H:(A)hypermap)`, iso_dart_trans;
@@ -67,19 +66,25 @@ let get_iso_thm =
       `node_set (H:(A)hypermap)`, iso_node_trans;
       `V:C->bool`, bij_trans;
     ] in
+  let cty = `:C` in
     fun ineq ->
       let x_tm, tm = dest_forall ineq in
+      let x_ty =
+	try (fst o dest_fun_ty o type_of) x_tm with Failure _ -> type_of x_tm in
+      let ty_list = [x_ty, aty; x_ty, cty] in
+      let iso_list = map (fun tm, th -> inst ty_list tm, INST_TYPE ty_list th) iso_list0 in
       let set, p_tm' = dest_binary "==>" tm in
       let set_th = assoc (rand set) iso_list in
       let p_tm = mk_abs (x_tm, p_tm') in
       let p_var = mk_var ("P", type_of (rand set)) in
       let th1 = (SPEC_ALL o ONCE_REWRITE_RULE[RIGHT_IMP_FORALL_THM] o REWRITE_RULE[IMP_IMP]) set_th in
-	BETA_RULE (INST[p_tm, p_var] th1);;
+	BETA_RULE (INST[p_tm, p_var] th1), ty_list;;
+
 
 (* For an inequality term returns an isomorphism theorem *)
 let build_iso_th =
   let th_rule th = (UNDISCH_ALL o SPEC_ALL o REWRITE_RULE[RIGHT_IMP_FORALL_THM]) th in
-  let ths = [
+  let ths0 = [
     th_rule components_iso_image;
     th_rule hyp_iso_comm_special;
     th_rule hyp_iso_inv_comm;
@@ -88,15 +93,19 @@ let build_iso_th =
     th_rule sum_node_iso;
     th_rule sum_face_iso;
   ] in
-  let sub_ths = [
+  let sub_ths0 = [
     `d IN darts_k 3 (G:(B)hypermap)`, (INST[`3`, `k:num`] o th_rule) darts_k_subset;
     `d IN darts_k 4 (G:(B)hypermap)`, (INST[`4`, `k:num`] o th_rule) darts_k_subset;
+    `d IN darts_k 5 (G:(B)hypermap)`, (INST[`5`, `k:num`] o th_rule) darts_k_subset;
+    `d IN darts_k 6 (G:(B)hypermap)`, (INST[`6`, `k:num`] o th_rule) darts_k_subset;
   ] in
 
     fun ineq ->
-      let iso_trans_th = get_iso_thm ineq in
+      let iso_trans_th, ty_list = get_iso_thm ineq in
       let th0 = UNDISCH_ALL (PURE_REWRITE_RULE[GSYM IMP_IMP] iso_trans_th) in
       let gen_var, rtm = dest_forall(concl th0) in
+      let ths = map (INST_TYPE ty_list) ths0 and
+	  sub_ths = map (fun tm, th -> inst ty_list tm, INST_TYPE ty_list th) sub_ths0 in
       let ants = lhand rtm in
       let th1 = UNDISCH (SPEC_ALL th0) in
 	(* General isomorphism rewrites *)
@@ -120,6 +129,8 @@ let build_list_th =
       dart_list_all;
       dart3_list_all;
       dart4_list_all;
+      dart5_list_all;
+      dart6_list_all;
       elements_list_all;
     ] in
 
@@ -137,6 +148,8 @@ let build_list_th =
     [
       `MEM (d:num#num) (list_of_darts3 L)`, th_rule list_of_darts3_subset;
       `MEM (d:num#num) (list_of_darts4 L)`, th_rule list_of_darts4_subset;
+      `MEM (d:num#num) (list_of_darts5 L)`, th_rule list_of_darts5_subset;
+      `MEM (d:num#num) (list_of_darts6 L)`, th_rule list_of_darts6_subset;
     ] in
 
     fun iso_th ->
@@ -160,7 +173,7 @@ let build_list_th =
       let s8 = GEN gen_var2 (DISCH ants2 s7) in
       let s9 = PURE_REWRITE_RULE list_var_rewrites s8 in
       let s10 = PURE_REWRITE_RULE[ALL_MEM] s9 in
-	(* Rewrite the main inequality hypothesis with the COMPONENTS_HYPERMAP_OF_FAN theorem*)
+	(* Rewrite the main inequality hypothesis with the COMPONENTS_HYPERMAP_OF_FAN theorem *)
       let gen_hyp = find is_forall (hyp s10) in
       let eq_th = REWRITE_CONV[UNDISCH_ALL (ISPECL [`V:real^3->bool`; `E:(real^3->bool)->bool`] COMPONENTS_HYPERMAP_OF_FAN)] gen_hyp in
       let imp_th = if (rand (concl eq_th) = `T`) then EQT_ELIM eq_th else UNDISCH (MATCH_MP EQ_IMP (SYM eq_th)) in
@@ -196,7 +209,7 @@ let test_ineq7 = `!d. d IN dart (H:(A)hypermap) ==> CARD (face H d) = 3 ==> y4_m
 let test_ineq8 = `!d. d IN dart (H:(A)hypermap) ==> &2 <= y4'_mod d`;;
 let test_ineq9 = `!d. d IN darts_k 3 (H:(A)hypermap) ==> y4_mod d = ye_mod (face_map H d):real`;;
 let test_ineq10 = `!d. d IN darts_k 3 (H:(A)hypermap) ==> ye_mod d = ye_mod (edge_map H d):real`;;
-
+let test_ineq11 = `!d. d IN darts_k 5 (H:(A)hypermap) ==> tau_mod (face H d) >= #0.4819`;;
 
 generate_ineq test_ineq1;;
 generate_ineq test_ineq2;;
@@ -208,6 +221,7 @@ generate_ineq test_ineq7;;
 generate_ineq test_ineq8;;
 generate_ineq test_ineq9;;
 generate_ineq test_ineq10;;
+generate_ineq test_ineq11;;
 
 generate_ineq edge_sym;;
 generate_ineq y1_def;;

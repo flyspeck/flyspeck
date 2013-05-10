@@ -229,7 +229,8 @@ namespace LP_HL
             var darts = faces.flatten();
             var darts3 = faces3.flatten();
             var darts4 = faces4.flatten();
-            var dartsX = faces.filter(f => f.Count >= 4).flatten();
+            var darts5 = faces5.flatten();
+            var darts6 = faces6.flatten();
 
             // edges
             var edges = darts.map(d => new List<Dart>(new Dart[] {d, new Dart(d.b, d.a)} ));
@@ -248,22 +249,12 @@ namespace LP_HL
             sets.Add("nodes", nodes.ToHypermapElements());
             sets.Add("darts3", darts3.ToHypermapElements());
             sets.Add("darts4", darts4.ToHypermapElements());
-            sets.Add("dartsX", dartsX.ToHypermapElements());
+            sets.Add("darts5", darts5.ToHypermapElements());
+            sets.Add("darts6", darts6.ToHypermapElements());
             sets.Add("faces3", faces3.ToHypermapElements());
             sets.Add("faces4", faces4.ToHypermapElements());
             sets.Add("faces5", faces5.ToHypermapElements());
             sets.Add("faces6", faces6.ToHypermapElements());
-
-            // Special names
-            sets.Add("dart_std4", sets["darts4"]);
-            sets.Add("dart3", sets["darts3"]);
-            sets.Add("dart_std3", sets["darts3"]);
-            sets.Add("dart_std", sets["darts"]);
-            sets.Add("std3", sets["faces3"]);
-            sets.Add("std4", sets["faces4"]);
-            sets.Add("std5", sets["faces5"]);
-            sets.Add("std6", sets["faces6"]);
-            sets.Add("dartX", sets["dartsX"]);
 
             // Create the translation tables
             translationTables = new Dictionary<string, Dictionary<string, HypermapElement>>();
@@ -271,7 +262,11 @@ namespace LP_HL
             // e_darts, faces, darts
             Dictionary<string, HypermapElement> e_darts = new Dictionary<string, HypermapElement>();
             Dictionary<string, HypermapElement> mod_faces = new Dictionary<string,HypermapElement>();
-            Dictionary<string, HypermapElement> mod_darts = new Dictionary<string,HypermapElement>();
+            Dictionary<string, HypermapElement> mod_face3_darts = new Dictionary<string, HypermapElement>();
+            Dictionary<string, HypermapElement> mod_face4_darts = new Dictionary<string, HypermapElement>();
+            Dictionary<string, HypermapElement> mod_face5_darts = new Dictionary<string, HypermapElement>();
+            Dictionary<string, HypermapElement> mod_face6_darts = new Dictionary<string, HypermapElement>();
+            Dictionary<string, HypermapElement> mod_darts = new Dictionary<string, HypermapElement>();
 
             for (int j = 0; j < list.Count; j++)
             {
@@ -293,6 +288,27 @@ namespace LP_HL
                 }
 
                 mod_faces.Add(mod_index.ToString(), new DartList(faces[j]));
+
+                var mod_face_darts = mod_face3_darts;
+                switch (n)
+                {
+                    case 3:
+                        mod_face_darts = mod_face3_darts;
+                        break;
+                    case 4:
+                        mod_face_darts = mod_face4_darts;
+                        break;
+                    case 5:
+                        mod_face_darts = mod_face5_darts;
+                        break;
+                    case 6:
+                        mod_face_darts = mod_face6_darts;
+                        break;
+                    default:
+                        throw new Exception(String.Format("Unexpected face size {0}", n));
+                }
+
+                mod_face_darts.Add(mod_index.ToString(), faces[j][0]);
             }
 
             // nodes
@@ -325,6 +341,10 @@ namespace LP_HL
             translationTables.Add("edge", mod_edges);
             translationTables.Add("face", mod_faces);
             translationTables.Add("node", mod_nodes);
+            translationTables.Add("face3_dart", mod_face3_darts);
+            translationTables.Add("face4_dart", mod_face4_darts);
+            translationTables.Add("face5_dart", mod_face5_darts);
+            translationTables.Add("face6_dart", mod_face6_darts);
         }
 
 
@@ -526,6 +546,12 @@ namespace LP_HL
 
             Definition c = constraints[ineqId.name];
             HypermapElement element = hypermap.Translate(c.domain, ineqId.index);
+            if (element == null)
+            {
+                throw new Exception(
+                       String.Format("Element with the index {0} is not found for the domain {1}", ineqId.index, c.domain));
+            }
+
             return hypermap.FindElementIndex(c.set, element);
         }
 

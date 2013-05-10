@@ -171,6 +171,7 @@ namespace LP_HL
             catch (Exception e)
             {
                 Console.Error.WriteLine("ERROR: {0}", e.Message);
+                Console.Error.WriteLine(e.StackTrace);
             }
 
             Console.WriteLine("done\n");

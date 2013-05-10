@@ -1,4 +1,5 @@
 needs "../formal_lp/hypermap/ineqs/lp_ineqs.hl";;
+needs "../formal_lp/hypermap/ineqs/lp_head_ineqs.hl";;
 needs "../formal_lp/hypermap/ineqs/lp_body_ineqs.hl";;
 needs "../formal_lp/hypermap/computations/list_hypermap_computations.hl";;
 needs "../formal_lp/more_arith/prove_lp.hl";;
@@ -15,6 +16,7 @@ open List_conversions;;
 open Lp_approx_ineqs;;
 open Lp_ineqs;;
 
+Lp_head_ineqs.add_head_ineqs();;
 Lp_body_ineqs.add_body_ineqs();;
 Lp_ineqs.generate_all();;
 
@@ -30,7 +32,7 @@ let FINAL_INEQ = (MY_RULE_NUM o prove)(`lin_f [] <= -- &n <=> n = 0`,
 
 let lnsum_ineqs =
   let DECIMAL_INT = prove(`!n. DECIMAL n 1 = &n`, REWRITE_TAC[DECIMAL; REAL_DIV_1]) in
-  let ineq_th = (add_lp_hyp o REWRITE_RULE[GSYM IMP_IMP]) Lp_ineqs_proofs.lnsum_ineq in
+  let ineq_th = (add_lp_hyp false o REWRITE_RULE[GSYM IMP_IMP]) Lp_ineqs_proofs.lnsum_ineq in
   let ineq_tm = concl ineq_th in
   let ths1 = create_approximations [9;12;15] ineq_tm in
   let ths2 = map generalize_hyp ths1 in
@@ -220,7 +222,7 @@ let rec prove_conditions ineq_th =
       
 
 let get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices =
-  let tag, ineq0_th = find_ineq std_flag precision name in
+  let ineq0_th = find_ineq std_flag precision name in
   let ineq1_th = INST[hyp_list_tm, l_cap_var] ineq0_th in
   let all_tm, set_tm = dest_comb (concl ineq1_th) in
   let set_eq_th = hyp_set ((fst o dest_const o rator) set_tm) in
@@ -256,7 +258,7 @@ let prove_flyspeck_lp_step1 hyp_list_tm hyp_set hyp_fun std_flag precision const
   let s4 = add_step' (add_step' s1 s2) s3 in
 
   let ineq_th0 = assoc precision lnsum_ineqs in
-  let ineq_th1 = (INST[hyp_list_tm, l_cap_var] o add_lp_hyp) ineq_th0 in
+  let ineq_th1 = (INST[hyp_list_tm, l_cap_var]) ineq_th0 in
   let ineq_th2 = EQ_MP (term_rewrite (concl ineq_th1) (hyp_set "list_of_elements")) ineq_th1 in
   let ineq_th3 = simplify_ineq hyp_fun ineq_th2 in
   let ineq_th4 = to_lin_f_ineq ineq_th3 in
@@ -266,7 +268,6 @@ let prove_flyspeck_lp_step1 hyp_list_tm hyp_set hyp_fun std_flag precision const
   let r_eq_th = INST[n_tm, n_var_num] FINAL_INEQ in
   let not_zero_th = NUM_EQ0_HASH_CONV n_tm in
     EQ_MP not_zero_th (EQ_MP r_eq_th r1);;
-
 
 
 (*************************)

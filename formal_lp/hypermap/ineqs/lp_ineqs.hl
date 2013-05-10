@@ -2,31 +2,43 @@ needs "../formal_lp/hypermap/ineqs/lp_gen_ineqs.hl";;
 needs "../formal_lp/hypermap/ineqs/lp_approx_ineqs.hl";;
 needs "../formal_lp/hypermap/ineqs/lp_ineqs_defs.hl";;
 needs "../formal_lp/hypermap/ineqs/lp_ineqs_proofs-compiled.hl";;
+needs "../formal_lp/hypermap/ineqs/lp_main_estimate-compiled.hl";;
 needs "../formal_lp/hypermap/arith_link.hl";;
 
 module Lp_ineqs = struct
 
-type ineq_tag = Conditions | Std | Done;;
+open Lp_ineqs_proofs;;
 
 type lp_ineq = {
   name : string;
   tm : term;
-  tag: ineq_tag;
   proof: thm option;
   std_only: bool;
 };;
 
 
-let raw_ineq_list, add_raw_ineq, find_raw_ineq, find_all_raw_ineqs = 
+let raw_ineq_list, add_raw_ineq, find_raw_ineq = 
   let table = ref [] in
     (fun () -> !table),
-  (fun name tag std tm th -> 
-     table := {name = name; tm = tm; tag = tag; proof = th; std_only = std} :: !table),
-  (fun std_flag name -> find (fun x -> x.name = name && x.std_only = std_flag) !table),
-  (fun std_flag tag -> filter (fun x -> x.tag = tag && x.std_only = std_flag) !table);;
+  (fun name std tm th -> 
+     table := {name = name; tm = tm; proof = th; std_only = std} :: !table),
+  (fun std_flag name -> find (fun x -> x.name = name && x.std_only = std_flag) !table);;
 
 
-let my_parser s type_hints =
+(* Replaces all general hypotheses with lp_cond *)
+let add_lp_hyp =
+  let lp_fan_ths = (CONJUNCTS o UNDISCH_ALL o MATCH_MP EQ_IMP o SPEC_ALL) Lp_ineqs_proofs.lp_fan in
+  let lp_cond_ths = (CONJUNCTS o UNDISCH_ALL o MATCH_MP EQ_IMP o SPEC_ALL o INST_TYPE[`:num`, aty]) Lp_ineqs_proofs.lp_cond in
+  let lp_main_estimate_ths = (CONJUNCTS o UNDISCH_ALL o MATCH_MP EQ_IMP o SPEC_ALL) Lp_main_estimate.lp_main_estimate in
+    fun lp_ineq_flag th ->
+      let th' = (UNDISCH_ALL o SPEC_ALL) th in
+      let th0 = if (not lp_ineq_flag) or is_forall (concl th') or is_binary "ALL" (concl th') then th' else th in
+      let th1 = itlist PROVE_HYP lp_fan_ths th0 in
+      let th2 = itlist PROVE_HYP lp_cond_ths th1 in
+	itlist PROVE_HYP lp_main_estimate_ths th2;;
+
+
+let parse_lp_ineq s type_hints =
   let hints = map (fun var, ty -> var, pretype_of_type ty) type_hints in
   let ptm, l = (parse_preterm o lex o explode) s in
     if l = [] then
@@ -35,359 +47,74 @@ let my_parser s type_hints =
       failwith "Unparsed input following term";;
 
 
-let my_add_ineq (name, std_flag, tag, s_tm, th) =
-  let tm = my_parser s_tm ["H", `:(A)hypermap`; "V", `:C->bool`; "node_mod", `:A->C`] in
-    (* Modify the inequality for the computation case *)
-    add_raw_ineq name tag std_flag tm th;;
+let add_lp_ineq_str (name, std_flag, s_tm, th) =
+  let tm = parse_lp_ineq s_tm ["H", `:(A)hypermap`; "V", `:C->bool`; "node_mod", `:A->C`] in
+  let proof = match th with
+    | None -> None
+    | Some th -> Some (PURE_REWRITE_RULE[GSYM IMP_IMP] (add_lp_hyp true th)) in
+    add_raw_ineq name std_flag tm proof;;
 
 
-map my_add_ineq
-  [
-    "azim_lo", false, Done, 
-		"!d. d IN dart H ==> &0 <= azim_mod d", 
-		Some Lp_ineqs_proofs.azim_lo;
-		
-    "azim_hi", false, Done, 
-		"!d. d IN dart H ==> azim_mod d <= pi", 
-		Some Lp_ineqs_proofs.azim_hi;
-		
-    "azim2_lo", false, Done, 
-		"!d. d IN dart H ==> &0 <= azim2_mod d", 
-		Some Lp_ineqs_proofs.azim2_lo;
-		
-    "azim2_hi", false, Done, 
-		"!d. d IN dart H ==> azim2_mod d <= pi", 
-		Some Lp_ineqs_proofs.azim2_hi;
-		
-    "azim3_lo", false, Done, 
-		"!d. d IN dart H ==> &0 <= azim3_mod d", 
-		Some Lp_ineqs_proofs.azim3_lo;
-		
-    "azim3_hi", false, Done, 
-		"!d. d IN dart H ==> azim3_mod d <= pi", 
-		Some Lp_ineqs_proofs.azim3_hi;
-		
-    "rhazim_lo", false, Done, 
-		"!d. d IN dart H ==> &0 <= rhazim_mod d", 
-		Some Lp_ineqs_proofs.rhazim_lo;
-		
-    "rhazim_hi", false, Done, 
-		"!d. d IN dart H ==> rhazim_mod d <= pi + sol0", 
-		Some Lp_ineqs_proofs.rhazim_hi;
-		
-    "rhazim2_lo", false, Done, 
-		"!d. d IN dart H ==> &0 <= rhazim2_mod d", 
-		Some Lp_ineqs_proofs.rhazim2_lo;
-		
-    "rhazim2_hi", false, Done, 
-		"!d. d IN dart H ==> rhazim2_mod d <= pi + sol0", 
-		Some Lp_ineqs_proofs.rhazim2_hi;
-		
-    "rhazim3_lo", false, Done, 
-		"!d. d IN dart H ==> &0 <= rhazim3_mod d", 
-		Some Lp_ineqs_proofs.rhazim3_lo;
-		
-    "rhazim3_hi", false, Done, 
-		"!d. d IN dart H ==> rhazim3_mod d <= pi + sol0", 
-		Some Lp_ineqs_proofs.rhazim3_hi;
+let mk_lp_ineq =
+  let subst_list = [
+    `dart (H:(real^3#real^3)hypermap)`, `dart_of_fan (V:real^3->bool,E)`;
+    `H:(real^3#real^3)hypermap`, `hypermap_of_fan (V:real^3->bool,E)`;
+    `face_map (H:(real^3#real^3)hypermap)`, `f_fan_pair_ext (V:real^3->bool,E)`;
+    `azim_mod:real^3#real^3->real`, `azim_dart (V:real^3->bool,E)`;
+    `azim2_mod:real^3#real^3->real`, `azim2_fan (V:real^3->bool,E)`;
+    `azim3_mod:real^3#real^3->real`, `azim3_fan (V:real^3->bool,E)`;
+    `rhazim_mod:real^3#real^3->real`, `rhazim_fan (V:real^3->bool,E)`;
+    `rhazim2_mod:real^3#real^3->real`, `rhazim2_fan (V:real^3->bool,E)`;
+    `rhazim3_mod:real^3#real^3->real`, `rhazim3_fan (V:real^3->bool,E)`;
+    `sol_mod:(real^3#real^3->bool)->real`, `sol_fan (V:real^3->bool,E)`;
+    `tau_mod:(real^3#real^3->bool)->real`, `tau_fan (V:real^3->bool,E)`;
+    `y1_mod:real^3#real^3->real`, `y1_fan`;
+    `y2_mod:real^3#real^3->real`, `y2_fan`;
+    `y3_mod:real^3#real^3->real`, `y3_fan (V,E)`;
+    `y4_mod:real^3#real^3->real`, `y4_fan (V,E)`;
+    `y5_mod:real^3#real^3->real`, `y5_fan (V,E)`;
+    `y6_mod:real^3#real^3->real`, `y6_fan`;
+    `y7_mod:real^3#real^3->real`, `y7_fan (V,E)`;
+    `y8_mod:real^3#real^3->real`, `y8_fan (V,E)`;
+    `y9_mod:real^3#real^3->real`, `y9_fan (V,E)`;
+    `y4'_mod:real^3#real^3->real`, `y4'_fan (V,E)`;
+    `ye_mod:real^3#real^3->real`, `ye_fan`;
+    `yn_mod:real^3->real`, `yn_fan`;
+  ] in
+    fun ineq_th ->
+      let proof = PURE_REWRITE_RULE[GSYM IMP_IMP] (add_lp_hyp true ineq_th) in
+      let tm0 = concl proof in
+      let tm1 = subst subst_list tm0 in
+	tm1, proof;;
 
-    "ln_lo", false, Done, 
-		"!x. x IN V ==> &0 <= ln_mod x", 
-		Some Lp_ineqs_proofs.ln_lo;
-		
-    "ln_hi", false, Done, 
-		"!x. x IN V ==> ln_mod x <= &1", 
-		Some Lp_ineqs_proofs.ln_hi;
-		
-    "rho_lo", false, Done, 
-		"!x. x IN V ==> &1 <= rho_mod x", 
-		Some Lp_ineqs_proofs.rho_lo;
-		
-    "rho_hi", false, Done, 
-		"!x. x IN V ==> rho_mod x <= &1 + sol0 / pi", 
-		Some Lp_ineqs_proofs.rho_hi;
-		
-    "yn_lo", false, Done, 
-		"!x. x IN V ==> &2 <= yn_mod x", 
-		Some Lp_ineqs_proofs.yn_lo;
-		
-    "yn_hi", false, Done, 
-		"!x. x IN V ==> yn_mod x <= #2.52", 
-		Some Lp_ineqs_proofs.yn_hi;
 
-    "ye_lo", false, Done, 
-		"!d. d IN dart H ==> &2 <= ye_mod d", 
-		Some Lp_ineqs_proofs.ye_lo;
-		
-    "ye_hi", false, Conditions, 
-		"!d. d IN dart H ==> ye_mod d <= &3 ==> ye_mod d <= &3", 
-		None;
-		
-    "ye_hi", true, Done, 
-		"!d. d IN dart H ==> ye_mod d <= &3", 
-		Some Lp_ineqs_proofs.ye_hi_std;
-
-    "y1_lo", false, Done, 
-		"!d. d IN dart H ==> &2 <= y1_mod d", 
-		Some Lp_ineqs_proofs.y1_lo;
-		
-    "y1_hi", false, Done, 
-		"!d. d IN dart H ==> y1_mod d <= #2.52", 
-		Some Lp_ineqs_proofs.y1_hi;
-		
-    "y2_lo", false, Done, 
-		"!d. d IN dart H ==> &2 <= y2_mod d", 
-		Some Lp_ineqs_proofs.y2_lo;
-		
-    "y2_hi", false, Done, 
-		"!d. d IN dart H ==> y2_mod d <= #2.52", 
-		Some Lp_ineqs_proofs.y2_hi;
-		
-    "y3_lo", false, Done, 
-		"!d. d IN dart H ==> &2 <= y3_mod d", 
-		Some Lp_ineqs_proofs.y3_lo;
-		
-    "y3_hi", false, Done, 
-		"!d. d IN dart H ==> y3_mod d <= #2.52", 
-		Some Lp_ineqs_proofs.y3_hi;
-		
-    "y4_lo", false, Done, 
-		"!d. d IN dart H ==> &2 <= y4_mod d", 
-		Some Lp_ineqs_proofs.y4_lo;
-		
-    "y5_lo", false, Done, 
-		"!d. d IN dart H ==> &2 <= y5_mod d", 
-		Some Lp_ineqs_proofs.y5_lo;
-		
-    "y6_lo", false, Done, 
-		"!d. d IN dart H ==> &2 <= y6_mod d", 
-		Some Lp_ineqs_proofs.y6_lo;
-		
-    "y8_lo", false, Done, 
-		"!d. d IN dart H ==> &2 <= y8_mod d", 
-		Some Lp_ineqs_proofs.y8_lo;
-		
-    "y9_lo", false, Done, 
-		"!d. d IN dart H ==> &2 <= y9_mod d", 
-		Some Lp_ineqs_proofs.y9_lo;
-		
-    "y4_hi", false, Conditions, 
-		"!d. d IN dart H ==> y4_mod d <= &3 ==> y4_mod d <= &3", 
-		None;
-		
-    "y5_hi", false, Conditions, 
-		"!d. d IN dart H ==> y5_mod d <= &3==> y5_mod d <= &3", 
-		None;
-		
-    "y6_hi", false, Conditions, 
-		"!d. d IN dart H ==> y6_mod d <= &3==> y6_mod d <= &3", 
-		None;
-		
-    "y8_hi", false, Conditions, 
-		"!d. d IN dart H ==> y8_mod d <= #2.52==> y8_mod d <= #2.52", 
-		None;
-		
-    "y9_hi", false, Conditions, 
-		"!d. d IN dart H ==> y9_mod d <= #2.52==> y9_mod d <= #2.52", 
-		None;
-		
-    "y4_hi", true, Done, 
-		"!d. d IN dart H ==> y4_mod d <= &3", 
-		Some Lp_ineqs_proofs.y4_hi_std;
-		
-    "y5_hi", true, Done, 
-		"!d. d IN dart H ==> y5_mod d <= &3", 
-		Some Lp_ineqs_proofs.y5_hi_std;
-		
-    "y6_hi", true, Done, 
-		"!d. d IN dart H ==> y6_mod d <= &3", 
-		Some Lp_ineqs_proofs.y6_hi_std;
-		
-    "y8_hi", true, Done, 
-		"!d. d IN dart H ==> y8_mod d <= #2.52", 
-		Some Lp_ineqs_proofs.y8_hi_std;
-		
-    "y9_hi", true, Done, 
-		"!d. d IN dart H ==> y9_mod d <= #2.52", 
-		Some Lp_ineqs_proofs.y9_hi_std;
-
-    "sol_lo", false, Done, 
-		"!f. f IN face_set H ==> &0 <= sol_mod f", 
-		Some Lp_ineqs_proofs.sol_lo;
-		
-    "sol_hi", false, Done, 
-		"!f. f IN face_set H ==> sol_mod f <= &4 * pi", 
-		Some Lp_ineqs_proofs.sol_hi;
-		
-    "tau_lo", false, Done, 
-		"!f. f IN face_set H ==> &0 <= tau_mod f", 
-		Some Lp_ineqs_proofs.tau_lo;
-		
-    "tau_hi", false, Done, 
-		"!f. f IN face_set H ==> tau_mod f <= tgt", 
-		Some Lp_ineqs_proofs.tau_hi;
-
-    "azim_sum", false, Done, 
-		"!n. n IN node_set H ==> sum n azim_mod = &2 * pi", 
-		Some Lp_ineqs_proofs.azim_sum;
-		
-    "rhazim_sum", false, Done, 
-		"!n. n IN node_set H ==> sum n rhazim_mod = &2 * pi * rho_mod (node_mod (CHOICE n))", 
-        Some Lp_ineqs_proofs.rhazim_sum;
-
-    "sol_sum3", false, Conditions, 
-		"!f. f IN face_set H ==> (CARD f = 3 ==> sum f azim_mod = sol_mod f + pi)", 
-		Some Lp_ineqs_proofs.sol_sum3;
-		
-    "sol_sum4", false, Conditions, 
-		"!f. f IN face_set H ==> (CARD f = 4 ==> sum f azim_mod = sol_mod f + &2 * pi)",
-		Some Lp_ineqs_proofs.sol_sum4;
-		
-    "sol_sum5", false, Conditions, 
-		"!f. f IN face_set H ==> (CARD f = 5 ==> sum f azim_mod = sol_mod f + &3 * pi)",
-		Some Lp_ineqs_proofs.sol_sum5;
-		
-    "sol_sum6", false, Conditions, 
-		"!f. f IN face_set H ==> (CARD f = 6 ==> sum f azim_mod = sol_mod f + &4 * pi)",
-		Some Lp_ineqs_proofs.sol_sum6;
-		
-    "tau_sum3", false, Conditions, 
-		"!f. f IN face_set H ==> (CARD f = 3 ==> sum f rhazim_mod = tau_mod f + (pi + sol0))",
-		Some Lp_ineqs_proofs.tau_sum3;
-		
-    "tau_sum4", false, Conditions, 
-		"!f. f IN face_set H ==> (CARD f = 4 ==> sum f rhazim_mod = tau_mod f + &2 * (pi + sol0))",
-		Some Lp_ineqs_proofs.tau_sum4;
-		
-    "tau_sum5", false, Conditions, 
-		"!f. f IN face_set H ==> (CARD f = 5 ==> sum f rhazim_mod = tau_mod f + &3 * (pi + sol0))",
-		Some Lp_ineqs_proofs.tau_sum5;
-		
-    "tau_sum6", false, Conditions, 
-		"!f. f IN face_set H ==> (CARD f = 6 ==> sum f rhazim_mod = tau_mod f + &4 * (pi + sol0))",
-		Some Lp_ineqs_proofs.tau_sum6;
-
-    "ln_def", false, Done, 
-		"!x. x IN V ==> ln_mod x = (#2.52 - yn_mod x) / #0.52", 
-		Some Lp_ineqs_proofs.ln_def;
-    "rho_def", false, Done, 
-		"!x. x IN V ==> rho_mod x = (&1 + sol0 / pi) - ln_mod x * sol0 / pi", 
-		Some Lp_ineqs_proofs.rho_def;
-    "edge_sym", false, Done, 
-		"!d. d IN dart H ==> ye_mod d = ye_mod (edge_map H d):real", 
-		Some Lp_ineqs_proofs.edge_sym;
-
-    "y1_def", false, Done, 
-		"!d. d IN dart H ==> y1_mod d = yn_mod (node_mod d):real", 
-		Some Lp_ineqs_proofs.y1_def;
-		
-    "y2_def", false, Done, 
-		"!d. d IN dart H ==> y2_mod d = yn_mod (node_mod (face_map H d)):real", 
-		Some Lp_ineqs_proofs.y2_def;
-		
-    "y3_def", false, Done, 
-		"!d. d IN dart H ==> y3_mod d = yn_mod (node_mod (inverse (face_map H) d)):real", 
-		Some Lp_ineqs_proofs.y3_def;
-		
-    "y4_def", false, Done, 
-		"!d. d IN dart H ==> y4_mod d = ye_mod (face_map H d):real", 
-		Some Lp_ineqs_proofs.y4_def;
-
-    "y5_def", false, Done, 
-		"!d. d IN dart H ==> y5_mod d = ye_mod (inverse (face_map H) d):real", 
-		Some Lp_ineqs_proofs.y5_def;
-		
-    "y6_def", false, Done, 
-		"!d. d IN dart H ==> y6_mod d = ye_mod d:real", 
-		Some Lp_ineqs_proofs.y6_def;
-		
-    "y8_def", false, Done, 
-		"!d. d IN dart H ==> y8_mod d = y5_mod (inverse (face_map H) d):real", 
-		Some Lp_ineqs_proofs.y8_def;
-		
-    "y9_def", false, Done, 
-		"!d. d IN dart H ==> y9_mod d = ye_mod (face_map H d):real", 
-		Some Lp_ineqs_proofs.y9_def;
-
-    "azim2c", false, Done, 
-		"!d. d IN dart H ==> azim2_mod d = azim_mod (face_map H d):real", 
-		Some Lp_ineqs_proofs.azim2c;
-		
-    "azim3c", false, Done, 
-		"!d. d IN dart H ==> azim3_mod d = azim_mod (inverse (face_map H) d):real", 
-		Some Lp_ineqs_proofs.azim3c;
-		
-    "rhazim2c", false, Done, 
-		"!d. d IN dart H ==> rhazim2_mod d = rhazim_mod (face_map H d):real",
-		Some Lp_ineqs_proofs.rhazim2c;
-		
-    "rhazim3c", false, Done, 
-		"!d. d IN dart H ==> rhazim3_mod d = rhazim_mod (inverse (face_map H) d):real", 
-		Some Lp_ineqs_proofs.rhazim3c;
-
-    "RHA", false, Done, 
-		"!d. d IN dart H ==> rhazim_mod d >= azim_mod d:real", 
-		Some Lp_ineqs_proofs.RHA;
-		
-    "RHB", false, Done, 
-		"!d. d IN dart H ==> rhazim_mod d <= azim_mod d * (&1 + sol0 / pi)", 
-		Some Lp_ineqs_proofs.RHB;
-
-    "yy10", false, Conditions, 
-		"!d. d IN dart H ==> ye_mod d <= #2.52 ==> ye_mod d <= #2.52", 
-		None;
-		
-    "yy10", true, Done, 
-		"!d. d IN dart H ==> ye_mod d <= #2.52", 
-		Some Lp_ineqs_proofs.yy10_std;
-		
-    "yy15", false, Conditions, 
-		"!d. d IN dart H ==> y4_mod d <= sqrt8 ==> y4_mod d <= sqrt8", 
-		None;
-
-    "tau3", false, Std, 
-		"!f. f IN face_set H ==> (CARD f = 3 ==> tau_mod f >= &0)", 
-		None;
-		
-    "tau4", false, Std, 
-		"!f. f IN face_set H ==> (CARD f = 4 ==> tau_mod f >= #0.206)", 
-		None;
-		
-    "tau5", false, Std, 
-		"!f. f IN face_set H ==> (CARD f = 5 ==> tau_mod f >= #0.4819)", 
-		None;
-		
-    "tau6", false, Std, 
-		"!f. f IN face_set H ==> (CARD f = 6 ==> tau_mod f >= #0.712)", 
-		None;
-  ];;
+let add_lp_ineq_th (name, std_flag, ineq_th) =
+  let tm1, proof = mk_lp_ineq ineq_th in
+    add_raw_ineq name std_flag tm1 (Some proof);;
 
 
 (******************************)
 
 
-(* Replaces all general hypotheses with lp_cond *)
-let add_lp_hyp =
-  let lp_fan_ths = (CONJUNCTS o UNDISCH_ALL o MATCH_MP EQ_IMP o SPEC_ALL) Lp_ineqs_proofs.lp_fan in
-  let lp_cond_ths = (CONJUNCTS o UNDISCH_ALL o MATCH_MP EQ_IMP o SPEC_ALL o INST_TYPE[`:num`, aty]) Lp_ineqs_proofs.lp_cond in
-    fun th ->
-      let th0 = (UNDISCH_ALL o SPEC_ALL) th in
-      let th1 = itlist PROVE_HYP lp_fan_ths th0 in
-	itlist PROVE_HYP lp_cond_ths th1;;
-
-
 (* Generates a general form of an inequality *)
 let generate_ineq0 ineq =
-      let th0 = Lp_gen_ineqs.generate_ineq ineq.tm in
-      let th1 = add_lp_hyp th0 in
-      let proof = 
-	match ineq.proof with
-	  | Some th -> (add_lp_hyp o PURE_REWRITE_RULE[GSYM IMP_IMP]) th
-	  | None -> TRUTH in
-	PROVE_HYP proof th1;;
-	
+  let th0 = Lp_gen_ineqs.generate_ineq ineq.tm in
+  let th1 = add_lp_hyp true th0 in
+  let proof = 
+    match ineq.proof with
+      | Some th -> th
+      | None -> TRUTH in
+    PROVE_HYP proof th1;;
+
 
 let generate_ineq =
+  let power_th = prove(`!f (x:A). (f POWER 2) x = f (f x) /\ (f POWER 3) x = f (f (f x))`,
+		       REWRITE_TAC[Hypermap.POWER_2; Hypermap.THREE; Hypermap.POWER; o_THM]) in
+
+  let mk_list_th th =
+    let tm, proof = mk_lp_ineq th in
+      generate_ineq0 {name = "tmp"; std_only = false; tm = tm; proof = Some proof} in
+
   let strip_ALL th =
     let ltm, set_tm = dest_comb (concl th) in
     let p_tm = rand ltm in
@@ -401,15 +128,17 @@ let generate_ineq =
 
   let def_ths = 
     let defs =
-      map (fst o strip_ALL o generate_ineq0 o find_raw_ineq false)
-	["y1_def"; "y2_def"; "y3_def"; "y4_def"; "y5_def"; "y6_def"; "y9_def"] in
-    let def8 = (fst o strip_ALL o add_lp_hyp o REWRITE_RULE[GSYM IMP_IMP]) Lp_ineqs_proofs.y8_list_def in
+      map (fst o strip_ALL o mk_list_th)
+	[y1_def; y2_def; y3_def; y4_def; y5_def; y6_def; y9_def] in
+    let def8 = (fst o strip_ALL o add_lp_hyp true o REWRITE_RULE[GSYM IMP_IMP]) Lp_ineqs_proofs.y8_list_def in
       def8 :: defs in
 
   let mem_ths =
     [
       `MEM (d:num#num) (list_of_darts3 L)`, th_rule Lp_gen_theory.list_of_darts3_subset;
       `MEM (d:num#num) (list_of_darts4 L)`, th_rule Lp_gen_theory.list_of_darts4_subset;
+      `MEM (d:num#num) (list_of_darts5 L)`, th_rule Lp_gen_theory.list_of_darts5_subset;
+      `MEM (d:num#num) (list_of_darts6 L)`, th_rule Lp_gen_theory.list_of_darts6_subset;
     ] in
 
   let rec simplify tm =
@@ -417,7 +146,7 @@ let generate_ineq =
       let ltm, q_tm = dest_comb tm in
       let imp_tm, p_tm = dest_comb ltm in
       let p_tm, q_tm = dest_imp tm in
-      let p_th = PURE_REWRITE_CONV def_ths p_tm in
+      let p_th = PURE_REWRITE_CONV (power_th :: def_ths) p_tm in
       let q_th = simplify q_tm in
 	MK_COMB (AP_TERM imp_tm p_th, q_th)
     else
@@ -440,8 +169,8 @@ let generate_ineq =
 let generate_all, find_ineq =
   let ineq_table = Array.init 6 (fun i -> Hashtbl.create 10) in
   let std_ineq_table = Array.init 6 (fun i -> Hashtbl.create 10) in
-  let add i name tag ineq_th = Hashtbl.add (ineq_table.(i)) name (tag, ineq_th) in
-  let add_std i name tag ineq_th = Hashtbl.add (std_ineq_table.(i)) name (tag, ineq_th) in
+  let add i name ineq_th = Hashtbl.add (ineq_table.(i)) name ineq_th in
+  let add_std i name ineq_th = Hashtbl.add (std_ineq_table.(i)) name ineq_th in
   let DECIMAL_INT = prove(`!n. DECIMAL n 1 = &n`, REWRITE_TAC[DECIMAL; REAL_DIV_1]) in
 
   let pos_thms =
@@ -491,12 +220,12 @@ let generate_all, find_ineq =
     let neg_approx_ths = if (neg_approx_ths = []) then [] else zip (3--5) neg_approx_ths in
     let r = rewrite_num in
       if ineq.std_only then
-	let _ = map (fun (i, t) -> add_std i ineq.name ineq.tag (r t)) approx_ths in
-	let _ = map (fun (i, t) -> add_std i (ineq.name^"_neg") ineq.tag (r t)) neg_approx_ths in
+	let _ = map (fun (i, t) -> add_std i ineq.name (r t)) approx_ths in
+	let _ = map (fun (i, t) -> add_std i (ineq.name^"_neg") (r t)) neg_approx_ths in
 	  ()
       else
-	let _ = map (fun (i, t) -> add i ineq.name ineq.tag (r t)) approx_ths in
-	let _ = map (fun (i, t) -> add i (ineq.name^"_neg") ineq.tag (r t)) neg_approx_ths in
+	let _ = map (fun (i, t) -> add i ineq.name (r t)) approx_ths in
+	let _ = map (fun (i, t) -> add i (ineq.name^"_neg") (r t)) neg_approx_ths in
 	  () in
 
     (* generate_all *)

@@ -2,8 +2,6 @@ needs "../formal_lp/hypermap/ineqs/lp_ineqs_proofs-compiled.hl";;
 needs "../formal_lp/hypermap/ineqs/lp_ineqs.hl";;
 needs "../formal_lp/hypermap/ineqs/lp_body_ineqs_data.hl";;
 
-#load "str.cma";;
-
 module Lp_body_ineqs = struct
 
 open Lp_ineqs_proofs;;
@@ -76,7 +74,7 @@ let data_list = [
 ];;
 
 let special_list =
-  let r = add_lp_ineqs_hyp o add_lp_hyp in
+  let r = add_lp_ineqs_hyp o add_lp_hyp true in
     [
       "ineq119", (r ineq119, r ineq119_std);
       "ineq120", (r ineq120, r ineq120_std);
@@ -127,7 +125,7 @@ let inst_sym_list = [
 ];;
 
 
-let r = UNDISCH o SPEC_ALL o add_lp_hyp;;
+let r = UNDISCH o SPEC_ALL o add_lp_hyp true;;
 let eq_ths = map r [
   GSYM azim_fan_eq_dih_y;
   GSYM rhazim_fan_eq_rhazim;
@@ -159,10 +157,8 @@ let bounds_std_ths = map r [
   y4_hi_std2; y5_hi_std2; y6_hi_std2;
 ];;
 
-
-
 let mk_darts_k_subset_th k =
-  let eq_th = add_lp_hyp Hypermap_and_fan.COMPONENTS_HYPERMAP_OF_FAN in
+  let eq_th = add_lp_hyp false Hypermap_and_fan.COMPONENTS_HYPERMAP_OF_FAN in
     (UNDISCH_ALL o REWRITE_RULE[eq_th] o SPEC_ALL o ISPECL[`hypermap_of_fan (V,E)`; mk_small_numeral k])
       Lp_gen_theory.darts_k_subset;;
 
@@ -275,87 +271,23 @@ let add_body_ineqs () =
   let data = filter test Lp_body_ineqs_data.data in
   let sym_data = filter test Lp_body_ineqs_data.sym_data in
 
-  let subst_list = [
-    `dart (H:(real^3#real^3)hypermap)`, `dart_of_fan (V:real^3->bool,E)`;
-    `H:(real^3#real^3)hypermap`, `hypermap_of_fan (V:real^3->bool,E)`;
-    `azim_mod:real^3#real^3->real`, `azim_dart (V:real^3->bool,E)`;
-    `azim2_mod:real^3#real^3->real`, `azim2_fan (V:real^3->bool,E)`;
-    `azim3_mod:real^3#real^3->real`, `azim3_fan (V:real^3->bool,E)`;
-    `rhazim_mod:real^3#real^3->real`, `rhazim_fan (V:real^3->bool,E)`;
-    `rhazim2_mod:real^3#real^3->real`, `rhazim2_fan (V:real^3->bool,E)`;
-    `rhazim3_mod:real^3#real^3->real`, `rhazim3_fan (V:real^3->bool,E)`;
-    `sol_mod:(real^3#real^3->bool)->real`, `sol_fan (V:real^3->bool,E)`;
-    `tau_mod:(real^3#real^3->bool)->real`, `tau_fan (V:real^3->bool,E)`;
-    `y1_mod:real^3#real^3->real`, `y1_fan`;
-    `y2_mod:real^3#real^3->real`, `y2_fan`;
-    `y3_mod:real^3#real^3->real`, `y3_fan (V,E)`;
-    `y4_mod:real^3#real^3->real`, `y4_fan (V,E)`;
-    `y5_mod:real^3#real^3->real`, `y5_fan (V,E)`;
-    `y6_mod:real^3#real^3->real`, `y6_fan`;
-    `y7_mod:real^3#real^3->real`, `y7_fan (V,E)`;
-    `y8_mod:real^3#real^3->real`, `y8_fan (V,E)`;
-    `y9_mod:real^3#real^3->real`, `y9_fan (V,E)`;
-    `y4'_mod:real^3#real^3->real`, `y4'_fan (V,E)`;
-  ] in
-  let disch_tm = `lp_cond (L,g,h:num->real^3) (V,E)` in
-  let reg = Str.regexp "--#" in
-
   let report s =
     Format.print_string s; Format.print_newline(); Format.print_flush() in
   let counter = ref 0 and
       total = length data + length sym_data in
 
-  let add std_flag lp_name ineq_th =
-    let tm0 = concl ineq_th in
-    let tm1 = subst subst_list tm0 in
-    let s_tm' = string_of_term tm1 in
-    let s_tm = Str.global_replace reg "-- #" s_tm' in
-      (* A hack to avoid side effects of add_lp_hyp in generate_ineq0 *)
-    let th = DISCH disch_tm ineq_th in
-      my_add_ineq (lp_name, std_flag, Conditions, s_tm, Some th) in
-
-  let add2 sym_flag (lp_name, ineq_id, set_name) =
+  let add sym_flag (lp_name, ineq_id, set_name) =
     let _ = counter := !counter + 1 in
     let _ = report (sprintf "Adding %s (%d / %d)" lp_name !counter total) in
     let gen_th, std_th = 
 		try assoc lp_name special_list
 			with Failure _ -> gen_body_ineq_ths sym_flag ineq_id set_name in
-    let _ = add false lp_name gen_th in
-    let _ = if std_th <> TRUTH then add true lp_name std_th else () in
+    let _ = add_lp_ineq_th (lp_name, false, gen_th) in
+    let _ = if std_th <> TRUTH then add_lp_ineq_th (lp_name, true, std_th) else () in
       () in
 
-  let _ = map (add2 false) data in
-  let _ = map (add2 true) sym_data in
+  let _ = map (add false) data in
+  let _ = map (add true) sym_data in
     ();;
 
 end;;
-
-
-(*
-open Lp_body_ineqs;;
-
-
-let lp_name, ineq_id, set_name = List.nth Lp_body_ineqs_data.sym_data 0;;
-let ineq = (hd o Ineq.getexact) ineq_id;;
-
-gen_body_ineq_ths true ineq_id set_name;;
-
-let ineq_domain_th, lp_set = assoc set_name ineq_sets;;
-let data = assoc lp_set lp_data;;
-let ineq = (hd o Ineq.getexact) ineq_id;;
-
-let th0 = (SPEC_ALL o ASSUME) (ineq.ineq);;
-
-let th1 = INST inst_sym_list th0;;
-
-let th2 = REWRITE_RULE data.eq_ths th1;;
-let th3 = REWRITE_RULE[ALL; INEQ_ALT; ineq_domain_th; DECIMAL_TWO_EQ] th2;;
-
-let gen_th1 = REWRITE_RULE bounds_gen_ths th3;;
-let std_th1 = REWRITE_RULE bounds_std_ths gen_th1;;
-
-let gen_th2 = finalize_th data gen_th1;;
-let std_th2 = finalize_th data std_th1;;
-
-*)
-

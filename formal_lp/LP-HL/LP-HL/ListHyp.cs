@@ -234,6 +234,9 @@ namespace LP_HL
 
             // edges
             var edges = darts.map(d => new List<Dart>(new Dart[] {d, new Dart(d.b, d.a)} ));
+
+            // dartPairs
+            var dartPairs = darts.map(x => darts.map(y => new List<Dart>(new Dart[] { x, y }))).flatten();
             
             // nodes
             var elements = list.flatten().removeDuplicates();
@@ -255,6 +258,7 @@ namespace LP_HL
             sets.Add("faces4", faces4.ToHypermapElements());
             sets.Add("faces5", faces5.ToHypermapElements());
             sets.Add("faces6", faces6.ToHypermapElements());
+            sets.Add("dart_pairs", dartPairs.ToHypermapElements());
 
             // Create the translation tables
             translationTables = new Dictionary<string, Dictionary<string, HypermapElement>>();
@@ -267,6 +271,7 @@ namespace LP_HL
             Dictionary<string, HypermapElement> mod_face5_darts = new Dictionary<string, HypermapElement>();
             Dictionary<string, HypermapElement> mod_face6_darts = new Dictionary<string, HypermapElement>();
             Dictionary<string, HypermapElement> mod_darts = new Dictionary<string, HypermapElement>();
+            Dictionary<string, HypermapElement> mod_dartPairs = new Dictionary<string, HypermapElement>();
 
             for (int j = 0; j < list.Count; j++)
             {
@@ -311,6 +316,19 @@ namespace LP_HL
                 mod_face_darts.Add(mod_index.ToString(), faces[j][0]);
             }
 
+            // dart pairs
+            foreach (string e_dart1 in e_darts.Keys)
+            {
+                var dart1 = e_darts[e_dart1] as Dart;
+
+                foreach (string e_dart2 in e_darts.Keys)
+                {
+                    var dart2 = e_darts[e_dart2] as Dart;
+                    DartList pair = new DartList(dart1, dart2);
+                    mod_dartPairs.Add(e_dart1 + "," + e_dart2, pair);
+                }
+            }
+
             // nodes
             Dictionary<string, HypermapElement> mod_nodes = new Dictionary<string, HypermapElement>();
             foreach (int x in elements)
@@ -345,6 +363,7 @@ namespace LP_HL
             translationTables.Add("face4_dart", mod_face4_darts);
             translationTables.Add("face5_dart", mod_face5_darts);
             translationTables.Add("face6_dart", mod_face6_darts);
+            translationTables.Add("dart_pairs", mod_dartPairs);
         }
 
 

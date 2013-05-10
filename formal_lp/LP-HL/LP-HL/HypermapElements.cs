@@ -77,6 +77,11 @@ namespace LP_HL
             this.list = list;
         }
 
+        public DartList(params Dart[] darts)
+             : this (darts.ToList())
+        {
+        }
+
         public override string ToString()
         {
             StringBuilder str = new StringBuilder();

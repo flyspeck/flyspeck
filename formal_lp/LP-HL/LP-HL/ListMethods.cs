@@ -88,7 +88,6 @@ namespace LP_HL
             return (from x in l select f(x)).ToList();
         }
 
-
         /// <summary>
         /// Removes duplicates from a list
         /// </summary>

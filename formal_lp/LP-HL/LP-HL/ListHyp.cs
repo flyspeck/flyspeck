@@ -272,6 +272,7 @@ namespace LP_HL
             Dictionary<string, HypermapElement> mod_face6_darts = new Dictionary<string, HypermapElement>();
             Dictionary<string, HypermapElement> mod_darts = new Dictionary<string, HypermapElement>();
             Dictionary<string, HypermapElement> mod_dartPairs = new Dictionary<string, HypermapElement>();
+            Dictionary<string, HypermapElement> mod_dartPairsFst = new Dictionary<string, HypermapElement>();
 
             for (int j = 0; j < list.Count; j++)
             {
@@ -324,8 +325,10 @@ namespace LP_HL
                 foreach (string e_dart2 in e_darts.Keys)
                 {
                     var dart2 = e_darts[e_dart2] as Dart;
+                    String e_pair = e_dart1 + "," + e_dart2;
                     DartList pair = new DartList(dart1, dart2);
-                    mod_dartPairs.Add(e_dart1 + "," + e_dart2, pair);
+                    mod_dartPairs.Add(e_pair, pair);
+                    mod_dartPairsFst.Add(e_pair, dart1);
                 }
             }
 
@@ -364,6 +367,7 @@ namespace LP_HL
             translationTables.Add("face5_dart", mod_face5_darts);
             translationTables.Add("face6_dart", mod_face6_darts);
             translationTables.Add("dart_pairs", mod_dartPairs);
+            translationTables.Add("dart_pairs_fst", mod_dartPairsFst);
         }
 
 

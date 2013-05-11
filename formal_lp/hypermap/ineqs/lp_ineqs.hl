@@ -9,11 +9,17 @@ module Lp_ineqs = struct
 
 open Lp_ineqs_proofs;;
 
-type lp_ineq = {
+type raw_lp_ineq = {
   name : string;
   tm : term;
   proof: thm option;
   std_only: bool;
+};;
+
+
+type lp_ineq = {
+  ineq_th : thm;
+  pair_flag : bool;
 };;
 
 
@@ -165,14 +171,15 @@ let generate_ineq =
       let th5 = (GEN var_tm o DISCH mem_tm) th4 in
 	PURE_REWRITE_RULE[ALL_MEM] th5;;
 
-
-let generate_all, find_ineq =
+	
+let add_lp_list_ineq, find_ineq =
   let ineq_table = Array.init 6 (fun i -> Hashtbl.create 10) in
   let std_ineq_table = Array.init 6 (fun i -> Hashtbl.create 10) in
-  let add i name ineq_th = Hashtbl.add (ineq_table.(i)) name ineq_th in
-  let add_std i name ineq_th = Hashtbl.add (std_ineq_table.(i)) name ineq_th in
+  let add std_flag i pair_flag name ineq_th =
+    let table = if std_flag then std_ineq_table.(i) else ineq_table.(i) in
+      Hashtbl.add table name {ineq_th = ineq_th; pair_flag = pair_flag} in
   let DECIMAL_INT = prove(`!n. DECIMAL n 1 = &n`, REWRITE_TAC[DECIMAL; REAL_DIV_1]) in
-
+    
   let pos_thms =
     let inst = INST[`V:real^3->bool,E:(real^3->bool)->bool`, `fan:(real^3->bool)#((real^3->bool)->bool)`] in
       map inst Lp_ineqs_def.list_var_pos in
@@ -194,7 +201,7 @@ let generate_all, find_ineq =
 	  REFL tm
       | Comb (ltm, rtm) ->
 	  MK_COMB (rewrite_num_conv real_flag ltm, rewrite_num_conv real_flag rtm) in
-
+    
   let rewrite_num ineq_th =
     let th1 = PURE_REWRITE_RULE[DECIMAL_INT] ineq_th in
     let imp_flag = (is_imp o snd o dest_abs o lhand o concl) th1 in
@@ -205,7 +212,42 @@ let generate_all, find_ineq =
 	  PURE_REWRITE_RULE[GSYM IMP_IMP] th4
       else
 	CONV_RULE (rewrite_num_conv true) th1 in
+    
+    (* add_lp_list_ineq *)
+    (fun (name, std_only, list_ineq_th) ->
+       let approx_ths, neg_approx_ths = Lp_approx_ineqs.generate_ineqs pos_thms [3;4;5] list_ineq_th in
+       let set_name = (fst o dest_const o rator o rand o concl o hd) approx_ths in
+       let pair_flag, approx_ths, neg_approx_ths =
+	 if set_name = "list_dart_pairs" then
+	   let r = PURE_REWRITE_RULE[Lp_gen_theory.ALL_list_dart_pairs_split; BETA_THM; FST; SND] in
+	     true, map r approx_ths, map r neg_approx_ths
+	 else
+	   false, approx_ths, neg_approx_ths in
+       let approx_ths = zip (3--5) approx_ths in
+       let neg_approx_ths = if (neg_approx_ths = []) then [] else zip (3--5) neg_approx_ths in
+
+       let r = rewrite_num in
+	 if std_only then
+	   let _ = map (fun (i, t) -> add true i pair_flag name (r t)) approx_ths in
+	   let _ = map (fun (i, t) -> add true i pair_flag (name^"_neg") (r t)) neg_approx_ths in
+	     ()
+	 else
+	   let _ = map (fun (i, t) -> add false i pair_flag name (r t)) approx_ths in
+	   let _ = map (fun (i, t) -> add false i pair_flag (name^"_neg") (r t)) neg_approx_ths in
+	     ()),
   
+  (* find_ineq *)
+  (fun std_flag precision name -> 
+     if std_flag then
+       try
+	 Hashtbl.find std_ineq_table.(precision) name
+       with Not_found -> Hashtbl.find ineq_table.(precision) name
+     else
+       Hashtbl.find ineq_table.(precision) name);;
+
+
+(* Generates all list inequalities from raw inequalities *)
+let process_raw_ineqs =
   let report s =
     Format.print_string s; Format.print_newline(); Format.print_flush() in
   let counter = ref 0 and
@@ -214,39 +256,15 @@ let generate_all, find_ineq =
   let process_ineq ineq =
     let _ = counter := !counter + 1 in
     let _ = report (sprintf "Processing: %s (%d / %d)" ineq.name !counter !total) in
-    let th1 = generate_ineq ineq in
-    let approx_ths, neg_approx_ths = Lp_approx_ineqs.generate_ineqs pos_thms [3;4;5] th1 in
-    let approx_ths = zip (3--5) approx_ths in
-    let neg_approx_ths = if (neg_approx_ths = []) then [] else zip (3--5) neg_approx_ths in
-    let r = rewrite_num in
-      if ineq.std_only then
-	let _ = map (fun (i, t) -> add_std i ineq.name (r t)) approx_ths in
-	let _ = map (fun (i, t) -> add_std i (ineq.name^"_neg") (r t)) neg_approx_ths in
-	  ()
-      else
-	let _ = map (fun (i, t) -> add i ineq.name (r t)) approx_ths in
-	let _ = map (fun (i, t) -> add i (ineq.name^"_neg") (r t)) neg_approx_ths in
-	  () in
-
-    (* generate_all *)
-    (fun () -> 
-       let ineqs = raw_ineq_list() in
-       let _ = counter := 0 in
-       let _ = total := length ineqs in
-       let _ = map process_ineq (raw_ineq_list()) in
-	 ()),
-    (* find_ineq *)
-    (fun std_flag precision name -> 
-       if std_flag then
-	 try
-	   Hashtbl.find std_ineq_table.(precision) name
-	 with Not_found -> Hashtbl.find ineq_table.(precision) name
-       else
-	 Hashtbl.find ineq_table.(precision) name);;
-
-
-
-(* Generate all inequalities *)
-(* generate_all();; *)
+    let th = generate_ineq ineq in
+      add_lp_list_ineq (ineq.name, ineq.std_only, th) in
+    
+    fun () -> 
+      let ineqs = raw_ineq_list() in
+      let _ = counter := 0 in
+      let _ = total := length ineqs in
+      let _ = map process_ineq (raw_ineq_list()) in
+	();;
 
 end;;
+

@@ -12,6 +12,32 @@ Module Lp_gen_theory.
 "open Hypermap_iso".
 "open List_hypermap".
 
+"let list_dart_pairs = new_definition
+	`list_dart_pairs L = allpairs (\x y. (x,y)) (list_of_darts L) (list_of_darts L)`".
+
+Lemma mem_list_dart_pairs L p: `MEM p (list_dart_pairs L)
+	<=> MEM (FST p) (list_of_darts L) /\ MEM (SND p) (list_of_darts L)`.
+Proof.
+rewrite list_dart_pairs allpairsP /=; split.
+  by move => [p'] [mem1] [mem2] ->.
+by move => h; exists p.
+Qed.
+
+Lemma set_of_list_list_dart_pairs L: 
+	`set_of_list (list_dart_pairs L) = (darts_of_list L) CROSS (darts_of_list L)`.
+Proof.
+rewrite EXTENSION => [] [x y].
+by rewrite darts_of_list IN_CROSS !IN_SET_OF_LIST mem_list_dart_pairs.
+Qed.
+
+Lemma ALL_list_dart_pairs_split L P: `ALL P (list_dart_pairs L) 
+	<=> ALL (\d1. ALL (\d2. P (d1, d2)) (list_of_darts L)) (list_of_darts L)`.
+Proof.
+rewrite -!ALL_MEM /= mem_list_dart_pairs; split.
+  by move => h d1 mem_d1 d2 mem_d2; rewrite h.
+by move => h [d1 d2] /= mem_ds; rewrite h.
+Qed.
+
 
 (* IsoLemmas *)
 Section IsoLemmas.
@@ -104,6 +130,13 @@ Lemma iso_darts_k_trans k P: `(!d. d IN darts_k k H ==> P d)
 	==> (!d. d IN darts_k k G ==> P (g d))`.
 Proof. by move => h d d_in; rewrite h hyp_iso_darts_k. Qed.
 
+Lemma iso_dart_pairs_trans P: `(!p. p IN dart H CROSS dart H ==> P p)
+	==> (!p. p IN dart G CROSS dart G ==> P (g (FST p), g (SND p)))`.
+Proof.
+move => h [x y]; rewrite IN_CROSS => [] [x_in y_in] /=.
+by rewrite h IN_CROSS !(hyp_iso_dart g_iso).
+Qed.
+
 Lemma iso_face_trans P: `(!f. f IN face_set H ==> P f) 
 	==> (!f. f IN face_set G ==> P (IMAGE g f))`.
 Proof. by rewrite (iso_face_set g_iso) IN_IMAGE => h f f_in; rewrite h; exists f. Qed.
@@ -182,6 +215,10 @@ rewrite list_of_darts6 list_of_darts_alt list_of_faces6.
 by rewrite !mem_flatten mem_filter /= => [] [l] h; exists l.
 Qed.
 
+Lemma list_of_dart_pairs_subset p: `MEM p (list_dart_pairs L) 
+	==> MEM (FST p) (list_of_darts L) /\ MEM (SND p) (list_of_darts L)`.
+Proof. by rewrite list_dart_pairs allpairsP /= => [] [p'] [mem1] [mem2] ->. Qed.
+
 
 Lemma e_list_ext_eq_e_list d: `MEM d (list_of_darts L) ==> e_list_ext L d = e_list d`.
 Proof. by rewrite e_list_ext res darts_of_list IN_SET_OF_LIST => ->. Qed.
@@ -232,6 +269,12 @@ Lemma dart6_list_all P: `(!d. d IN darts_k 6 (hypermap_of_list L) ==> P d)
 	<=> (!d. MEM d (list_of_darts6 L) ==> P d)`.
 Proof. by rewrite darts6_eq_list_of_darts6 // IN_SET_OF_LIST. Qed.
 
+Lemma dart_pairs_list_all P: 
+	`(!p. p IN dart (hypermap_of_list L) CROSS dart (hypermap_of_list L) ==> P p)
+	<=> (!p. MEM p (list_dart_pairs L) ==> P p)`.
+Proof. 
+by rewrite -IN_SET_OF_LIST set_of_list_list_dart_pairs (components_hypermap_of_list goodL).
+Qed.
 
 Lemma elements_list_all P: `(!x. x IN elements_of_list L ==> P x)
 	<=> (!x. MEM x (list_of_elements L) ==> P x)`.

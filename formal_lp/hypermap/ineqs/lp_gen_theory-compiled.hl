@@ -12,6 +12,36 @@ open Hypermap;;
 open Hypermap_and_fan;;
 open Hypermap_iso;;
 open List_hypermap;;
+let list_dart_pairs = new_definition
+	`list_dart_pairs L = allpairs (\x y. (x,y)) (list_of_darts L) (list_of_darts L)`;;
+
+(* Lemma mem_list_dart_pairs *)
+let mem_list_dart_pairs = Sections.section_proof ["L";"p"]
+`MEM p (list_dart_pairs L)
+	<=> MEM (FST p) (list_of_darts L) /\ MEM (SND p) (list_of_darts L)`
+[
+   (((((use_arg_then2 ("list_dart_pairs", [list_dart_pairs]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("allpairsP", [allpairsP]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)) THEN (split_tac));
+   ((BETA_TAC THEN (case THEN (move ["p'"])) THEN (case THEN (move ["mem1"])) THEN (case THEN (move ["mem2"])) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((BETA_TAC THEN (move ["h"])) THEN ((use_arg_then2 ("p", [])) (term_tac exists_tac)) THEN (done_tac));
+];;
+
+(* Lemma set_of_list_list_dart_pairs *)
+let set_of_list_list_dart_pairs = Sections.section_proof ["L"]
+`set_of_list (list_dart_pairs L) = (darts_of_list L) CROSS (darts_of_list L)`
+[
+   ((((use_arg_then2 ("EXTENSION", [EXTENSION]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN ((move ["x"]) THEN (move ["y"]))));
+   (((((use_arg_then2 ("darts_of_list", [darts_of_list]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_CROSS", [IN_CROSS]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("IN_SET_OF_LIST", [IN_SET_OF_LIST]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("mem_list_dart_pairs", [mem_list_dart_pairs]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma ALL_list_dart_pairs_split *)
+let ALL_list_dart_pairs_split = Sections.section_proof ["L";"P"]
+`ALL P (list_dart_pairs L) 
+	<=> ALL (\d1. ALL (\d2. P (d1, d2)) (list_of_darts L)) (list_of_darts L)`
+[
+   (((repeat_tactic 1 9 (((use_arg_then2 ("ALL_MEM", [ALL_MEM]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (simp_tac) THEN (((use_arg_then2 ("mem_list_dart_pairs", [mem_list_dart_pairs]))(thm_tac (new_rewrite [] []))))) THEN (split_tac));
+   ((BETA_TAC THEN (move ["h"]) THEN (move ["d1"]) THEN (move ["mem_d1"]) THEN (move ["d2"]) THEN (move ["mem_d2"])) THEN (((use_arg_then2 ("h", []))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((BETA_TAC THEN (move ["h"]) THEN (case THEN ((move ["d1"]) THEN (move ["d2"]))) THEN (simp_tac) THEN (move ["mem_ds"])) THEN (((use_arg_then2 ("h", []))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
 
 (* Section IsoLemmas *)
 Sections.begin_section "IsoLemmas";;
@@ -149,6 +179,15 @@ let iso_darts_k_trans = Sections.section_proof ["k";"P"]
    ((BETA_TAC THEN (move ["h"]) THEN (move ["d"]) THEN (move ["d_in"])) THEN ((((use_arg_then2 ("h", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("hyp_iso_darts_k", [hyp_iso_darts_k]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
 ];;
 
+(* Lemma iso_dart_pairs_trans *)
+let iso_dart_pairs_trans = Sections.section_proof ["P"]
+`(!p. p IN dart H CROSS dart H ==> P p)
+	==> (!p. p IN dart G CROSS dart G ==> P (g (FST p), g (SND p)))`
+[
+   ((BETA_TAC THEN (move ["h"]) THEN (case THEN ((move ["x"]) THEN (move ["y"])))) THEN ((((use_arg_then2 ("IN_CROSS", [IN_CROSS]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN ((move ["x_in"]) THEN (move ["y_in"]))) THEN (simp_tac)));
+   (((((use_arg_then2 ("h", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_CROSS", [IN_CROSS]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("hyp_iso_dart", [hyp_iso_dart])) (fun fst_arg -> (use_arg_then2 ("g_iso", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+];;
+
 (* Lemma iso_face_trans *)
 let iso_face_trans = Sections.section_proof ["P"]
 `(!f. f IN face_set H ==> P f) 
@@ -189,6 +228,7 @@ let sum_node_iso = Sections.finalize_theorem sum_node_iso;;
 let sum_face_iso = Sections.finalize_theorem sum_face_iso;;
 let iso_dart_trans = Sections.finalize_theorem iso_dart_trans;;
 let iso_darts_k_trans = Sections.finalize_theorem iso_darts_k_trans;;
+let iso_dart_pairs_trans = Sections.finalize_theorem iso_dart_pairs_trans;;
 let iso_face_trans = Sections.finalize_theorem iso_face_trans;;
 let iso_node_trans = Sections.finalize_theorem iso_node_trans;;
 let iso_face_k_trans = Sections.finalize_theorem iso_face_k_trans;;
@@ -290,6 +330,14 @@ let list_of_darts6_subset = Sections.section_proof ["d"]
    ((((repeat_tactic 1 9 (((use_arg_then2 ("mem_flatten", [mem_flatten]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("mem_filter", [mem_filter]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)) THEN ALL_TAC THEN (case THEN (move ["l"])) THEN (move ["h"])) THEN ((use_arg_then2 ("l", [])) (term_tac exists_tac)) THEN (done_tac));
 ];;
 
+(* Lemma list_of_dart_pairs_subset *)
+let list_of_dart_pairs_subset = Sections.section_proof ["p"]
+`MEM p (list_dart_pairs L) 
+	==> MEM (FST p) (list_of_darts L) /\ MEM (SND p) (list_of_darts L)`
+[
+   ((((((use_arg_then2 ("list_dart_pairs", [list_dart_pairs]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("allpairsP", [allpairsP]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)) THEN ALL_TAC THEN (case THEN (move ["p'"])) THEN (case THEN (move ["mem1"])) THEN (case THEN (move ["mem2"])) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
 (* Lemma e_list_ext_eq_e_list *)
 let e_list_ext_eq_e_list = Sections.section_proof ["d"]
 `MEM d (list_of_darts L) ==> e_list_ext L d = e_list d`
@@ -371,6 +419,14 @@ let dart6_list_all = Sections.section_proof ["P"]
    (((((use_arg_then2 ("darts6_eq_list_of_darts6", [darts6_eq_list_of_darts6]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("IN_SET_OF_LIST", [IN_SET_OF_LIST]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
 ];;
 
+(* Lemma dart_pairs_list_all *)
+let dart_pairs_list_all = Sections.section_proof ["P"]
+`(!p. p IN dart (hypermap_of_list L) CROSS dart (hypermap_of_list L) ==> P p)
+	<=> (!p. MEM p (list_dart_pairs L) ==> P p)`
+[
+   (((((use_arg_then2 ("IN_SET_OF_LIST", [IN_SET_OF_LIST]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("set_of_list_list_dart_pairs", [set_of_list_list_dart_pairs]))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (use_arg_then2 ("components_hypermap_of_list", [components_hypermap_of_list])) (fun fst_arg -> (use_arg_then2 ("goodL", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
 (* Lemma elements_list_all *)
 let elements_list_all = Sections.section_proof ["P"]
 `(!x. x IN elements_of_list L ==> P x)
@@ -411,6 +467,7 @@ let list_of_darts3_subset = Sections.finalize_theorem list_of_darts3_subset;;
 let list_of_darts4_subset = Sections.finalize_theorem list_of_darts4_subset;;
 let list_of_darts5_subset = Sections.finalize_theorem list_of_darts5_subset;;
 let list_of_darts6_subset = Sections.finalize_theorem list_of_darts6_subset;;
+let list_of_dart_pairs_subset = Sections.finalize_theorem list_of_dart_pairs_subset;;
 let e_list_ext_eq_e_list = Sections.finalize_theorem e_list_ext_eq_e_list;;
 let fst_choice_of_list_node = Sections.finalize_theorem fst_choice_of_list_node;;
 let card_set_of_list_node = Sections.finalize_theorem card_set_of_list_node;;
@@ -420,6 +477,7 @@ let dart3_list_all = Sections.finalize_theorem dart3_list_all;;
 let dart4_list_all = Sections.finalize_theorem dart4_list_all;;
 let dart5_list_all = Sections.finalize_theorem dart5_list_all;;
 let dart6_list_all = Sections.finalize_theorem dart6_list_all;;
+let dart_pairs_list_all = Sections.finalize_theorem dart_pairs_list_all;;
 let elements_list_all = Sections.finalize_theorem elements_list_all;;
 let sum_node_list_all = Sections.finalize_theorem sum_node_list_all;;
 let sum_face_list_all = Sections.finalize_theorem sum_face_list_all;;

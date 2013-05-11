@@ -31,6 +31,30 @@ let raw_ineq_list, add_raw_ineq, find_raw_ineq =
   (fun std_flag name -> find (fun x -> x.name = name && x.std_only = std_flag) !table);;
 
 
+(* Combine all nonlinear inequalities related to linear programs into one definition *)
+let lp_ineqs_def =
+  let check_lp_tags =
+    let rec check tags =
+      match tags with
+	| Lp :: _ -> true
+	| Tablelp :: _ -> true
+	| Lp_aux _ :: _ -> true
+	| h :: t -> check t
+	| [] -> false in
+      fun ineq -> check ineq.tags in
+  let lp_ineqs = filter check_lp_tags !Ineq.ineqs in
+  let lp_tms = map (fun t -> t.ineq) lp_ineqs in
+  let lp_tm = end_itlist (curry mk_conj) lp_tms in
+    new_definition (mk_eq (`lp_ineqs:bool`, lp_tm));;
+
+
+let add_lp_ineqs_hyp =
+  let imp_th = (UNDISCH o MATCH_MP EQ_IMP) lp_ineqs_def in
+  let ths = CONJUNCTS imp_th in
+    fun th ->
+      itlist PROVE_HYP ths th;;
+
+
 (* Replaces all general hypotheses with lp_cond *)
 let add_lp_hyp =
   let lp_fan_ths = (CONJUNCTS o UNDISCH_ALL o MATCH_MP EQ_IMP o SPEC_ALL) Lp_ineqs_proofs.lp_fan in
@@ -41,7 +65,8 @@ let add_lp_hyp =
       let th0 = if (not lp_ineq_flag) or is_forall (concl th') or is_binary "ALL" (concl th') then th' else th in
       let th1 = itlist PROVE_HYP lp_fan_ths th0 in
       let th2 = itlist PROVE_HYP lp_cond_ths th1 in
-	itlist PROVE_HYP lp_main_estimate_ths th2;;
+	  let th3 = itlist PROVE_HYP lp_main_estimate_ths th2 in
+		add_lp_ineqs_hyp th3;;
 
 
 let parse_lp_ineq s type_hints =

@@ -1,0 +1,279 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(* Section: Appendix                                                          *)
+(* Chapter: Local Fan                                                         *)
+(* Author: Thomas C. Hales                                                    *)
+(* Date: 2013-05-10                                                           *)
+(* ========================================================================== *)
+
+(* Pent and Hex cases. Uses cfsqp *)
+
+(* pent with 5 top edges=2 *)
+
+module Pent_hex = struct
+
+(* May 9, 2013. taud function.  taud_v4 seems to be the version that
+   works in all cases (pent and hex).  *)
+
+(* DEPRECATED:
+   let taud = new_definition `taud y1 y2 y3 y4 y5 y6 = 
+      #0.027 * safesqrt(delta_y y1 y2 y3 y4 y5 y6) + sol0 * (y1 - &2 * h0)/(&2 * h0 - &2)`;;
+
+    let taud_v2 = new_definition `taud_v2 y1 y2 y3 y4 y5 y6 = 
+      #0.027 * safesqrt(delta_y y1 y2 y3 y4 y5 y6) + sol0 * (y1 - &2 * h0)/(&2 * h0 - &2) +
+	safesqrt(delta_y y1 y2 y3 y4 y5 y6) * #0.04 * (#2.52 - y1)`;;
+
+    let taud_v3 = new_definition `taud_v3 y1 y2 y3 y4 y5 y6 = 
+      #0.023 * safesqrt(delta_y y1 y2 y3 y4 y5 y6) + sol0 * (y1 - &2 * h0)/(&2 * h0 - &2) +
+	safesqrt(delta_y y1 y2 y3 y4 y5 y6) * #0.055 * (#2.52 - y1)`;;
+*)
+
+
+    let add = Ineq.add;;
+    let all_forall = Sphere.all_forall;;
+
+    let run s = 
+      let _ = add s in
+	Scripts.one_cfsqp s.idv;;
+
+    let flat_term = new_definition `flat_term y = sol0 * (y - &2 * h0)/(&2 * h0 - &2)`;;
+
+    let taud_v4 = new_definition `taud_v4 y1 y2 y3 y4 y5 y6 = 
+       sol0 * (y1 - &2 * h0)/(&2 * h0 - &2) +
+	safesqrt(delta_y y1 y2 y3 y4 y5 y6) * 
+	 (#0.012 + #0.07 * (#2.52 - y1) + #0.01 * (#2.52 * &2 - y2 - y3 ))`;;
+
+    let mu_y = new_definition `mu_y y1 y2 y3 = 
+     (#0.012 + #0.07 * (#2.52 - y1) + #0.01 * (#2.52 * &2 - y2 - y3 ))`;;
+
+    let edge_flat50 =  new_definition`edge_flat50 y1 y2 y3 y5 y6 = 
+      sqrt(quadratic_root_plus (abc_of_quadratic (
+	\x4.  &50 - delta_x (y1*y1) (y2*y2)  (y3*y3)  x4 (y5*y5)  (y6*y6))))`;;
+
+    let edge_flat250_x = new_definition `edge_flat250_x x1 x2 x3 x4 x5 x6 =
+      (edge_flat (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x5) (sqrt x6)) pow 2`;;  (* x4 dummy *)
+
+    let edge_flat50_x =  new_definition`edge_flat50_x x1 x2 x3 (x4:real) x5 x6 = 
+      edge_flat (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x5) (sqrt x6)`;; 
+
+
+
+    map Parse_ineq.autogen_add [taud;taud_v2;taud_v3;taud_v4];;
+
+skip
+{
+  idv="3405144397-numerical";
+  doc="old name: test8*
+   ear dih inequality when delta < 20";
+  tags=[Cfsqp;Xconvert;Tex;Penalty(500.0,5000.0);Deprecated];
+  ineq = all_forall `ineq [
+    (&2,y1,#2.52);
+    (&2,y2,#2.52);
+    (&2,y3,#2.52);
+    (&2,y4,&2);
+      (&2,y5,&2);
+    (#3.01,y6,#3.237)
+  ]
+(
+  (delta_y y1 y2 y3 y4 y5 y6 > &20)  \/
+     (dih_y y1 y2 y3 y4 y5 y6 < (#1.75 - #1.109) / &2) \/
+  (delta_y y1 y2 y3 y4 y5 y6 < &0) 
+ )`;
+};;
+
+add
+{
+  idv="3405144397";
+  doc="ear dih ineq when delta < 20.
+    Adaptation of 9459075374.
+    (EAR) A bound on the delta of an ear in a pent,
+   The disjunct   (dih_y y1 y2 y3 y4 y5 y6 < #0.3205 = (1.75-1.109)/2)  has been 'linearized'. 
+   Tan[0.3205]^2 = (>=) 0.110186
+   In more detail, this calc shows that delta > 20 or dih < 0.3205
+   By 4887115291, we know that the combined angle at the crowded node of a pent is
+   at least 1.75.  If both ears have delta < 20, then combined angle
+   is at least 1.109 + 2 * 0.3205 = 1.75, so a cross diag <= 3.01.
+   Hence wlog one of the two ears has delta >= 20.
+   ";
+  tags=[Flypaper["EDZEPIH"];Main_estimate;Cfsqp;Xconvert;Tex;Penalty(50.0,500.0);];
+  ineq = all_forall `ineq [
+    (&2,y1,#2.52);
+    (#2.52,y2,#2.52);
+    (&2,y3,#2.52);
+    (&2,y4,&2);
+     (#3.01,y5,#3.24);
+      (&2,y6,#2.52)
+  ]
+(let tan2lower = #0.110186 in
+   (delta_y y1 y2 y3 y4 y5 y6 > &20) \/
+  (&4 * x1_delta_y y1 y2 y3 y4 y5 y6 < tan2lower * delta4_squared_y y1 y2 y3 y4 y5 y6)
+ )`;
+};;
+
+
+add
+{
+  idv="4887115291";
+  doc="old name: angles pent*";
+  tags=[Cfsqp;Xconvert;Tex;Penalty(500.0,5000.0)];
+  ineq = all_forall `ineq [
+    (&2,y1,#2.52);
+    (&2,y2,#2.52);
+    (&2,y3,#2.52);
+    (#3.01,y4,#3.01);
+    (&2,y5,&2);
+    (&2,y6,&2)
+  ]
+(  #1.75 < dih_y y1 y2 y3 y4 y5 y6 
+)`;
+};; 
+
+add
+{
+  idv="6789182745";
+  doc="old name: test A*";
+  tags=[Cfsqp;Xconvert;Tex;Penalty(500.0,5000.0)];
+  ineq = Sphere.all_forall `ineq [
+    (&2,y1,#2.52);
+    (&2,y2,#2.52);
+    (&2,y3,#2.52);
+    (&2,y4,&2);
+      (#3.01,y5,#3.237);
+    (#3.01,y6,#3.237)
+  ]
+(
+     (dih_y y1 y2 y3 y4 y5 y6 < #1.109) 
+ )`;
+};;
+
+add
+{
+  idv="7796879304";
+  doc="old name: res1*
+   tau_residual.  This restricts delta to [0,C]";
+  tags=[Cfsqp;Xconvert;Tex;Penalty(500.0,5000.0)];
+  ineq = all_forall `ineq [
+    (#2.0,y1,#2.52);
+    (&2,y2,#2.52);
+    (&2,y3,#2.52);
+    (#3.01,y4,#3.915);
+    (&2,y5,&2);
+      (&2,y6,&2)
+  ]
+(
+  (delta_y y1 y2 y3 y4 y5 y6 < &0)  \/
+  (delta_y y1 y2 y3 y4 y5 y6 > &80)  \/
+   (y_of_x tau_residual_x y1 y2 y3 y4 y5 y6 > #0.012 + #0.07 * (#2.52 - y1) + #0.01 * (#2.52 * &2 - y2 - y3 ))
+ )`;
+};;
+
+add
+{
+  idv="2314572187";
+  doc="old name: res1*
+   tau_residual.  This restricts delta above C";
+  tags=[Cfsqp;Xconvert;Tex;Penalty(500.0,5000.0)];
+  ineq = all_forall `ineq [
+    (#2.0,y1,#2.52);
+    (&2,y2,#2.52);
+    (&2,y3,#2.52);
+    (#3.01,y4,#3.915);
+    (&2,y5,&2);
+      (&2,y6,&2)
+  ]
+(
+   (taum y1 y2 y3 y4 y5 y6 > sqrt(delta_y y1 y2 y3 y4 y5 y6) * (#0.012 + #0.07 * (#2.52 - y1) + #0.01 * (#2.52 * &2 - y2 - y3 )) + sol0 * (y1 - &2 * h0)/ (&2 * h0 - &2)) \/
+    (delta_y y1 y2 y3 y4 y5 y6 < &80) 
+ )`;
+};;
+
+add
+{
+  idv="7099408714";
+  doc="old name: local max v4*
+    better local max test.
+    This is the numerator of the 2nd derivative of the function taud_v4.";
+  tags=[Cfsqp;Xconvert;Tex;Penalty(500.0,5000.0)];
+  ineq = all_forall `ineq [
+    (&2,y1,#2.52);
+    (&2,y2,#2.52);
+    (&2,y3,#2.52);
+    (&2,y4,#2.52);
+    (&2,y5,#2.52);
+    (#3.01,y6,#3.915)
+  ]
+    (let d = delta_y y1 y2 y3 y4 y5 y6 in
+     let delta' = delta4_y y1 y2 y3 y4 y5 y6 * (&2 * y4) in
+     let delta'' = -- &8 * (y1 * y4) pow 2  + delta4_y y1 y2 y3 y4 y5 y6 * (&2) in
+     let mu = (#0.012 + #0.07 * (#2.52 - y4) + #0.01 * (#2.52 * &2 - y3 - y5 )) in 
+     let mu' = -- #0.07 in
+(
+    mu' * d * delta' - (&1 / &4) * mu * (delta' pow 2) + (&1 / &2) * mu * d * delta'' < &0 \/
+  delta_y y1 y2 y3 y4 y5 y6 < &0
+))`;
+};;
+
+add
+{
+  idv="4795451128";
+  doc="old name: taud hex*
+   test (also works with taud_v2)";
+  tags=[Cfsqp;Xconvert;Tex;Penalty(500.0,5000.0)];
+  ineq = all_forall `ineq [
+    (&2,y1,#2.52);
+    (&2,y2,#2.52);
+    (&2,y3,#2.52);
+    (&2,y4,#2.52);
+    (&2,y5,#2.52);
+    (&2,y6,#2.52);
+    (#3.01,z1,#3.915);
+    (#3.01,z3,#3.915);
+    (#3.01,z5,#3.915)
+  ]
+(  (taum y1 y3 y5 z1 z3 z5 +
+      taud_v4 y4 y3 y5 z1 (&2) (&2) +
+      taud_v4 y6 y5 y1 z3 (&2) (&2) +
+      taud_v4 y2 y1 y3 z5 (&2) (&2) > #0.712) \/
+     delta_y y1 y3 y5 z1 z3 z5 < &0 \/
+     delta_y y4 y3 y5 z1 (&2) (&2) < &0 \/
+      delta_y y6 y5 y1 z3 (&2) (&2) < &0 \/
+      delta_y y2 y1 y3 z5 (&2) (&2) < &0 \/
+      y_of_x eulerA_x y1 y3 y5 z1 z3 z5 < &0)`;
+};;
+
+run
+{
+  idv="9115820315";
+  doc="old name: test9* test10*
+    full terminal pentagon test, using taud_v4 on ears.
+    assuming delta > 20 at y5.";
+  tags=[Cfsqp;Xconvert;Tex;Penalty(500.0,5000.0)];
+  ineq = all_forall `ineq [
+    (&2,y1,#2.52);
+    (&2,y2,#2.52);
+    (&2,y3,#2.52);
+    (&2,y4,#2.52);
+    (&2,y5,#2.52);
+    (#3.01,z2,#3.237);
+    (#3.01,z5,#3.237)
+  ]
+(  (taum y1 y3 y4 (&2) z5 z2 +
+      taud_v4 y2 y3 y1 z2 (&2) (&2) +
+      taud_v4 y5 y4 y1 z5 (&2) (&2) 
+> #0.616) \/
+//     delta_y y1 y3 y4 (&2) z5 z2 < &0 \/
+     delta_y y2 y3 y1 z2 (&2) (&2) < &0 \/
+      delta_y y5 y4 y1 z5 (&2) (&2) < &20 
+)`;
+};;
+
+    let cases = ["3405144397"; "4887115291"; "6789182745"; 
+   "7796879304"; "2314572187"; (* "7099408714"; "4795451128"; "9115820315";  *)];;
+
+Auto_lib.testsplit true "7796879304";;
+map (Auto_lib.testsplit true)  cases;;
+  
+
+map Scripts.one_cfsqp cases;;
+
+end;;

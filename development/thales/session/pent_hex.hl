@@ -56,6 +56,7 @@ end;;
 
 
     let add = Ineq.add;;
+
     let all_forall = Sphere.all_forall;;
 
     let run s = 
@@ -89,17 +90,17 @@ end;;
       sqrt(quadratic_root_plus (abc_of_quadratic (
 	\x1.  d - delta_x x1 x2 x3 x4 x5 x6)))`;;
 
-    let edge_126_x = new_definition `edge_126_x d s4 s5 = 
-      compose6 (edge_flatD_x1) (constant6 d) proj_x1 proj_x2 proj_x6 (constant6 s4) (constant6 s5)`;;
+    let edge_126_x = new_definition `edge_126_x d x4 x5 = 
+      compose6 (edge_flatD_x1) (constant6 d) proj_x1 proj_x2 proj_x6 (constant6 x4) (constant6 x5)`;;
 
-    let edge_135_x = new_definition `edge_135_x d s4 s6 =
-      compose6 (edge_flatD_x1) (constant6 d) proj_x1 proj_x3 proj_x5 (constant6 s4) (constant6 s6)`;;
+    let edge_135_x = new_definition `edge_135_x d x4 x6 =
+      compose6 (edge_flatD_x1) (constant6 d) proj_x1 proj_x3 proj_x5 (constant6 x4) (constant6 x6)`;;
 
-    let flat_term_126_x = new_definition `flat_term_126_x d s4 s5 = 
-      uni(flat_term,edge_126_x d s4 s5)`;;
+    let flat_term_126_x = new_definition `flat_term_126_x d x4 x5 = 
+      uni(flat_term,edge_126_x d x4 x5)`;;
 
-    let flat_term_135_x = new_definition `flat_term_135_x d s4 s6 = 
-      uni(flat_term,edge_135_x d s4 s6)`;;
+    let flat_term_135_x = new_definition `flat_term_135_x d x4 x6 = 
+      uni(flat_term,edge_135_x d x4 x6)`;;
 
     let mud_135_x = new_definition `mud_135_x_v1 y2 y4 y6 = 
       mul6 (compose6 (promote3_to_6 mu_y) (constant6 y2) proj_y1 proj_y3 dummy6 dummy6 dummy6)
@@ -118,12 +119,10 @@ end;;
 	(constant6 (sqrt d))`;;
 
 
+    map Parse_ineq.autogen_add [mu_y;delta_x1;taud_v4_D2_num;edge_flatD_x1;taud_v4;];;
 
-
-    map Parse_ineq.autogen_add [taud_v4;delta_x1;taud_v4_D2_num];;
-
-
-
+    map Parse_ineq.macro_add[ edge_126_x;edge_135_x;flat_term_126_x;flat_term_135_x;mud_135_x;
+			      mud_126_x;mudd_135_x;mudd_126_x];;
 
 skip
 {
@@ -324,12 +323,12 @@ add
 )`;
 };;
 
-add
+run
 {
   idv="test";
-  doc="pent hi=20(135-246) hi<=20(126-345)
+  doc="pent hi(126-345) hi(135-234)
     full terminal pentagon test, using taud_v4 on ears.
-    assuming delta > 20 at y5.";
+    assuming delta > 20 both sides.";
   tags=[Cfsqp;Xconvert;Tex;Penalty(500.0,5000.0)];
   ineq = all_forall `ineq [
     (&2,y1,#2.52);
@@ -339,18 +338,33 @@ add
     (#3.01,y5,#3.237);
     (#3.01,y6,#3.237)
   ]
-(let y135 = fn_sub246 (y_of_x (edge_flatD_x1_pad (&20))) (&4) (&4) ( y1 y2 y3 y4 y5 y6
-    (taum y1 y2 y3 y4 y5 y6 +
-      taud_v4 y2 y3 y1 z2 (&2) (&2) +
-      taud_v4 y5 y4 y1 z5 (&2) (&2) 
-> #0.616) \/
-//     delta_y y1 y3 y4 (&2) z5 z2 < &0 \/
-     delta_y y2 y3 y1 z2 (&2) (&2) < &0 \/
-      delta_y y5 y4 y1 z5 (&2) (&2) < &20 
-)`;
+(
+    (taum y1 y2 y3 y4 y5 y6 + 
+       y_of_x (mud_126_x_v1 (&2 * h0) (&2) (&2)) y1 y2 y3 y4 y5 y6 + 
+       y_of_x (flat_term_126_x (&2 * h0) (&2) (&2)) y1 y2 y3 y4 y5 y6 +
+       y_of_x (mud_135_x_v1 (&2) (&2) (&2)) y1 y2 y3 y4 y5 y6 + 
+       y_of_x (flat_term_126_x (&2) (&2) (&2)) y1 y2 y3 y4 y5 y6 
+     > #0.616) \/
+      y_of_x (delta_126_x (&4 * h0 * h0) (&4) (&4)) y1 y2 y3 y4 y5 y6 < &20 \/
+      y_of_x (delta_135_x (&4 * h0 * h0) (&4) (&4)) y1 y2 y3 y4 y5 y6 < &20 )
+`;
 };;
 
-
+Print_types.print_thm_types Sphere.y_of_x;;
+Print_types.print_thm_types Nonlinear_lemma.y_of_x_e;;
+REWRITE_CONV[Sphere.y_of_x] (Parse_ineq.prep_term (hd(Ineq.getexact "test")).ineq);;
+    let t = (hd(Ineq.getexact "test")).ineq;;
+    let t' = rhs (concl (REWRITE_CONV (Parse_ineq.get_macro_expand()) t));;
+    t,t';;
+REWRITE_CONV (Parse_ineq.get_macro_expand()) t;;
+REWRITE_CONV ((get_macro_expand()) @ [Nonlinear_lemma.y_of_x_e]) t;;
+REWRITE_CONV (Nonlinear_lemma.y_of_x_e :: ((get_macro_expand()))) t;;
+List.nth (get_macro_expand()) 1;;
+List.length (get_macro_expand());;
+get_macro_expand();;
+!macros;;
+Parse_ineq.get_macro_expand();;
+ (prep_term (hd(Ineq.getexact "test")).ineq);;
 
     let cases = ["3405144397"; "4887115291"; "6789182745"; 
    "7796879304"; "2314572187"; (* "7099408714"; "4795451128"; "9115820315";  *)];;

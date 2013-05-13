@@ -11,6 +11,7 @@
 (* pent with 5 top edges=2 *)
 
 module Pent_hex = struct
+end;;
 
 (* May 9, 2013. taud function.  taud_v4 seems to be the version that
    works in all cases (pent and hex).  *)
@@ -26,6 +27,31 @@ module Pent_hex = struct
     let taud_v3 = new_definition `taud_v3 y1 y2 y3 y4 y5 y6 = 
       #0.023 * safesqrt(delta_y y1 y2 y3 y4 y5 y6) + sol0 * (y1 - &2 * h0)/(&2 * h0 - &2) +
 	safesqrt(delta_y y1 y2 y3 y4 y5 y6) * #0.055 * (#2.52 - y1)`;;
+
+    let edge_flat50 =  new_definition`edge_flat50 y1 y2 y3 y5 y6 = 
+      sqrt(quadratic_root_plus (abc_of_quadratic (
+	\x4.  &50 - delta_x (y1*y1) (y2*y2)  (y3*y3)  x4 (y5*y5)  (y6*y6))))`;;
+
+    let edge_flat250_x = new_definition `edge_flat250_x x1 x2 x3 x4 x5 x6 =
+      (edge_flat (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x5) (sqrt x6)) pow 2`;;  (* x4 dummy *)
+
+    let edge_flat50_x =  new_definition`edge_flat50_x x1 x2 x3 (x4:real) x5 x6 = 
+      edge_flat (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x5) (sqrt x6)`;; 
+
+    let edge_flatD_x1_pad = new_definition `edge_flatD_x1_pad d (x1dummy:real) x2 x3 x4 x5 x6 = 
+      sqrt(quadratic_root_plus (abc_of_quadratic (
+	\x1.  d - delta_x x1 x2 x3 x4 x5 x6)))`;;
+
+    let fn_sub246 = new_definition 
+      `fn_sub246 f (x2s:real) (x4s:real) (x6s:real) 
+      (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) = 
+      (f x1 x2s x3 x4s x5 x6s):real`;;
+
+    let fn_sub345 = new_definition 
+      `fn_sub345 f (x3s:real) (x4s:real) (x5s:real) 
+      (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) = 
+      (f x1 x2 x3s x4s x5s x6):real`;;
+
 *)
 
 
@@ -33,7 +59,7 @@ module Pent_hex = struct
     let all_forall = Sphere.all_forall;;
 
     let run s = 
-      let _ = add s in
+      let _ = Ineq.add s in
 	Scripts.one_cfsqp s.idv;;
 
     let flat_term = new_definition `flat_term y = sol0 * (y - &2 * h0)/(&2 * h0 - &2)`;;
@@ -46,19 +72,58 @@ module Pent_hex = struct
     let mu_y = new_definition `mu_y y1 y2 y3 = 
      (#0.012 + #0.07 * (#2.52 - y1) + #0.01 * (#2.52 * &2 - y2 - y3 ))`;;
 
-    let edge_flat50 =  new_definition`edge_flat50 y1 y2 y3 y5 y6 = 
+    let delta_x1 = new_definition 
+      `delta_x1 x1 x2 x3 x4 x5 x6 = 
+      -- x1 * x4 + x2 * x5 - x3 * x5 - x2 * x6 + x3 * x6 + 
+	x4 * (-- x1 + x2 + x3 - x4 + x5 + x6)`;;
+
+    let taud_v4_D2_num = new_definition `taud_v4_D2_num y1 y2 y3 y4 y5 y6 = 
+      (let d = delta_y y1 y2 y3 y4 y5 y6 in
+     let delta' = y_of_x delta_x1 y1 y2 y3 y4 y5 y6 * (&2 * y1) in
+     let delta'' = -- &8 * (y1 * y4) pow 2  + y_of_x delta_x1 y1 y2 y3 y4 y5 y6 * (&2) in
+     let mu = (#0.012 + #0.07 * (#2.52 - y1) + #0.01 * (#2.52 * &2 - y2 - y3 )) in 
+     let mu' = -- #0.07 in
+       (mu' * d * delta' - (&1 / &4) * mu * (delta' pow 2) + (&1 / &2) * mu * d * delta'' ))`;;
+
+    let edge_flatD_x1 = new_definition `edge_flatD_x1 d x2 x3 x4 x5 x6 = 
       sqrt(quadratic_root_plus (abc_of_quadratic (
-	\x4.  &50 - delta_x (y1*y1) (y2*y2)  (y3*y3)  x4 (y5*y5)  (y6*y6))))`;;
+	\x1.  d - delta_x x1 x2 x3 x4 x5 x6)))`;;
 
-    let edge_flat250_x = new_definition `edge_flat250_x x1 x2 x3 x4 x5 x6 =
-      (edge_flat (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x5) (sqrt x6)) pow 2`;;  (* x4 dummy *)
+    let edge_126_x = new_definition `edge_126_x d s4 s5 = 
+      compose6 (edge_flatD_x1) (constant6 d) proj_x1 proj_x2 proj_x6 (constant6 s4) (constant6 s5)`;;
 
-    let edge_flat50_x =  new_definition`edge_flat50_x x1 x2 x3 (x4:real) x5 x6 = 
-      edge_flat (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x5) (sqrt x6)`;; 
+    let edge_135_x = new_definition `edge_135_x d s4 s6 =
+      compose6 (edge_flatD_x1) (constant6 d) proj_x1 proj_x3 proj_x5 (constant6 s4) (constant6 s6)`;;
+
+    let flat_term_126_x = new_definition `flat_term_126_x d s4 s5 = 
+      uni(flat_term,edge_126_x d s4 s5)`;;
+
+    let flat_term_135_x = new_definition `flat_term_135_x d s4 s6 = 
+      uni(flat_term,edge_135_x d s4 s6)`;;
+
+    let mud_135_x = new_definition `mud_135_x_v1 y2 y4 y6 = 
+      mul6 (compose6 (promote3_to_6 mu_y) (constant6 y2) proj_y1 proj_y3 dummy6 dummy6 dummy6)
+	(uni(sqrt,(delta_135_x (y2*y2) (y4*y4) (y6*y6))))`;;
+
+    let mud_126_x = new_definition `mud_126_x_v1 y3 y4 y5 = 
+      mul6 (compose6 (promote3_to_6 mu_y) (constant6 y3) proj_y1 proj_y2 dummy6 dummy6 dummy6)
+	(uni(sqrt,(delta_126_x (y3*y3) (y4*y4) (y5*y5))))`;;
+
+    let mudd_135_x = new_definition `mudd_135_x_v1 d y2 y4 y6 = 
+      mul6 (compose6 (promote3_to_6 mu_y) (constant6 y2) proj_y1 proj_y3 dummy6 dummy6 dummy6)
+	(constant6 (sqrt d))`;;
+
+    let mudd_126_x = new_definition `mudd_126_x_v1 d y3 y4 y5 = 
+      mul6 (compose6 (promote3_to_6 mu_y) (constant6 y3) proj_y1 proj_y2 dummy6 dummy6 dummy6)
+	(constant6 (sqrt d))`;;
 
 
 
-    map Parse_ineq.autogen_add [taud;taud_v2;taud_v3;taud_v4];;
+
+    map Parse_ineq.autogen_add [taud_v4;delta_x1;taud_v4_D2_num];;
+
+
+
 
 skip
 {
@@ -109,7 +174,6 @@ add
   (&4 * x1_delta_y y1 y2 y3 y4 y5 y6 < tan2lower * delta4_squared_y y1 y2 y3 y4 y5 y6)
  )`;
 };;
-
 
 add
 {
@@ -202,15 +266,8 @@ add
     (&2,y5,#2.52);
     (#3.01,y6,#3.915)
   ]
-    (let d = delta_y y1 y2 y3 y4 y5 y6 in
-     let delta' = delta4_y y1 y2 y3 y4 y5 y6 * (&2 * y4) in
-     let delta'' = -- &8 * (y1 * y4) pow 2  + delta4_y y1 y2 y3 y4 y5 y6 * (&2) in
-     let mu = (#0.012 + #0.07 * (#2.52 - y4) + #0.01 * (#2.52 * &2 - y3 - y5 )) in 
-     let mu' = -- #0.07 in
-(
-    mu' * d * delta' - (&1 / &4) * mu * (delta' pow 2) + (&1 / &2) * mu * d * delta'' < &0 \/
-  delta_y y1 y2 y3 y4 y5 y6 < &0
-))`;
+    (taud_v4_D2_num y1 y2 y3 y4 y5 y6 < &0 \/
+  delta_y y1 y2 y3 y4 y5 y6 < &0)`;
 };;
 
 add
@@ -241,7 +298,7 @@ add
       y_of_x eulerA_x y1 y3 y5 z1 z3 z5 < &0)`;
 };;
 
-run
+add
 {
   idv="9115820315";
   doc="old name: test9* test10*
@@ -267,6 +324,34 @@ run
 )`;
 };;
 
+add
+{
+  idv="test";
+  doc="pent hi=20(135-246) hi<=20(126-345)
+    full terminal pentagon test, using taud_v4 on ears.
+    assuming delta > 20 at y5.";
+  tags=[Cfsqp;Xconvert;Tex;Penalty(500.0,5000.0)];
+  ineq = all_forall `ineq [
+    (&2,y1,#2.52);
+    (&2,y2,#2.52);
+    (&2,y3,#2.52);
+    (&2,y4,&2);
+    (#3.01,y5,#3.237);
+    (#3.01,y6,#3.237)
+  ]
+(let y135 = fn_sub246 (y_of_x (edge_flatD_x1_pad (&20))) (&4) (&4) ( y1 y2 y3 y4 y5 y6
+    (taum y1 y2 y3 y4 y5 y6 +
+      taud_v4 y2 y3 y1 z2 (&2) (&2) +
+      taud_v4 y5 y4 y1 z5 (&2) (&2) 
+> #0.616) \/
+//     delta_y y1 y3 y4 (&2) z5 z2 < &0 \/
+     delta_y y2 y3 y1 z2 (&2) (&2) < &0 \/
+      delta_y y5 y4 y1 z5 (&2) (&2) < &20 
+)`;
+};;
+
+
+
     let cases = ["3405144397"; "4887115291"; "6789182745"; 
    "7796879304"; "2314572187"; (* "7099408714"; "4795451128"; "9115820315";  *)];;
 
@@ -276,4 +361,4 @@ map (Auto_lib.testsplit true)  cases;;
 
 map Scripts.one_cfsqp cases;;
 
-end;;
+

@@ -20,10 +20,12 @@
    separately in optimize.hl.
    (This file is independent from that one.)
 
+   CFSQP NOTES
    Executing the cfsqp produces three output files:
    /tmp/cfsqp_err.txt, 
    tmp/t.cc tmp/t.o (in the cfsqp directory)
-   
+   Use macro_add to add new function (that is expanded with rewrites)
+   Use autogen_add to add new function (automatic C code generation)
 *)
 
 (*
@@ -37,6 +39,7 @@ module Parse_ineq = struct
 
   open Sphere;; 
   open Nonlinear_lemma;;
+  open Functional_equation;;
 
 let cfsqp_trialcount = ref 500;;
 
@@ -217,9 +220,21 @@ Nonlin_def.gamma2_x_div_azim_v2;
 Functional_equation.nonf_gamma2_x1_div_a_v2;
    ];;
 
-(* cfsqp expansion *)
+(* cfsqp definition macros expansion *)
 
-let get_macro_expand() = (   
+let macros = ref  [Sphere.gamma4f];;
+
+let macro_remove thm = 
+  let _ = macros := filter (fun t -> not (t = thm)) !macros in
+    ();;
+
+let macro_add thm = 
+  let _ = macro_remove thm in 
+    macros := !macros @ [thm];;
+
+let get_macro_expand() = (!macros);;
+
+macros := (   
   [gamma4f;gamma4fgcy;vol4f;y_of_x_e;vol_y_e;rad2_y_e;
    vol3f;vol3r;vol2f;delta4_y;delta4_squared_y;x1_delta_y;
    gamma3f;gamma23f;  (* gamma23f_126_w1;gamma23f_red; *)
@@ -227,7 +242,17 @@ let get_macro_expand() = (
    GSYM quadratic_root_plus_curry;REAL_MUL_LZERO;
    REAL_MUL_RZERO;FST;SND;pathL;pathR;node2_y;node3_y;
    rhazim2;rhazim3;rhazim_x;rhazim2_x;rhazim3_x;
+   (* functional code *)
    rotate2;rotate3;rotate4;rotate5;rotate6;
+   uni;constant6;promote3_to_6;promote1_to_6;
+   dummy6;
+   mul6;add6;sub6;scalar6;compose6;I_DEF;
+   functional_proj_x1;functional_proj_y1;
+   functional_proj_x2;functional_proj_y2;
+   functional_proj_x3;functional_proj_y3;
+   functional_proj_x4;functional_proj_y4;
+   functional_proj_x5;functional_proj_y5;
+   functional_proj_x6;functional_proj_y6;
    sol_euler345_x_div_sqrtdelta;
    sol_euler156_x_div_sqrtdelta;
    sol_euler246_x_div_sqrtdelta;
@@ -287,7 +312,8 @@ let get_macro_expand() = (
    Mdtau.mdtau_y_LC;
    Mdtau.mdtau2uf_y_LC;
    Sphere.delta_y_LC;
-
+   (* may 2013 additions *)
+   
    ] @ (!Ineq.dart_classes));;
 
 let prep_term t = 

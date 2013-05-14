@@ -378,6 +378,12 @@ let arcmin cs (i,j) = arc (htmax cs i) (htmax cs j) (cs.am_cs i j);;
 
 let arcmax cs (i,j) = arc htmin htmin (cs.bm_cs i j);;
 
+let m_count cs = 
+  let m i = 
+    let j = inc cs i in 
+      (cs.b_cs i j > twoh0 or cs.a_cs i j > two) in
+    List.length (filter m (ks_cs cs));;
+
 
 (*
 ****************************************
@@ -1030,15 +1036,25 @@ let x_equi_transfer_to_list terms =
    leaving M-field intact. *)
 
 
-let restrict_cs cs =
-    modify_cs cs ~a:cs.am_cs ~b:cs.bm_cs ();;
+let restrict_type2_cs cs =
+  (* 2013-05-14, added preconditions *)
+  let k = cs.k_cs in
+  let jcount = List.length (filter (fun i -> memj cs (i,inc cs i)) (ks_cs cs)) in
+  let _ = jcount = 0 or failwith "type2 cs" in
+  let cs' = modify_cs cs ~a:cs.am_cs ~b:cs.bm_cs () in
+  let _ = m_count cs' + k <= 6 or failwith "type2 cs 2" in
+    cs';;
+
 
 (* half_slice works on B-fields, resetting M-fields. 
    This version does not create an ear. 
    It does just one side. *)
 
 let half_slice cs p q dv = 
+  (* 2013-05-14, long diag preconditions added *)
   let k = cs.k_cs in
+  let _ = (k = 4) or (cs.bm_cs p q <= cstab) or failwith "half_slice long diag" in
+  let _ = (cs.bm_cs p q < 4.0) or failwith "half_slice long diag" in
   let p = p mod k in
   let q = q mod k in
   let q' = if (q<p) then q+k else q in
@@ -1971,7 +1987,7 @@ let upper_echelonC =
       let css = subdivide_cs p1 p3 diag341 cs in
       let (css1,css2) = partition (fun cs -> cs.bm_cs p1 p3 <= diag341) css in
       let _ = (length css1 = 1) or failwith "ech:C" in
-      let cs1 = restrict_cs (hd css1) in
+      let cs1 = restrict_type2_cs (hd css1) in
       let dval = 0.4759 in
       let dval' = cs.d_cs -. dval in
       let css' = slice_cs cs1 p1 p3 dval dval' false in

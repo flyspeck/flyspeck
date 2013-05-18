@@ -264,17 +264,17 @@ static int setAbsUps(const domain& x,const domain& z,double DD[6][6])
   intervalToAbsDouble(DDi,DD);
   return 1;
 }
-static const Function ups_126= 
+const Function Lib::ups_126= 
   Function::mk_raw(linearization::ups_126,setAbsUps);
 
 static const Function ups_135 = Function::compose
-  (ups_126, Lib::x1,Lib::x3,Lib::unit, Lib::unit,Lib::unit,Lib::x5);
+  (Lib::ups_126, Lib::x1,Lib::x3,Lib::unit, Lib::unit,Lib::unit,Lib::x5);
 
 // implement edge_flat2_x.
 const Function bx_neg_quadratic = 
   Lib::x1*(Lib::x2 + Lib::x3 + Lib::x5 + Lib::x6) -
   Lib::x1 * Lib::x1 - (Lib::x3 - Lib::x5)*(Lib::x2 - Lib::x6) ;
-const Function disc_quadratic =  Lib::uni(L::i_sqrt, ups_126 * ups_135 );
+const Function disc_quadratic =  Lib::uni(L::i_sqrt, Lib::ups_126 * ups_135 );
 const Function ax2_inv_quadratic = Lib::uni(L::i_inv,Lib::x1 * L::two) ;
 
 const Function Lib::edge_flat2_x = 

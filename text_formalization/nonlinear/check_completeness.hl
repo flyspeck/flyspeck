@@ -333,10 +333,6 @@ let hist cs s = modify_cs cs ~h:(s::cs.history_cs) ();;
 let reset_to_unadorned cs = 
   modify_cs cs ~am:cs.a_cs ~bm:cs.b_cs ~lo:[] ~str:[] ();;
 
-(* changes B-field, M remains a minimizer on smaller domain. Type 1 restriction. *)
-
-let restrict_b_to_bm cs = 
-  (modify_cs cs ~b:cs.bm_cs ());;
 
 let ink k i = (i+1) mod k;;
 
@@ -1034,10 +1030,20 @@ let x_equi_transfer_to_list terms =
 		    (k=k') && (d<=d') && (list_le a' am) &&
 		      (list_le bm b') && (subset (js') (map psort js))) dump';;
 
+(* changes B-field, M remains a minimizer on smaller domain. Type 1 restriction. 
+   The only places b gets modified is with restrict_type1_cs, restrict_type2_cs, subdivision, and 
+   initialization of pents.  
+*)
+
+let restrict_type1_cs cs = 
+  (* preconditions added 2013-05-15 *)
+  let k = cs.k_cs in
+  let jcount = List.length (filter (fun i -> memj cs (i,inc cs i)) (ks_cs cs)) in
+  let _ = jcount = 0 or 3 < k or failwith "type1 cs 1" in
+    (modify_cs cs ~b:cs.bm_cs ());;
 
 (* restrict shrinks to B-field down to the M-field,
    leaving M-field intact. *)
-
 
 let restrict_type2_cs cs =
   (* 2013-05-14, added preconditions *)
@@ -1583,7 +1589,7 @@ let deform_684_quadB p1 cs =
 let deformations postfilter k = 
   let r f p cs = filter postfilter (f p cs) in
   let m d = map (r d) (0--(k-1)) in
-  let rtl d cs = map restrict_b_to_bm (d cs) in 
+  let rtl d cs = map restrict_type1_cs (d cs) in 
   let u =   [deform_ODXLSTC_cs;
 	     deform_IMJXPHR_cs;
 	     deform_NUXCOEA_cs;

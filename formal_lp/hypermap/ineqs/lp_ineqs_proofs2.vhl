@@ -1,0 +1,487 @@
+"needs \"../formal_lp/hypermap/ineqs/lp_ineqs_proofs-compiled.hl\"".
+"needs \"../formal_lp/ineqs/delta_ineq.hl\"".
+
+
+Module Lp_ineqs_proofs2.
+
+"open Ssrbool".
+"open Ssrnat".
+"open Fan_defs".
+"open Hypermap".
+"open Lp_ineqs_proofs".
+"open Hypermap_and_fan".
+"open Tame_general".
+"open Lp_ineqs_def".
+"open Add_triangle".
+"open Hypermap_iso".
+
+
+Section Misc.
+
+Lemma azim_dart_eq_azim V E v w: `FAN (vec 0,V,E)
+	/\ v,w IN dart1_of_fan (V,E) /\ CARD (set_of_edge v V E) > 1
+	==> azim_dart (V,E) (v,w) = azim (vec 0) v w (sigma_fan (vec 0) V E v w)`.
+Proof.
+move => [fanV] [vw_in1] card_gt1.
+by rewrite azim_dart_eq_azim_fan ?dart_of_fan_eq ?IN_UNION // azim_fan.
+Qed.
+
+Lemma sigma_fan_same V E V2 E2 v: `set_of_edge v V E = set_of_edge v V2 E2
+	==> sigma_fan (vec 0) V E v = sigma_fan (vec 0) V2 E2 v`.
+Proof. by move => eq; rewrite FUN_EQ_THM => w; rewrite !sigma_fan eq. Qed.
+
+Lemma sigma_fan_delete_eq V E v w x: `~(x = v) /\ ~(x = w)
+	==> sigma_fan (vec 0) V (E DELETE {v,w}) x = sigma_fan (vec 0) V E x`.
+Proof.
+move => x_neq; apply sigma_fan_same.
+rewrite EXTENSION !set_of_edge !inE IN_DELETE => y.
+split => [[] [->] _ -> //| [->] -> /=].
+by rewrite "GEN_ALL Geomdetail.PAIR_EQ_EXPAND" !x_neq.
+Qed.
+
+Lemma atn2_acs_lemma a b: `~(a = &0) /\ b * b <= a
+	==> pi / &2 + atn2 (sqrt (a - b * b), --b) = acs (b / sqrt (a))`.
+Proof.
+move => ineqs.
+case eq: `b * b = a` => /=; last first.
+  rewrite Tame_inequalities.ATN2_ACS_LEMMA //.
+  by move: eq ineqs; arith.
+rewrite -eq REAL_SUB_REFL SQRT_0.
+have [eq1 [eq2] _] := Merge_ineq.atn2_0 `--b`.
+case b_ineq: `b < &0` => /=.
+  have b_ineq2: `&0 < --b /\ ~(b = &0)` by move: b_ineq; arith.
+  have ->: `b * b = (--b) * (--b)` by arith.
+  rewrite Nonlinear_lemma.sqrtxx ?REAL_LT_IMP_LE //.
+  rewrite (real_div b) REAL_INV_NEG REAL_MUL_RNEG REAL_MUL_RINV //.
+  by rewrite ACS_NEG_1 eq1 //; arith.
+have b_ineq2: `--b < &0 /\ ~(b = &0) /\ &0 <= b`.
+  suff: `~(b = &0)` by move: b_ineq; arith.
+  by rewrite -implybF => eq0; move: eq ineqs; rewrite eq0 REAL_MUL_LZERO => <-.
+rewrite Nonlinear_lemma.sqrtxx //.
+by rewrite REAL_DIV_REFL // ACS_1 eq2 // REAL_ADD_RINV.
+Qed.
+
+Lemma dih_x_eq x1 x2 x3 x4 x5 x6:
+	`let v1 = ups_x x1 x2 x6 in
+	 let v2 = ups_x x1 x3 x5 in
+	 let d4 = delta_x4 x1 x2 x3 x4 x5 x6 in
+	&0 < v1 /\ &0 < v2 /\ &0 <= delta_x x1 x2 x3 x4 x5 x6 /\ &0 <= x1
+	==> dih_x x1 x2 x3 x4 x5 x6 = acs (d4 / sqrt (v1 * v2))`.
+Proof.
+do !"CONV_TAC let_CONV"; move => ineqs.
+rewrite "let_RULE Sphere.dih_x" "let_RULE Tame_inequalities.DELTA_X_AND_DELTA_X4".
+rewrite atn2_acs_lemma //; split.
+  by rewrite REAL_ENTIRE; move: ineqs; arith.
+have -> a b: `a <= b <=> &0 <= b - a` by arith.
+rewrite -"let_RULE Tame_inequalities.DELTA_X_AND_DELTA_X4".
+by rewrite !REAL_LE_MUL //; arith.
+Qed.
+
+Lemma dih_x_mono_le4 x1 x2 x3 x5 x6 a b: `a <= b /\ &0 <= x1
+	/\ &0 < ups_x x1 x2 x6 /\ &0 < ups_x x1 x3 x5
+	/\ &0 <= delta_x x1 x2 x3 a x5 x6
+	/\ &0 <= delta_x x1 x2 x3 b x5 x6
+	==> dih_x x1 x2 x3 a x5 x6 <= dih_x x1 x2 x3 b x5 x6`.
+Proof.
+move => [a_le_b] [x1_ge0] [ups1] [ups2] [delta_a] delta_b.
+rewrite !"let_RULE dih_x_eq" // ACS_MONO_LE_EQ; last first.
+  rewrite !real_div REAL_LE_RMUL REAL_LE_INV.
+    by rewrite SQRT_POS_LE REAL_LE_MUL !REAL_LT_IMP_LE.
+  case eq: `a = b` => /=; first by rewrite eq REAL_LE_REFL.
+  by rewrite Tame_inequalities.DELTA_X4_MONO_LE_4 x1_ge0; move: eq a_le_b; arith.
+have aux x y z: `&0 < x /\ &0 < y ==> (abs (z / sqrt (x * y)) <= &1 <=> &0 <= x * y - z * z)`.
+  move => ineqs; rewrite real_div REAL_ABS_MUL REAL_ABS_INV -real_div.
+  have xy_ineqs: `&0 < x * y /\ &0 <= x * y`.
+    by rewrite REAL_LT_IMP_LE REAL_LT_MUL.
+  rewrite Packing3.REAL_DIV_LE_1.
+    by rewrite -REAL_ABS_NZ SQRT_EQ_0 //; move: xy_ineqs; arith.
+  by rewrite REAL_LE_SQUARE_ABS REAL_POW_2 SQRT_POW_2 //; arith.
+rewrite !aux // -!"let_RULE Tame_inequalities.DELTA_X_AND_DELTA_X4".
+by rewrite !REAL_LE_MUL //; arith.
+Qed.
+
+Lemma dih_y_mono_le4 y1 y2 y3 y5 y6 a b:
+	`&0 <= a /\ a <= b
+	/\ &0 < ups_x (y1 * y1) (y2 * y2) (y6 * y6)
+	/\ &0 < ups_x (y1 * y1) (y3 * y3) (y5 * y5)
+	/\ &0 <= delta_y y1 y2 y3 a y5 y6
+	/\ &0 <= delta_y y1 y2 y3 b y5 y6
+	==> dih_y y1 y2 y3 a y5 y6 <= dih_y y1 y2 y3 b y5 y6`.
+Proof.
+rewrite !delta_y !"let_RULE dih_y" => ineqs.
+rewrite dih_x_mono_le4 REAL_LE_SQUARE !ineqs /=.
+by rewrite -!REAL_POW_2 -REAL_LE_SQUARE_ABS; move: ineqs; arith.
+Qed.
+
+End Misc.
+
+
+Section Fan.
+
+Variable V: `:real^3->bool`.
+Variable E: `:(real^3->bool)->bool`.
+
+Hypothesis fanV: `FAN (vec 0,V,E)`.
+
+
+Lemma ys_fan_eq v w: `v,w IN dart1_of_fan (V,E)
+	==> y1_fan (v,w) = norm v
+	/\ y2_fan (v,w) = norm w
+	/\ y3_fan (V,E) (v,w) = norm (sigma_fan (vec 0) V E v w)
+	/\ y4'_fan (V,E) (v,w) = dist (w, sigma_fan (vec 0) V E v w)
+	/\ y5_fan (V,E) (v,w) = dist (v, sigma_fan (vec 0) V E v w)
+	/\ y6_fan (v,w) = dist (v,w)`.
+Proof.
+move => vw_in1.
+rewrite y1_fan y2_fan y3_fan y4'_fan y5_fan y6_fan /=.
+by rewrite INVERSE_F_FAN_PAIR_EXT_EXPLICIT // res vw_in1 /= DIST_SYM.
+Qed.
+
+Lemma fan_delta_y_pos d: `d IN dart1_of_fan (V,E)
+	==> &0 <= delta_y (y1_fan d) (y2_fan d) (y3_fan (V,E) d)
+			(y4'_fan (V,E) d) (y5_fan (V,E) d) (y6_fan d)`.
+Proof.
+case: d => v w vw_in.
+by rewrite !ys_fan_eq // "let_RULE Tame_lemmas.delta_y_pos".
+Qed.
+
+Lemma fan_ups_x_pos d: `d IN dart1_of_fan (V,E)
+	==> &0 < ups_x (y1_fan d * y1_fan d) (y2_fan d * y2_fan d) (y6_fan d * y6_fan d)
+	/\ &0 < ups_x (y1_fan d * y1_fan d) (y3_fan (V,E) d * y3_fan (V,E) d)
+			(y5_fan (V,E) d * y5_fan (V,E) d)`.
+Proof.
+case: d => v w vw_in1.
+rewrite -!REAL_POW_2 !ys_fan_eq // -!Trigonometry1.DIST_L_ZERO.
+rewrite -!Collect_geom2.NOT_COL_EQ_UPS_X_POS.
+exact: (DART1_NOT_COLLINEAR_2 fanV vw_in1).
+Qed.
+
+
+Lemma dih_y_le_azim_dart d: `d IN dart1_of_fan (V,E)
+	==> dih_y (y1_fan d) (y2_fan d) (y3_fan (V,E) d) 
+		(y4'_fan (V,E) d) (y5_fan (V,E) d) (y6_fan d)
+		<= azim_dart (V,E) d`.
+Proof.
+case: d => v w vw_in1.
+have vw_in: `v,w IN dart_of_fan (V,E)` by rewrite dart_of_fan_eq IN_UNION.
+rewrite !ys_fan_eq // -!Trigonometry1.DIST_L_ZERO.
+set w' := `sigma_fan _ V E v w`.
+rewrite -"let_RULE DIHV_EQ_DIH_Y" -w'_def ?(DART1_NOT_COLLINEAR fanV) // ?sigma_in_dart1 //.
+rewrite w'_def azim_dart_eq_azim_fan // azim_fan.
+case card_gt: `_ > 1` => /=; last first.
+  apply: REAL_LE_TRANS; exists `pi`; rewrite DIHV_RANGE.
+  by move: PI_POS; arith.
+rewrite AZIM_DIVH ?(DART1_NOT_COLLINEAR fanV) // ?sigma_in_dart1 // w'_def.
+case ineq: `_ < pi` => /=; first by rewrite REAL_LE_REFL.
+by move: (DIHV_RANGE `vec 0` v w w'); arith.
+Qed.
+
+
+Lemma azim_sum_sigma_fan v w: `v,w IN dart1_of_fan (V,E)
+	==> let w' = sigma_fan (vec 0) V E w v in
+	(!x. x IN set_of_edge w V E /\ ~(x = v)
+		==> azim (vec 0) w v x = azim (vec 0) w v w' + azim (vec 0) w w' x)`.
+Proof.
+move => vw_in1; "CONV_TAC let_CONV"; move => x [x_in x_neq_v].
+set w' := `sigma_fan _ V E w v`.
+case w'_eq_x: `w' = x` => /=.
+  by rewrite w'_eq_x AZIM_REFL REAL_ADD_RID.
+rewrite -Fan.sum5_azim_fan // -{2}w'_def.
+move: (vw_in1); rewrite dart1_switch => wv_in1.
+rewrite !(DART1_NOT_COLLINEAR_2 wv_in1) //= (DART1_NOT_COLLINEAR fanV) /=.
+  by move: x_in; rewrite set_of_edge inE -inE_eq_in_dart1 => ->.
+case eq: `w' = v` => /=; first by rewrite eq REAL_LE_REFL.
+rewrite Counting_spheres.AZIM_COMP_LE; split; last first.
+  rewrite -w'_def Topology.MONO_AZIM_SIGMA_FAN w'_def w'_eq_x fanV /=.
+  move: vw_in1 x_in; rewrite -inE_eq_in_dart1 set_of_edge inE.
+  by rewrite "GEN_ALL Collect_geom.PER_SET2" => -> ->.
+apply: contraR x_neq_v => ineq.
+apply: (Fan.UNIQUE_AZIM_0_POINT_FAN fanV w).
+move: vw_in1 x_in; rewrite dart1_switch -inE_eq_in_dart1 set_of_edge inE => -> -> /=.
+by move: ineq (Counting_spheres.AZIM_NN `vec 0` w x v); arith.
+Qed.
+
+
+Lemma fan_delete_edge e: `FAN (vec 0, V, E DELETE e)`.
+Proof. by rewrite Topology.CTVTAQA DELETE_SUBSET. Qed.
+
+
+Lemma set_of_edge_delete_eq v w: `set_of_edge v V (E DELETE {v,w}) = set_of_edge v V E DELETE w`.
+Proof.
+rewrite EXTENSION !set_of_edge !IN_DELETE !inE "GEN_ALL Geomdetail.PAIR_EQ_EXPAND" /=.
+rewrite negb_or => x; split => [[] [->] -> -> // | [] [vxE] -> -> /=].
+by move: (vxE); rewrite {2}vxE (inE_eq_in_dart1 V) => /(PAIR_IN_DART1_OF_FAN_IMP_NOT_EQ fanV) <-.
+Qed.
+
+
+Lemma set_of_edge_delete_eq2 v w: `v,w IN dart1_of_fan (V,E)
+	==> set_of_edge v V E = w INSERT (set_of_edge v V (E DELETE {v,w}))`.
+Proof.
+move/(PAIR_IN_DART1_OF_FAN fanV) => h.
+by rewrite set_of_edge_delete_eq INSERT_DELETE.
+Qed.
+
+
+Lemma card_set_of_edge_delete v w: `v,w IN dart1_of_fan (V,E)
+	==> CARD (set_of_edge v V E) = CARD (set_of_edge v V (E DELETE {v,w})) + 1`.
+Proof.
+move => vw_in1.
+have h := PAIR_IN_DART1_OF_FAN fanV vw_in1.
+rewrite (set_of_edge_delete_eq2 vw_in1) CARD_CLAUSES ?finite_set_of_edge ?fan_delete_edge //.
+by rewrite set_of_edge_delete_eq IN_DELETE /= addn1.
+Qed.
+
+
+Lemma sigma_fan_delete1 v w: `v,w IN dart1_of_fan (V,E) /\ CARD (set_of_edge w V E) > 1
+	==> let w' = sigma_fan (vec 0) V E w v in
+	    let E2 = E DELETE {w,w'} in
+	sigma_fan (vec 0) V E2 w v = sigma_fan (vec 0) V E w w'
+	/\ (!x. x IN set_of_edge w V E2 /\ ~(x = v) 
+		==> sigma_fan (vec 0) V E2 w x = sigma_fan (vec 0) V E w x)`.
+Proof.
+move => [vw_in1 card_gt1]; do !"CONV_TAC let_CONV".
+set w' := `sigma_fan _ V E w v`.
+have fan2 := fan_delete_edge `{w,w'}`.
+set E2 := `E DELETE _`.
+have neq_sing x: `~(set_of_edge w V E = {x})`.
+  by apply: contraL card_gt1 => ->; rewrite CARD_SINGLETON; arith.
+have [_ [_] [_] v_in] := PAIR_IN_DART1_OF_FAN vw_in1 fanV.
+have := Fan.SIGMA_FAN (neq_sing v) fanV v_in.
+rewrite w'_def => [] [w'_in] [w'_neq_v] azim_le.
+have w'_not_in: `~(w' IN set_of_edge w V E2)`.
+  by rewrite set_of_edge inE negb_and -E2_def IN_DELETE.
+case eq: `set_of_edge w V E2 = {v}` => /=.
+  rewrite eq IN_SING andbN /= sigma_fan eq /= eq_sym.
+  apply: (Fan.UNIQUE_SIGMA_FAN fanV w'_in v_in); rewrite -w'_neq_v neq_sing /=.
+  have ->: `set_of_edge w V E = {w',v}`.
+    by rewrite -eq -E2_def set_of_edge_delete_eq INSERT_DELETE.
+  by move => u; rewrite IN_INSERT IN_SING => [] [] [-> | ->] //; rewrite REAL_LE_REFL.
+have v_in2: `v IN set_of_edge w V E2` by rewrite -E2_def set_of_edge_delete_eq IN_DELETE.
+split.
+(* 1 *)
+apply: (Fan.UNIQUE_SIGMA_FAN eq fan2).
+rewrite -E2_def set_of_edge_delete_eq !IN_DELETE v_in -w'_neq_v /=.
+have h := Fan.SIGMA_FAN fanV w w' (neq_sing w') w'_in.
+set w2 := `sigma_fan _ V E w w'`.
+have w2_neq_v: `~(w2 = v)`.
+  have ->: `w2 = power_map_points sigma_fan (vec 0) V E w v 2`.
+    by rewrite SIGMA_FAN_POWER POWER_2 o_THM w'_def w2_def.
+  rewrite Topology.key_lemma_cyclic_fan // fanV (inE_eq_in_dart1 V) dart1_switch vw_in1 /=.
+  split; first by arith.
+  move: w'_in; rewrite {1}set_of_edge inE (inE_eq_in_dart1 V) => [] [ww'_in1] _.
+  rewrite (set_of_edge_delete_eq2 ww'_in1) CARD_CLAUSES ?finite_set_of_edge // E2_def.
+  rewrite w'_not_in /= TWO LT_SUC.
+  apply: contraR eq; rewrite NOT_LT.
+  have -> a: `a <= 1 <=> a = 0 \/ a = 1` by arith.
+  case => [| /(set_one_point v_in2) ->] //; last by rewrite finite_set_of_edge.
+  by rewrite CARD_EQ_0 ?finite_set_of_edge // => eq; move: v_in2; rewrite eq NOT_IN_EMPTY.
+rewrite !h w2_neq_v /= => u [] [u_in] u_neq_w' u_neq_v.
+rewrite ("let_RULE azim_sum_sigma_fan" u_neq_v) // w'_def.
+by rewrite ("let_RULE azim_sum_sigma_fan" w2_neq_v) // w'_def REAL_LE_LADD h.
+(* 2 *)
+move => x [x_in] x_neq_v.
+apply: (Fan.UNIQUE_SIGMA_FAN fan2 x_in); split.
+  by apply: contra x_neq_v => eq2; move: v_in2; rewrite eq2 IN_SING => ->.
+set u := `sigma_fan _ V E w x`.
+have u_neq_w': `~(u = w')`.
+  rewrite -u_def -w'_def; apply: contra x_neq_v => /(Fan.MONO_SIGMA_FAN fanV) -> //.
+  move: vw_in1 x_in; rewrite dart1_switch -E2_def set_of_edge_delete_eq IN_DELETE -inE_eq_in_dart1.
+  by rewrite set_of_edge inE => -> ->.
+have := Fan.SIGMA_FAN fanV (neq_sing x); "ANTS_TAC".
+  by move: x_in; rewrite -E2_def set_of_edge_delete_eq IN_DELETE => ->.
+rewrite u_def => h; rewrite -E2_def set_of_edge_delete_eq !IN_DELETE !h u_neq_w' /=.
+by move => w2 w2_cond; rewrite h.
+Qed.
+
+
+Lemma azim_dart_sum_delete v w: `v,w IN dart1_of_fan (V,E) /\ CARD (set_of_edge w V E) > 1
+	==> azim_dart (V, E DELETE {w, sigma_fan (vec 0) V E w v}) (w,v)
+		= azim_dart (V,E) (w,v) + azim_dart (V,E) (w, sigma_fan (vec 0) V E w v)`.
+Proof.
+move => [vw_in1 card_gt1].
+set w' := `sigma_fan _ V E w v`.
+have fan2 := fan_delete_edge `{w,w'}`.
+set E2 := `E DELETE _`.
+move: (vw_in1); rewrite dart1_switch => wv_in1.
+have := sigma_in_dart1 fanV wv_in1; rewrite w'_def => w'w_in1.
+have [_ [_] [w_in] v_in] := PAIR_IN_DART1_OF_FAN vw_in1 fanV.
+have neq_sing x: `~(set_of_edge w V E = {x})`.
+  by apply: contraL card_gt1 => ->; rewrite CARD_SINGLETON; arith.
+have := Fan.SIGMA_FAN (neq_sing v) v_in fanV.
+rewrite w'_def => [] [w'_in] [w'_neq_v] _.
+have card_ge1: `CARD (set_of_edge w V E2) >= 1`.
+  rewrite GE; apply CARD_ATLEAST_1; exists v.
+  by rewrite finite_set_of_edge // -E2_def set_of_edge_delete_eq IN_DELETE.
+rewrite !azim_dart_eq_azim_fan ?dart_of_fan_eq ?IN_UNION //.
+  rewrite fan2 andTb; left.
+  rewrite -inE_eq_in_dart1 -E2_def IN_DELETE (inE_eq_in_dart1 V) wv_in1 /=.
+  rewrite "GEN_ALL Geomdetail.PAIR_EQ_EXPAND" /= -w'_neq_v /=.
+  by rewrite (PAIR_IN_DART1_OF_FAN_IMP_NOT_EQ w'w_in1) // (PAIR_IN_DART1_OF_FAN_IMP_NOT_EQ vw_in1).
+rewrite !azim_fan card_gt1 /= w'_def.
+case card_ineq2: `CARD _ > 1` => /=; last first.
+  suff ->: `sigma_fan (vec 0) V E w w' = v`.
+    rewrite "GEN_ALL Local_lemmas1.AZIM_POS_IMP_SUM_2PI" //.
+    rewrite -w'_def -azim_dart_eq_azim // Hypermap_and_fan.AZIM_DART_POS //.
+    by rewrite dart_of_fan_eq IN_UNION.
+  have ->: `sigma_fan (vec 0) V E w w' = power_map_points sigma_fan (vec 0) V E w v 2`.
+    by rewrite SIGMA_FAN_POWER POWER_2 o_THM w'_def.
+  rewrite Topology.ORDER_POWER_SIGMA_FAN // (inE_eq_in_dart1 V) wv_in1 fanV /=.
+  rewrite (card_set_of_edge_delete w'w_in1) E2_def.
+  by move: card_ineq2 card_ge1; arith.
+rewrite -E2_def -w'_def "let_RULE sigma_fan_delete1" //.
+rewrite -"let_RULE azim_sum_sigma_fan" // w'_def vw_in1.
+rewrite (Fan.SIGMA_FAN (neq_sing w') w'_in) // !andTb.
+have ->: `sigma_fan (vec 0) V E w w' = power_map_points sigma_fan (vec 0) V E w v 2`.
+  by rewrite SIGMA_FAN_POWER POWER_2 o_THM w'_def.
+rewrite eq_sym Topology.key_lemma_cyclic_fan // fanV (inE_eq_in_dart1 V) wv_in1 /=.
+split; first by arith.
+move: w'_in; rewrite {1}set_of_edge inE (inE_eq_in_dart1 V) => [] [ww'_in1] _.
+rewrite (set_of_edge_delete_eq2 ww'_in1) CARD_CLAUSES ?finite_set_of_edge // E2_def.
+rewrite -{1}E2_def set_of_edge_delete_eq IN_DELETE /=.
+by move: card_ineq2; arith.
+Qed.
+
+End Fan.
+
+
+(* FullySurrounded *)
+Section FullySurrounded.
+
+Variable V: `:real^3->bool`.
+Variable E: `:(real^3->bool)->bool`.
+
+Hypothesis fanV: `FAN (vec 0,V,E)`.
+Hypothesis f_surr: `fully_surrounded (V,E)`.
+
+Let dart1_eq: `dart1_of_fan (V,E) = dart_of_fan (V,E)`.
+Proof. by rewrite fully_surrounded_dart_of_fan_eq. Qed.
+
+(* Pack *)
+Section Pack.
+
+Hypothesis subV: `V SUBSET ball_annulus`.
+Hypothesis packV: `packing V`.
+
+(* Crossdiag *)
+Section Crossdiag.
+
+Hypothesis ineq: "(hd (Ineq.getexact \"1085358243\")).ineq".
+
+Lemma crossdiag_fan d: `let d2 = f_fan_pair_ext (V,E) (e_fan_pair_ext (V,E) d) in
+		      let d' = inverse (f_fan_pair_ext (V,E)) d in
+	d IN darts_k 3 (hypermap_of_fan (V,E)) 
+	/\ ye_fan d <= ye_fan (FST d', SND d2)
+	/\ sqrt8 <= ye_fan d /\ ye_fan d <= &3
+	/\ y5_fan (V,E) d <= #2.52 /\ y6_fan d2 <= #2.52
+	==> (azim_dart (V,E) d + azim_dart (V,E) d2) - #1.903
+		- #0.4 * (y1_fan d - &2)
+		+ #0.49688 * (y2_fan d2 + y3_fan (V,E) d + y5_fan (V,E) d + y6_fan d2 - &8)
+		- (y4_fan (V,E) d' - sqrt8) >= &0`.
+Proof.
+do !"CONV_TAC let_CONV"; case: d => w w' [ww'_in3] [diag_le] [diag_lo] [diag_hi] bounds.
+set d2 := `f_fan_pair_ext _1 _2`.
+set d' := `inverse _1 _2`.
+have [dartH [eH] [nH] fH] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+have fan2 := fan_delete_edge fanV `{w,w'}`.
+move: (ww'_in3); rewrite List_hypermap.darts_k inE dartH => [] [ww'_in] card3.
+set v := `SND d2`.
+set E2 := `E DELETE {w,w'}`.
+have d2_eq: `d2 = w,v`.
+  rewrite pair_expand v_def PAIR_EQ /= -d2_def e_fan_pair_ext dart1_eq ww'_in /= e_fan_pair.
+  by rewrite f_fan_pair_ext dart1_switch dart1_eq ww'_in /= f_fan_pair.
+have d2_in1: `d2 IN dart1_of_fan (V,E)`.
+  by rewrite -d2_def -fH -eH dart1_eq -dartH !lemma_dart_invariant dartH.
+have w'_eq: `sigma_fan (vec 0) V E w v = w'`.
+  suff: `n_fan_pair_ext (V,E) d2 = (w,w')`.
+    by rewrite n_fan_pair_ext d2_in1 /= d2_eq n_fan_pair PAIR_EQ => [] [_].
+  rewrite -d2_def -nH -fH -eH -(o_THM `face_map _`) -(o_THM `node_map _`).
+  by rewrite hypermap_cyclic I_THM.
+have d2_in2: `d2 IN dart1_of_fan (V,E2)`.
+  rewrite d2_eq -inE_eq_in_dart1 -E2_def IN_DELETE (inE_eq_in_dart1 V) -d2_eq d2_in1 andTb.
+  rewrite "GEN_ALL Geomdetail.PAIR_EQ_EXPAND" /=.
+  move: (d2_in1); rewrite d2_eq => /(PAIR_IN_DART1_OF_FAN_IMP_NOT_EQ fanV) <- /=.
+  by rewrite -w'_eq eq_sym sigma_fan_not_fixed // -d2_eq -dart1_eq.
+rewrite (REAL_ADD_SYM `azim_dart _1 _2`) d2_eq -{1}w'_eq -azim_dart_sum_delete.
+  rewrite dart1_switch -d2_eq d2_in1 fully_surrounded_card_set_of_edge1 //.
+  by rewrite (PAIR_IN_DART_OF_FAN ww'_in).
+set r := `if y4'_fan (V,E2) d2 <= &3 then y4'_fan (V,E2) d2 else &3`.
+have := ineq `y1_fan d2` `y2_fan d2` `y3_fan (V,E2) d2` 
+		r `y5_fan (V,E2) d2` `y6_fan d2`.
+rewrite INEQ_ALT Ineq.apex_sup_flat real_gt.
+set s := `_1 - #1.903 - _2 + _3`.
+move: ineq => _ ineq.
+rewrite w'_eq E2_def real_ge REAL_LT_IMP_LE; apply: REAL_LTE_TRANS.
+exists s.
+have y_eqs: `y1_fan d2 = y1_fan (w,w') /\ y3_fan (V,E2) d2 = y3_fan (V,E) (w,w')
+	/\ y5_fan (V,E2) d2 = y5_fan (V,E) (w,w')`.
+  rewrite d2_eq !(ys_fan_eq fanV) // -d2_eq // d2_eq !(ys_fan_eq fan2) -?d2_eq //.
+  rewrite -E2_def -w'_eq "let_RULE sigma_fan_delete1" //.
+  rewrite dart1_switch -d2_eq fully_surrounded_card_set_of_edge1 //.
+  by rewrite (PAIR_IN_DART_OF_FAN fanV ww'_in).
+have y4_eqs: `y4_fan (V,E) d' = ye_fan (w,w') /\ y4'_fan (V,E2) d2 = ye_fan (FST d', v)`.
+  rewrite y4_fan -d'_def (PERMUTES_INVERSES (F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN fanV)) ye_fan /=.
+  rewrite y4'_fan d2_eq !INVERSE_F_FAN_PAIR_EXT_EXPLICIT //.
+  rewrite !res dart1_eq ww'_in /= -d2_eq d2_in2 /= ye_fan DIST_SYM.
+  rewrite -E2_def -w'_eq "let_RULE sigma_fan_delete1" //.
+  rewrite dart1_switch -d2_eq fully_surrounded_card_set_of_edge1 //.
+  by rewrite (PAIR_IN_DART_OF_FAN fanV ww'_in).
+have r_ineq: `y4_fan (V,E) d' <= r`.
+  by rewrite -r_def; case ineq1: `_ <= &3` => /=; rewrite !y4_eqs.
+move: (d2_in1); rewrite dart1_eq => d2_in.
+have r_ineqs: `r <= &3 /\ sqrt8 <= r /\ &2 <= r`.
+  split; first by rewrite -r_def; arith.
+  suff: `sqrt8 <= r` by move: Flyspeck_constants.bounds; arith.
+  by apply: REAL_LE_TRANS; exists `y4_fan (V,E) d'`; rewrite r_ineq y4_eqs.
+split.
+  rewrite ineq !"GEN_ALL ALL" /= !"ARITH_RULE `#2.0 = &2 /\ #3.0 = &3`".
+  rewrite !y_eqs (y1_lo ww'_in) // (y1_hi ww'_in) //.
+  rewrite (y2_lo d2_in) // (y2_hi d2_in) // y3_lo // y3_hi //.
+  by rewrite y5_lo // (y6_lo d2_in) // !bounds !r_ineqs.
+rewrite -s_def REAL_LE_ADD2 !y_eqs 11!real_sub !REAL_LE_RADD d2_eq REAL_LE_LADD -d2_eq.
+split; last by rewrite REAL_LE_NEG REAL_LE_RADD.
+move: (dih_y_le_azim_dart fan2 d2_in2).
+set y := `dih_y _1 _2 _3 _4 _5 _6`.
+move => ineq_y; apply: REAL_LE_TRANS; exists y.
+rewrite ineq_y andbT -y_def !y_eqs.
+rewrite dih_y_mono_le4; split; first by move: r_ineqs; arith.
+split; first by rewrite -r_def; arith.
+rewrite -!y_eqs !(fan_ups_x_pos fan2) // fan_delta_y_pos // !andTb andbT.
+apply: REAL_LE_TRANS; exists `&1`; split; first by arith.
+move: (Delta_ineq.delta_x_pos_apex_sup_flat).
+rewrite INEQ_ALT !"GEN_ALL ALL" /= real_ge Sphere.delta_y; apply.
+have aux a: `&2 <= a /\ a <= #2.52 ==> #4.0 <= a * a /\ a * a <= #6.3504`.
+  have [-> ->]: `#4.0 = &2 * &2 /\ #6.3504 = #2.52 * #2.52` by arith.
+  by rewrite -!REAL_POW_2 -!REAL_LE_SQUARE_ABS; arith.
+have aux2 a: `&2 <= a /\ a <= &3 ==> #4.0 <= a * a /\ a * a <= &9`.
+  have [-> ->]: `#4.0 = &2 * &2 /\ &9 = &3 * &3` by arith.
+  by rewrite -!REAL_POW_2 -!REAL_LE_SQUARE_ABS; arith.
+split; first by apply: aux; rewrite (y1_lo d2_in) // (y1_hi d2_in).
+split; first by apply: aux; rewrite (y2_lo d2_in) // (y2_hi d2_in).
+rewrite !y_eqs.
+split; first by apply: aux; rewrite y3_lo // y3_hi.
+split; first by apply: aux2; rewrite !r_ineqs.
+split; first by apply: aux; rewrite y5_lo // y5_hi.
+by apply: aux; rewrite (y6_lo d2_in) // (y6_hi d2_in).
+Qed.
+
+
+Variable g: `:num#num -> real^3#real^3`.
+Variable L: `:((num)list)list`.
+
+Hypothesis goodL: `good_list L`.
+Hypothesis g_iso: `hyp_iso g (hypermap_of_list L, hypermap_of_fan (V,E))`.
+
+
+Lemma crossdiag:
+   `ALL (\d. 
+	ye_list g d <= ye_list g (FST (inverse (f_list_ext L) d), SND (f_list_ext L (e_list d)))
+	/\ sqrt8 <= ye_list g d /\ ye_list g d <= &3
+	/\ ye_list g (inverse (f_list_ext L) d) <= #2.52
+	/\ ye_list g (f_list_ext L (e_list d)) <= #2.52
+	==> (azim_list (g,V,E) d + azim_list (g,V,E) (f_list_ext L (e_list d))) - #1.903 
+		- #0.4 * (y1_list g d - &2) 
+		+ #0.49688 * (y2_list g (f_list_ext L (e_list d)) + y3_list (g,V,E) d
+		+ y5_list (g,V,E) d + y6_list g (f_list_ext L (e_list d)) - &8)
+		- (y4_list (g,V,E) (inverse (f_list_ext L) d) - sqrt8) >= &0) 
+			(list_of_darts3 L)`.
+Proof.

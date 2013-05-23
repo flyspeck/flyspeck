@@ -103,7 +103,7 @@ Module Lp_main_estimate.
     CARD V = 4 /\
     (!v w. ~(v = w) /\ v IN V /\ w IN V /\ ~({v,w} IN E) ==> &3 <= dist(v,w)) /\
     (!v w. {v,w} IN E ==> &2 <= dist(v,w) /\ dist(v,w) <= &2 * h0) ==>
-    #0.567 <= tau_fun V E FF`".
+    #0.467 <= tau_fun V E FF`".
 
 "let JEJTVGB_concl = 
   let co = [JEJTVGB_std_concl;JEJTVGB_std3_concl;JEJTVGB_pent_diag_concl;JEJTVGB_pent_pro_concl;
@@ -188,6 +188,117 @@ rewrite !tau_fun !real_sub REAL_EQ_ADD_RCANCEL.
 apply SUM_EQ => d d_in /=.
 rewrite -("GEN_ALL Lvducxu.AZIM_IN_FAN_EQ_IZIM_E_PRIME" fanV `v,w`) //.
 by rewrite hypermap_HYP_elim.
+Qed.
+
+Lemma f_fan_pair_ext_power_in_dart1 k d: `d IN dart1_of_fan (V,E)
+	==> (f_fan_pair_ext (V,E) POWER k) d IN dart1_of_fan (V,E)`.
+Proof.
+move => d_in.
+elim: k => [|k Ih]; first by rewrite POWER_0 I_THM.
+by rewrite COM_POWER o_THM f_fan_pair_ext_in_dart1.
+Qed.
+
+Lemma face_eq_power k d: `d IN darts_k k (hypermap_of_fan (V,E))
+	==> face (hypermap_of_fan (V,E)) d = {(f_fan_pair_ext (V,E) POWER i) d | i < k}`.
+Proof.
+have hypV := COMPONENTS_HYPERMAP_OF_FAN fanV.
+rewrite darts_k inE face !hypV => [] [d_in] card_f.
+by rewrite (FINITE_ORBIT_MAP card_f (F_FAN_PAIR_EXT_PERMUTES_DART1_OF_FAN fanV)) // finite_dart1.
+Qed.
+
+Lemma face4_eq v w: `let w' = sigma_fan (vec 0) V E v w in
+		   let u = sigma_fan (vec 0) V E w' v in
+	v,w IN darts_k 4 (hypermap_of_fan (V,E))
+	==> (f_fan_pair_ext (V,E) (v,w) = (w,u)
+		/\ (f_fan_pair_ext (V,E) POWER 2) (v,w) = (u,w')
+		/\ (f_fan_pair_ext (V,E) POWER 3) (v,w) = (w',v)
+		/\ f_fan_pair_ext (V,E) (w,u) = (u,w')
+		/\ f_fan_pair_ext (V,E) (u,w') = (w',v)
+		/\ f_fan_pair_ext (V,E) (w',v) = (v,w))
+	/\ (v,w IN dart1_of_fan (V,E) /\ w,u IN dart1_of_fan (V,E)
+		/\ u,w' IN dart1_of_fan (V,E) /\ w',v IN dart1_of_fan (V,E))
+	/\ face (hypermap_of_fan (V,E)) (v,w) = {(v,w), (w,u), (u,w'), (w',v)}`.
+Proof.
+do !"CONV_TAC let_CONV".
+set w' := `sigma_fan _ V E v w`.
+set u := `sigma_fan _ V E w' v`.
+have hypV := COMPONENTS_HYPERMAP_OF_FAN fanV.
+move => vw_in4; move: (vw_in4); rewrite darts_k inE hypV => [] [vw_in] card_f.
+have:= f_fan_pair_ext_power_inverse fanV vw_in.
+rewrite card_f => inv_eq.
+have vw_in1: `v,w IN dart1_of_fan (V,E)`.
+  by rewrite CARD_FACE_GT_1 card_f fanV; arith.
+have w'v_in1: `w',v IN dart1_of_fan (V,E)`.
+  by rewrite dart1_switch -w'_def sigma_in_dart1.
+set f := `f_fan_pair_ext (V,E)`.
+have eq0: `(inverse f POWER 2) (v,w) = (u,w')`.
+  rewrite -f_def POWER_2 o_THM !INVERSE_F_FAN_PAIR_EXT_EXPLICIT //.
+  by rewrite !res vw_in1 /= w'_def w'v_in1 /= u_def.
+have ineqs: `2 < 4 /\ 4 - 2 = 2 /\ 3 < 4 /\ 4 - 3 = 1` by arith.
+have eq2: `(f POWER 2) (v,w) = u,w'` by rewrite inv_eq.
+have eq1: `f (v,w) = w,u`.
+  rewrite pair_expand -{1}f_def f_fan_pair_ext vw_in1 /= f_fan_pair FST PAIR_EQ /=.
+  move: eq2; rewrite -{1}f_def POWER_2 o_THM f_fan_pair_ext f_fan_pair_ext_in_dart1 //=.
+  by rewrite f_def {1}(pair_expand `f (v,w)`) f_fan_pair PAIR_EQ => ->.
+have eq3: `(f POWER 3) (v,w) = w',v`.
+  rewrite inv_eq // ineqs POWER_1 -f_def INVERSE_F_FAN_PAIR_EXT_EXPLICIT //.
+  by rewrite res vw_in1 /= w'_def.
+rewrite eq1 eq2 eq3 /= -eq1 -eq2 -eq3 {1}THREE POWER POWER_2 !o_THM /=.
+rewrite {1}inv_eq // ineqs POWER_1.
+rewrite -{1 2}f_def (PERMUTES_INVERSES (F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN fanV)) /=.
+rewrite -(o_THM f f) -POWER_2 vw_in1 -f_def f_fan_pair_ext_in_dart1 //.
+rewrite !f_fan_pair_ext_power_in_dart1 //.
+by rewrite (face_eq_power vw_in4) "gen_FINITE_SET 4" POWER_0 POWER_1 I_THM f_def.
+Qed.
+
+Lemma v_prime_eq d k: `d IN darts_k k (hypermap_of_fan (V,E))
+	==> v_prime V (face (hypermap_of_fan (V,E)) d)
+		= {FST ((f_fan_pair_ext (V,E) POWER i) d) | i < k}`.
+Proof.
+rewrite EXTENSION => d_in_k x.
+move: (d_in_k); rewrite darts_k inE dartH => [] [d_in] card_f.
+rewrite v_prime inE (face_eq_power d_in_k) !IN_ELIM_THM /=.
+split => [[xV] [w] [i] [i_lt] xw_eq | [i] [i_lt] x_eq].
+  by exists i; rewrite -xw_eq.
+have := f_fan_pair_ext_power_in_dart fanV d_in i.
+rewrite {1}pair_expand => /(PAIR_IN_DART_OF_FAN fanV).
+rewrite -x_eq => -> /=.
+exists `SND ((f_fan_pair_ext (V,E) POWER i) d)` i.
+by rewrite x_eq -pair_expand.
+Qed.
+
+
+Lemma v_prime4_eq v w: `let w' = sigma_fan (vec 0) V E v w in
+		      let u = sigma_fan (vec 0) V E w' v in
+	v,w IN darts_k 4 (hypermap_of_fan (V,E))
+	==> v_prime V (face (hypermap_of_fan (V,E)) (v,w))
+		= {v, w, u, w'}`.
+Proof.
+do !"CONV_TAC let_CONV"; move => vw_in4.
+rewrite (v_prime_eq vw_in4) "gen_FINITE_SET 4" POWER_0 POWER_1 I_THM.
+by rewrite !("let_RULE face4_eq" vw_in4).
+Qed.
+
+
+Lemma quad_diags_imp v w a b: 
+	`let f = face (hypermap_of_fan (V,E)) (v,w) in
+	 let w' = sigma_fan (vec 0) V E v w in
+	 let u = sigma_fan (vec 0) V E w' v in
+	v,w IN darts_k 4 (hypermap_of_fan (V,E))
+	/\ ~(a = b) /\ a IN v_prime V f /\ b IN v_prime V f
+	/\ ~({a,b} IN e_prime E f)
+	==> ((a,b) = (w, w') \/ (a,b) = (w',w)) \/ ((a,b) = (v,u) \/ (a,b) = (u,v))`.
+Proof.
+do !"CONV_TAC let_CONV"; move => [vw_in4] [a_neq_b].
+rewrite ("let_RULE v_prime4_eq" vw_in4) !(IN_SING, IN_INSERT) in_e_prime.
+have [f_eqs [in_darts] face_eq] := "let_RULE face4_eq" vw_in4.
+set f := `face _ (v,w)`.
+set w' := `sigma_fan _ V E v w`.
+set u := `sigma_fan _ V E w' v`.
+move => [a_conds] [b_conds].
+move: a_conds b_conds a_neq_b.
+rewrite (inE_eq_in_dart1 V) face_eq !(IN_SING, IN_INSERT).
+by do !case; move => ->; do !case; move => -> //=; rewrite dart1_switch.
 Qed.
 
 
@@ -726,6 +837,79 @@ Proof. by move/ineq_tau6_tauVEF_std; rewrite tau_fan; arith. Qed.
 End Std.
 
 End Face6.
+
+
+(* Face4_diag3 *)
+Section Face4_diag3.
+
+Hypothesis ineq: "JEJTVGB_quad_diag_concl".
+
+Lemma ineq_tau4_diag3_tauVEF d: `d IN darts_k 4 (hypermap_of_fan (V,E))
+	==> y5_fan (V,E) d <= #2.52
+	/\ y6_fan d <= #2.52
+	/\ y8_fan (V,E) d <= #2.52
+	/\ y9_fan (V,E) d <= #2.52
+	/\ &3 <= y4'_fan (V,E) d
+	/\ &3 <= y4'_fan (V,E) (f_fan_pair_ext (V,E) d)
+	==> #0.467 <= tauVEF (V,E,face (hypermap_of_fan (V,E)) d)`.
+Proof.
+move: h_fan; rewrite lp_fan => [] [fanV] [f_surr] [diag] [subV] packV.
+have [dartH _] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+case: d => v w vw_in4.
+move: (vw_in4); rewrite darts_k inE dartH => [] [vw_in] card_f bounds.
+rewrite -f_surr_tau_fun_eq_tauVEF -?lemma_in_face_set //.
+have c_local := "let_RULE f_surr_localization_convex_local" fanV f_surr vw_in.
+set f := `face _ (v,w)`.
+have f_in: `f IN face_set (hypermap_of_fan (V,E))`.
+  by rewrite -f_def -lemma_in_face_set.
+move: (c_local); rewrite convex_local_fan => [] [local] _.
+move: (ineq c_local).
+rewrite -("GEN_ALL Local_lemmas.LOFA_IMP_CARD_FF_V_EQ" local) card_f /=.
+rewrite tau_fun_local -?f_def -?lemma_in_face_set //; apply.
+rewrite packing_v_prime // v_prime_subset // !andTb.
+split => [a b [a_neq_b] [a_in] [b_in] ab_not_in | ].
+  have := "let_RULE quad_diags_imp" fanV vw_in4 a_neq_b.
+  rewrite f_def => /(_ a_in b_in ab_not_in).
+  set w' := `sigma_fan _ V E v w`.
+  set u := `sigma_fan _ V E w' v`.
+  move: bounds => [_] [_] [_] [_].
+  rewrite !y4'_fan (PERMUTES_INVERSES (F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN fanV)).
+  rewrite INVERSE_F_FAN_PAIR_EXT_EXPLICIT // res dart1_eq vw_in /=.
+  rewrite ("let_RULE face4_eq" vw_in4) // SND w'_def u_def => diag_ineqs.
+  by case; case => -> //; rewrite DIST_SYM.
+rewrite (local_std vw_in) // card_f => k k_lt.
+have: `k = 0 \/ k = 1 \/ k = 2 \/ k = 3` by move: k_lt; arith.
+do !case; move => ->.
+(* 1 *)
+by rewrite POWER_0 I_THM -y6_fan.
+(* 2 *)
+by rewrite POWER_1 -y9_fan.
+(* 3 *)
+rewrite (f_fan_pair_ext_power_inverse fanV vw_in) f_def card_f; first by arith.
+have ->: `4 - 2 = 2` by arith.
+by rewrite POWER_2 o_THM -y5_fan -y8_fan.
+(* 4 *)
+rewrite (f_fan_pair_ext_power_inverse fanV vw_in) f_def card_f; first by arith.
+have ->: `4 - 3 = 1` by arith.
+by rewrite POWER_1 -y5_fan.
+Qed.
+
+Lemma ineq_tau4_diag3 d: `d IN darts_k 4 (hypermap_of_fan (V,E))
+	==> y5_fan (V,E) d <= #2.52
+	/\ y6_fan d <= #2.52
+	/\ y8_fan (V,E) d <= #2.52
+	/\ y9_fan (V,E) d <= #2.52
+	/\ &3 <= y4'_fan (V,E) d
+	/\ &3 <= y4'_fan (V,E) (f_fan_pair_ext (V,E) d)
+	==> #0.467 <= tau_fan (V,E) (face (hypermap_of_fan (V,E)) d)`.
+Proof.
+move => d_in4 bounds.
+have := ineq_tau4_diag3_tauVEF d_in4 bounds.
+by rewrite tau_fan; arith.
+Qed.
+
+End Face4_diag3.
+
 
 End MainEstimate.
 

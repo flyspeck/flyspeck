@@ -14,6 +14,7 @@
 
 
 module Pent_hex = struct
+end;;
 
   open Hales_tactic;;
 
@@ -945,4 +946,522 @@ let taud_minimizer_cases = prove_by_refinement(
   ]);;
   (* }}} *)
 
- end;;
+let taud_minimizer_terminal_pent_cases = prove_by_refinement(
+  `main_nonlinear_v32 ==> (!d y1 y2 y3 y4 y5 y6.
+  (let s = real_interval [&2,&2 * h0] INTER { q | d <= delta_y q y2 y3 y4 y5 y6} in
+       (&0 <= d /\ y1 IN s /\ &2 <= y2 /\ y2 <= &2 * h0 /\ &2 <= y3 /\ y3 <= &2 * h0 /\
+	 #3.01 <= y4 /\ y4 <= #3.237 /\ y5 = &2 /\ y6 = &2 ==> 
+	  (?z1. z1 IN s /\ taud z1 y2 y3 y4 y5 y6  <= taud y1 y2 y3 y4 y5 y6 /\
+	  ( z1 = &2 \/ z1 = &2 * h0 \/ d = delta_y z1 y2 y3 y4 y5 y6 \/
+	      #0.12 <= taum z1 y2 y3 y4 y5 y6)))))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LET_DEF;LET_END_DEF;IN_INTER;IN_REAL_INTERVAL;IN_ELIM_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC taud_minimizer [`&2`;`&2 * h0`;`d`;`y2`;`y3`;`y4`;`y5`;`y6`];
+  REWRITE_TAC[LET_DEF;LET_END_DEF;IN_INTER;IN_REAL_INTERVAL;IN_ELIM_THM;EXTENSION;IN_INTER;NOT_IN_EMPTY;IN_REAL_INTERVAL;IN_ELIM_THM];
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `z1` EXISTS_TAC;
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  CONJ_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_MESON_TAC[]);
+  INTRO_TAC taud_minimizer_cases [`&2`;`&2 * h0`;`d`;`z1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+  REWRITE_TAC[LET_DEF;LET_END_DEF;IN_INTER;IN_REAL_INTERVAL;IN_ELIM_THM;EXTENSION;IN_INTER;NOT_IN_EMPTY;IN_REAL_INTERVAL;IN_ELIM_THM];
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[arith `&0 <= &2`;arith `&2 <= y ==> &0 <= y`]);
+  ASM_CASES_TAC `z1 = &2` THEN FIRST_ASSUM (unlist REWRITE_TAC);
+  ASM_CASES_TAC `z1 = &2 * h0` THEN FIRST_ASSUM (unlist REWRITE_TAC);
+  ASM_CASES_TAC `d = delta_y z1 y2 y3 y4 y5 y6` THEN FIRST_ASSUM (unlist REWRITE_TAC);
+  ASM_CASES_TAC `~(delta_y z1 y2 y3 y4 y5 y6 < &20)`;
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC (Appendix.get_main_nonlinear "8146670324") [`z1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+    REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`];
+    ANTS_TAC;
+      BY(ASM_TAC THEN REWRITE_TAC[Sphere.h0] THEN REAL_ARITH_TAC);
+    BY(REPLICATE_TAC 3(FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  COMMENT "second get";
+  DISCH_TAC;
+  INTRO_TAC (Appendix.get_main_nonlinear "6601228004") [`z1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+  REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`];
+  ANTS_TAC;
+    BY(ASM_TAC THEN REWRITE_TAC[Sphere.h0] THEN REAL_ARITH_TAC);
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let taud_mud_126_x = prove_by_refinement(
+  `!y3' y4' y5' y1 y2 y3 y4 y5 y6. 
+    &0 <= y1 /\ &0 <= y2  ==> 
+    y_of_x (mud_126_x_v1 y3 y4 y5) y1 y2 y3' y4' y5' y6 = taud y3 y1 y2 y6 y4 y5 - flat_term y3 
+    `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.mud_126_x;Nonlin_def.taud;Sphere.flat_term;];
+  Functional_equation.F_REWRITE_TAC;
+  REWRITE_TAC[Sphere.delta_126_x;GSYM Sphere.delta_y];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (GMATCH_SIMP_TAC Nonlinear_lemma.sqrtxx);
+  ASM_REWRITE_TAC[];
+  TYPIFY `delta_y y3 y1 y2 y6 y4 y5 = delta_y y1 y2 y3 y4 y5 y6` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(MESON_TAC[Merge_ineq.delta_y_sym]);
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let taud_mud_135_x = prove_by_refinement(
+  `!y2' y4' y6' y1 y2 y3 y4 y5 y6. 
+    &0 <= y1 /\ &0 <= y3  ==>  
+    y_of_x (mud_135_x_v1 y2 y4 y6) y1 y2' y3 y4' y5 y6' = taud y2 y1 y3 y5 y4 y6 - flat_term y2
+    `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.mud_135_x;Nonlin_def.taud;Sphere.flat_term;];
+  Functional_equation.F_REWRITE_TAC;
+  REWRITE_TAC[Sphere.delta_135_x;GSYM Sphere.delta_y];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (GMATCH_SIMP_TAC Nonlinear_lemma.sqrtxx);
+  ASM_REWRITE_TAC[];
+  TYPIFY `delta_y y2 y1 y3 y5 y4 y6 = delta_y y1 y2 y3 y4 y5 y6` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(MESON_TAC[Merge_ineq.delta_y_sym]);
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let mud_126_135 = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6 y3' y4' y5'. mud_126_x_v1 y3' y4' y5' y1 y2 y3 y4 y5 y6 = 
+    mud_135_x_v1 y3' y4' y5' y1 y3 y2 y4 y6 y5`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.mud_135_x;Nonlin_def.mud_126_x;];
+  Functional_equation.F_REWRITE_TAC;
+  REWRITE_TAC[Sphere.delta_135_x;Sphere.delta_126_x;GSYM Sphere.delta_y];
+    BY(MESON_TAC[Merge_ineq.delta_x_sym]);
+  ]);;
+  (* }}} *)
+
+let flat_term_sol0 = prove_by_refinement(
+  `!y. &2 <= y  ==> --sol0 <= flat_term y`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.flat_term];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `sol0 * (y - &2 * h0)/(&2 * h0 - &2) = -- sol0 + sol0 * (y - &2) / (&2 * h0 - &2)` (C SUBGOAL_THEN SUBST1_TAC);
+    Calc_derivative.CALC_ID_TAC;
+    BY(REWRITE_TAC[Sphere.h0] THEN REAL_ARITH_TAC);
+  MATCH_MP_TAC (arith `&0 <= x ==> h <= h + x`);
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  GMATCH_SIMP_TAC REAL_LE_RDIV_EQ;
+  MP_TAC Flyspeck_constants.bounds;
+  BY(REWRITE_TAC[Sphere.h0] THEN FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let taud_2h0 = prove_by_refinement(
+  `!y2 y3 y4 y5 y6.
+    &0 <= delta_y (&2 * h0) y2 y3 y4 y5 y6 /\
+    y2 <= &2 * h0 /\ y3 <= &2 * h0 ==>
+    &0 <= taud (&2 * h0) y2 y3 y4 y5 y6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.taud;arith `x - x = &0 /\ &0 / x = &0 /\ x * &0 = &0 /\ &0 + x = x`];
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  CONJ_TAC;
+    GMATCH_SIMP_TAC SQRT_POS_LE;
+    BY(ASM_REWRITE_TAC[]);
+  BY(ASM_TAC THEN REWRITE_TAC[Sphere.h0] THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let quadratic_root_minus_works = prove_by_refinement(
+  `!a b c.
+            ~(a = &0) /\ &0 <= b pow 2 - &4 * a * c
+            ==> (let x = -- ( b + sqrt(b pow 2 - &4 * a * c))/ (&2 * a) in
+                 a * x pow 2 + b * x + c = &0)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LET_DEF;LET_END_DEF];
+  REPEAT WEAKER_STRIP_TAC;
+  Calc_derivative.CALC_ID_TAC;
+  ASM_REWRITE_TAC[arith `~(&2 = &0)`];
+  TYPED_ABBREV_TAC `d = b pow 2 - &4 * a * c`;
+  TYPIFY `sqrt d * sqrt d = d` (C SUBGOAL_THEN MP_TAC);
+    GMATCH_SIMP_TAC (GSYM SQRT_MUL);
+    GMATCH_SIMP_TAC Nonlinear_lemma.sqrtxx;
+    BY(ASM_REWRITE_TAC[]);
+  FIRST_X_ASSUM MP_TAC;
+  BY(CONV_TAC REAL_RING)
+  ]);;
+  (* }}} *)
+
+let quadratic_root_imp_discr_nn = prove_by_refinement(
+  `!a b c x.  (a * x pow 2 + b * x + c = &0) ==>
+    &0 <= b pow 2 - &4 * a * c`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `b pow 2 - &4 * a * c =  (&2 * a * x + b ) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    FIRST_X_ASSUM MP_TAC;
+    BY(CONV_TAC REAL_RING);
+  BY(REWRITE_TAC[ REAL_LE_POW_2])
+  ]);;
+  (* }}} *)
+
+let quadratic_root_plus_eq = prove_by_refinement(
+  `!a b c m x. 
+    (&0 < a) /\ (m <= x) /\ a * x pow 2 + b * x + c = &0 /\
+    (&0 < &2 * m * a + b \/ (&2 * m * a + b) pow 2 < b pow 2 - &4 * a * c) ==>
+       quadratic_root_plus (a,b,c) = x`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC Tame_lemmas.quadratic_root_plus_gt_eq;
+  TYPIFY `y = -- (b + sqrt( b pow 2 - &4 * a * c)) / (&2 * a)` TYPED_ABBREV_TAC;
+  TYPIFY `y` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  SUBCONJ_TAC;
+    MATCH_MP_TAC quadratic_root_imp_discr_nn;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  CONJ_TAC;
+    EXPAND_TAC "y";
+    MATCH_MP_TAC (REWRITE_RULE[LET_DEF;LET_END_DEF] quadratic_root_minus_works);
+    BY(ASM_REWRITE_TAC[] THEN ASM_TAC THEN REAL_ARITH_TAC);
+  COMMENT "both cases";
+  TYPIFY `y < m` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  TYPIFY `&2 * a * y + b < &2 * a * m + b` ENOUGH_TO_SHOW_TAC;
+    REWRITE_TAC[arith `&2 * a * y + b < &2 * a * m + b <=> a * y < a * m`];
+    GMATCH_SIMP_TAC REAL_LT_LMUL_EQ;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `&2 * a * y + b  = -- sqrt(b pow 2 - &4 * a *c)` (C SUBGOAL_THEN SUBST1_TAC);
+    EXPAND_TAC "y";
+    Calc_derivative.CALC_ID_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  COMMENT "first case";
+  ASM_CASES_TAC `&0 < &2 * m * a + b`;
+    MATCH_MP_TAC REAL_LET_TRANS;
+    TYPIFY `&0` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[arith `-- x <= &0 <=> &0 <= x`];
+    GMATCH_SIMP_TAC SQRT_POS_LE;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  FIRST_X_ASSUM DISJ_CASES_TAC;
+    BY(ASM_MESON_TAC[]);
+  TYPIFY `(&2 * m * a + b) pow 2 < sqrt (b pow 2 - &4 * a * c) pow 2` (C SUBGOAL_THEN MP_TAC);
+    GMATCH_SIMP_TAC SQRT_POW_2;
+    BY(ASM_REWRITE_TAC[]);
+  TYPED_ABBREV_TAC `d = sqrt(b pow 2 - &4 * a * c) `;
+  ONCE_REWRITE_TAC[arith `-- d < &2 * a * m + b <=> --d < &2 * m * a +b`];
+  REWRITE_TAC[GSYM REAL_LT_SQUARE_ABS];
+  TYPIFY `&0 <= d` (C SUBGOAL_THEN MP_TAC);
+    EXPAND_TAC "d";
+    GMATCH_SIMP_TAC SQRT_POS_LE;
+    BY(ASM_REWRITE_TAC[]);
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+(*
+let edge2_flatD_x1_delta_lemma = prove_by_refinement(
+  `!d x1 x2 x3 x4 x5 x6. 
+    delta_x x1 x2 x3 x4 x5 x6 = d /\
+    &0 < x4 /\
+    &4 <= x1 /\
+    (&0 < &8 * x4 + -- delta_x1 (&0) x2 x3 x4 x5 x6 \/
+       (&8 * x4 + -- delta_x1 (&0) x2 x3 x4 x5 x6) pow 2 < ups_x x2 x3 x4 * ups_x x4 x5 x6 - &4 * x4 * d)
+    ==> 
+    edge2_flatD_x1 d x2 x3 x4 x5 x6 = x1`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.edge2_flatD_x1];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPED_ABBREV_TAC `b = (-- delta_x1 (&0) x2 x3 x4 x5 x6)`;
+  TYPED_ABBREV_TAC `c = (d - delta_x (&0) x2 x3 x4 x5 x6)`;
+  TYPIFY `!z. d - delta_x z x2 x3 x4 x5 x6 = x4 * z pow 2 + b * z + c` ((C SUBGOAL_THEN ASSUME_TAC));
+    EXPAND_TAC "c";
+    EXPAND_TAC "b";
+    REWRITE_TAC[Sphere.delta_x;Nonlin_def.delta_x1];
+    BY(REAL_ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[Nonlinear_lemma.abc_quadratic];
+  TYPIFY `b pow 2 - &4 * x4 * c = ups_x x2 x3 x4 * ups_x x4 x5 x6 - &4 * x4 * d` (C SUBGOAL_THEN ASSUME_TAC);
+    EXPAND_TAC "b";
+    EXPAND_TAC "c";
+    REWRITE_TAC[Sphere.delta_x;Nonlin_def.delta_x1;Sphere.ups_x];
+    BY(REAL_ARITH_TAC);
+  MATCH_MP_TAC quadratic_root_plus_eq;
+  TYPIFY `&4` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [`x1`]);
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  BY(ASM_REWRITE_TAC[arith `&2 * &4 * x4 = &8 * x4`])
+  ]);;
+  (* }}} *)
+*)
+
+let edge2_flatD_x1_delta_lemma2 = prove_by_refinement(
+  `!d x1 x2 x3 x4 x5 x6. 
+    delta_x x1 x2 x3 x4 x5 x6 = d /\
+    &0 < x4 /\
+    (delta_x1 x1 x2 x3 x4 x5 x6 < &0)
+    ==> 
+    edge2_flatD_x1 d x2 x3 x4 x5 x6 = x1`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.edge2_flatD_x1];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPED_ABBREV_TAC `b = (-- delta_x1 (&0) x2 x3 x4 x5 x6)`;
+  TYPED_ABBREV_TAC `c = (d - delta_x (&0) x2 x3 x4 x5 x6)`;
+  TYPIFY `!z. d - delta_x z x2 x3 x4 x5 x6 = x4 * z pow 2 + b * z + c` ((C SUBGOAL_THEN ASSUME_TAC));
+    EXPAND_TAC "c";
+    EXPAND_TAC "b";
+    REWRITE_TAC[Sphere.delta_x;Nonlin_def.delta_x1];
+    BY(REAL_ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[Nonlinear_lemma.abc_quadratic];
+  TYPIFY `b pow 2 - &4 * x4 * c = ups_x x2 x3 x4 * ups_x x4 x5 x6 - &4 * x4 * d` (C SUBGOAL_THEN ASSUME_TAC);
+    EXPAND_TAC "b";
+    EXPAND_TAC "c";
+    REWRITE_TAC[Sphere.delta_x;Nonlin_def.delta_x1;Sphere.ups_x];
+    BY(REAL_ARITH_TAC);
+  MATCH_MP_TAC quadratic_root_plus_eq;
+  TYPIFY `x1` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[arith `x <= x`];
+  CONJ_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [`x1`]);
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  DISJ1_TAC;
+  EXPAND_TAC "b";
+  FIRST_X_ASSUM_ST `d < &0` MP_TAC;
+  REWRITE_TAC[Nonlin_def.delta_x1];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let edge2_flatD_x1_delta_lemma3 = prove_by_refinement(
+  `main_nonlinear_v32 ==> (!d y1 y2 y3 y4 y5 y6.
+    delta_y y1 y2 y3 y4 y5 y6 = d /\
+    &0 <= d /\ d <= &20 ==>
+    (ineq     [(&2,y1,#2.52);
+    (&2,y2,#2.52); 
+    (&2,y3,#2.52);
+    (#3.01,y4,#3.915);
+    (&2,y5,&2);
+    (&2,y6,&2)
+  ]
+       (    edge2_flatD_x1 d (y2*y2) (y3*y3) (y4*y4) (y5*y5) (y6*y6) = y1*y1)))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`];
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC edge2_flatD_x1_delta_lemma2;
+  INTRO_TAC (Appendix.get_main_nonlinear "9504486349") [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+  REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[];
+  ASM_SIMP_TAC[arith `&0 <= d ==> ~(d < &0)`;arith `d <= &20 ==> ~(d > &20)`];
+  REWRITE_TAC[Sphere.y_of_x;arith `y1 pow 2 = y1 * y1`];
+  DISCH_THEN (unlist REWRITE_TAC);
+  REWRITE_TAC[GSYM Sphere.delta_y];
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC REAL_LT_MUL_EQ;
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let delta_diff = prove_by_refinement(
+  `!x1 z1 x2 x3 x4 x5 x6.
+    delta_x x1 x2 x3 x4 x5 x6 = delta_x z1 x2 x3 x4 x5 x6 + 
+    delta_x1 x1 x2 x3 x4 x5 x6 * (x1 - z1) + x4 * (x1 - z1) pow 2`,
+  (* {{{ proof *)
+  [
+   BY(REWRITE_TAC[Sphere.delta_x;Nonlin_def.delta_x1] THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let delta_9605586349 = prove_by_refinement(
+  `main_nonlinear_v32 ==> (!z1 y1 y2 y3 y4 y5 y6. 
+	&2 <= y1 /\ y1 <= z1 /\ z1 <= &2 * h0 /\
+	&2 <= y2 /\ y2 <= &2 * h0 /\
+	&2 <= y3 /\ y3 <= &2 * h0 /\
+	#3.01 <= y4 /\ y4 <= #3.915 /\
+	&2 <= y5 /\ y5 <= &2  /\
+	&2 <= y6 /\ y6 <= &2 /\
+	&0 <= delta_y y1 y2 y3 y4 y5 y6 /\
+	delta_y y1 y2 y3 y4 y5 y6 <= &20 ==>
+	delta_y z1 y2 y3 y4 y5 y6 <= delta_y y1 y2 y3 y4 y5 y6)
+`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Sphere.delta_y];
+  INTRO_TAC delta_diff [`y1*y1`;`z1*z1`;`y2*y2`;`y3*y3`;`y4*y4`;`y5*y5`;`y6*y6`];
+  DISCH_THEN SUBST1_TAC;
+  MATCH_MP_TAC (arith `&0 <= b /\ &0 <= c ==> a <= a + b + c`);
+  CONJ2_TAC;
+    GMATCH_SIMP_TAC REAL_LE_MUL;
+    REWRITE_TAC[ REAL_LE_POW_2];
+    BY(REWRITE_TAC[ REAL_LE_SQUARE]);
+  INTRO_TAC (Appendix.get_main_nonlinear "9504486349") [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+  REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`;LET_DEF;LET_END_DEF];
+  ANTS_TAC;
+    BY(ASM_TAC THEN REWRITE_TAC[Sphere.h0] THEN REAL_ARITH_TAC);
+  ASM_SIMP_TAC[arith `&0 <= d ==> ~(d < &0)`;arith `d <= d1 ==> ~(d > d1)`];
+  REWRITE_TAC[Sphere.y_of_x];
+  ONCE_REWRITE_TAC[arith `&0 <= x * y <=> &0 <= (-- x) * (-- y)`];
+  DISCH_TAC;
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  CONJ_TAC;
+    BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
+  MATCH_MP_TAC (arith `y1 * y1 <= z1 * z1 ==> &0 <= -- (y1 * y1 - z1 * z1)`);
+  GMATCH_SIMP_TAC Misc_defs_and_lemmas.ABS_SQUARE_LE;
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let lemma_5546286427 = prove_by_refinement(
+  `main_nonlinear_v32 ==> (!z1 y1 y2 y3 y4 y5 y6. ineq [
+    (&2,y1,#2.52);
+    (&2,y2,#2.52);
+    (&2,y3,#2.52);
+    (&2,y4,&2);
+    (#3.01,y5,#3.237);
+    (#3.01,y6,#3.237);
+    (&2,z1,#2.52)
+  ]
+(
+  &0 = delta_y z1 y1 y2 y6 (&2) (&2) ==>
+    (taum y1 y2 y3 y4 y5 y6 + flat_term z1 + #0.12 > #0.616)))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`;LET_DEF;LET_END_DEF];
+    st/r
+  INTRO_TAC (Appendix.get_main_nonlinear "5546286427") [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+  REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`;LET_DEF;LET_END_DEF];
+  ANTS_TAC;
+    BY(ASM_TAC THEN REWRITE_TAC[Sphere.h0] THEN REAL_ARITH_TAC);
+rt[Sphere.y_of_x;Sphere.delta_126_x;Nonlin_def.flat_term2_126_x;Nonlin_def.edge2_126_x]
+rt[Functional_equation.uni;Functional_equation.compose6;Functional_equation.constant6;Functional_equation.proj_x1;Functional_equation.proj_x2;Functional_equation.proj_x6]
+dt
+intro (UNDISCH edge2_flatD_x1_delta_lemma3) [`&0`;`z1`;`y1`;`y2`;`y6`;`&2`;`&2`]
+  REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`;LET_DEF;LET_END_DEF];
+ants
+asm then rt[Sphere.h0] then rat
+rt[arith `&2 * &2 = &4`]
+dthen (rule o (unlist rr))
+fxa mp
+rt[Sphere.flat_term_x]
+fyn
+conj
+asm then rat
+dthen disjcase
+art[]
+contr
+fxast `delta_x` mp
+rt[arith `~(d > &0) <=> (d <= &0)`]
+
+  #
+  ]);;
+  (* }}} *)
+
+
+let terminal_pent_taum126_012 = prove_by_refinement(
+  `main_nonlinear_v32 ==> (!y1 y2 y3 y4 y5 y6 y126 y135.
+      #0.12 <= taum y126 y1 y2 y6 (&2) (&2) /\
+      &0 <= delta_y y135 y1 y3 y5 (&2) (&2) ==>
+     (ineq [
+       (&2,y1,&2 * h0);
+       (&2,y2,&2 * h0);
+       (&2,y3,&2 * h0);
+       (&2,y4,&2);
+       (#3.01,y5,#3.237);
+       (#3.01,y6,#3.237);
+       (&2,y126,&2 * h0);
+       (&2,y135,&2 * h0)
+     ]
+     (#0.616 < taum y126 y1 y2 y6 (&2) (&2) + taum y1 y2 y3 y4 y5 y6 + taum y135 y1 y3 y5 (&2) (&2))))
+     `,
+  (* {{{ proof *)
+  [
+
+  rt[Sphere.ineq]
+st/r
+intro (UNDISCH taud_minimizer_terminal_pent_cases) [`&0`;`y135`;`y1`;`y3`;`y5`;`(&2)`;`&2`]
+rt[LET_DEF;LET_END_DEF;IN_INTER;IN_REAL_INTERVAL;IN_ELIM_THM]
+ants
+asm then rat
+st/r
+  INTRO_TAC (Appendix.get_main_nonlinear "3665919985") [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+  REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`];
+  ANTS_TAC;
+    BY(ASM_TAC THEN REWRITE_TAC[Sphere.h0] THEN REAL_ARITH_TAC);
+rt[arith `x > y <=> y < x`]
+dt
+intro (UNDISCH OWZLKVY4) [`y135`;`y1`;`y3`;`y5`;`&2`;`&2`]
+ants
+rt[Sphere.cstab] then asm then rat
+dt
+  INTRO_TAC (Appendix.get_main_nonlinear "3665919985") [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+  REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`];
+  ANTS_TAC;
+asm then rt[Sphere.h0] then rat
+dt
+comment "case y=2"
+fxa (disjcase)
+  INTRO_TAC (Appendix.get_main_nonlinear "7903347843") [`y1`;`y3`;`y2`;`y4`;`y6`;`y5`];
+  REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`];
+  ANTS_TAC;
+    BY(ASM_TAC THEN REWRITE_TAC[Sphere.h0] THEN REAL_ARITH_TAC);
+rt[Sphere.y_of_x;mud_126_135]
+rt[GSYM Sphere.y_of_x]
+typ `taum y1 y3 y2 y4 y6 y5 = taum y1 y2 y3 y4 y5 y6` s1
+mt[Terminal.taum_sym]
+gm taud_mud_135_x
+conj
+asm then rat
+mmp (arith `x <= a + b   ==> t + x > #0.616 ==> #0.616 < a + t + b`)
+mmp (arith `t2 <= t135 /\ -- s <= f /\ #0.12 <= t126 ==> t2 - f - s + #0.12 <= t126+t135`)
+art[]
+conj
+fxast `<=` mp then art[] 
+fxa (rule o (unlist rr))
+rep 3 (fxa mp) then rat
+mmp flat_term_sol0
+rat
+comment "case &0 <= tau"
+asmcase `&0 <= taum y135 y1 y3 y5 (&2) (&2)`
+asm then rat
+comment "case y=&2*h0"
+fxa (disjcase)
+intro taud_2h0  [`y1`;`y3`;`y5`;`&2`;`&2`]
+  REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`];
+fxa (rule o (unlist rr))
+  ANTS_TAC;
+asm then rat
+rep 6 (fxa mp) then rat
+comment "case delta=0"
+fxa disjcase
+
+  INTRO_TAC (Appendix.get_main_nonlinear "5546286427") [`y1`;`y3`;`y2`;`y4`;`y6`;`y5`];
+  REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`;LET_DEF;LET_END_DEF];
+  ANTS_TAC;
+    BY(ASM_TAC THEN REWRITE_TAC[Sphere.h0] THEN REAL_ARITH_TAC);
+rt[Sphere.y_of_x;Sphere.delta_126_x;Nonlin_def.flat_term2_126_x;Nonlin_def.edge2_126_x]
+rt[Functional_equation.uni;Functional_equation.compose6;Functional_equation.constant6;Functional_equation.proj_x1;Functional_equation.proj_x2;Functional_equation.proj_x6]
+dt
+intro (UNDISCH edge2_flatD_x1_delta_lemma3) [`&0`;`z1`;`y1`;`y3`;`y5`;`&2`;`&2`]
+  REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`;LET_DEF;LET_END_DEF];
+ants
+asm then rt[Sphere.h0] then rat
+rt[arith `&2 * &2 = &4`]
+dthen (rule o (unlist rr))
+  ]);;
+  (* }}} *)

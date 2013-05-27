@@ -36,9 +36,6 @@ Module Lp_ineqs_proofs.
 "let split_list_list = new_definition
         `split_list_list L ds = foldr (\d L. split_list_hyp L d) L ds`".
 
-(* A special definition for efficient computations *)
-"let y4_list_diag = new_definition `y4_list_diag L (v,w) = w, FST (inverse (f_list_ext L) (v,w))`".
-
 
 "open Ssrbool".
 "open Ssrnat".
@@ -368,16 +365,34 @@ Lemma y4'_list_def V E L g h: `FAN (vec 0,V,E) /\ good_list L /\
         hyp_iso g (hypermap_of_list L, hypermap_of_fan (V,E)) /\
         (!x. g x = h (FST x), h (SND x))
         ==> ALL (\d. y4'_list (g,V,E) d
-                = ye_list g (y4_list_diag L d)) (list_of_darts L)`.
+                = ye_list g (SND d, FST (inverse (f_list_ext L) d))) (list_of_darts L)`.
 Proof.
 move => [fanV] [goodL] [iso_g] g_eq.
 rewrite -ALL_MEM /= !list_defs_th !o_THM y4'_fan ye_fan => d mem_d.
-rewrite {3}(pair_expand d) y4_list_diag -pair_expand.
+rewrite {3}(pair_expand d) -pair_expand.
 have [dartL [_] [_] faceL] := components_hypermap_of_list goodL.
 have [dartH [_] [_] faceH] := COMPONENTS_HYPERMAP_OF_FAN fanV.
 have d_in: `d IN dart (hypermap_of_list L)`.
   by rewrite dartL darts_of_list IN_SET_OF_LIST.
 by rewrite !g_eq /= -g_eq -faceH (hyp_iso_inverse_comm iso_g).
+Qed.
+
+
+Lemma y4'_list_f_def V E L g h: `FAN (vec 0,V,E) /\ good_list L /\
+        hyp_iso g (hypermap_of_list L, hypermap_of_fan (V,E)) /\
+        (!x. g x = h (FST x), h (SND x))
+        ==> ALL (\d. y4'_list (g,V,E) (f_list_ext L d)
+                = ye_list g (SND (f_list_ext L d), FST d)) (list_of_darts L)`.
+Proof.
+move => [fanV] [goodL] [iso_g] g_eq.
+move: (y4'_list_def fanV goodL iso_g g_eq).
+have [dartL [_] [_] faceL] := components_hypermap_of_list goodL.
+rewrite -!ALL_MEM /= => eq1 d mem_d.
+have d_in: `d IN dart (hypermap_of_list L)`.
+  by rewrite dartL darts_of_list IN_SET_OF_LIST.
+rewrite eq1.
+  by rewrite -IN_SET_OF_LIST -darts_of_list -dartL -faceL lemma_dart_invariant.
+by rewrite -faceL (PERMUTES_INVERSES `darts_of_list L`) // -dartL hypermap_lemma.
 Qed.
 
 

@@ -4,7 +4,7 @@ needs "../formal_lp/hypermap/ineqs/lp_body_ineqs.hl";;
 needs "../formal_lp/hypermap/computations/list_hypermap_computations.hl";;
 needs "../formal_lp/more_arith/prove_lp.hl";;
 
-(* module Flyspeck_lp = struct *)
+module Flyspeck_lp = struct
 
 open Arith_misc;;
 open Linear_function;;
@@ -125,10 +125,13 @@ let convert_ineq hyp_fun =
 	rewrite_one tm in
       
     fun ineq_tm ->
-      let ltm, rtm = dest_comb ineq_tm in
-      let op_tm, l_tm = dest_comb ltm in
-      let lhs_eq_th = rewrite_lhs l_tm in
-	AP_THM (AP_TERM op_tm lhs_eq_th) rtm;;
+      if not (is_binary "real_le" ineq_tm) then
+	REFL ineq_tm
+      else
+	let ltm, rtm = dest_comb ineq_tm in
+	let op_tm, l_tm = dest_comb ltm in
+	let lhs_eq_th = rewrite_lhs l_tm in
+	  AP_THM (AP_TERM op_tm lhs_eq_th) rtm;;
 
 
 let convert_tm =
@@ -283,110 +286,6 @@ let prove_flyspeck_lp_step1 hyp_list_tm hyp_set hyp_fun std_flag precision const
 
 (*************************)
 
-
-(*************************)
-
-loadt "../formal_lp/glpk/ex1/bb1_out.hl";;
-loadt "../formal_lp/glpk/ex2/bb2_1_out.hl";;
-loadt "../formal_lp/glpk/ex2/bb2_2_out.hl";;
-loadt "../formal_lp/glpk/ex2/bb2_3_out.hl";;
-loadt "../formal_lp/glpk/ex2/bb2_4_out.hl";;
-loadt "../formal_lp/glpk/ex2/bb2_5_out.hl";;
-
-
-let test_list = (to_num o create_hol_list_str) hypermap_string;;
-(* bb2_1, bb2_3 *)
-let split_list = eval_split_list_hyp test_list (to_num `1,2`);;
-(* bb2_2, bb2_4 *)
-let split_list = eval_split_list_hyp test_list (to_num `0,1`);;
-let test_list = (rand o concl) split_list;;
-
-let hyp_set, hyp_fun = compute_all test_list None;;
-
-prove_flyspeck_lp_step1 test_list hyp_set hyp_fun false precision constraints target_variables variable_bounds;;
-prove_flyspeck_lp_step1 test_list hyp_set hyp_fun true precision constraints target_variables variable_bounds;;
-(* 10, bb1: 2.256 *)
-(* 10, bb2_1: 2.224 *)
-(* 10, bb2_2: 2.532 *)
-(* 10, bb2_3: *)
-(* 10, bb2_4: *)
-(* 10, bb2_5: 2.580 *)
-test 1 (prove_flyspeck_lp_step1 test_list hyp_set hyp_fun false precision constraints target_variables) variable_bounds;;
-
-let th = it;;
-length (filter (is_binop le_op_real) (hyp th));;
-
-
-(************************)
-
-let hyp_list_tm = test_list;;
-let std_flag = true;;
-
-let hyp_set, hyp_fun = compute_all hyp_list_tm None;;
-
-
-(********************)
-
-let name, indices, _ = find (fun name,_,_ -> name = "ineq118") constraints;;
-let name, indices, _ = List.nth variable_bounds 22;;
-get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices;;
-
-
-generate_ineq (find_raw_ineq "y9_def");;
-
-let x = 2;;
-
-
-
-(******************)
-
-let precision_constant = Int 10 **/ (Int precision) and
-    target_bound = `&12`;;
-
-(* This function generates all inequalities with the given name and indices,
-   multiplies these inequalities by given coefficients, and finds the sum of 
-   the generated inequalities *)
-let sum_step = fun (name, indices, c) ->
-  try
-    let ineqs = get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices in
-    let s1 = map transform_le_ineq (zip ineqs c) in
-      List.fold_left add_step' dummy s1
-  with _ ->
-    failwith ("Problem: "^name);;
-
-let s1' = List.fold_left add_step' dummy (map sum_step constraints);;
-let s1 = mul_step s1' (mk_real_int precision_constant);;
-let s2 = List.fold_left add_step' dummy (map sum_step target_variables);;
-let s3 = List.fold_left add_step' dummy (map sum_step variable_bounds);;
-let s4 = add_step' (add_step' s1 s2) s3;;
-
-let ineq_th0 = assoc precision lnsum_ineqs;;
-let ineq_th1 = (INST[hyp_list_tm, l_cap_var] o add_lp_hyp) ineq_th0;;
-let ineq_th2 = EQ_MP (term_rewrite (concl ineq_th1) (hyp_set "list_of_elements")) ineq_th1;;
-let ineq_th3 = simplify_ineq hyp_fun ineq_th2;;
-let ineq_th4 = to_lin_f_ineq ineq_th3;;
-
-let r1 = add_step' ineq_th4 s4;;
-let n_tm = (rand o rand o rand o concl) r1;;
-let r_eq_th = INST[n_tm, n_var_num] FINAL_INEQ;;
-let not_zero_th = NUM_EQ0_HASH_CONV n_tm;;
-EQ_MP not_zero_th (EQ_MP r_eq_th r1);;
-
-
-
-(* (old) Final transformations *)
-let r6 = CONV_RULE (DEPTH_CONV NUM_TO_NUMERAL_CONV) s4;;
-let m = term_of_rat (precision_constant */ precision_constant */ precision_constant);;
-let r7 = mul_rat_step r6 (mk_comb (`(/) (&1)`, m));;
-let r8 = REWRITE_RULE[lin_f; ITLIST; REAL_ADD_RID] r7;;
-let r9 = EQT_ELIM (REAL_RAT_LE_CONV (mk_binop le_op_real ((rand o concl) r8) target_bound));;
-MATCH_MP REAL_LE_TRANS (CONJ r8 r9);;
-
-(find_raw_ineq false "ineq31").tm;;
-
-
-(*******************************)
-
 let ABBREV_RULE var_name tm th =
   let var_tm = mk_var (var_name, type_of tm) in
   let eq_th = ASSUME (mk_eq (tm, var_tm)) in
@@ -414,63 +313,11 @@ let EXPAND_RULE var_name th =
     PROVE_HYP (REFL l_tm) th1;;
 
 
-(***************************)
-
-let lp_th = prove_flyspeck_lp_step1 test_list hyp_set hyp_fun true precision constraints target_variables variable_bounds;;
-
-let inst_list = [test_list, l_cap_var; `ESTD V`, `E:(real^3->bool)->bool`];;
-
-
-let th0 = (MY_RULE_NUM o REWRITE_RULE[Seq.size]) Lp_ineqs_proofs.contravening_lp_cond_alt;;
-let th1 = (INST inst_list o UNDISCH_ALL o  ISPEC test_list o REWRITE_RULE[GSYM IMP_IMP]) th0;;
-
-let good_list_nodes_th = EQT_ELIM (eval_good_list_nodes_condition hyp_set);;
-let th2 = (MY_PROVE_HYP (hyp_set "good_list") o MY_PROVE_HYP good_list_nodes_th) th1;;
-let th3 = (SELECT_AND_ABBREV_RULE o SELECT_AND_ABBREV_RULE o ABBREV_RULE "L" test_list) th2;;
-
-let lp_th2 = (ABBREV_RULE "L" test_list o INST inst_list) lp_th;;
-let lp_th3 = PROVE_HYP th3 lp_th2;;
-
-let estd_refl = REFL `ESTD V`;;
-
-let final_th = (MY_PROVE_HYP estd_refl o EXPAND_RULE "L" o EXPAND_RULE "h" o EXPAND_RULE "g") lp_th3;;
+let EXPAND_CONCL_RULE var_name th =
+  let hyp_tm = find (fun tm -> is_eq tm && is_var (rand tm) && name_of (rand tm) = var_name) (hyp th) in
+  let eq_th = SYM (ASSUME hyp_tm) in
+    PURE_REWRITE_RULE[eq_th] th;;
 
 
 
-
-(*************************************)
-
-let get_all_ineqs hyp_set0 all_ineq_th =
-  let all_tm, set_tm = dest_comb (concl all_ineq_th) in
-  let set_eq_th = hyp_set0 ((fst o dest_const o rator) set_tm) in
-  let ineq1_th = EQ_MP (AP_TERM all_tm set_eq_th) all_ineq_th in
-    map MY_BETA_RULE (get_all ineq1_th);;
-
-
-let ye_hi_ineq = generate_ineq (find_raw_ineq true "ye_hi");;
-let ye_hi_ineq2 = generate_ineq (find_raw_ineq true "yy10");;
-
-
-loadt "../formal_lp/glpk/ex2/bb2_3_out.hl";;
-
-
-let list0 = (to_num o create_hol_list_str) hypermap_string;;
-let split_list_th = eval_split_list_hyp list0 (to_num `1,2`);;
-let test_list = (rand o concl) split_list_th;;
-
-let hyp_set, hyp_fun = compute_all test_list None;;
-let hyp_set0, hyp_fun0 = compute_all list0 None;;
-
-let lp_th1 = prove_flyspeck_lp_step1 test_list hyp_set hyp_fun false precision constraints target_variables variable_bounds;;
-
-let ye_hi_3, ye_hi_2h0 =
-  let r = get_all_ineqs hyp_set0 o INST[list0, l_cap_var; `ESTD V`, `E:(real^3->bool)->bool`] in
-    r ye_hi_ineq, r ye_hi_ineq2;;
-
-let th1 = itlist MY_PROVE_HYP ye_hi_2h0 lp_th1;;
-let th2 = itlist MY_PROVE_HYP ye_hi_3 th1;;
-
-
-
-
- 
+end;; 

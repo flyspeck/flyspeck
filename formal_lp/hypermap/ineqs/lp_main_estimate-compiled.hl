@@ -1,5 +1,6 @@
 needs "../formal_lp/hypermap/ineqs/lp_ineqs_proofs-compiled.hl";;
 needs "local/RNSYJXM-compiled.hl";;
+needs "local/polar_fan.hl";;
 
 (* Module Lp_main_estimate*)
 module Lp_main_estimate = struct
@@ -1028,9 +1029,31 @@ let ineq_tau4_diag3 = Sections.section_proof ["d"]
    ((((use_arg_then2 ("tau_fan", [tau_fan]))(thm_tac (new_rewrite [] [])))) THEN (arith_tac) THEN (done_tac));
 ];;
 
+(* Section Std *)
+Sections.begin_section "Std";;
+(Sections.add_section_hyp "std" (`E = ESTD V`));;
+
+(* Lemma ineq_tau4_diag3_std *)
+let ineq_tau4_diag3_std = Sections.section_proof ["d"]
+`d IN darts_k 4 (hypermap_of_fan (V,E))
+	==> &3 <= y4'_fan (V,E) d 
+	/\ &3 <= y4'_fan (V,E) (f_fan_pair_ext (V,E) d)
+	==> #0.467 <= tau_fan (V,E) (face (hypermap_of_fan (V,E)) d)`
+[
+   ((((use_arg_then2 ("h_fan", [])) (disch_tac [])) THEN BETA_TAC) THEN ((((use_arg_then2 ("lp_fan", [lp_fan]))(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN (move ["fanV"])) THEN (case THEN (move ["f_surr"])) THEN (case THEN (move ["diag"])) THEN (case THEN (move ["subV"])) THEN (move ["packV"])));
+   ((BETA_TAC THEN (move ["d_in4"]) THEN (move ["bounds"])) THEN (((fun arg_tac -> (use_arg_then2 ("ineq_tau4_diag3", [ineq_tau4_diag3])) (fun fst_arg -> (use_arg_then2 ("d_in4", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac)));
+   ((((use_arg_then2 ("d_in4", [])) (disch_tac [])) THEN (clear_assumption "d_in4") THEN BETA_TAC) THEN (((((use_arg_then2 ("darts_k", [darts_k]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("inE", [inE]))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (use_arg_then2 ("COMPONENTS_HYPERMAP_OF_FAN", [COMPONENTS_HYPERMAP_OF_FAN])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN ALL_TAC THEN (case THEN (move ["d_in"])) THEN (move ["_"])));
+   (((((use_arg_then2 ("y5_hi_std2", [y5_hi_std2]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((fun arg_tac -> (use_arg_then2 ("y6_hi_std2", [y6_hi_std2])) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("y8_hi_std", [y8_hi_std]))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("y9_hi_std", [y9_hi_std]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Finalization of the section Std *)
+let ineq_tau4_diag3_std = Sections.finalize_theorem ineq_tau4_diag3_std;;
+Sections.end_section "Std";;
+
 (* Finalization of the section Face4_diag3 *)
 let ineq_tau4_diag3_tauVEF = Sections.finalize_theorem ineq_tau4_diag3_tauVEF;;
 let ineq_tau4_diag3 = Sections.finalize_theorem ineq_tau4_diag3;;
+let ineq_tau4_diag3_std = Sections.finalize_theorem ineq_tau4_diag3_std;;
 Sections.end_section "Face4_diag3";;
 
 (* Finalization of the section MainEstimate *)
@@ -1053,7 +1076,82 @@ let ineq_tau6_tauVEF_std = Sections.finalize_theorem ineq_tau6_tauVEF_std;;
 let ineq_tau6_std = Sections.finalize_theorem ineq_tau6_std;;
 let ineq_tau4_diag3_tauVEF = Sections.finalize_theorem ineq_tau4_diag3_tauVEF;;
 let ineq_tau4_diag3 = Sections.finalize_theorem ineq_tau4_diag3;;
+let ineq_tau4_diag3_std = Sections.finalize_theorem ineq_tau4_diag3_std;;
 Sections.end_section "MainEstimate";;
+
+(* Section PerimeterBound *)
+Sections.begin_section "PerimeterBound";;
+(Sections.add_section_var (mk_var ("V", (`:real^3->bool`))));;
+(Sections.add_section_var (mk_var ("E", (`:(real^3->bool)->bool`))));;
+(Sections.add_section_hyp "fanV" (`FAN (vec 0,V,E)`));;
+(Sections.add_section_hyp "f_surr" (`fully_surrounded (V,E)`));;
+
+(* Let dartH *)
+Sections.add_section_lemma "dartH" (Sections.section_proof []
+`dart (hypermap_of_fan (V,E)) = dart_of_fan (V,E)`
+[
+   ((((use_arg_then2 ("COMPONENTS_HYPERMAP_OF_FAN", [COMPONENTS_HYPERMAP_OF_FAN]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+]);;
+
+(* Section OneFace *)
+Sections.begin_section "OneFace";;
+(Sections.add_section_var (mk_var ("f", (`:real^3#real^3->bool`))));;
+(Sections.add_section_hyp "f_in" (`f IN face_set (hypermap_of_fan (V,E))`));;
+
+(* Let local *)
+Sections.add_section_lemma "local" (Sections.section_proof []
+`local_fan (v_prime V f, e_prime E f, f)`
+[
+   (((use_arg_then2 ("f_in", [])) (disch_tac [])) THEN (clear_assumption "f_in") THEN (DISCH_THEN (fun snd_th -> (use_arg_then2 ("lemma_face_representation", [lemma_face_representation])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN BETA_TAC THEN (case THEN (move ["d"])) THEN (case THEN (move ["d_in"])) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))));
+   (((((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (let_RULE f_surr_localization))) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f_surr", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("dartH", []))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+]);;
+
+(* Lemma face_eq_image_rho_node1 *)
+let face_eq_image_rho_node1 = Sections.section_proof []
+`f = IMAGE (\v. v, rho_node1 f v) (v_prime V f)`
+[
+   ((((((use_arg_then2 ("EXTENSION", [EXTENSION]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("IN_IMAGE", [IN_IMAGE]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)) THEN ALL_TAC THEN (case THEN ((move ["a"]) THEN (move ["b"])))) THEN (((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))));
+   ((THENL_ROT (-1)) ((THENL) (split_tac) [(move ["ab_in"]); ((case THEN (move ["x"])) THEN (case THEN (move ["ab_eq"])) THEN (move ["in_v_prime"]))]));
+   (((repeat_tactic 1 9 (((use_arg_then2 ("ab_eq", []))(thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("Local_lemmas.LOCAL_FAN_RHO_NODE_PROS", [Local_lemmas.LOCAL_FAN_RHO_NODE_PROS])) (fun fst_arg -> (use_arg_then2 ("local", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((use_arg_then2 ("a", [])) (term_tac exists_tac));
+   ((((use_arg_then2 ("v_prime", [v_prime]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("inE", [inE]))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL Local_lemmas.DETER_RHO_NODE))) (fun fst_arg -> (use_arg_then2 ("local", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("ab_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   ((THENL_LAST) (split_tac) (((use_arg_then2 ("b", [])) (term_tac exists_tac)) THEN (done_tac)));
+   ((fun arg_tac -> arg_tac (Arg_term (`a,b IN dart_of_fan (V,E)`))) (term_tac (have_gen_tac []ALL_TAC)));
+   (((((use_arg_then2 ("dartH", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((fun arg_tac -> (use_arg_then2 ("in_face_imp_in_dart_alt", [in_face_imp_in_dart_alt])) (fun fst_arg -> (use_arg_then2 ("f_in", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   (((DISCH_THEN (fun snd_th -> (use_arg_then2 ("PAIR_IN_DART_OF_FAN", [PAIR_IN_DART_OF_FAN])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN BETA_TAC THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma sum_face_rho_node1 *)
+let sum_face_rho_node1 = Sections.section_proof ["h"]
+`sum f h = sum (v_prime V f) (\v. h (v, rho_node1 f v))`
+[
+   ((((use_arg_then2 ("face_eq_image_rho_node1", [face_eq_image_rho_node1]))(thm_tac (new_rewrite [1] [])))) THEN (((use_arg_then2 ("SUM_IMAGE", [SUM_IMAGE]))(thm_tac (new_rewrite [] [])))));
+   ((BETA_TAC THEN (move ["x"]) THEN (move ["y"]) THEN (simp_tac) THEN (case THEN (move ["_"])) THEN (case THEN (move ["_"]))) THEN ((((use_arg_then2 ("PAIR_EQ", [PAIR_EQ]))(thm_tac (new_rewrite [] [])))) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((THENL_FIRST) (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`h o (\v. v, rho_node1 f v) = \v. h (v, rho_node1 f v)`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))))))) ((ALL_TAC) THEN (done_tac)));
+   (((((use_arg_then2 ("FUN_EQ_THM", [FUN_EQ_THM]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("o_THM", [o_THM]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Finalization of the section OneFace *)
+let face_eq_image_rho_node1 = Sections.finalize_theorem face_eq_image_rho_node1;;
+let sum_face_rho_node1 = Sections.finalize_theorem sum_face_rho_node1;;
+Sections.end_section "OneFace";;
+
+(* Lemma fully_surrounded_perimeter_bound *)
+let fully_surrounded_perimeter_bound = Sections.section_proof []
+`perimeterbound (V,E)`
+[
+   (((((use_arg_then2 ("perimeterbound", [perimeterbound]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("face_set_of_fan", [face_set_of_fan]))(thm_tac (new_rewrite [] []))))) THEN (move ["f"]) THEN (move ["f_in"]));
+   (((use_arg_then2 ("f_in", [])) (disch_tac [])) THEN (DISCH_THEN (fun snd_th -> (use_arg_then2 ("lemma_face_representation", [lemma_face_representation])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN BETA_TAC THEN (case THEN (move ["d"])) THEN (case THEN (move ["d_in"])) THEN (move ["f_eq"]));
+   ((((use_arg_then2 ("sum_face_rho_node1", [sum_face_rho_node1]))(thm_tac (new_rewrite [] [])))) THEN ((simp_tac THEN TRY done_tac)) THEN (((fun arg_tac -> (use_arg_then2 ("Polar_fan.FAN_PERIMETER", [Polar_fan.FAN_PERIMETER])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`e_prime E f`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))));
+   (((((use_arg_then2 ("f_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> arg_tac (Arg_theorem (let_RULE f_surr_localization))) (fun fst_arg -> (use_arg_then2 ("fanV", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("f_surr", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("dartH", []))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+   (((((use_arg_then2 ("Polar_fan.WSEWPCH", [Polar_fan.WSEWPCH]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("f_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> arg_tac (Arg_theorem (let_RULE f_surr_localization_convex_local)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("dartH", []))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (done_tac));
+];;
+
+(* Finalization of the section PerimeterBound *)
+let face_eq_image_rho_node1 = Sections.finalize_theorem face_eq_image_rho_node1;;
+let sum_face_rho_node1 = Sections.finalize_theorem sum_face_rho_node1;;
+let fully_surrounded_perimeter_bound = Sections.finalize_theorem fully_surrounded_perimeter_bound;;
+Sections.end_section "PerimeterBound";;
 
 (* Section LpTau *)
 Sections.begin_section "LpTau";;
@@ -1071,7 +1169,14 @@ Sections.add_section_lemma "h_fan" (Sections.section_proof []
 [
    ((((use_arg_then2 ("contravening_lp_fan", [contravening_lp_fan]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
 ]);;
-(Sections.add_section_hyp "p_bound" (`perimeterbound (V,ESTD V)`));;
+
+(* Let p_bound *)
+Sections.add_section_lemma "p_bound" (Sections.section_proof []
+`perimeterbound (V,ESTD V)`
+[
+   ((((use_arg_then2 ("h_fan", [])) (disch_tac [])) THEN (clear_assumption "h_fan") THEN BETA_TAC) THEN ((((use_arg_then2 ("lp_fan", [lp_fan]))(thm_tac (new_rewrite [] [])))) THEN (move ["h"])));
+   ((((use_arg_then2 ("fully_surrounded_perimeter_bound", [fully_surrounded_perimeter_bound]))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+]);;
 
 (* Lemma contravening_lp_tau *)
 let contravening_lp_tau = Sections.section_proof []

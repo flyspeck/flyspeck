@@ -1,5 +1,6 @@
 "needs \"../formal_lp/hypermap/ineqs/lp_ineqs_proofs-compiled.hl\"".
 "needs \"local/RNSYJXM-compiled.hl\"".
+"needs \"local/polar_fan.hl\"".
 
 Module Lp_main_estimate.
 
@@ -908,10 +909,86 @@ have := ineq_tau4_diag3_tauVEF d_in4 bounds.
 by rewrite tau_fan; arith.
 Qed.
 
+Section Std.
+
+Hypothesis std: `E = ESTD V`.
+
+Lemma ineq_tau4_diag3_std d: `d IN darts_k 4 (hypermap_of_fan (V,E))
+	==> &3 <= y4'_fan (V,E) d 
+	/\ &3 <= y4'_fan (V,E) (f_fan_pair_ext (V,E) d)
+	==> #0.467 <= tau_fan (V,E) (face (hypermap_of_fan (V,E)) d)`.
+Proof.
+move: (h_fan); rewrite lp_fan => [] [fanV] [f_surr] [diag] [subV] packV.
+move => d_in4 bounds; apply: (ineq_tau4_diag3 d_in4).
+move: d_in4; rewrite darts_k inE (COMPONENTS_HYPERMAP_OF_FAN fanV) => [] [d_in] _.
+by rewrite y5_hi_std2 // (y6_hi_std2 fanV) // y8_hi_std // y9_hi_std.
+Qed.
+
+End Std.
+
+
 End Face4_diag3.
 
 
 End MainEstimate.
+
+
+(* PerimeterBound *)
+Section PerimeterBound.
+
+Variable V: `:real^3->bool`.
+Variable E: `:(real^3->bool)->bool`.
+
+Hypothesis fanV: `FAN (vec 0,V,E)`.
+Hypothesis f_surr: `fully_surrounded (V,E)`.
+
+Let dartH: `dart (hypermap_of_fan (V,E)) = dart_of_fan (V,E)`.
+Proof. by rewrite COMPONENTS_HYPERMAP_OF_FAN. Qed.
+
+Section OneFace.
+
+Variable f: `:real^3#real^3->bool`.
+Hypothesis f_in: `f IN face_set (hypermap_of_fan (V,E))`.
+
+Let local: `local_fan (v_prime V f, e_prime E f, f)`.
+Proof.
+move/lemma_face_representation: f_in => [d] [d_in] ->.
+by rewrite ("let_RULE f_surr_localization" fanV f_surr) -dartH.
+Qed.
+
+Lemma face_eq_image_rho_node1: `f = IMAGE (\v. v, rho_node1 f v) (v_prime V f)`.
+Proof.
+rewrite EXTENSION IN_IMAGE /= => [] [a b]; rewrite PAIR_EQ.
+split => [ab_in | [x] [ab_eq] in_v_prime]; last first.
+  by rewrite !ab_eq (Local_lemmas.LOCAL_FAN_RHO_NODE_PROS local).
+exists a.
+rewrite v_prime inE ("GEN_ALL Local_lemmas.DETER_RHO_NODE" local ab_in) /=.
+split; last by exists b.
+have: `a,b IN dart_of_fan (V,E)`.
+  by rewrite -dartH (in_face_imp_in_dart_alt f_in).
+by move/PAIR_IN_DART_OF_FAN => ->.
+Qed.
+
+Lemma sum_face_rho_node1 h: `sum f h = sum (v_prime V f) (\v. h (v, rho_node1 f v))`.
+Proof.
+rewrite {1}face_eq_image_rho_node1 SUM_IMAGE.
+  by move => x y /= [_] [_]; rewrite PAIR_EQ => ->.
+suff ->: `h o (\v. v, rho_node1 f v) = \v. h (v, rho_node1 f v)` by [].
+by rewrite FUN_EQ_THM o_THM.
+Qed.
+
+End OneFace.
+
+Lemma fully_surrounded_perimeter_bound: `perimeterbound (V,E)`.
+Proof.
+rewrite perimeterbound face_set_of_fan => f f_in.
+move/lemma_face_representation: (f_in) => [d] [d_in] f_eq.
+rewrite sum_face_rho_node1 //= -(Polar_fan.FAN_PERIMETER `e_prime E f`).
+  by rewrite f_eq ("let_RULE f_surr_localization" fanV f_surr) // -dartH.
+by rewrite Polar_fan.WSEWPCH f_eq "let_RULE f_surr_localization_convex_local" -dartH.
+Qed.
+
+End PerimeterBound.
 
 
 (* LpTau *)
@@ -920,6 +997,7 @@ Section LpTau.
 Variable V: `:real^3->bool`.
 Variable E: `:(real^3->bool)->bool`.
 
+(* Contravening *)
 Section Contravening.
 
 Hypothesis main_estimate: `lp_main_estimate`.
@@ -928,8 +1006,11 @@ Hypothesis contrV: `contravening V`.
 Let h_fan: `lp_fan (V,ESTD V)`.
 Proof. by rewrite contravening_lp_fan. Qed.
 
-(* TODO: remove when proved *)
-Hypothesis p_bound: `perimeterbound (V,ESTD V)`.
+Let p_bound: `perimeterbound (V,ESTD V)`.
+Proof.
+move: h_fan; rewrite lp_fan => h.
+by rewrite fully_surrounded_perimeter_bound.
+Qed.
 
 Lemma contravening_lp_tau: `lp_tau (V,ESTD V)`.
 Proof.

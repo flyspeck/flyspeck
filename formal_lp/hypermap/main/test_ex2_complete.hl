@@ -1,0 +1,184 @@
+needs "../formal_lp/hypermap/main/prove_flyspeck_lp.hl";;
+
+open Arith_misc;;
+open Linear_function;;
+open Prove_lp;;
+open Arith_nat;;
+open Misc_vars;;
+open List_hypermap_computations;;
+open List_conversions;;
+open Lp_approx_ineqs;;
+open Lp_ineqs;;
+open Lp_ineqs_proofs;;
+open Lp_main_estimate;;
+open Flyspeck_lp;;
+
+let split4_lemma = prove(`#2.52 <= a /\ #2.52 <= b
+			   ==> (a <= b /\ #2.52 <= a /\ a <= sqrt8)
+			   \/ (b <= a /\ #2.52 <= b /\ b <= sqrt8)
+			   \/ (a <= b /\ sqrt8 <= a /\ a <= &3)
+			   \/ (b <= a /\ sqrt8 <= b /\ b <= &3)
+			   \/ (&3 <= a /\ &3 <= b)`,
+			 MP_TAC Flyspeck_constants.bounds THEN ARITH_TAC);;
+
+let split4_lemma2 = (INST[`a:real`, `
+  PURE_REWRITE_RULE[Ssrbool.negb_or] o 
+		       PURE_ONCE_REWRITE_RULE[TAUT `P <=> (~P <=> F)`] o 
+		       UNDISCH_ALL) split4_lemma;;
+
+
+let e_cap_var = `E:(real^3->bool)->bool`;;
+let lp_cond_imp_good_list = prove(`lp_cond (L, g, h:num->real^3) (V,E) ==> good_list L`, SIMP_TAC[lp_cond]);;
+let ye_sym0 = (add_lp_hyp false o prove)(`(!d. g d = h (FST d), h (SND d))
+					 ==> ye_list (g:num#num->real^3#real^3) (n,m) = ye_list g (m,n)`,
+					 DISCH_TAC THEN ASM_REWRITE_TAC Lp_ineqs_def.list_defs2 THEN
+					   REWRITE_TAC[Lp_ineqs_def.ye_fan; DIST_SYM]);;
+
+let tau_split4 =
+  let th0 = add_lp_hyp true lp_tau_split4 in
+  let tm1, proof_th = mk_lp_ineq th0 in
+  let raw_data = {name = "split4"; tm = tm1; proof = Some proof_th; std_only = false} in
+    generate_ineq raw_data;;
+
+
+let get_all_ineqs hyp_set0 all_ineq_th =
+  let all_tm, set_tm = dest_comb (concl all_ineq_th) in
+  let set_eq_th = hyp_set0 ((fst o dest_const o rator) set_tm) in
+  let ineq1_th = EQ_MP (AP_TERM all_tm set_eq_th) all_ineq_th in
+    map MY_BETA_RULE (get_all ineq1_th);;
+
+
+let contravening_conditions hyp_list_tm hyp_set =
+  let th0 = (MY_RULE_NUM o REWRITE_RULE[Seq.size]) contravening_lp_cond_alt in
+  let th1 = (UNDISCH_ALL o  ISPEC hyp_list_tm o REWRITE_RULE[GSYM IMP_IMP]) th0 in
+  let good_list_nodes_th = EQT_ELIM (eval_good_list_nodes_condition hyp_set) in
+  let lp_cond_th = (MY_PROVE_HYP (hyp_set "good_list") o MY_PROVE_HYP good_list_nodes_th) th1 in
+  let lp_cond_th' = (SELECT_AND_ABBREV_RULE o SELECT_AND_ABBREV_RULE o ABBREV_RULE "L" hyp_list_tm) lp_cond_th in
+  let lp_tau_th = (UNDISCH_ALL o SPEC_ALL) contravening_lp_tau in
+    lp_cond_th', lp_tau_th;;
+
+
+let split_conditions hyp_list_tm d_tm lp_cond0_th =
+  let split_eq_th = (ABBREV_RULE "L" hyp_list_tm) (eval_split_list_hyp hyp_list_tm d_tm) in
+  let split_tm = (rand o concl) split_eq_th in
+  let lp_cond2_th = (PURE_REWRITE_RULE[split_eq_th] o SPEC d_tm o MATCH_MP lp_cond_trans1) lp_cond0_th in
+  let e2_tm = (rand o rand o concl) lp_cond2_th in
+  let lp_cond2_th' = (ABBREV_RULE "L2" split_tm) lp_cond2_th in
+(*
+let good2_th = MATCH_MP lp_cond_imp_good_list lp_cond2_th;;
+let hyp2_set, hyp2_fun = compute_all split_tm (Some good2_th);;
+*)
+  let hyp2_set, hyp2_fun = compute_all split_tm None in
+    lp_cond2_th', split_eq_th, split_tm, e2_tm, (hyp2_set, hyp2_fun);;
+
+
+(******************************)
+(* Load data *)
+loadt "../formal_lp/glpk/ex2/bb2_1_out.hl";;
+let p1, c1, t1, v1 = precision, constraints, target_variables, variable_bounds;;
+
+loadt "../formal_lp/glpk/ex2/bb2_2_out.hl";;
+let p2, c2, t2, v2 = precision, constraints, target_variables, variable_bounds;;
+
+loadt "../formal_lp/glpk/ex2/bb2_3_out.hl";;
+let p3, c3, t3, v3 = precision, constraints, target_variables, variable_bounds;;
+
+loadt "../formal_lp/glpk/ex2/bb2_4_out.hl";;
+let p4, c4, t4, v4 = precision, constraints, target_variables, variable_bounds;;
+
+loadt "../formal_lp/glpk/ex2/bb2_5_out.hl";;
+let p5, c5, t5, v5 = precision, constraints, target_variables, variable_bounds;;
+
+
+(******************************)
+(* Compute preliminary data *)
+let hyp_list0_tm = (to_num o create_hol_list_str) hypermap_string;;
+let hyp_set0, hyp_fun0 = compute_all hyp_list0_tm None;;
+
+let d13 = to_num `1,2` and
+    d24 = to_num `0,1`;;
+
+let lp_cond0, lp_tau0 = contravening_conditions hyp_list0_tm hyp_set0;;
+let ye_sym_th = (MY_PROVE_HYP lp_cond0 o INST[`ESTD V`, e_cap_var]) ye_sym0;;
+
+let ye_hi_3 = generate_ineq (find_raw_ineq true "ye_hi");;
+let ye_hi_2h0 = generate_ineq (find_raw_ineq true "yy10");;
+
+let ye_ineqs_3, ye_ineqs_2h0, tau_ths =
+  let estd_refl = REFL `ESTD V` in
+  let r = get_all_ineqs hyp_set0 o EXPAND_CONCL_RULE "L" o 
+    MY_PROVE_HYP lp_tau0 o MY_PROVE_HYP lp_cond0 o MY_PROVE_HYP estd_refl o INST[`ESTD V`, e_cap_var] in
+    r ye_hi_3, r ye_hi_2h0, r tau_split4;;
+
+let tau_ths2 = map (UNDISCH_ALL o simplify_ineq hyp_fun0) ((fst o chop_list 2) tau_ths);;
+let tau_split13 = List.nth tau_ths2 1;;
+let tau_split24 = List.nth tau_ths2 0;;
+
+
+(******************************)
+(* case 1 *)
+let lp_cond1, split1_eq, hyp_list1_tm, e1_tm, (hyp1_set, hyp1_fun) = split_conditions hyp_list0_tm d13 lp_cond0;;
+
+let lp1_th0 = prove_flyspeck_lp_step1 hyp_list1_tm hyp1_set hyp1_fun false p1 c1 t1 v1;;
+let lp1_th1 = (MY_PROVE_HYP tau_split13 o INST[e1_tm, e_cap_var]) lp1_th0;;
+
+let lp1_th2 =
+  let th1 = itlist MY_PROVE_HYP ye_ineqs_2h0 lp1_th1 in
+    itlist MY_PROVE_HYP ye_ineqs_3 th1;;
+
+let case1_th = (EXPAND_RULE "L2" o MY_PROVE_HYP lp_cond1 o INST[e1_tm, e_cap_var] o ABBREV_RULE "L2" hyp_list1_tm) lp1_th2;;
+
+
+(******************************)
+(* case 2 *)
+let lp_cond2, split2_eq, hyp_list2_tm, e2_tm, (hyp2_set, hyp2_fun) = split_conditions hyp_list0_tm d24 lp_cond0;;
+
+let lp2_th0 = prove_flyspeck_lp_step1 hyp_list2_tm hyp2_set hyp2_fun false p2 c2 t2 v2;;
+let lp2_th1 = (MY_PROVE_HYP tau_split24 o INST[e2_tm, e_cap_var]) lp2_th0;;
+
+let lp2_th2 =
+  let th1 = itlist MY_PROVE_HYP ye_ineqs_2h0 lp2_th1 in
+    itlist MY_PROVE_HYP ye_ineqs_3 th1;;
+
+let case2_th = (EXPAND_RULE "L2" o MY_PROVE_HYP lp_cond2 o INST[e2_tm, e_cap_var] o ABBREV_RULE "L2" hyp_list2_tm) lp2_th2;;
+
+
+(******************************)
+(* case 3 *)
+let lp_cond3, split3_eq, hyp_list3_tm, e3_tm, (hyp3_set, hyp3_fun) = split_conditions hyp_list0_tm d13 lp_cond0;;
+
+let lp3_th0 = prove_flyspeck_lp_step1 hyp_list3_tm hyp3_set hyp3_fun false p3 c3 t3 v3;;
+let lp3_th1 = (MY_PROVE_HYP tau_split13 o INST[e3_tm, e_cap_var]) lp3_th0;;
+
+let lp3_th2 =
+  let th1 = itlist MY_PROVE_HYP ye_ineqs_2h0 lp3_th1 in
+    itlist MY_PROVE_HYP ye_ineqs_3 th1;;
+
+let case3_th = (EXPAND_RULE "L2" o MY_PROVE_HYP lp_cond3 o INST[e2_tm, e_cap_var] o ABBREV_RULE "L2" hyp_list3_tm) lp3_th2;;
+
+
+(******************************)
+(* case 4 *)
+let lp_cond4, split4_eq, hyp_list4_tm, e4_tm, (hyp4_set, hyp4_fun) = split_conditions hyp_list0_tm d24 lp_cond0;;
+
+let lp4_th0 = prove_flyspeck_lp_step1 hyp_list4_tm hyp4_set hyp4_fun false p4 c4 t4 v4;;
+let lp4_th1 = (MY_PROVE_HYP tau_split24 o INST[e2_tm, e_cap_var]) lp4_th0;;
+
+let lp4_th2 =
+  let th1 = itlist MY_PROVE_HYP ye_ineqs_2h0 lp4_th1 in
+    itlist MY_PROVE_HYP ye_ineqs_3 th1;;
+
+let case4_th = (EXPAND_RULE "L2" o MY_PROVE_HYP lp_cond4 o INST[e4_tm, e_cap_var] o ABBREV_RULE "L2" hyp_list4_tm) lp4_th2;;
+
+
+(******************************)
+(* case 5 *)
+let lp5_th0 = prove_flyspeck_lp_step1 hyp_list0_tm hyp_set0 hyp_fun0 true p5 c5 t5 v5;;
+let lp5_th1 = (MY_PROVE_HYP (REFL `ESTD V`) o INST [`ESTD V`, e_cap_var]) lp5_th0;;
+let lp5_th2 = (MY_PROVE_HYP lp_tau0 o MY_PROVE_HYP lp_cond0 o ABBREV_RULE "L" hyp_list0_tm) lp5_th1;;
+
+let case5_th = lp5_th2;;
+
+
+(******************************)
+

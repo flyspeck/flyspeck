@@ -138,7 +138,7 @@ let generate_ineq0 ineq =
     PROVE_HYP proof th1;;
 
 
-let generate_ineq =
+let generate_ineq1 =
   let power_th = prove(`!f (x:A). (f POWER 2) x = f (f x) /\ (f POWER 3) x = f (f (f x))`,
 		       REWRITE_TAC[Hypermap.POWER_2; Hypermap.THREE; Hypermap.POWER; o_THM]) in
 
@@ -186,10 +186,14 @@ let generate_ineq =
     else
       REFL tm in
 
-    fun ineq ->
+    fun simplify_all_flag ineq ->
       let th1 = generate_ineq0 ineq in
       let th2, (var_tm, mem_tm) = strip_ALL th1 in
-      let eq_th = simplify (concl th2) in
+      let eq_th = 
+		if simplify_all_flag then
+			PURE_REWRITE_CONV (power_th :: def_ths) (concl th2)
+		else
+			simplify (concl th2) in
       let th3 = EQ_MP eq_th th2 in
       let th4 =
 	try
@@ -198,7 +202,8 @@ let generate_ineq =
 	with Failure _ -> th3 in
       let th5 = (GEN var_tm o DISCH mem_tm) th4 in
 	PURE_REWRITE_RULE[ALL_MEM] th5;;
-
+	
+let generate_ineq = generate_ineq1 false;;
 	
 let add_lp_list_ineq, find_ineq =
   let ineq_table = Array.init 6 (fun i -> Hashtbl.create 10) in

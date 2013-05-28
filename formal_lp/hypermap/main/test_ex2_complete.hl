@@ -13,19 +13,74 @@ open Lp_ineqs_proofs;;
 open Lp_main_estimate;;
 open Flyspeck_lp;;
 
-let split4_lemma = prove(`#2.52 <= a /\ #2.52 <= b
-			   ==> (a <= b /\ #2.52 <= a /\ a <= sqrt8)
-			   \/ (b <= a /\ #2.52 <= b /\ b <= sqrt8)
+
+let split4_lemma = prove(`(a <= b /\ a <= sqrt8)
+			   \/ (b <= a /\ b <= sqrt8)
 			   \/ (a <= b /\ sqrt8 <= a /\ a <= &3)
 			   \/ (b <= a /\ sqrt8 <= b /\ b <= &3)
 			   \/ (&3 <= a /\ &3 <= b)`,
 			 MP_TAC Flyspeck_constants.bounds THEN ARITH_TAC);;
 
-let split4_lemma2 = (INST[`a:real`, `
-  PURE_REWRITE_RULE[Ssrbool.negb_or] o 
-		       PURE_ONCE_REWRITE_RULE[TAUT `P <=> (~P <=> F)`] o 
-		       UNDISCH_ALL) split4_lemma;;
 
+let split4_lemma' = INST[`ye_list (g:num#num->real^3#real^3) d1`, `a:real`;
+			 `ye_list (g:num#num->real^3#real^3) d2`, `b:real`] split4_lemma;;
+
+let d1_var = `d1:num#num` and
+    d2_var = `d2:num#num`;;
+
+
+let rec assoc_all a list =
+  match list with
+    | [] -> []
+    | (k,v) :: t -> if k = a then v :: assoc_all a t else assoc_all a t;;
+
+
+let gen_extra_ineqs =
+  let tm_3 = `&3` and
+      tm_sqrt8 = `sqrt8` in
+  let r tm = prove(tm, MP_TAC Flyspeck_constants.bounds THEN ARITH_TAC) in
+  let l_ths_list = [
+    tm_3, r `&3 <= a ==> sqrt8 <= a`;
+  ] in
+  let r_ths_list = [
+    tm_sqrt8, r `a <= sqrt8 ==> a <= &3`;
+  ] in
+  let a_var_real = `a:real` in
+    fun ineq_th ->
+      let lhs, rhs = dest_binary "real_le" (concl ineq_th) in
+      let l_ths = map (fun th -> MP (INST[rhs, a_var_real] th) ineq_th) (assoc_all lhs l_ths_list) and
+	  r_ths = map (fun th -> MP (INST[lhs, a_var_real] th) ineq_th) (assoc_all rhs r_ths_list) in
+	l_ths @ r_ths;;
+
+
+let dest_ye_list tm =
+  let lhs, rhs = dest_comb tm in
+  let c_tm = rator lhs in
+    if (fst o dest_const) c_tm <> "ye_list" then
+      failwith "dest_ye_list: not ye_list"
+    else
+      dest_pair rhs;;
+
+let gen_ye_sym_ineqs ye_sym_th ineq_th =
+  let sym_eqs tm =
+    try
+      let n_tm, m_tm = dest_ye_list tm in
+	[REFL tm; INST[n_tm, n_var_num; m_tm, m_var_num] ye_sym_th]
+    with Failure _ ->
+      [REFL tm] in
+  let ltm, rhs = dest_comb (concl ineq_th) in
+  let op_tm, lhs = dest_comb ltm in
+  let l_eqs = sym_eqs lhs and
+      r_eqs = sym_eqs rhs in
+    tl (allpairs (fun l_eq r_eq -> EQ_MP (MK_COMB (AP_TERM op_tm l_eq, r_eq)) ineq_th) l_eqs r_eqs);;
+
+
+let gen_all_extra_cases ye_sym_th case_tms =
+  let case_ths = map ASSUME case_tms in
+  let extra = List.flatten (map gen_extra_ineqs case_ths) in
+  let sym = gen_ye_sym_ineqs ye_sym_th in
+    extra @ List.flatten (map sym (case_ths @ extra));;
+    
 
 let e_cap_var = `E:(real^3->bool)->bool`;;
 let lp_cond_imp_good_list = prove(`lp_cond (L, g, h:num->real^3) (V,E) ==> good_list L`, SIMP_TAC[lp_cond]);;
@@ -34,11 +89,15 @@ let ye_sym0 = (add_lp_hyp false o prove)(`(!d. g d = h (FST d), h (SND d))
 					 DISCH_TAC THEN ASM_REWRITE_TAC Lp_ineqs_def.list_defs2 THEN
 					   REWRITE_TAC[Lp_ineqs_def.ye_fan; DIST_SYM]);;
 
-let tau_split4 =
-  let th0 = add_lp_hyp true lp_tau_split4 in
+let gen_list_ineq simplify_all_flag th =
+  let th0 = add_lp_hyp true th in
   let tm1, proof_th = mk_lp_ineq th0 in
-  let raw_data = {name = "split4"; tm = tm1; proof = Some proof_th; std_only = false} in
-    generate_ineq raw_data;;
+  let raw_data = {name = "tmp"; tm = tm1; proof = Some proof_th; std_only = false} in
+    generate_ineq1 simplify_all_flag raw_data;;
+
+let tau_split4 = gen_list_ineq false lp_tau_split4;;
+let diag4_lo = gen_list_ineq true dart4_y4'_lo;;
+
 
 
 let get_all_ineqs hyp_set0 all_ineq_th =
@@ -104,15 +163,19 @@ let ye_sym_th = (MY_PROVE_HYP lp_cond0 o INST[`ESTD V`, e_cap_var]) ye_sym0;;
 let ye_hi_3 = generate_ineq (find_raw_ineq true "ye_hi");;
 let ye_hi_2h0 = generate_ineq (find_raw_ineq true "yy10");;
 
-let ye_ineqs_3, ye_ineqs_2h0, tau_ths =
+let ye_ineqs_3, ye_ineqs_2h0, diag4_ineqs, tau_ths =
   let estd_refl = REFL `ESTD V` in
   let r = get_all_ineqs hyp_set0 o EXPAND_CONCL_RULE "L" o 
     MY_PROVE_HYP lp_tau0 o MY_PROVE_HYP lp_cond0 o MY_PROVE_HYP estd_refl o INST[`ESTD V`, e_cap_var] in
-    r ye_hi_3, r ye_hi_2h0, r tau_split4;;
+    r ye_hi_3, r ye_hi_2h0, r diag4_lo, r tau_split4;;
 
+
+let diag4_ths = map (fun th -> EQ_MP (convert_tm hyp_fun0 (concl th)) th) diag4_ineqs;;
 let tau_ths2 = map (UNDISCH_ALL o simplify_ineq hyp_fun0) ((fst o chop_list 2) tau_ths);;
 let tau_split13 = List.nth tau_ths2 1;;
 let tau_split24 = List.nth tau_ths2 0;;
+
+let base_ineqs = ye_ineqs_3 @ ye_ineqs_2h0 @ diag4_ths;;
 
 
 (******************************)
@@ -121,10 +184,7 @@ let lp_cond1, split1_eq, hyp_list1_tm, e1_tm, (hyp1_set, hyp1_fun) = split_condi
 
 let lp1_th0 = prove_flyspeck_lp_step1 hyp_list1_tm hyp1_set hyp1_fun false p1 c1 t1 v1;;
 let lp1_th1 = (MY_PROVE_HYP tau_split13 o INST[e1_tm, e_cap_var]) lp1_th0;;
-
-let lp1_th2 =
-  let th1 = itlist MY_PROVE_HYP ye_ineqs_2h0 lp1_th1 in
-    itlist MY_PROVE_HYP ye_ineqs_3 th1;;
+let lp1_th2 = itlist MY_PROVE_HYP base_ineqs lp1_th1;;
 
 let case1_th = (EXPAND_RULE "L2" o MY_PROVE_HYP lp_cond1 o INST[e1_tm, e_cap_var] o ABBREV_RULE "L2" hyp_list1_tm) lp1_th2;;
 
@@ -135,10 +195,7 @@ let lp_cond2, split2_eq, hyp_list2_tm, e2_tm, (hyp2_set, hyp2_fun) = split_condi
 
 let lp2_th0 = prove_flyspeck_lp_step1 hyp_list2_tm hyp2_set hyp2_fun false p2 c2 t2 v2;;
 let lp2_th1 = (MY_PROVE_HYP tau_split24 o INST[e2_tm, e_cap_var]) lp2_th0;;
-
-let lp2_th2 =
-  let th1 = itlist MY_PROVE_HYP ye_ineqs_2h0 lp2_th1 in
-    itlist MY_PROVE_HYP ye_ineqs_3 th1;;
+let lp2_th2 = itlist MY_PROVE_HYP base_ineqs lp2_th1;;
 
 let case2_th = (EXPAND_RULE "L2" o MY_PROVE_HYP lp_cond2 o INST[e2_tm, e_cap_var] o ABBREV_RULE "L2" hyp_list2_tm) lp2_th2;;
 
@@ -149,10 +206,7 @@ let lp_cond3, split3_eq, hyp_list3_tm, e3_tm, (hyp3_set, hyp3_fun) = split_condi
 
 let lp3_th0 = prove_flyspeck_lp_step1 hyp_list3_tm hyp3_set hyp3_fun false p3 c3 t3 v3;;
 let lp3_th1 = (MY_PROVE_HYP tau_split13 o INST[e3_tm, e_cap_var]) lp3_th0;;
-
-let lp3_th2 =
-  let th1 = itlist MY_PROVE_HYP ye_ineqs_2h0 lp3_th1 in
-    itlist MY_PROVE_HYP ye_ineqs_3 th1;;
+let lp3_th2 = itlist MY_PROVE_HYP base_ineqs lp3_th1;;
 
 let case3_th = (EXPAND_RULE "L2" o MY_PROVE_HYP lp_cond3 o INST[e2_tm, e_cap_var] o ABBREV_RULE "L2" hyp_list3_tm) lp3_th2;;
 
@@ -163,10 +217,7 @@ let lp_cond4, split4_eq, hyp_list4_tm, e4_tm, (hyp4_set, hyp4_fun) = split_condi
 
 let lp4_th0 = prove_flyspeck_lp_step1 hyp_list4_tm hyp4_set hyp4_fun false p4 c4 t4 v4;;
 let lp4_th1 = (MY_PROVE_HYP tau_split24 o INST[e2_tm, e_cap_var]) lp4_th0;;
-
-let lp4_th2 =
-  let th1 = itlist MY_PROVE_HYP ye_ineqs_2h0 lp4_th1 in
-    itlist MY_PROVE_HYP ye_ineqs_3 th1;;
+let lp4_th2 = itlist MY_PROVE_HYP base_ineqs lp4_th1;;
 
 let case4_th = (EXPAND_RULE "L2" o MY_PROVE_HYP lp_cond4 o INST[e4_tm, e_cap_var] o ABBREV_RULE "L2" hyp_list4_tm) lp4_th2;;
 
@@ -181,4 +232,35 @@ let case5_th = lp5_th2;;
 
 
 (******************************)
+(* combine all cases *)
 
+let diag2 = to_num `1,3`;;
+let diag1 = to_num `0,2`;;
+
+let split_th = INST[diag1, d1_var; diag2, d2_var] split4_lemma';;
+let split_cases = striplist dest_disj (concl split_th);;
+
+let case1_tms = striplist dest_conj (List.nth split_cases 0);;
+map concl (gen_all_extra_cases ye_sym_th case1_tms);;
+let case1_th2 = itlist MY_PROVE_HYP (gen_all_extra_cases ye_sym_th case1_tms) case1_th;;
+let case1_th_final = PURE_ONCE_REWRITE_RULE[IMP_IMP] (itlist DISCH case1_tms case1_th2);;
+
+let get_final_case_th ye_sym_th n case_th cases =
+  let case_tms = striplist dest_conj (List.nth cases n) in
+  let case_th2 = itlist MY_PROVE_HYP (gen_all_extra_cases ye_sym_th case_tms) case_th in
+    PURE_REWRITE_RULE[IMP_IMP; GSYM CONJ_ASSOC] (itlist DISCH case_tms case_th2);;
+
+let case1_th_final = get_final_case_th ye_sym_th 0 case1_th split_cases;;
+let case2_th_final = get_final_case_th ye_sym_th 1 case2_th split_cases;;
+let case3_th_final = get_final_case_th ye_sym_th 2 case3_th split_cases;;
+let case4_th_final = get_final_case_th ye_sym_th 3 case4_th split_cases;;
+let case5_th_final = get_final_case_th ye_sym_th 4 case5_th split_cases;;
+
+let combine_cases =
+  let combine_th = TAUT `(A ==> C) /\ (B ==> C) ==> (A \/ B ==> C)` in
+    fun case1_th case2_th ->
+      MATCH_MP combine_th (CONJ case1_th case2_th);;
+
+
+let final' = itlist combine_cases [case1_th_final; case2_th_final; case3_th_final; case4_th_final] case5_th_final;;
+let final = (DISCH `contravening V` o EXPAND_RULE "g" o EXPAND_RULE "h" o EXPAND_RULE "L") (MP final' split_th);;

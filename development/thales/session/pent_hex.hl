@@ -14,7 +14,7 @@
 
 
 module Pent_hex = struct
-
+end;;
 
   open Hales_tactic;;
 
@@ -26,12 +26,14 @@ let appendix_get_main_nonlinear =
     | _ -> false in
   let has_main ind = 
     exists (is_main) ind.tags in
-  let main_ineq_data = 
+  let main_ineq_data1 = 
     filter has_main (!Ineq.ineqs) in
+  let id = map (fun t-> t.idv) main_ineq_data1 in
+  let main_ineq_data = map (fun t -> hd(Ineq.getexact t)) id in
   let ineql = map (fun ind -> ind.ineq) main_ineq_data in
   let sl = map (fun ind -> ind.idv) main_ineq_data in
   let main_ineq_conj = end_itlist (curry mk_conj) ineql in
-  let th = new_definition (mk_eq (`v7_main_nonlinear_v33:bool`,main_ineq_conj)) in
+  let th = new_definition (mk_eq (`v11_main_nonlinear_v33:bool`,main_ineq_conj)) in
   let th1 = UNDISCH (MATCH_MP (TAUT `(a <=> b) ==> (a ==> b)`) th) in
   let co1 thm = if (is_conj (concl thm)) then CONJUNCT1 thm else thm in
     fun s ->
@@ -2165,4 +2167,430 @@ let terminal_pent_taum = prove_by_refinement(
 
 (* HEXAGON SECTION terminal_hex *)
 
-end;;
+
+let taud_minimizer_terminal_hex_cases = prove_by_refinement(
+  `v11_main_nonlinear_v33 /\ main_nonlinear_v33 ==> (!y1 y2 y3 y4.
+       (&0 <= delta_y y1 y2 y3 y4 (&2) (&2)  /\
+	&2 <= y1 /\ y1 <= &2 * h0 /\  &2 <= y2 /\ y2 <= &2 * h0 /\ &2 <= y3 /\ y3 <= &2 * h0 /\
+	 #3.01 <= y4 /\ y4 <= #3.915 /\ taum y1 y2 y3 y4 (&2) (&2) < &0 ==> 
+	  (?z1. &0 <= delta_y z1 y2 y3 y4 (&2) (&2) /\
+	   &2 <= z1 /\ z1 <= &2 * h0 /\ taud z1 y2 y3 y4 (&2) (&2)  <= taud y1 y2 y3 y4 (&2) (&2) /\
+	  ( z1 = &2  \/ &0 = delta_y z1 y2 y3 y4 (&2) (&2) ))))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC taud_minimizer [`&2`;`&2 * h0`;`&0`;`y2`;`y3`;`y4`;`&2`;`&2`];
+  REWRITE_TAC[LET_DEF;LET_END_DEF;IN_INTER;IN_REAL_INTERVAL;IN_ELIM_THM;EXTENSION;IN_INTER;NOT_IN_EMPTY;IN_REAL_INTERVAL;IN_ELIM_THM];
+  ANTS_TAC;
+    REWRITE_TAC[arith `&0 <= &0`;NOT_FORALL_THM];
+    BY(ASM_MESON_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `z1` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    REPEAT (FIRST_X_ASSUM_ST `z = c` (RULE_ASSUM_TAC o (unlist REWRITE_RULE)));
+    BY(ASM_MESON_TAC[]);
+  INTRO_TAC taud_minimizer_cases [`&2`;`&2 * h0`;`&0`;`z1`;`y2`;`y3`;`y4`;`&2`;`&2`];
+  REWRITE_TAC[LET_DEF;LET_END_DEF;IN_INTER;IN_REAL_INTERVAL;IN_ELIM_THM;EXTENSION;IN_INTER;NOT_IN_EMPTY;IN_REAL_INTERVAL;IN_ELIM_THM];
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[arith `&0 <= &2 /\ &0 <= &0`;arith `&2 <= y ==> &0 <= y`]);
+  ASM_CASES_TAC `z1 = &2` THEN FIRST_ASSUM (unlist REWRITE_TAC);
+  ASM_CASES_TAC `&0 = delta_y z1 y2 y3 y4 (&2) (&2)` THEN FIRST_ASSUM (unlist ASM_REWRITE_TAC);
+  ASM_CASES_TAC `z1 = &2 * h0` THEN ASM_REWRITE_TAC[];
+    INTRO_TAC (UNDISCH OWZLKVY4 ) [`y1`;`y2`;`y3`;`y4`;`&2`;`&2`];
+    ANTS_TAC;
+      BY(ASM_TAC THEN REWRITE_TAC[Sphere.cstab] THEN REAL_ARITH_TAC);
+    FIRST_X_ASSUM (C INTRO_TAC [`y1`]);
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM_ST `taum` MP_TAC;
+    INTRO_TAC taud_2h0 [`y2`;`y3`;`y4`;`&2`;`&2`];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[]);
+    BY(REAL_ARITH_TAC);
+  COMMENT "derviative cases";
+  ASM_CASES_TAC `~(delta_y z1 y2 y3 y4 (&2) (&2) < &15)`;
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC (appendix_get_main_nonlinear "6877738680") [`z1`;`y2`;`y3`;`y4`;`&2`;`&2`];
+    REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`];
+    ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC Functional_equation.taud_x_taud;
+    INTRO_TAC (UNDISCH OWZLKVY4) [`y1`;`y2`;`y3`;`y4`;`&2`;`&2`];
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[Sphere.cstab]);
+    FIRST_X_ASSUM (C INTRO_TAC [`y1`]);
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    BY(ASM_TAC THEN REWRITE_TAC[Sphere.h0] THEN REAL_ARITH_TAC);
+  INTRO_TAC (Appendix.get_main_nonlinear "9692636487") [`z1`;`y2`;`y3`;`y4`;`&2`;`&2`];
+  REWRITE_TAC[Sphere.ineq;TAUT `a ==> b ==> c <=> (a /\ b ==> c)`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    BY(ASM_TAC THEN REWRITE_TAC[Sphere.h0] THEN REAL_ARITH_TAC);
+  BY(REPEAT (FIRST_X_ASSUM_ST `delta_y` MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+(* next, de-symmetrize everything, 
+    then combine delta ranges.  *)
+
+let REAL_WLOG_S3_SIMPLEX = prove_by_refinement(
+  `!(P:A->A->A->real->real->real->bool). (!y1 y2 y3 y4 y5 y6. P y1 y2 y3 y4 y5 y6 = P y3 y1 y2 y6 y4 y5 /\
+      P y1 y2 y3 y4 y5 y6 = P y2 y1 y3 y5 y4 y6) /\
+    (!y1 y2 y3 y4 y5 y6. y4 <= y6 /\ y6 <= y5 ==> P y1 y2 y3 y4 y5 y6) ==>
+    (!y1 y2 y3 y4 y5 y6. P y1 y2 y3 y4 y5 y6)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `(y4 <= y5 /\ y5 <= y6) \/ (y4 <= y6 /\ y6 <= y5) \/ (y5 <= y4 /\ y4 <= y6) \/ (y5 <= y6 /\ y6 <= y4) \/ (y6 <= y5 /\ y5 <= y4) \/ (y6 <= y4 /\ y4 <= y5)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REAL_ARITH_TAC);
+  BY(REPEAT (FIRST_X_ASSUM DISJ_CASES_TAC) THEN ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let REAL_WLOG_AAB_SIMPLEX = prove_by_refinement(
+  `!(P:A->A->A->real->real->real->bool). (!y1 y2 y3 y4 y5 y6. P y1 y2 y3 y4 y5 y6 = P y3 y2 y1 y6 y5 y4) /\
+    (!y1 y2 y3 y4 y5 y6. y4 <= y6 ==> P y1 y2 y3 y4 y5 y6) ==>
+    (!y1 y2 y3 y4 y5 y6. P y1 y2 y3 y4 y5 y6)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  TYPIFY `(y4 <= y6 \/ y6 <= y4)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REAL_ARITH_TAC);
+  BY(REPEAT (FIRST_X_ASSUM DISJ_CASES_TAC) THEN ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+ 
+let delta_y_hex_cases = prove_by_refinement(
+  `!y1 y2 y3 y5 y6 a b.     (delta_y y1 y2 a (&2) (&2) y6 = delta_y a y1 y2 y6 (&2) (&2) /\
+          (delta_y y1 b y3 (&2) y5 (&2) = delta_y b y1 y3 y5 (&2) (&2)))`,
+  (* {{{ proof *)
+  [
+  BY(MESON_TAC[Merge_ineq.delta_y_sym])
+  ]);;
+  (* }}} *)
+
+let delta_y_sym_cases2 = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6 a.     delta_y a y3 y1 y5 (&2) (&2) = delta_y a y1 y3 y5 (&2) (&2) /\
+          delta_y a y3 y2 y4 (&2) (&2) = delta_y a y2 y3 y4 (&2) (&2) /\
+          delta_y a y2 y1 y6 (&2) (&2) = delta_y a y1 y2 y6 (&2) (&2)`,
+  (* {{{ proof *)
+  [
+  BY(MESON_TAC[Merge_ineq.delta_y_sym])
+  ]);;
+  (* }}} *)
+
+let taum_sym_cases2 = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. taum y2 y1 y3 y5 y4 y6 = taum y1 y2 y3 y4 y5 y6 /\
+    taum y3 y1 y2 y6 y4 y5 = taum y1 y2 y3 y4 y5 y6 /\
+    taum y3 y2 y1 y6 y5 y4 = taum y1 y2 y3 y4 y5 y6`,
+  (* {{{ proof *)
+  [
+  BY(MESON_TAC[Terminal.taum_sym])
+  ]);;
+  (* }}} *)
+
+let edge2_flatD_sym = prove_by_refinement(
+  `!d y1 y2 y3 a. edge2_flatD_x1 d y1 y2 y3 a a = edge2_flatD_x1 d y2 y1 y3 a a`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Nonlin_def.edge2_flatD_x1;Merge_ineq.delta_x_sym])
+  ]);;
+  (* }}} *)
+
+let edge2_flatD_x1_sym_cases = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. 
+    edge2_flatD_x1 (&0) (y3 * y3) (y2 * y2) (y4*y4) (&2 * &2) (&2* &2) = 
+    edge2_flatD_x1 (&0) (y2 * y2) (y3 * y3) (y4*y4) (&2 * &2) (&2* &2) /\
+    edge2_flatD_x1 (&0) (y3 * y3) (y1 * y1) (y5*y5) (&2 * &2) (&2* &2) = 
+    edge2_flatD_x1 (&0) (y1 * y1) (y3 * y3) (y5*y5) (&2 * &2) (&2* &2) /\
+    edge2_flatD_x1 (&0) (y2 * y2) (y1 * y1) (y6*y6) (&2 * &2) (&2* &2) = 
+    edge2_flatD_x1 (&0) (y1 * y1) (y2 * y2) (y6*y6) (&2 * &2) (&2* &2)
+`,
+  (* {{{ proof *)
+  [
+BY(REWRITE_TAC[edge2_flatD_sym])
+  ]);;
+  (* }}} *)
+
+let eulerA_x_sym_cases = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6.
+     eulerA_x (y2 * y2) (y1 * y1) (y3 * y3) (y5 * y5) (y4 * y4) (y6 * y6) =
+   eulerA_x (y1 * y1) (y2 * y2) (y3 * y3) (y4 * y4) (y5 * y5) (y6 * y6)  /\
+   eulerA_x (y3 * y3) (y1 * y1) (y2 * y2) (y6 * y6) (y4 * y4) (y5 * y5)  =
+   eulerA_x (y1 * y1) (y2 * y2) (y3 * y3) (y4 * y4) (y5 * y5) (y6 * y6)  /\
+   eulerA_x (y3 * y3) (y2 * y2) (y1 * y1) (y6 * y6) (y5 * y5) (y4 * y4)  =
+   eulerA_x (y1 * y1) (y2 * y2) (y3 * y3) (y4 * y4) (y5 * y5) (y6 * y6)  
+ `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.eulerA_x];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let mu_y_sym = prove_by_refinement(
+  `!y1 y2 y3. mu_y y1 y2 y3 = mu_y y1 y3 y2`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.mu_y];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let mu_y_sym_cases = prove_by_refinement(
+  `!y1 y2 y3. mu_y (&2) (sqrt(y2 * y2)) (sqrt(y1*y1)) = 
+ mu_y (&2) (sqrt(y1 * y1)) (sqrt(y2*y2)) /\ 
+ mu_y (&2) (sqrt(y3 * y3)) (sqrt(y2*y2)) = 
+ mu_y (&2) (sqrt(y2 * y2)) (sqrt(y3*y3)) /\ 
+ mu_y (&2) (sqrt(y3 * y3)) (sqrt(y1*y1)) = 
+ mu_y (&2) (sqrt(y1 * y1)) (sqrt(y3*y3)) 
+`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[mu_y_sym])
+  ]);;
+  (* }}} *)
+
+
+let nonfunctional_mud_126 = prove_by_refinement(
+  `! a b c y1 y2 y3 y4 y5 y6. y_of_x (mud_126_x_v1 a b c) y1 y2 y3 y4 y5 y6 = 
+    mu_y a (sqrt(y1 * y1)) (sqrt(y2 * y2))  * sqrt(delta_y a y1 y2 y6 b c)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.mud_126_x;];
+  Functional_equation.F_REWRITE_TAC;
+  REWRITE_TAC[GSYM Nonlin_def.mu_y;Sphere.delta_126_x;GSYM Sphere.delta_y];
+  BY(MESON_TAC[Merge_ineq.delta_y_sym])
+  ]);;
+  (* }}} *)
+
+let nonfunctional_mud_234 = prove_by_refinement(
+  `! a b c y1 y2 y3 y4 y5 y6. y_of_x (mud_234_x_v1 a b c) y1 y2 y3 y4 y5 y6 = 
+    mu_y a (sqrt(y2 * y2)) (sqrt(y3 * y3))  * sqrt(delta_y a y2 y3 y4 b c)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.mud_234_x;];
+  Functional_equation.F_REWRITE_TAC;
+  REWRITE_TAC[GSYM Nonlin_def.mu_y;Sphere.delta_234_x;GSYM Sphere.delta_y];
+  ]);;
+  (* }}} *)
+
+let nonfunctional_mud_135 = prove_by_refinement(
+  `! a b c y1 y2 y3 y4 y5 y6. y_of_x (mud_135_x_v1 a b c) y1 y2 y3 y4 y5 y6 = 
+    mu_y a (sqrt(y1 * y1)) (sqrt(y3 * y3))  * sqrt(delta_y a y1 y3 y5 b c)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.mud_135_x;];
+  Functional_equation.F_REWRITE_TAC;
+  REWRITE_TAC[GSYM Nonlin_def.mu_y;Sphere.delta_135_x;GSYM Sphere.delta_y];
+  REWRITE_TAC[mu_y_sym];
+  BY(MESON_TAC[Merge_ineq.delta_y_sym])
+  ]);;
+  (* }}} *)
+
+let nonfunctional_flat_term2_126 = prove_by_refinement(
+  `! d a b x1 x2 x3 x4 x5 x6. (flat_term2_126_x d a b) x1 x2 x3 x4 x5 x6 = 
+   flat_term (sqrt (edge2_flatD_x1 d x1 x2 x6 a b))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.flat_term2_126_x];
+  BY(REWRITE_TAC[Functional_equation.uni;Sphere.flat_term_x;Nonlin_def.edge2_126_x;Functional_equation.constant6;Functional_equation.proj_x1;Functional_equation.proj_x2;Functional_equation.proj_x6;Functional_equation.compose6])
+  ]);;
+  (* }}} *)
+
+let nonfunctional_flat_term2_234 = prove_by_refinement(
+  `! d a b x1 x2 x3 x4 x5 x6. (flat_term2_234_x d a b) x1 x2 x3 x4 x5 x6 = 
+   flat_term (sqrt (edge2_flatD_x1 d x2 x3 x4 a b))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.flat_term2_234_x];
+  BY(REWRITE_TAC[Functional_equation.uni;Sphere.flat_term_x;Nonlin_def.edge2_234_x;Functional_equation.constant6;Functional_equation.proj_x2;Functional_equation.proj_x3;Functional_equation.proj_x4;Functional_equation.compose6])
+  ]);;
+  (* }}} *)
+
+let nonfunctional_flat_term2_135 = prove_by_refinement(
+  `! d a b x1 x2 x3 x4 x5 x6. (flat_term2_135_x d a b) x1 x2 x3 x4 x5 x6 = 
+   flat_term (sqrt (edge2_flatD_x1 d x1 x3 x5 a b))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.flat_term2_135_x];
+  BY(REWRITE_TAC[Functional_equation.uni;Sphere.flat_term_x;Nonlin_def.edge2_135_x;Functional_equation.constant6;Functional_equation.proj_x1;Functional_equation.proj_x3;Functional_equation.proj_x5;Functional_equation.compose6])
+  ]);;
+  (* }}} *)
+
+let nonfunctional_mudLs_126 = prove_by_refinement(
+  `! y1 y2 x3 x4 x5 y6. mudLs_126_x (&4) (&10) (&2) (&2) (&2) (y1*y1) (y2*y2) x3 x4 x5 (y6*y6) = 
+   mu_y (&2) (sqrt (y1 * y1)) (sqrt (y2 * y2)) *
+     (&1 / &14 * (delta_y (&2) y1 y2 y6 (&2) (&2) - &16) + &4)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.mudLs_126_x];
+  Functional_equation.F_REWRITE_TAC;
+  REWRITE_TAC[GSYM Nonlin_def.mu_y;Sphere.delta_126_x;GSYM Sphere.delta_y;delta_y_hex_cases];
+  REWRITE_TAC[arith `&4 * &4 = &16`;arith `&4 + &10 = &14`];
+  TYPIFY `sqrt(&2 * &2) = &2` (C SUBGOAL_THEN SUBST1_TAC);
+    GMATCH_SIMP_TAC Nonlinear_lemma.sqrtxx;
+    BY(REAL_ARITH_TAC);
+  BY(REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let nonfunctional_mudLs_234 = prove_by_refinement(
+  `! x1 y2 y3 y4 x5 x6. mudLs_234_x (&4) (&10) (&2) (&2) (&2) x1 (y2*y2) (y3*y3) (y4*y4) x5 x6 = 
+   mu_y (&2) (sqrt (y2 * y2)) (sqrt (y3 * y3)) *
+     (&1 / &14 * (delta_y (&2) y2 y3 y4 (&2) (&2) - &16) + &4)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.mudLs_234_x];
+  Functional_equation.F_REWRITE_TAC;
+  REWRITE_TAC[GSYM Nonlin_def.mu_y;Sphere.delta_234_x;GSYM Sphere.delta_y;delta_y_hex_cases];
+  REWRITE_TAC[arith `&4 * &4 = &16`;arith `&4 + &10 = &14`];
+  TYPIFY `sqrt(&2 * &2) = &2` (C SUBGOAL_THEN SUBST1_TAC);
+    GMATCH_SIMP_TAC Nonlinear_lemma.sqrtxx;
+    BY(REAL_ARITH_TAC);
+  BY(REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let nonfunctional_mudLs_135 = prove_by_refinement(
+  `! y1 x2 y3 x4 y5 x6. mudLs_135_x (&4) (&10) (&2) (&2) (&2) (y1*y1) x2 (y3*y3) x4 (y5*y5) x6 =
+   mu_y (&2) (sqrt (y1 * y1)) (sqrt (y3 * y3)) *
+     (&1 / &14 * (delta_y (&2) y1 y3 y5 (&2) (&2) - &16) + &4)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.mudLs_135_x];
+  Functional_equation.F_REWRITE_TAC;
+  REWRITE_TAC[GSYM Nonlin_def.mu_y;Sphere.delta_135_x;GSYM Sphere.delta_y;delta_y_hex_cases];
+  REWRITE_TAC[arith `&4 * &4 = &16`;arith `&4 + &10 = &14`];
+  TYPIFY `sqrt(&2 * &2) = &2` (C SUBGOAL_THEN SUBST1_TAC);
+    GMATCH_SIMP_TAC Nonlinear_lemma.sqrtxx;
+    BY(REAL_ARITH_TAC);
+  BY(REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let ineq_sym_s3 = prove_by_refinement(
+  `!y4 y5 y6 p r . 
+      ineq p (r \/ y6 < y4 \/ y5 < y6) ==>
+   ((y4 <= y6 /\ y6 <= y5) ==> ineq p r)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `ineq` MP_TAC;
+  BY(ASM_SIMP_TAC [arith `x <= y ==> ~(y < x)`])
+  ]);;
+  (* }}} *)
+
+let ineq_sym_s2_aab = prove_by_refinement(
+  `!y4 y6 p r. ineq p (r \/ y6 < y4) ==>
+    ((y4 <= y6) ==> ineq p r)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `ineq` MP_TAC;
+  BY(ASM_SIMP_TAC [arith `x <= y ==> ~(y < x)`])
+  ]);;
+  (* }}} *)
+
+let ineq_sym_s2_abb = prove_by_refinement(
+  `!y5 y6 p r. ineq p (r \/ y5 < y6) ==>
+    ((y6 <= y5) ==> ineq p r)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `ineq` MP_TAC;
+  BY(ASM_SIMP_TAC [arith `x <= y ==> ~(y < x)`])
+  ]);;
+  (* }}} *)
+
+let get_ineq (a,b,c) = 
+  REWRITE_RULE[Sphere.y_of_x;Sphere.delta_234_x;Sphere.delta_126_x;Sphere.delta_135_x;
+  arith `#2.52 pow 2 = #2.52 * #2.52 /\ &4 = &2 * &2`;GSYM Sphere.delta_y;delta_y_hex_cases;
+  nonfunctional_mud_126;nonfunctional_mud_234;nonfunctional_mud_135;
+  nonfunctional_flat_term2_126;  nonfunctional_flat_term2_234;  nonfunctional_flat_term2_135;
+  nonfunctional_mudLs_135 ;nonfunctional_mudLs_126 ;nonfunctional_mudLs_234]
+  (appendix_get_main_nonlinear (Printf.sprintf "7550003505 %d %d %d" a b c));;
+
+
+
+let r755_0 i = 
+  let (yys,tm) =  (strip_forall (concl(get_ineq (i,i,i)))) in
+  let tm0 = rhs(concl(REWRITE_CONV [ASSUME (`~(y6 < y4) /\ ~(y5 < y6)`)] tm)) in
+  let tm1 = list_mk_forall (yys, tm0) in
+  let tm2 = mk_imp (`v11_main_nonlinear_v33`,tm1) in
+prove_by_refinement(tm2,
+  (* {{{ proof *)
+  [
+  DISCH_TAC;
+  MATCH_MP_TAC REAL_WLOG_S3_SIMPLEX;
+  CONJ_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC delta_y_sym_cases2 [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+    DISCH_THEN (unlist REWRITE_TAC);
+    INTRO_TAC taum_sym_cases2 [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+    DISCH_THEN (unlist REWRITE_TAC);
+    INTRO_TAC edge2_flatD_x1_sym_cases [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+    DISCH_THEN (unlist REWRITE_TAC);
+    INTRO_TAC eulerA_x_sym_cases [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+    DISCH_THEN (unlist REWRITE_TAC);
+    INTRO_TAC mu_y_sym_cases [`y1`;`y2`;`y3`];
+    DISCH_THEN (unlist REWRITE_TAC);
+    TYPIFY_GOAL_THEN `!f. f y1 y2 y6 + f y1 y3 y5 + f y2 y3 y4 = f y2 y3 y4 + f y1 y2 y6 + f y1 y3 y5 /\ f y1 y3 y5 + f y1 y2 y6 + f y2 y3 y4 = f y2 y3 y4 + f y1 y2 y6 + f y1 y3 y5` (unlist ONCE_REWRITE_TAC);
+      BY(REAL_ARITH_TAC);
+    BY(REWRITE_TAC[Sphere.ineq] THEN MESON_TAC[]);
+  REPEAT GEN_TAC;
+  MATCH_MP_TAC ineq_sym_s3;
+  INTRO_TAC (get_ineq(i,i,i)) [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+  BY(REWRITE_TAC[TAUT `(a \/ b) \/ c <=> a \/ b \/ c`])
+  ]);;
+  (* }}} *)
+
+let r755_diag = map r755_0 [0;1;2;3;4];;
+
+let tmg i j = 
+  let (yys,tm) =  (strip_forall (concl(get_ineq (i,i,j)))) in
+  let tm0 = rhs(concl(REWRITE_CONV [ASSUME (`~(y6 < y4)`)] tm)) in
+  let tm1 = list_mk_forall (yys, tm0) in
+  let tm2 = mk_imp (`v11_main_nonlinear_v33`,tm1) in
+    tm2;;
+
+get_ineq(0,0,1);;
+
+g (tmg 0 1);;
+
+let r755_aab i j= 
+  let (yys,tm) =  (strip_forall (concl(get_ineq (i,i,j)))) in
+  let tm0 = rhs(concl(REWRITE_CONV [ASSUME (`~(y6 < y4)`)] tm)) in
+  let tm1 = list_mk_forall (yys, tm0) in
+  let tm2 = mk_imp (`v11_main_nonlinear_v33`,tm1) in
+prove_by_refinement(tm2,
+  (* {{{ proof *)
+  [
+  DISCH_TAC;
+  MATCH_MP_TAC REAL_WLOG_AAB_SIMPLEX;
+  CONJ_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC delta_y_sym_cases2 [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+    DISCH_THEN (unlist REWRITE_TAC);
+    INTRO_TAC taum_sym_cases2 [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+    DISCH_THEN (unlist REWRITE_TAC);
+    INTRO_TAC edge2_flatD_x1_sym_cases [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+    DISCH_THEN (unlist REWRITE_TAC);
+    INTRO_TAC eulerA_x_sym_cases [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+    DISCH_THEN (unlist REWRITE_TAC);
+    INTRO_TAC mu_y_sym_cases [`y1`;`y2`;`y3`];
+    DISCH_THEN (unlist REWRITE_TAC);
+    TYPIFY_GOAL_THEN `!f b. f y1 y2 y6 + f y2 y3 y4 + b = f y2 y3 y4 + f y1 y2 y6 + b` (unlist ONCE_REWRITE_TAC);
+      BY(REAL_ARITH_TAC);
+    BY(REWRITE_TAC[Sphere.ineq] THEN MESON_TAC[]);
+  REPEAT GEN_TAC;
+  MATCH_MP_TAC ineq_sym_s2_aab;
+  INTRO_TAC (get_ineq(i,i,j)) [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`];
+  BY(REWRITE_TAC[TAUT `(a \/ b) \/ c <=> a \/ b \/ c`])
+  ]);;
+  (* }}} *)
+
+let r755_aab_list = map (fun (i,j) -> ((i,j),r755_aab i j)) [(0,1);(0,2);(0,3);(0,4);(1,2);(1,3);(1,4);
+						      (2,3);(2,4);(3,4)];;

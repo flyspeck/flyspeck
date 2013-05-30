@@ -856,6 +856,7 @@ let restriction_typ2_v34 = new_definition `restriction_typ2_v34 s =
    (scs_v34 (scs_k_v34 s,scs_d_v34 s,scs_am_v34 s,scs_am_v34 s,
 	    scs_am_v34 s,scs_am_v34 s,scs_J_v34 s,scs_lo_v34 s,scs_hi_v34 s,scs_str_v34 s))`;;
 
+(* DEPRECATED 
 let restriction_typ3_v34 = new_definition `restriction_typ3_v34 s i j a b =
   ((a <= scs_bm_v34 s i j  /\ scs_am_v34 s i j <= b),
    (let k = scs_k_v34 s in
@@ -875,16 +876,35 @@ let subdivision_v34 = new_definition `subdivision_v34 c i j s =
   let r2 = restriction_typ3_v34 s i j c (scs_b_v34 s i j) in
   let cons_if = (\b r rs. if b then CONS r rs else rs) in
     if precond then (cons_if (FST r1) (SND r1) (cons_if (FST r2) (SND r2) []))  else [])`;;
-
-(* throws uncaught parse error:
-` (let u =  a /\  b in
-    T)`;;
 *)
+
+let restriction_cs1_v34 = new_definition `restriction_cs1_v34 s p q c =
+  (let b1 = override (scs_b_v34 s) (scs_k_v34 s) (p,q) c in
+   let bm = if (c < scs_bm_v34 s p q) then
+     override (scs_bm_v34 s) (scs_k_v34 s) (p,q) c else scs_bm_v34 s in
+   (scs_v34 (scs_k_v34 s,scs_d_v34 s,scs_a_v34 s,scs_am_v34 s,
+	    bm,b1,scs_J_v34 s,scs_lo_v34 s,scs_hi_v34 s,scs_str_v34 s)))`;;
+
+let restriction_cs2_v34 = new_definition `restriction_cs2_v34 s p q c =
+  (let a1 = override (scs_a_v34 s) (scs_k_v34 s) (p,q) c in
+   let am = if (scs_am_v34 s p q < c) then
+     override (scs_am_v34 s) (scs_k_v34 s) (p,q) c else scs_am_v34 s in
+   (scs_v34 (scs_k_v34 s,scs_d_v34 s,a1,am,scs_bm_v34 s,scs_b_v34 s,
+	    scs_J_v34 s,scs_lo_v34 s,scs_hi_v34 s,scs_str_v34 s)))`;;
+
+let subdiv_v34 = new_definition `subdiv_v34 s p q c = 
+  (if (c <= scs_a_v34 s p q) then [s]
+  else (if (c <= scs_am_v34 s p q) then [restriction_cs2_v34 s p q c]
+  else (if (c < scs_bm_v34 s p q) then [restriction_cs1_v34 s p q c;restriction_cs2_v34 s p q c]
+  else (if (c < scs_b_v34 s p q) then [restriction_cs1_v34 s p q c]
+  else [s]))))`  
 
 let transfer_v34 = new_definition `transfer_v34 s s' <=>
   (is_ear_v34 s ==> (s = s')) /\
+    (is_scs_v34 s') /\
     (unadorned_v34 s') /\
     scs_d_v34 s <= scs_d_v34 s' /\
+    (scs_k_v34 s' = scs_k_v34 s) /\
     (!i j. scs_a_v34 s' i j <= scs_a_v34 s i j) /\
     (!i j. scs_b_v34 s i j <= scs_b_v34 s' i j) /\
     (!i j. scs_J_v34 s' i j ==>  scs_J_v34 s i j)
@@ -1025,7 +1045,7 @@ let EQTTNZI2_concl = `!s t. is_scs_v34 s /\
 let UAGHHBM_concl = `!s i j c .
     is_scs_v34 s /\
     scs_a_v34 s i j <= c /\  c <= scs_b_v34 s i j ==>
-    scs_arrow_v34 {s} (set_of_list (subdivision_v34 c i j s))`;;
+    scs_arrow_v34 {s} (set_of_list (subdiv_v34 c i j s))`;;
 
 let YXIONXL1_concl = `!s t.
   is_scs_v34 s /\
@@ -1215,8 +1235,8 @@ let sterm_is_scs_concl = `!s. MEM s scs_terminal_v34 ==> is_scs_v34 s`;;
 (* hexagons *)
 
 let hex_assumptions = 
-  `[HD (subdivision_v34 cstab 0 2  (EL 0 s_init_list_v34));
-    HD (subdivision_v34 cstab 0 3  (EL 0 s_init_list_v34))]`;;
+  `[HD (subdiv_v34 cstab 0 2  (EL 0 s_init_list_v34));
+    HD (subdiv_v34 cstab 0 3  (EL 0 s_init_list_v34))]`;;
 
 let hex_std_postslice = 
   Ineq.mk_tplate 

@@ -63,7 +63,7 @@ namespace LP_HL
                 // Specific LP
                 string name = args[0];
                 LpNumber upperBound = new LpNumber(decimal.Parse(args[1]));
-                ProcessLP(name, upperBound, null);
+                ProcessLP(name, upperBound, null, true);
             }
         }
 
@@ -75,23 +75,23 @@ namespace LP_HL
         {
             // GenerateExamples();
             string[] files = Directory.GetFiles(".", "flyspeck*.txt");
-            FileStream fs = new FileStream("all_tests.hl", FileMode.Create);
-            StreamWriter w = new StreamWriter(fs);
+//            FileStream fs = new FileStream("all_tests.hl", FileMode.Create);
+//            StreamWriter w = new StreamWriter(fs);
 
 
-            w.WriteLine("let start = Sys.time();;");
+//            w.WriteLine("let start = Sys.time();;");
 
-            int i = 1;
+//            int i = 1;
             foreach (string file in files)
             {
                 string name = ProcessFlyspeckLP(file, hypermaps);
-                w.WriteLine("\"Case: {0}/{1}\";;", i++, files.Length);
-                w.WriteLine("let _ = needs \"{0}\" in Sys.time() -. start;;", name + "_out.hl");
+//                w.WriteLine("\"Case: {0}/{1}\";;", i++, files.Length);
+//                w.WriteLine("let _ = needs \"{0}\" in Sys.time() -. start;;", name + "_out.hl");
                 // break;
             }
 
-            w.Flush();
-            fs.Close();
+//            w.Flush();
+//            fs.Close();
         }
 
 
@@ -108,7 +108,7 @@ namespace LP_HL
                 string name;
                 ListHyp hypermap = hypermaps.ComputeHypermap(new StreamReader(info), out name);
 
-                ProcessLP(name, new LpNumber(12), hypermap);
+                ProcessLP(name, new LpNumber(12), hypermap, false);
                 return name;
             }
             finally
@@ -147,7 +147,7 @@ namespace LP_HL
         /// Creates files for producing a formal proof for the given linear program.
         /// The precision is selected automatically
         /// </summary>
-        static void ProcessLP(string fname, LpNumber upperBound, ListHyp hypermap)
+        static void ProcessLP(string fname, LpNumber upperBound, ListHyp hypermap, bool holTerms)
         {
             Console.WriteLine("Processing {0}...", fname);
             try
@@ -158,7 +158,7 @@ namespace LP_HL
 
                     if (hypermap != null)
                     {
-                        if (ProcessLP(fname, upperBound, precision, hypermap))
+                        if (ProcessLP(fname, upperBound, precision, hypermap, holTerms))
                             break;
                     }
                     else
@@ -221,7 +221,7 @@ namespace LP_HL
         /// <summary>
         /// Creates files for producing a formal proof for the given linear program
         /// </summary>
-        static bool ProcessLP(string fname, LpNumber upperBound, int precision, ListHyp hypermap)
+        static bool ProcessLP(string fname, LpNumber upperBound, int precision, ListHyp hypermap, bool holTerms)
         {
             if (precision > 5)
                 throw new Exception("Cannot solve the problem: " + fname);
@@ -253,19 +253,19 @@ namespace LP_HL
                 return false;
 
             // Create a test file containing all inequalities explicitly
-            FileStream test = new FileStream(fname + "_test.hl", FileMode.Create);
-            lp.ConvertToHOL(new StreamWriter(test), precision);
-            test.Close();
+//            FileStream test = new FileStream(fname + "_test.hl", FileMode.Create);
+//            lp.ConvertToHOL(new StreamWriter(test), precision);
+//            test.Close();
 
             // Create a certificate file
             FileStream main = new FileStream(fname + "_out.hl", FileMode.Create);
-            lp.PrintCertificate(new StreamWriter(main), precision, hypermap, log);
+            lp.PrintCertificate(new StreamWriter(main), precision, hypermap, log, holTerms);
             main.Close();
 
             // Debug file with text inequalities
-            FileStream text = new FileStream(fname + "_text.hl", FileMode.Create);
-            lp.PrintAllText(new StreamWriter(text), precision, hypermap);
-            text.Close();
+//            FileStream text = new FileStream(fname + "_text.hl", FileMode.Create);
+//            lp.PrintAllText(new StreamWriter(text), precision, hypermap);
+//            text.Close();
 
             return true;
         }

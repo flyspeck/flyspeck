@@ -1,10 +1,12 @@
 needs "../formal_lp/hypermap/ineqs/lp_ineqs.hl";;
 needs "../formal_lp/hypermap/ineqs/lp_head_ineqs.hl";;
 needs "../formal_lp/hypermap/ineqs/lp_body_ineqs.hl";;
+needs "../formal_lp/hypermap/main/lp_certificate.hl";;
 needs "../formal_lp/hypermap/computations/list_hypermap_computations.hl";;
 needs "../formal_lp/more_arith/prove_lp.hl";;
 
-module Flyspeck_lp = struct
+
+(* module Flyspeck_lp = struct *)
 
 open Arith_misc;;
 open Linear_function;;
@@ -15,6 +17,7 @@ open List_hypermap_computations;;
 open List_conversions;;
 open Lp_approx_ineqs;;
 open Lp_ineqs;;
+open Lp_certificate;;
 
 Lp_head_ineqs.add_head_ineqs();;
 Lp_body_ineqs.add_body_ineqs();;
@@ -318,6 +321,56 @@ let EXPAND_CONCL_RULE var_name th =
   let eq_th = SYM (ASSUME hyp_tm) in
     PURE_REWRITE_RULE[eq_th] th;;
 
+(**************************)
+
+let contravening_conditions hyp_list_tm hyp_set =
+  let th0 = (MY_RULE_NUM o REWRITE_RULE[Seq.size]) Lp_ineqs_proofs.contravening_lp_cond_alt in
+  let th1 = (UNDISCH_ALL o  ISPEC hyp_list_tm o REWRITE_RULE[GSYM IMP_IMP]) th0 in
+  let good_list_nodes_th = EQT_ELIM (eval_good_list_nodes_condition hyp_set) in
+  let lp_cond_th = (MY_PROVE_HYP (hyp_set "good_list") o MY_PROVE_HYP good_list_nodes_th) th1 in
+  let lp_cond_th' = (SELECT_AND_ABBREV_RULE o SELECT_AND_ABBREV_RULE o ABBREV_RULE "L" hyp_list_tm) lp_cond_th in
+  let lp_tau_th = (UNDISCH_ALL o SPEC_ALL) Lp_main_estimate.contravening_lp_tau in
+    lp_cond_th', lp_tau_th;;
 
 
-end;; 
+let certificate = read_lp_certificate "/mnt/Repository/formal_lp/glpk/binary/1007256557.dat";;
+
+let e_cap_var = `E:(real^3->bool)->bool`;;
+
+let hyp_list0_tm = (to_num o create_hol_list_str) certificate.hypermap_string;;
+let hyp_set0, hyp_fun0 = compute_all hyp_list0_tm None;;
+let lp_cond0, lp_tau0 = contravening_conditions hyp_list0_tm hyp_set0;;
+
+
+let verify_case std_flag case hyp_list =
+  match case with
+      (* Lp_terminal *)
+    | Lp_terminal terminal ->
+	let hyp_set, hyp_fun =
+	  if std_flag then hyp_set0, hyp_fun0 else compute_all hyp_list None in
+	let r = (fun name, ind, v -> name, ind, map mk_real_int64 v) in
+	let c = map r terminal.constraints and
+	    tv = map r terminal.target_variables and
+	    vb = map r terminal.variable_bounds in
+	  prove_flyspeck_lp_step1 hyp_list hyp_set hyp_fun std_flag terminal.precision c tv vb
+
+    | _ -> failwith "Not implemented";;
+
+
+verify_case true certificate.root_case hyp_list0_tm;;
+
+
+let r = (fun name, ind, v -> name, ind, map mk_real_int64 v);;
+let terminal = match certificate.root_case with Lp_terminal t -> t;;
+let c = map r terminal.constraints and
+    tv = map r terminal.target_variables and
+    vb = map r terminal.variable_bounds;;
+
+(* let get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices = *)
+
+let name, ind, cc = List.nth c 27;;
+get_ineqs (hyp_list0_tm, hyp_set0, hyp_fun0) true 3 name [hd ind];;
+
+find_ineq true 3 "ineq106";;
+
+(* end;; *)

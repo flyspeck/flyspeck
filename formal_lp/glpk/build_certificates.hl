@@ -1,0 +1,194 @@
+needs "../formal_lp/hypermap/main/lp_certificate.hl";;
+needs "../formal_lp/glpk/lpproc.hl";;
+
+let empty_constraints : (Lp_certificate.constraint_type list) = [];;
+
+let hypermap_string = ref "" and
+    precision = ref 0 and
+    constraints = ref empty_constraints and
+    variable_bounds = ref empty_constraints and
+    target_variables = ref empty_constraints;;
+
+
+open Glpk_link;;
+open Lpproc;;
+open List;;
+open Lp_certificate;;
+
+let run_command dir com =
+  let cur_dir = Sys.getcwd() in
+  let _ = Sys.chdir dir in
+  let result = Sys.command com in
+  let _ = Sys.chdir cur_dir in
+    result;;
+
+
+(* make_model();; *)
+let com = sprintf "sed -e 's/maximize objective:.*/maximize objective: sum{i in node} ln[i];/' -e 's/lnsum_def:.*//' %s > model2.mod" model;;
+run_command tame_dir com;;
+
+let model2 = tame_dir ^ "/model2.mod";;
+
+
+let out_dir = flyspeck_dir ^ "/../formal_lp/glpk/tmp";;
+let binary_dir = flyspeck_dir ^ "/../formal_lp/glpk/binary";;
+let lp_hl_dir = flyspeck_dir ^ "/../formal_lp/LP-HL/LP-HL/bin/Release";;
+
+
+let ampl_of_bb' fname bb =
+  let out = open_out fname in
+  let _ = ampl_of_bb out bb in
+    close_out out;;
+
+
+let save_string fname str =
+  let out = open_out fname in
+  let _ = Printf.fprintf out "%s" str in
+    close_out out;;
+
+let list_pairs list =
+  let h = hd list in
+  let rec pairs list =
+    match list with
+      | [] -> []
+      | [h1] -> [h1, h]
+      | h1 :: h2 :: t -> (h1,h2) :: pairs (h2 :: t) in
+    pairs list;;
+
+
+let split_list list dart =
+  let split_face f =
+    if length f <= 3 then
+      [f]
+    else
+      let t3, _ = chop_list 3 f in
+      let _, d2 = chop_list 2 f in
+	[t3; hd t3 :: d2] in
+
+  let rec split list = 
+    match list with
+      | [] -> []
+      | f :: t -> 
+	  let pairs = list_pairs f in
+	    if mem dart pairs then
+	      let i = index dart pairs in
+		split_face (Glpk_link.rotateR 1 (Glpk_link.rotateL i f)) @ t
+	    else
+	      f :: split t in
+    split list;;
+
+
+let find_index p list = fst (find (fun _,x -> p x) (Glpk_link.enumerate list));;
+
+let find_face_index fs f =
+  let rots = Glpk_link.rotation [f] in
+  let rec find fs =
+    match fs with
+      | [] -> failwith "find_face_index"
+      | h :: t ->
+	  let eq = fold_right (or) (map ((=) h) rots) false in
+	    if eq then 0 else find t + 1 in
+    find fs;;
+
+
+let build_permutation fs0 fs = map (fun f -> find_face_index fs f) fs0;;
+
+
+let gen_splits list face =
+  let pairs = list_pairs face in
+    if length face = 4 then
+      let darts = [nth pairs 0; nth pairs 1] in
+      let splits = map (split_list list) darts in
+	([], list) :: zip (map (fun x -> [x]) darts) splits
+    else
+      failwith "gen_splits: length face <> 4";;
+
+
+let save_info out_dir name (ds,fs) bb =
+  let t2 = faces bb in
+  let perm = build_permutation fs t2 in
+  let _ = ampl_of_bb' (sprintf "%s/%s_pars.txt" out_dir name) bb in
+  let perm_str = unsplit ", " string_of_int perm in
+  let dart_str = unsplit "; " (fun x,y -> string_of_int x ^ "," ^ string_of_int y) ds in
+  let p = Printf.sprintf in
+  let lines = [
+    p "name: %s" name;
+    p "id: %s" bb.hypermap_id;
+    p "split: %s" dart_str;
+    p "faces: %s" perm_str;
+  ] in
+    save_string (out_dir ^ "/flyspeck-" ^ name ^ ".txt") (join_lines lines);;
+
+
+let clean_out_dir =
+  let permanent_files = [
+    "000.txt";
+    "string_archive.txt";
+  ] in
+    fun () ->
+      let files = Array.to_list (Sys.readdir out_dir) in
+      let files' = filter (fun name -> not (mem name permanent_files)) files in
+      let _ = map (fun name -> Sys.remove (sprintf "%s/%s" out_dir name)) files' in
+	();;
+	
+
+
+(* Builds a terminal case from the given hypermap *)
+let build_terminal_case hyp_list bb =
+  let _ = clean_out_dir() in
+  let out_name = "out" in
+  let _ = save_info out_dir out_name ([], hyp_list) bb in
+  let data_file = sprintf "%s_pars.txt" out_name in
+  let solve_com = sprintf "glpsol -m %s -d %s -w %s.txt --wcpxlp %s.lp > /dev/null"  model2 data_file out_name out_name in
+  let result = run_command out_dir solve_com in
+    if result <> 0 then
+      failwith (sprintf "build_terminal_case: glpsol failed for %s" bb.hypermap_id)
+    else
+      let com = sprintf "mono %s/LP-HL.exe %s" lp_hl_dir (sprintf "flyspeck-%s.txt" out_name) in
+      let _ = run_command out_dir com in
+      let _ = hypermap_string := "";
+	precision := 0;
+	constraints := empty_constraints;
+	variable_bounds := empty_constraints;
+	target_variables := empty_constraints in
+      let _ = use_file (sprintf "%s/%s_out.hl" out_dir out_name) in
+      let certificate = {
+	precision = !precision;
+	constraints = !constraints;
+	target_variables = !target_variables;
+	variable_bounds = !variable_bounds;
+      } in
+	certificate;;
+  
+
+(* Builds and saves an std certificate *)
+let build_and_save_std bb =
+  let hyp_list = (snd o convert_to_list) bb.string_rep in
+  let terminal = build_terminal_case hyp_list bb in
+  let root = Lp_terminal terminal in
+  let certificate = {hypermap_string = bb.string_rep; root_case = root} in
+  let fname = sprintf "%s/%s.dat" binary_dir bb.hypermap_id in
+    write_lp_certificate fname certificate;;
+
+
+(****************************)
+let tame = Glpk_link.strip_archive (!archiveraw);;
+let test_tame = fst (chop_list 100 tame);;
+let test_list = map mk_bb test_tame;;
+let test_feas = filter_feas (map solve test_list);;
+let test_bbs = subtract test_list test_feas;;
+
+let process_all =
+  let counter = ref 0 and
+      total = ref 0 in
+  let report s =
+    Format.print_string s; Format.print_newline(); Format.print_flush() in
+  let process bb =
+    let _ = counter := !counter + 1 in
+    let _ = report (sprintf "%d/%d" !counter !total) in
+      build_and_save_std bb in
+    fun bbs ->
+      let _ = total := length bbs in
+	map process bbs;;
+
+process_all test_bbs;;

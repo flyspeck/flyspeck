@@ -340,6 +340,43 @@ namespace LP_HL
             return str.ToString();
         }
 
+        /// <summary>
+        /// Converts to an Int64 string representation
+        /// </summary>
+        /// <param name="precision"></param>
+        /// <returns></returns>
+        public string ToInt64String(int precision)
+        {
+            StringBuilder str = new StringBuilder();
+            decimal val = value;
+
+            if (val < 0)
+            {
+                str.Append('(');
+                str.Append('-');
+                val = -val;
+            }
+
+            if (Math.Round(val) != val)
+                throw new Exception("Only integers can be used");
+
+            if (val < Int64.MaxValue)
+            {
+                str.Append(Math.Round(val));
+                str.Append("L");
+            }
+            else
+            {
+                throw new Exception("Cannot convert a number into Int64 string");
+            }
+
+            if (value < 0)
+                str.Append(')');
+
+            return str.ToString();
+
+        }
+
 
 
         /// <summary>

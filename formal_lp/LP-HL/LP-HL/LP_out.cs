@@ -138,7 +138,7 @@ namespace LP_HL
 
 
         // Saves all indexed inequalities
-        private void SaveIndexedIneqs(StreamWriter writer, int precision)
+        private void SaveIndexedIneqs(StreamWriter writer, int precision, bool holTerms)
         {
             foreach (string name in ineqNames)
             {
@@ -154,7 +154,9 @@ namespace LP_HL
                 writer.Write("], [");
                 for (int i = 0; i < list.Count; i++)
                 {
-                    writer.Write(list[i].marginal.ToHOLExplicit(precision) + "; ");
+                    string str = holTerms ? list[i].marginal.ToHOLExplicit(precision)
+                        : list[i].marginal.ToInt64String(precision);
+                    writer.Write(str + "; ");
                 }
 
                 writer.WriteLine("]);");
@@ -165,7 +167,7 @@ namespace LP_HL
         /// <summary>
         /// Creates a HOL certificate
         /// </summary>
-        public void PrintCertificate(StreamWriter writer, int precision, ListHyp hypermap, StreamWriter log)
+        public void PrintCertificate(StreamWriter writer, int precision, ListHyp hypermap, StreamWriter log, bool holTerms)
         {
             // Find target variables
             foreach (var term in objective.Terms)
@@ -183,8 +185,8 @@ namespace LP_HL
 //            writer.WriteLine("module Test_case = struct");
 
             // Parameters
-            writer.WriteLine("let hypermap_string = \"" + hypermap.rawString + "\";;");
-            writer.WriteLine("let precision = " + precision + ";;");
+            writer.WriteLine("hypermap_string := \"" + hypermap.rawString + "\";;");
+            writer.WriteLine("precision := " + precision + ";;");
 
             dict.Clear();
             ineqNames.Clear();
@@ -214,8 +216,8 @@ namespace LP_HL
                 AddIndexedIneq(ineq, m, hypermap);
             }
 
-            writer.WriteLine("let constraints = [");
-            SaveIndexedIneqs(writer, precision);
+            writer.WriteLine("constraints := [");
+            SaveIndexedIneqs(writer, precision, holTerms);
             writer.WriteLine("];;");
 
             // Variables
@@ -246,8 +248,8 @@ namespace LP_HL
                 AddIndexedIneq(ineq, m, hypermap);
             }
 
-            writer.WriteLine("let target_variables = [");
-            SaveIndexedIneqs(writer, precision);
+            writer.WriteLine("target_variables := [");
+            SaveIndexedIneqs(writer, precision, holTerms);
             writer.WriteLine("];;");
 
             writer.WriteLine();
@@ -269,8 +271,8 @@ namespace LP_HL
                 AddIndexedIneq(ineq, m, hypermap);
             }
 
-            writer.WriteLine("let variable_bounds = [");
-            SaveIndexedIneqs(writer, precision);
+            writer.WriteLine("variable_bounds := [");
+            SaveIndexedIneqs(writer, precision, holTerms);
             writer.WriteLine("];;");
 
             // Tail

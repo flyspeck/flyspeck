@@ -18,3 +18,209 @@ open Merge_ineq;;
 (* ========================================================================== *)
 
 end;;
+
+
+
+let DOT_LSUB  = prove_by_refinement(
+  `!x y (z:real^A). (x - y) dot z = x dot z - y dot z`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  BY(VECTOR_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let DOT_RSUB  = prove_by_refinement(
+  `!x y (z:real^A). x dot (y - z) = x dot y - x dot z `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  BY(VECTOR_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let euler_p_eulerA_x = prove_by_refinement(
+  `!(v0:real^A) v1 v2 v3. 
+    (let x1 = dist(v0,v1) pow 2 in 
+     let x2 = dist(v0,v2) pow 2 in 
+     let x3 = dist(v0,v3) pow 2 in
+     let x4 = dist(v2,v3) pow 2 in
+     let x5 = dist(v1,v3) pow 2 in
+     let x6 = dist(v1,v2) pow 2 in
+       (euler_p v0 v1 v2 v3 = eulerA_x x1 x2 x3 x4 x5 x6))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LET_DEF;LET_END_DEF;Sphere.euler_p;Sphere.eulerA_x;Sphere.ylist];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (GMATCH_SIMP_TAC POW_2_SQRT);
+  REWRITE_TAC[DIST_POS_LE];
+  MATCH_MP_TAC (arith `b = b' ==> a + b = a + b'`);
+  MATCH_MP_TAC (arith `a = a' /\ b = b' /\ c = c' ==> ra * a + rb * b + rc * c = ra * a' + rb * b' + rc * c'`);
+  REWRITE_TAC[Collect_geom2.DIST_POW2_DOT];
+  REWRITE_TAC[DOT_LSUB;DOT_RSUB];
+  REWRITE_TAC[DOT_SYM];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+(* was DELTA_IMP_DIH_PI *)
+
+let COPLANAR_IMP_DIH_PI = prove_by_refinement(
+  `!(v0:real^3) v1 v2 v3. (let y1 = dist(v0,v1)  in 
+     let y2 = dist(v0,v2)  in 
+     let y3 = dist(v0,v3)  in
+     let y4 = dist(v2,v3)  in
+     let y5 = dist(v1,v3)  in
+     let y6 = dist(v1,v2)  in
+       (~collinear {v0, v1, v2} /\ ~collinear {v0, v1, v3} /\ coplanar {v0,v1,v2,v3} /\ 
+	  y_of_x delta_x4 y1 y2 y3 y4 y5 y6 < &0 ==>
+	  dihV v0 v1 v2 v3 = pi))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LET_DEF;LET_END_DEF];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `coplanar` MP_TAC;
+  GMATCH_SIMP_TAC (GSYM DIHV_EQ_0_PI_EQ_COPLANAR);
+  ASM_REWRITE_TAC[];
+  TYPIFY `(&0 < dihV v0 v1 v2 v3 )` ENOUGH_TO_SHOW_TAC;
+    BY(REAL_ARITH_TAC);
+  INTRO_TAC Euler_complement.OJEKOJF2 [`v0`;`v1`;`v2`;`v3`];
+  REWRITE_TAC[LET_DEF;LET_END_DEF];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN SUBST1_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[Sphere.y_of_x;arith `x*x = x pow 2`];
+  TYPIFY `d4 = delta_x4 (dist (v0,v1) pow 2) (dist (v0,v2) pow 2) (dist (v0,v3) pow 2)  (dist (v2,v3) pow 2) (dist (v1,v3) pow 2) (dist (v1,v2) pow 2)` TYPED_ABBREV_TAC;
+  DISCH_TAC;
+  TYPIFY `!x y. (y < &0 ==> atn2 (x,y) = --(pi / &2) - atn (x / y))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(MESON_TAC[Trigonometry1.ATN2_BREAKDOWN]);
+  FIRST_X_ASSUM (unlist ASM_SIMP_TAC);
+  MATCH_MP_TAC (arith `&0 < pi /\ -- (pi / &2) < a  ==> &0 < pi/ &2 - ( -- (pi/ &2) - a)`);
+  REWRITE_TAC[PI_POS];
+  BY(REWRITE_TAC[ATN_BOUNDS])
+  ]);;
+  (* }}} *)
+
+let DELTA_IMP_DIH_PI = prove_by_refinement(
+  `!(v0:real^3) v1 v2 v3. (let y1 = dist(v0,v1)  in 
+     let y2 = dist(v0,v2)  in 
+     let y3 = dist(v0,v3)  in
+     let y4 = dist(v2,v3)  in
+     let y5 = dist(v1,v3)  in
+     let y6 = dist(v1,v2)  in
+       (~collinear {v0, v1, v2} /\ ~collinear {v0, v1, v3} /\ 
+	  delta_y y1 y2 y3 y4 y5 y6 = &0 /\
+	  y_of_x delta_x4 y1 y2 y3 y4 y5 y6 < &0 ==>
+	  dihV v0 v1 v2 v3 = pi))`,
+  (* {{{ proof *)
+  [
+  #
+  ]);;
+  (* }}} *)
+
+
+
+let DIH_IMP_EULER_P_POS = prove_by_refinement(
+  `!(v0:real^3) v1 v2 v3. (let y1 = dist(v0,v1)  in 
+     let y2 = dist(v0,v2)  in 
+     let y3 = dist(v0,v3)  in
+     let y4 = dist(v2,v3)  in
+     let y5 = dist(v1,v3)  in
+     let y6 = dist(v1,v2)  in
+       (~collinear {v0,v1,v2} /\ ~collinear {v0,v2,v3} /\ ~collinear{v0,v1,v3} /\
+	  dihV v0 v1 v2 v3 + dihV v0 v2 v3 v1 + dihV v0 v3 v1 v2 < &2 * pi /\
+	  &2 <= y1 /\ y1 <= &2 * h0 /\
+	  &2 <= y2 /\ y2 <= &2 * h0 /\
+	  &2 <= y3 /\ y3 <= &2 * h0 /\
+	  #3.01 <= y4 /\ y4 <= #3.915 /\
+	  #3.01 <= y5 /\ y5 <= #3.915 /\
+	  #3.01 <= y6 /\ y6 <= #3.915 ==>
+	  y_of_x eulerA_x y1 y2 y3 y4 y5 y6 > &0))`,
+  (* {{{ proof *)
+  [
+
+rt[LET_DEF;LET_END_DEF]
+st/r
+typ `&0 < delta_y (dist(v0,v1)) (dist(v0,v2)) (dist(v0,v3)) (dist(v2,v3)) (dist(v1,v3)) (dist(v1,v2))` asmcase
+intro Euler_main_theorem.EULER_TRIANGLE [`v0`;`v1`;`v2`;`v3`]
+rt[LET_DEF;LET_END_DEF;Sphere.xlist;Sphere.ylist]
+ants
+art[arith `x pow 2 = x * x`;GSYM Sphere.delta_y]
+dt
+fxast `&2 * pi` mp
+rt[arith `dd < &2 * pi <=> dd - pi < pi`]
+art[arith `(a + b+c) -pi = a + b + c - pi`]
+art[arith `x pow 2 = x * x`;GSYM Sphere.delta_y;arith `pi - u < pi <=> &0 < u`]
+rt[ (rr[LET_DEF;LET_END_DEF] euler_p_eulerA_x)]
+rt[arith `x pow 2 = x * x`;GSYM Sphere.y_of_x]
+typ `p = y_of_x eulerA_x (dist (v0,v1)) (dist (v0,v2)) (dist (v0,v3)) (dist (v2,v3))   (dist (v1,v3))  (dist (v1,v2))` abbrev
+rt[arith `&0 < &2 * x <=> &0 < x`]
+gm Merge_ineq.ATN2_POS
+conj
+fyn
+asm then rat
+rat
+comment "case delta=0"
+typ `delta_y  (dist (v0,v1)) (dist (v0,v2)) (dist (v0,v3)) (dist (v2,v3))        (dist (v1,v3))        (dist (v1,v2)) = &0` sat
+intro Terminal.DELTA_Y_POS_4POINTS [`v0`;`v1`;`v2`;`v3`]
+asm then rat
+contr
+typ `coplanar {v0,v1,v2,v3}` sat
+rt[orr[TAUT `(~a <=> b) <=> (a <=> ~b)`] Oxlzlez.coplanar_delta_y]
+asm then rat
+typ `{v0,v2,v3,v1} = {v0,v1,v2,v3} /\ {v0,v3,v1,v2} = {v0,v1,v2,v3}` sat
+set[]
+typ `{v0,v2,v1} = {v0,v1,v2} /\ {v0,v3,v2} = {v0,v2,v3} /\ {v0,v3,v1} = {v0,v1,v3}` sat
+set[]
+intro (Terminal.get_main_nonlinear "7439076204") [`dist(v0,v1)`;`dist(v0,v2)`;`dist(v0,v3)`;`dist(v2,v3)`;`dist(v1,v3)`;`dist(v1,v2)`]
+  ]);;
+  (* }}} *)
+
+Terminal.get_main_nonlinear "7439076204";;
+Ineq.getexact "7439076204";;
+
+let dih_D1_abc = prove_by_refinement(
+  `!a b c. 
+  let afac = a * (&16 - a pow 2) in
+  let d = delta_y (&2) (&2) (&2) a b c in
+  let sd = sqrt(d) in
+  let taumarE1 = &4 * a * afac / sd in
+    (derived_form (&0 < d)
+    (\q. dih_y (&2) (&2) (&2) q b c)
+    taumarE1 a (:real))`,
+  (* {{{ proof *)
+  [
+rt[LET_DEF;LET_END_DEF;Sphere.dih_y;Sphere.dih_x]
+st/r
+asmcase `&0 < delta_y (&2) (&2) (&2) a b c`
+art[]
+Pent_hex.DERIVED_TAC (MP_TAC o GEN_ALL o (GENL [`a:real`;`b:real`;`c:real`]));
+  DISCH_THEN (C INTRO_TAC [`-- &16 * a`;`(y_of_x delta_x4 (&2) (&2) (&2) a b c * &2 * a)`;`a:real`;`b:real`;`c:real`]);
+gtyp `derived_form T   (\q. delta_x4 (&2 * &2) (&2 * &2) (&2 * &2) (q * q) (b * b) (c * c))  (-- &16 * a)  a  (:real)` (unlist rt)
+rt[Sphere.delta_x4]
+Pent_hex.DERIVED_TAC MP_TAC
+  MATCH_MP_TAC (TAUT `(x <=> y) ==> (x ==> y)`);
+repeat (apterm orelse apthm)
+rat
+gtyp `derived_form T  (\q. delta_x (&2 * &2) (&2 * &2) (&2 * &2) (q * q) (b * b) (c * c))  (y_of_x delta_x4 (&2) (&2) (&2) a b c * &2 * a)  a  (:real)` (unlist rt)
+rt[Sphere.delta_x]
+Pent_hex.DERIVED_TAC MP_TAC
+  MATCH_MP_TAC (TAUT `(x <=> y) ==> (x ==> y)`);
+repeat (apterm orelse apthm)
+rt[Sphere.y_of_x;Sphere.delta_x4]
+rat
+gtyp `(&0 <  &4 *  (&2 * &2) *  delta_x (&2 * &2) (&2 * &2) (&2 * &2) (a * a) (b * b) (c * c) /\  ~(--delta_x4 (&2 * &2) (&2 * &2) (&2 * &2) (a * a) (b * b) (c * c) = &0 /\    sqrt    (&4 *     (&2 * &2) *     delta_x (&2 * &2) (&2 * &2) (&2 * &2) (a * a) (b * b) (c * c)) <=    &0) /\  a IN (:real))` (unlist rt)
+rt[IN_UNIV;GSYM Sphere.delta_y]
+conj
+asm then rat
+rt[DE_MORGAN_THM] then DISJ2_TAC
+rt[arith `~(x <= &0) <=> &0 < x`]
+fyn
+asm then rat
+  MATCH_MP_TAC (TAUT `(x <=> y) ==> (x ==> y)`);
+repeat (apterm orelse apthm)
+calc
+conj
+
+  ]);;
+  (* }}} *)

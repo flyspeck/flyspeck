@@ -302,6 +302,34 @@ rewrite (inE_eq_in_dart1 V) face_eq !(IN_SING, IN_INSERT).
 by do !case; move => ->; do !case; move => -> //=; rewrite dart1_switch.
 Qed.
 
+Lemma e_fan_pair_eq_f_fan_pair v w: `simple_hypermap (hypermap_of_fan (V,E))
+	/\ v, w IN dart_of_fan (V,E)
+	/\ w, v IN face (hypermap_of_fan (V,E)) (v,w)
+	==> f_fan_pair_ext (V,E) (v,w) = (w,v)`.
+Proof.
+move => [simpleH] [vw_in] wv_in_f.
+apply: (HYPERMAP_OF_FAN_FACE_NODE_INJ simpleH fanV).
+exists `face (hypermap_of_fan (V,E)) (v,w)`.
+rewrite -lemma_in_face_set dartH vw_in wv_in_f !andTb.
+rewrite -{1}(COMPONENTS_HYPERMAP_OF_FAN fanV) -(POWER_1 `face_map _`) lemma_in_face andTb.
+move: vw_in; rewrite dart_of_fan_eq IN_UNION f_fan_pair_ext.
+case vw_in1: `v,w IN _1` => /=; first by rewrite f_fan_pair.
+by rewrite IN_ELIM_THM => /= [u]; rewrite PAIR_EQ => [] [_] [-> ->].
+Qed.
+
+Lemma linear_face_simple_hyp v w: `simple_hypermap (hypermap_of_fan (V,E))
+	/\ v,w IN dart_of_fan (V,E)
+	/\ w,v IN face (hypermap_of_fan (V,E)) (v,w)
+	==> CARD (face (hypermap_of_fan (V,E)) (v,w)) <= 2`.
+Proof.
+move => [simpleH] [vw_in] wv_in_f.
+have [_ [_] [_] fH] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+rewrite face card_orbit_le; split; first by arith.
+rewrite POWER_2 o_THM fH e_fan_pair_eq_f_fan_pair // e_fan_pair_eq_f_fan_pair //.
+rewrite simpleH -dartH (in_face_imp_in_dart wv_in_f) //.
+by rewrite -(lemma_face_identity wv_in_f) face_refl.
+Qed.
+
 
 (* BallAnnulus *)
 Section BallAnnulus.
@@ -483,6 +511,8 @@ End BallAnnulus.
 End FullySurrounded.
 
 
+
+
 (* MainEstimate *)
 Section MainEstimate.
 
@@ -532,6 +562,60 @@ have vw_in: `v,w IN dart_of_fan (V,E)`.
   by case: h_vw; [|rewrite dart_switch]; rewrite -dartH f_eq => /in_face_imp_in_dart; apply.
 rewrite (pack_dist fanV) // andTb.
 by case: h_vw; [|rewrite DIST_SYM]; rewrite x_in_f => [] [k] [/h] ineq ->.
+Qed.
+
+Lemma local_pro f d: `f = face (hypermap_of_fan (V,E)) d /\ d IN dart_of_fan (V,E)
+	==> ((?v0 w0. (!v w. {v,w} IN e_prime E f /\ ~({v,w} = {v0,w0}) 
+		==> &2 <= dist(v,w) /\ dist(v,w) <= &2 * h0) 
+		/\ {v0,w0} IN e_prime E f /\ &2 *h0 <= dist(v0,w0) /\ dist(v0,w0) <= sqrt8)
+	<=> (?k0. (!k. k < CARD f /\ ~(k = k0) ==> dist ((f_fan_pair_ext (V,E) POWER k) d) <= #2.52)
+		/\ k0 < CARD f /\ #2.52 <= dist ((f_fan_pair_ext (V,E) POWER k0) d)
+				/\ dist ((f_fan_pair_ext (V,E) POWER k0) d) <= sqrt8))`.
+Proof.
+move: h_fan; rewrite lp_fan => [] [fanV] [f_surr] [_] [_] packV [f_eq d_in].
+have [dartH [_] [_] fH] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+have ->: `&2 * h0 = #2.52` by rewrite h0; arith.
+have f_in: `f IN face_set (hypermap_of_fan (V,E))`.
+  by rewrite f_eq -lemma_in_face_set.
+have x_in_f x: `x IN f <=> ?k. k < CARD f /\ x = (f_fan_pair_ext (V,E) POWER k) d`.
+  rewrite {1}f_eq face (FINITE_ORBIT_MAP `dart_of_fan (V,E)` `CARD f`).
+    by rewrite -dartH !face_map_and_darts -face -f_eq.
+  by rewrite fH IN_ELIM_THM.
+split => [[v0] [w0] [h_all] [v0w0_inE] dist0 | [k0] [h_all] [k0_lt]]; last first.
+  set x := `(_1 POWER k0) d`.
+  move => dist_x; exists `FST x` `SND x`; rewrite -pair_expand !dist_x !andbT.
+  split; last by rewrite (f_surr_in_e_prime f_surr) // -pair_expand -x_def f_eq -fH lemma_in_face.
+  rewrite in_e_prime (inE_eq_in_dart1 V) dart1_eq => v w [] [vw_in] vw_in_f neq.
+  rewrite (pack_dist fanV) // andTb.
+  by case: vw_in_f; [|rewrite DIST_SYM]; rewrite x_in_f => [] [k] [k_lt] vw_eq;
+	rewrite vw_eq; apply: (h_all k_lt); apply: contra neq => k_eq;
+	rewrite "GEN_ALL Geomdetail.PAIR_EQ_EXPAND";
+	move: vw_eq; rewrite k_eq x_def {1}(pair_expand x) PAIR_EQ => [] [-> ->].
+have [k0 [k0_lt] v0w0_eq]: `?k0. k0 < CARD f /\ (v0,w0 = (f_fan_pair_ext (V,E) POWER k0) d
+				\/ w0,v0 = (f_fan_pair_ext (V,E) POWER k0) d)`.
+  move: v0w0_inE; rewrite in_e_prime !x_in_f.
+  by move => [_] [] [k0] h; exists k0.
+exists k0; rewrite k0_lt andTb.
+split => [k [k_lt] k_neq|]; last by move: v0w0_eq => [<-]; rewrite ?(DIST_SYM w0) !dist0.
+set x := `(_1 POWER k) d`.
+move: (h_all `FST x` `SND x`); rewrite -pair_expand => ->.
+rewrite (f_surr_in_e_prime fanV f_surr) // -pair_expand.
+split; first by left; rewrite -x_def f_eq -fH lemma_in_face.
+apply: contra k_neq; rewrite "GEN_ALL Geomdetail.PAIR_EQ_EXPAND".
+have := FULLY_SURROUNDED_IMP_CARD_FACE_GE_3 fanV f_surr d_in.
+rewrite -f_eq => card_f_ge3.
+have simpleH := fully_surrounded_simple_hypermap fanV f_surr.
+move: v0w0_eq => [eq] []; rewrite -PAIR_EQ -pair_expand -x_def;
+	rewrite ?(eq, f_fan_pair_ext_power_inj) -?f_eq // => eq2;
+	suff: `CARD f <= 2` by move: card_f_ge3; arith.
+  have f_eq2: `f = face (hypermap_of_fan (V,E)) (v0,w0)`.
+    by rewrite f_eq; apply lemma_face_identity; rewrite eq -fH lemma_in_face.
+  rewrite f_eq2 (linear_face_simple_hyp fanV simpleH) -f_eq2.
+  by rewrite f_eq -eq2 -fH lemma_in_face eq f_fan_pair_ext_power_in_dart.
+have f_eq2: `f = face (hypermap_of_fan (V,E)) (w0,v0)`.
+  by rewrite f_eq; apply lemma_face_identity; rewrite eq -fH lemma_in_face.
+rewrite f_eq2 (linear_face_simple_hyp fanV simpleH) -f_eq2.
+by rewrite f_eq -eq2 -fH lemma_in_face eq f_fan_pair_ext_power_in_dart.
 Qed.
 
 
@@ -838,6 +922,185 @@ Proof. by move/ineq_tau6_tauVEF_std; rewrite tau_fan; arith. Qed.
 End Std.
 
 End Face6.
+
+
+(* Face5_pro *)
+Section Face5_pro.
+
+Hypothesis ineq: "JEJTVGB_pent_pro_concl".
+
+Lemma ineq_tau5_pro_tauVEF_aux d: `d IN darts_k 5 (hypermap_of_fan (V,E))
+	==> y5_fan (V,E) d <= #2.52
+	/\ y8_fan (V,E) d <= #2.52
+	/\ y9_fan (V,E) d <= #2.52
+	/\ ye_fan ((f_fan_pair_ext (V,E) POWER 2) d) <= #2.52
+	/\ #2.52 <= y6_fan d /\ y6_fan d <= sqrt8
+	==> #0.616 <= tauVEF (V,E,face (hypermap_of_fan (V,E)) d)`.
+Proof.
+move: h_fan; rewrite lp_fan => [] [fanV] [f_surr] [diag] [subV] packV.
+have [dartH _] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+case: d => v w vw_in_k.
+move: (vw_in_k); rewrite darts_k inE dartH => [] [vw_in] card_f bounds.
+rewrite -f_surr_tau_fun_eq_tauVEF -?lemma_in_face_set //.
+have c_local := "let_RULE f_surr_localization_convex_local" fanV f_surr vw_in.
+set f := `face _ (v,w)`.
+have f_in: `f IN face_set (hypermap_of_fan (V,E))`.
+  by rewrite -f_def -lemma_in_face_set.
+move: (c_local); rewrite convex_local_fan => [] [local] _.
+move: (ineq c_local).
+rewrite -("GEN_ALL Local_lemmas.LOFA_IMP_CARD_FF_V_EQ" local) card_f /=.
+rewrite tau_fun_local -?f_def -?lemma_in_face_set //; apply.
+rewrite packing_v_prime // v_prime_subset // !andTb.
+split => [a b h|]; first by rewrite (local_diag f_in).
+rewrite (local_pro vw_in) // card_f; exists `0`; split; last first.
+  by rewrite POWER_0 I_THM -y6_fan !bounds; arith.
+move => k k_ineq.
+have: `k = 1 \/ k = 2 \/ k = 3 \/ k = 4` by move: k_ineq; arith.
+do !case; move => ->.
+(* 2 *)
+by rewrite POWER_1 -y9_fan.
+(* 3 *)
+by rewrite -ye_fan.
+(* 4 *)
+rewrite (f_fan_pair_ext_power_inverse fanV vw_in) f_def card_f; first by arith.
+have ->: `5 - 3 = 2` by arith.
+by rewrite POWER_2 o_THM -y5_fan -y8_fan.
+(* 5 *)
+rewrite (f_fan_pair_ext_power_inverse fanV vw_in) f_def card_f; first by arith.
+have ->: `5 - 4 = 1` by arith.
+by rewrite POWER_1 -y5_fan.
+Qed.
+
+
+Lemma ineq_tau5_pro_tauVEF d: `d IN darts_k 5 (hypermap_of_fan (V,E))
+	==> y5_fan (V,E) d <= #2.52
+	/\ y6_fan d <= #2.52
+	/\ y8_fan (V,E) d <= #2.52
+	/\ ye_fan ((f_fan_pair_ext (V,E) POWER 2) d) <= #2.52
+	/\ #2.52 <= y9_fan (V,E) d /\ y9_fan (V,E) d <= sqrt8
+	==> #0.616 <= tauVEF (V,E,face (hypermap_of_fan (V,E)) d)`.
+Proof.
+move: h_fan; rewrite lp_fan => [] [fanV] [f_surr] [diag] [subV] packV.
+have [dartH _] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+case: d => v w vw_in_k.
+move: (vw_in_k); rewrite darts_k inE dartH => [] [vw_in] card_f bounds.
+rewrite -f_surr_tau_fun_eq_tauVEF -?lemma_in_face_set //.
+have c_local := "let_RULE f_surr_localization_convex_local" fanV f_surr vw_in.
+set f := `face _ (v,w)`.
+have f_in: `f IN face_set (hypermap_of_fan (V,E))`.
+  by rewrite -f_def -lemma_in_face_set.
+move: (c_local); rewrite convex_local_fan => [] [local] _.
+move: (ineq c_local).
+rewrite -("GEN_ALL Local_lemmas.LOFA_IMP_CARD_FF_V_EQ" local) card_f /=.
+rewrite tau_fun_local -?f_def -?lemma_in_face_set //; apply.
+rewrite packing_v_prime // v_prime_subset // !andTb.
+split => [a b h|]; first by rewrite (local_diag f_in).
+rewrite (local_pro vw_in) // card_f; exists `1`; split; last first.
+  by rewrite POWER_1 -y9_fan !bounds; arith.
+move => k k_ineq.
+have: `k = 0 \/ k = 2 \/ k = 3 \/ k = 4` by move: k_ineq; arith.
+do !case; move => ->.
+(* 1 *)
+by rewrite POWER_0 I_THM -y6_fan.
+(* 3 *)
+by rewrite -ye_fan.
+(* 4 *)
+rewrite (f_fan_pair_ext_power_inverse fanV vw_in) f_def card_f; first by arith.
+have ->: `5 - 3 = 2` by arith.
+by rewrite POWER_2 o_THM -y5_fan -y8_fan.
+(* 5 *)
+rewrite (f_fan_pair_ext_power_inverse fanV vw_in) f_def card_f; first by arith.
+have ->: `5 - 4 = 1` by arith.
+by rewrite POWER_1 -y5_fan.
+Qed.
+
+Lemma ineq_tau5_pro d: `d IN darts_k 5 (hypermap_of_fan (V,E))
+	==> y5_fan (V,E) d <= #2.52
+	/\ y6_fan d <= #2.52
+	/\ y8_fan (V,E) d <= #2.52
+	/\ ye_fan ((f_fan_pair_ext (V,E) POWER 2) d) <= #2.52
+	/\ #2.52 <= y9_fan (V,E) d /\ y9_fan (V,E) d <= sqrt8
+	==> #0.616 <= tau_fan (V,E) (face (hypermap_of_fan (V,E)) d)`.
+Proof.
+move => d_in bounds.
+have := ineq_tau5_pro_tauVEF d_in bounds.
+by rewrite tau_fan; arith.
+Qed.
+
+End Face5_pro.
+
+
+(* Face4_pro *)
+Section Face4_pro.
+
+Hypothesis ineq: "JEJTVGB_quad_pro_concl".
+
+Lemma ineq_tau4_pro_tauVEF d: `d IN darts_k 4 (hypermap_of_fan (V,E))
+	==> y5_fan (V,E) d <= #2.52
+	/\ y6_fan d <= #2.52
+	/\ y8_fan (V,E) d <= #2.52
+	/\ #2.52 <= y9_fan (V,E) d /\ y9_fan (V,E) d <= sqrt8
+	/\ sqrt8 <= y4'_fan (V,E) d
+	/\ sqrt8 <= y4'_fan (V,E) (f_fan_pair_ext (V,E) d)
+	==> #0.477 <= tauVEF (V,E,face (hypermap_of_fan (V,E)) d)`.
+Proof.
+move: h_fan; rewrite lp_fan => [] [fanV] [f_surr] [diag] [subV] packV.
+have [dartH _] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+case: d => v w vw_in4.
+move: (vw_in4); rewrite darts_k inE dartH => [] [vw_in] card_f bounds.
+rewrite -f_surr_tau_fun_eq_tauVEF -?lemma_in_face_set //.
+have c_local := "let_RULE f_surr_localization_convex_local" fanV f_surr vw_in.
+set f := `face _ (v,w)`.
+have f_in: `f IN face_set (hypermap_of_fan (V,E))`.
+  by rewrite -f_def -lemma_in_face_set.
+move: (c_local); rewrite convex_local_fan => [] [local] _.
+move: (ineq c_local).
+rewrite -("GEN_ALL Local_lemmas.LOFA_IMP_CARD_FF_V_EQ" local) card_f /=.
+rewrite tau_fun_local -?f_def -?lemma_in_face_set //; apply.
+rewrite packing_v_prime // v_prime_subset // !andTb.
+split => [a b [a_neq_b] [a_in] [b_in] ab_not_in | ].
+  have := "let_RULE quad_diags_imp" fanV vw_in4 a_neq_b.
+  rewrite f_def => /(_ a_in b_in ab_not_in).
+  set w' := `sigma_fan _ V E v w`.
+  set u := `sigma_fan _ V E w' v`.
+  move: bounds => [_] [_] [_] [_] [_].
+  rewrite !y4'_fan (PERMUTES_INVERSES (F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN fanV)).
+  rewrite INVERSE_F_FAN_PAIR_EXT_EXPLICIT // res dart1_eq vw_in /=.
+  rewrite ("let_RULE face4_eq" vw_in4) // SND w'_def u_def => diag_ineqs.
+  by case; case => -> //; rewrite DIST_SYM.
+rewrite (local_pro vw_in) // card_f.
+exists `1`; split; last first.
+  by rewrite POWER_1 -y9_fan !bounds; arith.
+move => k k_ineqs.
+have: `k = 0 \/ k = 2 \/ k = 3` by move: k_ineqs; arith.
+do !case; move => ->.
+(* 1 *)
+by rewrite POWER_0 I_THM -y6_fan.
+(* 3 *)
+rewrite (f_fan_pair_ext_power_inverse fanV vw_in) f_def card_f; first by arith.
+have ->: `4 - 2 = 2` by arith.
+by rewrite POWER_2 o_THM -y5_fan -y8_fan.
+(* 4 *)
+rewrite (f_fan_pair_ext_power_inverse fanV vw_in) f_def card_f; first by arith.
+have ->: `4 - 3 = 1` by arith.
+by rewrite POWER_1 -y5_fan.
+Qed.
+
+Lemma ineq_tau4_pro d: `d IN darts_k 4 (hypermap_of_fan (V,E))
+	==> y5_fan (V,E) d <= #2.52
+	/\ y6_fan d <= #2.52
+	/\ y8_fan (V,E) d <= #2.52
+	/\ #2.52 <= y9_fan (V,E) d /\ y9_fan (V,E) d <= sqrt8
+	/\ sqrt8 <= y4'_fan (V,E) d
+	/\ sqrt8 <= y4'_fan (V,E) (f_fan_pair_ext (V,E) d)
+	==> #0.477 <= tau_fan (V,E) (face (hypermap_of_fan (V,E)) d)`.
+Proof.
+move => d_in4 bounds.
+have := ineq_tau4_pro_tauVEF d_in4 bounds.
+by rewrite tau_fan; arith.
+Qed.
+
+End Face4_pro.
 
 
 (* Face4_diag3 *)
@@ -1193,6 +1456,67 @@ by rewrite lp_tau_split4_apex_sup_flat.
 Qed.
 
 End Split4.
+
+
+(* Split6 *)
+Section Split6.
+
+Hypothesis h_tau: `lp_tau (V,E)`.
+Hypothesis pent_pro: "JEJTVGB_pent_pro_concl".
+Hypothesis ineq103: "(hd (Ineq.getexact \"6988401556\")).ineq".
+
+Lemma lp_tau_split6 d: `d IN darts_k 6 (hypermap_of_fan (V,E))
+	==> y5_fan (V,E) d <= #2.52
+	/\ y6_fan d <= #2.52
+	/\ y8_fan (V,E) d <= #2.52
+	/\ y9_fan (V,E) d <= #2.52
+	/\ ye_fan ((f_fan_pair_ext (V,E) POWER 2) d) <= #2.52
+	/\ ye_fan ((f_fan_pair_ext (V,E) POWER 3) d) <= #2.52
+	/\ y4'_fan (V,E) d <= sqrt8
+	==> lp_tau (V, add_diag (V,E) d)`.
+Proof.
+case: d => v w vw_in6 bounds.
+move: (vw_in6); rewrite darts_k inE dartH => [] [vw_in] card_f.
+move: (h_fan); rewrite lp_fan => [] [fanV] [f_surr] [diag] [subV] packV.
+rewrite lp_tau => f f_in2.
+move: (f_in2); rewrite "let_RULE faces_add_diag" // IN_UNION IN_DELETE IN_INSERT IN_SING.
+set w' := `sigma_fan _ V E v w`.
+case => [f_eqs | [f_in] _]; last first.
+  by rewrite tauVEF_add_diag_eq //; move: h_tau; rewrite lp_tau => ->.
+have card_f_gt3: `3 < CARD (face (hypermap_of_fan (V,E)) (v,w))` by rewrite card_f; arith.
+have := "let_RULE face_split_fan_face_explicit" fanV f_surr vw_in card_f_gt3.
+have := fan_split_fan_face fanV f_surr vw_in.
+rewrite split_fan_face_eq_add_diag // w'_def card_f.
+have ->: `6 - 1 = 5` by arith.
+set H2 := `hypermap_of_fan _`.
+move: f_in2 => _ [fan2] [dart2] f_surr2 [] [f2_vw f2_w'w] [] [card2_vw card2_w'w] _.
+move: (COMPONENTS_HYPERMAP_OF_FAN fan2); rewrite H2_def => [] [dartH2] _.
+have eqs: `#2.0 = &2 /\ &2 * h0 = #2.52` by rewrite h0; arith.
+rewrite real_gt Ineq.apex_flat INEQ_ALT !eqs in ineq103.
+case: f_eqs => ->.
+  rewrite REAL_LT_IMP_LE; apply REAL_LT_TRANS; exists `#0.103`; split; first by arith.
+  have vw_in2_3: `v,w IN darts_k 3 H2`.
+    by rewrite darts_k inE dartH2 dart2 dart1_eq IN_UNION.
+  rewrite -H2_def dart3_tauVEF_eq_taum // -y4'_eq_y4 // !ys_split_eq //.
+  rewrite ineq103 !"GEN_ALL ALL" /= !bounds.
+  rewrite (y1_lo vw_in) // (y1_hi vw_in) // (y2_lo vw_in) // (y2_hi vw_in) //.
+  by rewrite y3_lo // y3_hi // y5_lo // (y6_lo vw_in) // (y4'_lo_2h0 vw_in6 h_fan) //; arith.
+have w'w_in2_5: `w',w IN darts_k 5 H2`.
+  by rewrite darts_k inE dartH2 dart2 dart1_eq IN_UNION IN_INSERT.
+apply: REAL_LE_TRANS; exists `#0.616`; split; first by arith.
+rewrite -H2_def (ineq_tau5_pro_tauVEF_aux pent_pro) H2_def w'w_in2_5 andbT.
+split; last first.
+
+rewrite -w'_def !("let_RULE ys_split_eq2" vw_in) // w'_def !bounds.
+rewrite (y4'_lo_2h0 vw_in6 h_fan) /=; first by arith.
+rewrite y8_fan y5_fan -ye_fan -(o_THM `inverse _`) -POWER_2.
+have {1}->: `2 = CARD (face H2 (w',w)) - 3` by rewrite card2_w'w; arith.
+rewrite -H2_def -f_fan_pair_ext_power_inverse.
+  by rewrite fan2 H2_def card2_w'w dart2 IN_UNION IN_INSERT; arith.
+rewrite -w'_def !("let_RULE f_fan_pair_ext_power_add_diag" fanV f_surr vw_in) ?card_f; try arith.
+by rewrite !bounds.
+
+
 
 End Split.
 

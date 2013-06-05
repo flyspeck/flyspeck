@@ -647,12 +647,12 @@ let nodes_th = eval_list_of_nodes test_list;;
 test 10 (build_table_of_nodes test_list) nodes_th;;
 *)
 
-
 (***************************)
 (* table of faces *)
 
 let build_table_of_faces hyp_list good_list_th faces_th =
-  let table_of_faces = Hashtbl.create 100 in
+  let table_of_faces = Hashtbl.create 100 and
+      table_of_find_face = Hashtbl.create 100 in
   let th0 = (MY_PROVE_HYP good_list_th o UNDISCH_ALL o ISPEC hyp_list) faces_hypermap_of_list_all in
   let all_tm = rator (concl th0) in
   let th1 = EQ_MP (AP_TERM all_tm faces_th) th0 in
@@ -661,18 +661,23 @@ let build_table_of_faces hyp_list good_list_th faces_th =
     let th = MY_BETA_RULE th in
     let list_tm = dest_list(rand(concl th)) in
     let ths = get_all th in
-    let r = CONV_RULE (BETA_CONV THENC RAND_CONV set_of_list_conv) in
-      map (fun tm, th -> Hashtbl.add table_of_faces (num_pair_hash tm) (r th)) (zip list_tm ths) in
+      map (fun tm, th -> 
+	     let th1, th2 = (CONJ_PAIR o CONV_RULE BETA_CONV) th in
+	     let th1_2 = CONV_RULE (RAND_CONV set_of_list_conv) th1 in
+	     let hash = num_pair_hash tm in
+	       Hashtbl.add table_of_faces hash th1_2;
+	       Hashtbl.add table_of_find_face hash th2) (zip list_tm ths) in
   let _ = map build1 th1_list in
-    table_of_faces;;
+    table_of_faces, table_of_find_face;;
 
 (*
 let faces_th = eval_list_of_faces test_list;;
 let darts_th = eval_list_of_darts0 test_list faces_th;;
-let good_th = eval_good_list0 test_list darts_th;;
-let table = build_table_of_faces test_list good_th faces_th;;
-Hashtbl.find table "D7,D2D1";;
-(* 10: 0.148 *)
+let good_list_th = eval_good_list0 test_list darts_th;;
+let table1, table2 = build_table_of_faces test_list good_th faces_th;;
+Hashtbl.find table1 "D7,D2D1";;
+Hashtbl.find table2 "D7,D2D1";;
+(* 10: 0.241 *)
 test 10 (build_table_of_faces test_list good_th) faces_th;;
 *)
 
@@ -837,9 +842,15 @@ let compute_all hyp_list good_th_opt =
       with Not_found ->
 	(match name with
 	   | "face" -> 
-	       let table_of_faces = build_table_of_faces hyp_list good_th faces_th in
+	       let table_of_faces, table_of_find_face = build_table_of_faces hyp_list good_th faces_th in
 	       let _ = add_fun "face" table_of_faces in
+	       let _ = add_fun "find_face" table_of_find_face in
 		 table_of_faces
+	   | "find_face" -> 
+	       let table_of_faces, table_of_find_face = build_table_of_faces hyp_list good_th faces_th in
+	       let _ = add_fun "face" table_of_faces in
+	       let _ = add_fun "find_face" table_of_find_face in
+		 table_of_find_face
 	   | "node" ->
 	       let table_of_nodes = build_table_of_nodes hyp_list (hyp_set "list_of_nodes") in
 	       let _ = add_fun "node" table_of_nodes in

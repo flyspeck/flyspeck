@@ -1,6 +1,25 @@
 needs "../formal_lp/hypermap/main/lp_certificate.hl";;
 needs "../formal_lp/glpk/lpproc.hl";;
 
+let mem_stat () =
+  let stat = Gc.stat() in
+  let word = float_of_int (Sys.word_size / 8) in
+  let free = float_of_int stat.Gc.free_words *. word /. 1024.0 in
+  let total = float_of_int stat.Gc.heap_words *. word /. 1024.0 in
+  let allocated = total -. free in
+  let str = sprintf "allocated = %f (free = %f; total_size = %f; %f)\n" 
+    allocated free total (free /. total) in
+    print_string str;;
+
+(*
+mem_stat();;
+
+Gc.set { (Gc.get()) with Gc.verbose = 0x05 };;
+Gc.compact();;
+
+mem_stat();;
+*)
+
 let empty_constraints : (Lp_certificate.constraint_type list) = [];;
 
 let hypermap_string = ref "" and
@@ -33,7 +52,6 @@ let model2 = tame_dir ^ "/model2.mod";;
 let out_dir = flyspeck_dir ^ "/../formal_lp/glpk/tmp";;
 let binary_dir = flyspeck_dir ^ "/../formal_lp/glpk/binary";;
 let lp_hl_dir = flyspeck_dir ^ "/../formal_lp/LP-HL/LP-HL/bin/Release";;
-
 
 let ampl_of_bb' fname bb =
   let out = open_out fname in
@@ -152,43 +170,84 @@ let build_terminal_case hyp_list bb =
 	variable_bounds := empty_constraints;
 	target_variables := empty_constraints in
       let _ = use_file (sprintf "%s/%s_out.hl" out_dir out_name) in
-      let certificate = {
-	precision = !precision;
-	constraints = !constraints;
-	target_variables = !target_variables;
-	variable_bounds = !variable_bounds;
-      } in
-	certificate;;
+	if !precision = 0 then
+	  failwith (sprintf "build_terminal_case failed for %s" bb.hypermap_id)
+	else
+	  let certificate = {
+	    precision = !precision;
+	    constraints = !constraints;
+	    target_variables = !target_variables;
+	    variable_bounds = !variable_bounds;
+	  } in
+	    certificate;;
   
 
-(* Builds and saves an std certificate *)
-let build_and_save_std bb =
+(* Builds an std certificate *)
+let build_std bb =
   let hyp_list = (snd o convert_to_list) bb.string_rep in
   let terminal = build_terminal_case hyp_list bb in
   let root = Lp_terminal terminal in
   let certificate = {hypermap_string = bb.string_rep; root_case = root} in
-  let fname = sprintf "%s/%s.dat" binary_dir bb.hypermap_id in
-    write_lp_certificate fname certificate;;
+    certificate;;
+
+
+let build_and_save_all_std =
+  let counter = ref 0 and
+      total = ref 0 in
+  let buf = ref [] and
+      file_counter = ref 0 in
+  let report s =
+    Format.print_string s; Format.print_newline(); Format.print_flush() in
+
+  let save_buf () =
+    if length !buf > 0 then
+      let _ = file_counter := !file_counter + 1 in
+      let fname = sprintf "%s/std_%d.dat" binary_dir !file_counter in
+      let _ = write_lp_certificates fname !buf in
+	buf := []
+    else
+      () in
+
+  let process max bb =
+    let _ = counter := !counter + 1 in
+    let _ = report (sprintf "%d/%d" !counter !total) in
+    let _ = buf := build_std bb :: !buf in
+      if length !buf >= max then
+	save_buf()
+      else
+	() in
+
+    fun max bbs ->
+      let _ = total := length bbs and
+	  _ = counter := 0 and
+	  _ = file_counter := 0 and
+	  _ = buf := [] in
+      let _ = map (process max) bbs in
+	save_buf ();;
+
 
 
 (****************************)
+needs "../formal_lp/glpk/feasible.hl";;
+
+let take n = fst o chop_list n;;
+let drop n = snd o chop_list n;;
+
 let tame = Glpk_link.strip_archive (!archiveraw);;
 let test_tame = fst (chop_list 100 tame);;
+let test_tame = tame;;
 let test_list = map mk_bb test_tame;;
-let test_feas = filter_feas (map solve test_list);;
-let test_bbs = subtract test_list test_feas;;
+(* let test_feas = filter_feas (map solve test_list);; *)
+let test_feas = filter (fun bb -> mem bb.hypermap_id feasible_ids) test_list;;
+(* 477 *)
+length test_feas;;
 
-let process_all =
-  let counter = ref 0 and
-      total = ref 0 in
-  let report s =
-    Format.print_string s; Format.print_newline(); Format.print_flush() in
-  let process bb =
-    let _ = counter := !counter + 1 in
-    let _ = report (sprintf "%d/%d" !counter !total) in
-      build_and_save_std bb in
-    fun bbs ->
-      let _ = total := length bbs in
-	map process bbs;;
+let test_bbs' = subtract test_list test_feas;;
+(* 19001 *)
+length test_bbs';;
 
-process_all test_bbs;;
+let test_bbs = take 3000 (drop 5000 test_bbs');;
+
+build_and_save_all_std 100 test_bbs;;
+
+

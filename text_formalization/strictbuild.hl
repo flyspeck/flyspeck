@@ -207,6 +207,25 @@ let build_silent() =
   with Failure t ->  t  in
      build_report s;;
 
+let try_do f  = 
+  let rec try_dof = function
+      [] -> [] 
+    | (x::t) -> 
+	try
+	  (let y = f x in y:: try_dof t)
+	with Failure _ -> [] in
+    try_dof;;
+
+let already_loaded s =
+  let s' = file_on_path (!load_path) s in
+  let fileid = (Filename.basename s',Digest.file s') in
+    List.mem fileid (!loaded_files);;
+
+let new_build_silent() = 
+  let loaded = try_do (fun s -> flyspeck_needs s; s) Build.build_sequence in
+  let unloaded = filter(not o already_loaded) Build.build_sequence in
+    (loaded,unloaded);;
+
 let rec cut_after f a acc = function
   | [] -> acc
   | b::bs -> if (f b =a) then (b::acc) else cut_after f a (b::acc) bs;;

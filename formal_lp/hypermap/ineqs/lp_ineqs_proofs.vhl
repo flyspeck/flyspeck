@@ -204,11 +204,30 @@ by move => [a b] /(PAIR_IN_DART_OF_FAN fanV); rewrite IN_CROSS.
 Qed.
 
 
+Lemma lp_fan_trans1 d: `lp_fan (V,E) ==> lp_fan (V, add_diag (V,E) d)`.
+Proof.
+rewrite !lp_fan => [] [fanV] [f_surr] [diag] [subV] packV.
+case: d => v w.
+case vw_in1: `v,w IN dart1_of_fan (V,E)` => /=; last by rewrite add_diag vw_in1.
+rewrite packV subV !andbT.
+have dart1_eq := fully_surrounded_dart_of_fan_eq fanV f_surr.
+have add_eq: `V, add_diag (V,E) (v,w) = split_fan_face (V,E) (v,w)`.
+  by rewrite add_diag split_fan_face vw_in1.
+move: (vw_in1); rewrite -dart1_eq => vw_in.
+have [fan2 [_] f_surr2] := fan_split_fan_face fanV f_surr vw_in.
+rewrite add_eq fan2 f_surr2 !andTb.
+move => a b.
+rewrite add_diag vw_in1 /= IN_INSERT negb_or => cond.
+by apply: diag.
+Qed.
+
+
 Lemma lp_cond_trans1 g h d: `lp_cond (L,g,h) (V,E)
         ==> lp_cond (split_list_hyp L d,g,h) (V, add_diag (V,E) (g d))`.
 Proof.
 case: d => v w.
 rewrite !lp_cond => [] [fan_cond] [goodL] [good_nodes] [iso_g] [bij_h] [g_eq] h_cond.
+rewrite lp_fan_trans1 // andTb.
 move: (fan_cond); rewrite lp_fan => [] [fanV] [f_surr] [diag_dist] [subV packV].
 have dart1_eq := fully_surrounded_dart_of_fan_eq fanV f_surr.
 have [dartV _] := COMPONENTS_HYPERMAP_OF_FAN fanV.
@@ -235,17 +254,14 @@ have els_eq: `elements_of_list (split_list_hyp L (v,w)) = elements_of_list L`.
 have iso_inv_g := hyp_iso_inv iso_g.
 have good_split := iso_imp_good_list_split iso_inv_g fanV goodL good_nodes f_surr.
 rewrite good_split // (iso_imp_good_list_nodes_split iso_inv_g) //.
-rewrite els_eq h_cond bij_h -g_eq lp_fan subV packV /= g_eq /=.
+rewrite els_eq h_cond bij_h -g_eq /= g_eq /=.
 have hvw_eq: `g (v,w) = h v, h w` by [].
 have hvw_in: `h v, h w IN dart_of_fan (V,E)`.
   by rewrite -hvw_eq -dartV (hyp_iso_dart iso_g) dartL.
 have add_eq: `V, add_diag (V,E) (h v,h w) = split_fan_face (V,E) (h v,h w)`.
   by rewrite add_diag split_fan_face -dart1_eq hvw_in.
+rewrite add_eq.
 have [fan2 [_] f_surr2] := fan_split_fan_face fanV f_surr hvw_in.
-rewrite add_eq fan2 f_surr2 !andTb.
-split => [a b|].
-  rewrite add_diag -dart1_eq hvw_in /= IN_INSERT negb_or => cond.
-  by apply: diag_dist.
 set f := `fan_list_iso (res_inv g (dart (hypermap_of_list L)), V, E)`.
 have iso_f: `hyp_iso f (hypermap_of_fan (V,E), hypermap_of_list L)`.
   apply: (hyp_iso_ext iso_inv_g) => d d_in.

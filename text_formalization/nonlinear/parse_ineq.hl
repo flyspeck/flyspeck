@@ -497,21 +497,24 @@ let mk_cc tmpfile iqd =
   let _ = cc_code outs iqd in
    close_out outs ;;
 
-let compile () = 
-  let err = "/tmp/cfsqp_err.txt" in
-  let e = Sys.command("cd "^flyspeck_dir^"/../cfsqp; make tmp/t.o >& "^err) in
-  let _ =   (e=0) or (Sys.command ("cat "^err); failwith "compiler error ") in
-    ();;
+let compile = 
+  let err = Filename.temp_file "cfsqp_err" ".txt" in 
+    fun () ->
+      let e = Sys.command("cd "^flyspeck_dir^"/../cfsqp; make tmp/t.o >& "^err) in
+      let _ =   (e=0) or (Sys.command ("cat "^err); failwith "compiler error ") in
+	();;
 
- let execute_cfsqp idq = 
+ let execute_cfsqp = 
+  let cfsqp_out = Filename.temp_file "tmp_cfsqp" ".out" in 
   let cfsqp_dir = flyspeck_dir^"/../cfsqp" in
-  let _ =  mk_cc (cfsqp_dir ^ "/tmp/t.cc") idq in
-  let _ = try (compile()) with Failure s -> failwith (s^idq.idv) in 
-  let _ = (0=  Sys.command(cfsqp_dir^"/tmp/t.o | tee /tmp/cfsqp.out")) or
-    failwith ("execution error "^idq.idv) in
-  let s = process_to_string "grep 'NEGATIVE' /tmp/cfsqp.out" in
-  let _ =  (s="") or failwith ("NEGATIVE "^idq.idv) in
-    ();;
+    fun idq ->
+      let _ =  mk_cc (cfsqp_dir ^ "/tmp/t.cc") idq in
+      let _ = try (compile()) with Failure s -> failwith (s^idq.idv) in 
+      let _ = (0=  Sys.command(cfsqp_dir^"/tmp/t.o | tee "^cfsqp_out)) or
+	failwith ("execution error "^idq.idv) in
+      let s = process_to_string ("grep 'NEGATIVE' "^cfsqp_out) in
+      let _ =  (s="") or failwith ("NEGATIVE "^idq.idv) in
+	();;
 
  let execute_cfsqp_list xs = 
    let fails = ref [] in
@@ -715,7 +718,9 @@ let ocaml_code =
    (join_lines (map ocaml_function ocaml_autogen)) ^
    "end;;\n";;
 
-output_filestring "/tmp/sphere.ml" ocaml_code;;
+let sphere_ml = Filename.temp_file "sphere" ".ml";; 
+
+output_filestring sphere_ml ocaml_code;;
 
 (* ========================================
 

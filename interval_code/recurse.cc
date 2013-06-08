@@ -10,7 +10,7 @@
 
 /*
 
-Note: conditional compilartion on the 206A material.
+Note: conditional compilation on the 206A material.
 #define A206
 use #ifdef A206
 
@@ -31,7 +31,8 @@ extern "C"
 #include "secondDerive.h"
 #include "recurse.h"
 
-#define A206
+
+//#define A206
 #ifdef A206
 #include "taylorData.h"
 #include "Lib.h"

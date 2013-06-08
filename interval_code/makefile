@@ -61,9 +61,6 @@ test_auto: test_auto.cc error.h error.o interval.h interval.o lineInterval.h \
 	Lib.o Lib.h
 	$(CC) $(CCOPTS1)  error.o interval.o lineInterval.o \
 	secondDerive.o univariate.o wide.o taylorData.o recurse.o Lib.o \
-	../cfsqp/sqp/qld.o ../cfsqp/sqp/cfsqp.o ../cfsqp/sqp/cfsqpAdapter.o \
-	../cfsqp/Minimizer.o \
-	../cfsqp/numerical.o ../cfsqp/2065952723_link.o \
 	 test_auto.cc \
 	-o  test_auto -lm $(L)
 

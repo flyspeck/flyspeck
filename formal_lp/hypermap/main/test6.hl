@@ -1,0 +1,403 @@
+needs "../formal_lp/hypermap/main/prove_flyspeck_lp.hl";;
+
+
+open Flyspeck_lp;;
+open Lp_ineqs;;
+open Lp_certificate;;
+open List_hypermap_computations;;
+open List;;
+open Lp_informal_computations;;
+open Prove_lp;;
+open Arith_misc;;
+open List_conversions;;
+open Lp_main_estimate;;
+open Lp_ineqs_proofs;;
+open Misc_vars;;
+
+init_ineqs();;
+
+
+(**************************)
+
+let e_cap_var = `E:(real^3->bool)->bool` and
+    l_cap_var = `L:((num)list)list` and
+    estd_v = `ESTD V` and
+    contravening_v = `contravening V` and
+    d_var_pair = `d:num#num` and
+    diag_vars = map (fun i -> mk_var ("diag" ^ string_of_int i, `:num#num`)) (0--6);;
+
+let estd_refl = REFL estd_v;;
+let mk_raw_num = rand o Arith_nat.mk_small_numeral_array;;
+
+let split3_lemma = prove(`a + b + c <= #6.25 \/ #6.25 <= a + b + c`, ARITH_TAC);;
+
+let split4_lemma = (INST[`ye_list (g:num#num->real^3#real^3) diag1`, `a:real`;
+			 `ye_list (g:num#num->real^3#real^3) diag2`, `b:real`] o prove)
+(`(a <= b /\ a <= sqrt8)
+   \/ (b <= a /\ b <= sqrt8)
+   \/ (a <= b /\ sqrt8 <= a /\ a <= &3)
+   \/ (b <= a /\ sqrt8 <= b /\ b <= &3)
+   \/ (&3 <= a /\ &3 <= b)`,
+ MP_TAC Flyspeck_constants.bounds THEN ARITH_TAC);;
+
+let split6_lemma = prove(`(sqrt8 <= a1 /\ sqrt8 <= a2 /\ sqrt8 <= a3 /\ sqrt8 <= a4 /\ sqrt8 <= a5 /\ sqrt8 <= a6)
+			   \/ a1 <= sqrt8
+			   \/ a2 <= sqrt8
+			   \/ a3 <= sqrt8
+			   \/ a4 <= sqrt8
+			   \/ a5 <= sqrt8
+			   \/ a6 <= sqrt8`, ARITH_TAC);;
+
+let rec assoc_all a list =
+  match list with
+    | [] -> []
+    | (k,v) :: t -> if k = a then v :: assoc_all a t else assoc_all a t;;
+
+
+let gen_extra_ineqs =
+  let tm_3 = `&3` and
+      tm_sqrt8 = `sqrt8` in
+  let r tm = prove(tm, MP_TAC Flyspeck_constants.bounds THEN ARITH_TAC) in
+  let l_ths_list = [
+    tm_3, r `&3 <= a ==> sqrt8 <= a`;
+  ] in
+  let r_ths_list = [
+    tm_sqrt8, r `a <= sqrt8 ==> a <= &3`;
+  ] in
+  let a_var_real = `a:real` in
+    fun ineq_th ->
+      let lhs, rhs = dest_binary "real_le" (concl ineq_th) in
+      let l_ths = map (fun th -> MP (INST[rhs, a_var_real] th) ineq_th) (assoc_all lhs l_ths_list) and
+	  r_ths = map (fun th -> MP (INST[lhs, a_var_real] th) ineq_th) (assoc_all rhs r_ths_list) in
+	l_ths @ r_ths;;
+
+
+let dest_ye_list tm =
+  let lhs, rhs = dest_comb tm in
+  let c_tm = rator lhs in
+    if (fst o dest_const) c_tm <> "ye_list" then
+      failwith "dest_ye_list: not ye_list"
+    else
+      dest_pair rhs;;
+
+let gen_ye_sym_ineqs ye_sym_th ineq_th =
+  let sym_eqs tm =
+    try
+      let n_tm, m_tm = dest_ye_list tm in
+	[REFL tm; INST[n_tm, n_var_num; m_tm, m_var_num] ye_sym_th]
+    with Failure _ ->
+      [REFL tm] in
+  let ltm, rhs = dest_comb (concl ineq_th) in
+  let op_tm, lhs = dest_comb ltm in
+  let l_eqs = sym_eqs lhs and
+      r_eqs = sym_eqs rhs in
+    tl (allpairs (fun l_eq r_eq -> EQ_MP (MK_COMB (AP_TERM op_tm l_eq, r_eq)) ineq_th) l_eqs r_eqs);;
+
+
+let gen_all_extra_cases ye_sym_th case_tms =
+  let case_ths = map ASSUME case_tms in
+  let extra = List.flatten (map gen_extra_ineqs case_ths) in
+  let sym = gen_ye_sym_ineqs ye_sym_th in
+    extra @ List.flatten (map sym (case_ths @ extra));;
+
+
+let get_all_ineqs hyp_set0 all_ineq_th =
+  let all_tm, set_tm = dest_comb (concl all_ineq_th) in
+  let set_eq_th = hyp_set0 ((fst o dest_const o rator) set_tm) in
+  let ineq1_th = EQ_MP (AP_TERM all_tm set_eq_th) all_ineq_th in
+    map MY_BETA_RULE (get_all ineq1_th);;
+
+let gen_list_ineq simplify_all_flag th =
+  let th0 = add_lp_hyp true th in
+  let tm1, proof_th = mk_lp_ineq th0 in
+  let raw_data = {name = "tmp"; tm = tm1; proof = Some proof_th; std_only = false} in
+    generate_ineq1 simplify_all_flag raw_data;;
+
+let ye_hi_3 = generate_ineq (find_raw_ineq true "ye_hi");;
+let ye_hi_2h0 = generate_ineq (find_raw_ineq true "yy10");;
+let diag4_lo = gen_list_ineq true dart4_y4'_lo;;
+let ye_sym0 = (add_lp_hyp false o prove)(`(!d. g d = h (FST d), h (SND d))
+					 ==> ye_list (g:num#num->real^3#real^3) (n,m) = ye_list g (m,n)`,
+					 DISCH_TAC THEN ASM_REWRITE_TAC Lp_ineqs_def.list_defs2 THEN
+					   REWRITE_TAC[Lp_ineqs_def.ye_fan; DIST_SYM]);;
+
+
+let tau_split4, tau_split6 =
+  let r = SPEC `d:num#num` o REWRITE_RULE[GSYM ALL_MEM] o gen_list_ineq false in
+    r lp_tau_split4, r lp_tau_split6;;
+
+
+
+(*****************************************)
+
+
+let rec cases (hyp_list, case) =
+  match case with
+    | Lp_terminal terminal -> [(hyp_list, terminal)]
+    | Lp_split (info, cs) ->
+	(match info.split_type with
+	     (* Triangle *)
+	   | Triangle_split -> 
+	       failwith "Not implemented"
+	       
+	   (* Quad *)
+	   | Quad_split ->
+	       let split_face = info.split_face in
+	       let dart13 = nth split_face 1, nth split_face 2 and
+		   dart24 = nth split_face 0, nth split_face 1 in
+	       let split13 = split_list hyp_list dart13 and
+		   split24 = split_list hyp_list dart24 in
+	       let case_args = zip [split13; split24; split13; split24; hyp_list] cs in
+		 flatten (map cases case_args)
+		   
+	   (* Pent *)
+	   | Pent_split -> 
+	       failwith "Not implemented"
+
+	   (* Hex *)
+	   | Hex_split ->
+	       let split_face = info.split_face in
+	       let darts = rotateL 1 (list_pairs split_face) in
+	       let splits = map (split_list hyp_list) darts in
+	       let case_args = zip (hyp_list :: splits) cs in
+		 flatten (map cases case_args));;
+
+
+let get_terminal_cases certificate =
+  let hyp_list = (snd o convert_to_list) certificate.hypermap_string in
+  let hyp_list0_tm = (to_num o create_hol_list) hyp_list in
+  let hyp_set0, hyp_fun0 = compute_all hyp_list0_tm None in
+  let lp_cond0, lp_tau0 = contravening_conditions hyp_list0_tm hyp_set0 in
+  let ye_ineqs_3, ye_ineqs_2h0, diag4_ineqs =
+    let r = get_all_ineqs hyp_set0 o EXPAND_CONCL_RULE "L" o 
+      MY_PROVE_HYP lp_tau0 o MY_PROVE_HYP lp_cond0 o MY_PROVE_HYP estd_refl o INST[estd_v, e_cap_var] in
+      r ye_hi_3, r ye_hi_2h0, r diag4_lo in
+  let diag4_ths = map (fun th -> EQ_MP (convert_tm hyp_fun0 (concl th)) th) diag4_ineqs in
+  let base_ineqs = ye_ineqs_3 @ ye_ineqs_2h0 @ diag4_ths in
+    base_ineqs, cases (hyp_list, certificate.root_case);;
+
+
+let test_terminal (hyp_list, terminal) =
+  let hyp_list_tm = (to_num o create_hol_list) hyp_list in
+  let hyp_set, hyp_fun = compute_all hyp_list_tm None in
+  let r = (fun name, ind, v -> name, ind, map mk_real_int64 v) in
+  let c = map r terminal.constraints and
+      tv = map r terminal.target_variables and
+      vb = map r terminal.variable_bounds in
+    prove_flyspeck_lp_step1 hyp_list_tm hyp_set hyp_fun false terminal.precision c tv vb;;
+    
+  
+(***************************************)
+
+
+type lp_verification_arg = {
+  (* ESTD hypermap data *)
+  hyp_set0 : string -> thm;
+  hyp_fun0 : string -> term -> thm;
+  ye_sym_th : thm;
+
+  (* Theorems *)
+  lp_cond_th : thm;
+  lp_tau_th : thm;
+
+  (* Terms *)
+  hyp_list_tm : term;
+  e_tm : term;
+};;
+
+let get_final_case_th ye_sym_th cases_tm case_th =
+  let case_tms = striplist dest_conj cases_tm in
+  let case_th2 = itlist MY_PROVE_HYP (gen_all_extra_cases ye_sym_th case_tms) case_th in
+    PURE_REWRITE_RULE[IMP_IMP; GSYM CONJ_ASSOC] (itlist DISCH case_tms case_th2);;
+
+let combine_cases =
+  let combine_th = TAUT `(A ==> C) /\ (B ==> C) ==> (A \/ B ==> C)` in
+    fun case1_th case2_th ->
+      MATCH_MP combine_th (CONJ case1_th case2_th);;
+
+
+let split_lp_conditions hyp_list_tm d_tm lp_cond_th =
+  let split_eq_th = eval_split_list_hyp hyp_list_tm d_tm in
+  let split_tm = (rand o concl) split_eq_th in
+  let lp_cond2_th = (PURE_REWRITE_RULE[split_eq_th] o SPEC d_tm o MATCH_MP lp_cond_trans1) lp_cond_th in
+  let e2_tm = (rand o rand o concl) lp_cond2_th in
+    split_tm, lp_cond2_th, e2_tm;;
+
+let get_tau_split_th tau_trans_th (hyp_set, hyp_fun) arg d_tm =
+  let set_name = (fst o dest_const o rator o rand o lhand o concl) tau_trans_th in
+  let set_th = hyp_set set_name in
+  let mem_th = EQT_ELIM (apply_op set_th (eval_mem_num_pair d_tm)) in
+  let th0 = INST[arg.hyp_list_tm, l_cap_var; d_tm, d_var_pair; arg.e_tm, e_cap_var] tau_trans_th in
+    (UNDISCH_ALL o MY_PROVE_HYP arg.lp_cond_th o MY_PROVE_HYP arg.lp_tau_th o simplify_ineq hyp_fun o MP th0) mem_th;;
+
+
+let mk_dart face i1 i2 = mk_pair (mk_raw_num (nth face i1), mk_raw_num (nth face i2));;
+let mk_all_darts face = map mk_pair (list_pairs (map mk_raw_num face));;
+
+
+
+let rec verify_lp_case base_ineqs std_flag (arg, case) =
+  match case with
+      (* Terminal case *)
+    | Lp_terminal terminal ->
+	let hyp_set, hyp_fun =
+	  if std_flag then arg.hyp_set0, arg.hyp_fun0 else compute_all arg.hyp_list_tm None in
+	let r = (fun name, ind, v -> name, ind, map mk_real_int64 v) in
+	let c = map r terminal.constraints and
+	    tv = map r terminal.target_variables and
+	    vb = map r terminal.variable_bounds in
+	let th0 = prove_flyspeck_lp_step1 arg.hyp_list_tm hyp_set hyp_fun std_flag terminal.precision c tv vb in
+	let th1 = (MY_PROVE_HYP arg.lp_tau_th o INST[arg.e_tm, e_cap_var]) th0 in
+	let th2 = if std_flag then MY_PROVE_HYP estd_refl th1 else itlist MY_PROVE_HYP base_ineqs th1 in
+	  (MY_PROVE_HYP arg.lp_cond_th) th2
+    | Lp_split (info, cs) ->
+	(match info.split_type with
+	   | Triangle_split ->
+	       verify_split3 base_ineqs std_flag arg info cs
+	   | Quad_split ->
+	       verify_split4 base_ineqs std_flag arg info cs
+	   | Pent_split ->
+	       verify_split5 base_ineqs std_flag arg info cs
+	   | Hex_split ->
+	       verify_split6 base_ineqs std_flag arg info cs)
+(* Triangle *)
+and verify_split3 base_ineqs std_flag arg info cs =
+  failwith "split3: not implemented"
+
+(* Quad *)
+and verify_split4 base_ineqs std_flag arg info cs =
+  let d13_tm = mk_dart info.split_face 1 2 and
+      d24_tm = mk_dart info.split_face 0 1 and
+      diag1_tm = mk_dart info.split_face 0 2 and
+      diag2_tm = mk_dart info.split_face 1 3 in
+    (* compute lp_cond *)
+  let split13_tm, lp_cond13, e13 = split_lp_conditions arg.hyp_list_tm d13_tm arg.lp_cond_th and
+      split24_tm, lp_cond24, e24 = split_lp_conditions arg.hyp_list_tm d24_tm arg.lp_cond_th in
+    (* compute lp_tau *)
+  let hyp_set, hyp_fun =
+    if std_flag then arg.hyp_set0, arg.hyp_fun0 else compute_all arg.hyp_list_tm None in
+  let tau13 = get_tau_split_th tau_split4 (hyp_set, hyp_fun) arg d13_tm and
+      tau24 = get_tau_split_th tau_split4 (hyp_set, hyp_fun) arg d24_tm in
+    (* Prove all subcases *)
+  let arg13 = {arg with lp_cond_th = lp_cond13; lp_tau_th = tau13; hyp_list_tm = split13_tm; e_tm = e13} and
+      arg24 = {arg with lp_cond_th = lp_cond24; lp_tau_th = tau24; hyp_list_tm = split24_tm; e_tm = e24} in
+  let args = zip [arg13; arg24; arg13; arg24; arg] cs in
+  let cases = map2 (verify_lp_case base_ineqs) [false; false; false; false; true] args in
+    (* Combine subcases *)
+  let split_th = INST[diag1_tm, nth diag_vars 1; diag2_tm, nth diag_vars 2] split4_lemma in
+  let split_cases = striplist dest_disj (concl split_th) in
+  let final_cases = map2 (get_final_case_th arg.ye_sym_th) split_cases cases in
+  let final_th = MP (end_itlist combine_cases final_cases) split_th in
+    final_th
+
+(* Pent *)
+and verify_split5 base_ineqs std_flag arg info cs =
+  failwith "split5: not implemented"
+
+(* Hex *)
+and verify_split6 base_ineqs std_flag arg info cs =
+  failwith "split6: not implemented";;
+
+
+
+
+
+(***********************)
+
+
+let certificate = c4;;
+
+let hyp_list = (snd o convert_to_list) certificate.hypermap_string;;
+let hyp_list0_tm = (to_num o create_hol_list) hyp_list;;
+let hyp_set0, hyp_fun0 = compute_all hyp_list0_tm None;;
+let lp_cond0, lp_tau0 = contravening_conditions hyp_list0_tm hyp_set0;;
+let ye_sym_th = (MY_PROVE_HYP lp_cond0 o INST[estd_v, e_cap_var]) ye_sym0;;
+let ye_ineqs_3, ye_ineqs_2h0, diag4_ineqs =
+  let r = get_all_ineqs hyp_set0 o EXPAND_CONCL_RULE "L" o 
+    MY_PROVE_HYP lp_tau0 o MY_PROVE_HYP lp_cond0 o MY_PROVE_HYP estd_refl o INST[estd_v, e_cap_var] in
+    r ye_hi_3, r ye_hi_2h0, r diag4_lo;;
+let diag4_ths = map (fun th -> EQ_MP (convert_tm hyp_fun0 (concl th)) th) diag4_ineqs;;
+let base_ineqs = ye_ineqs_3 @ ye_ineqs_2h0 @ diag4_ths;;
+
+
+let arg = {hyp_set0 = hyp_set0; hyp_fun0 = hyp_fun0; ye_sym_th = ye_sym_th;
+	   lp_cond_th = EXPAND_CONCL_RULE "L" lp_cond0; lp_tau_th = lp_tau0; 
+	   hyp_list_tm = hyp_list0_tm; e_tm = estd_v};;
+
+verify_lp_case base_ineqs true (arg, c4.root_case);;
+(* 100: 10.671 *)
+test 1 (verify_lp_case base_ineqs true) (arg, c4.root_case);;
+
+(**************************)
+
+let info, cs = match c4.root_case with Lp_split (info, cs) -> info,cs;;
+
+let d13_tm = mk_dart info.split_face 1 2 and
+    d24_tm = mk_dart info.split_face 0 1;;
+
+let split13_tm, lp_cond13, e13 = split_lp_conditions arg.hyp_list_tm d13_tm arg.lp_cond_th;;
+let split24_tm, lp_cond24, e24 = split_lp_conditions arg.hyp_list_tm d24_tm arg.lp_cond_th;;
+
+(* compute lp_tau_th *)
+let std_flag = false;;
+
+let hyp_set, hyp_fun =
+  if std_flag then arg.hyp_set0, arg.hyp_fun0 else compute_all arg.hyp_list_tm None;;
+
+
+let tau13 = get_tau_split_th tau_split4 (hyp_set, hyp_fun) arg d13_tm;;
+let tau24 = get_tau_split_th tau_split4 (hyp_set, hyp_fun) arg d24_tm;;
+
+(* Prove all subcases *)
+let arg13 = {arg with lp_cond_th = lp_cond13; lp_tau_th = tau13; hyp_list_tm = split13_tm; e_tm = e13} and
+    arg24 = {arg with lp_cond_th = lp_cond24; lp_tau_th = tau24; hyp_list_tm = split24_tm; e_tm = e24};;
+
+let cases = map2 (verify_lp_case base_ineqs) [false; false; false; false; true]
+  (zip [arg13; arg24; arg13; arg24; arg] cs);;
+
+(* Combine subcases *)
+
+let diag1_tm = mk_dart info.split_face 0 2 and
+    diag2_tm = mk_dart info.split_face 1 3;;
+
+let split_th = INST[diag1_tm, nth diag_vars 1; diag2_tm, nth diag_vars 2] split4_lemma;;
+let split_cases = striplist dest_disj (concl split_th);;
+
+let final_cases = map2 (get_final_case_th ye_sym_th) split_cases cases;;
+
+let final_th = MP (end_itlist combine_cases final_cases) split_th;;
+
+
+
+
+
+let x = 2;;
+
+let darts4_th =
+  if std_flag then arg.hyp_set0 "list_of_darts4"
+    else
+      let faces_th = eval_list_of_faces arg.hyp_list_tm in
+      let faces4_th = eval_list_of_faces4 arg.hyp_list_tm faces_th in
+	eval_list_of_darts4 arg.hyp_list_tm faces4_th;;
+
+
+
+(***************************************)
+
+let cert6_file = "/mnt/Repository/formal_lp/glpk/binary/c6.dat";;
+let c6 = hd (read_lp_certificates cert6_file);;
+
+let cert4_file = "/mnt/Repository/formal_lp/glpk/binary/c4.dat";;
+let c4 = hd (read_lp_certificates cert4_file);;
+
+
+let base_ineqs, cs = get_terminal_cases c6;;
+length cs;;
+
+
+
+let th1 = test_terminal (nth cs 11);;
+let th2 = INST[`E2:(real^3->bool)->bool`, e_cap_var] th1;;
+let th3 = itlist MY_PROVE_HYP base_ineqs th2;;
+
+(****************)

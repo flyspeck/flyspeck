@@ -185,7 +185,6 @@ namespace LP_HL
 //            writer.WriteLine("module Test_case = struct");
 
             // Parameters
-            writer.WriteLine("hypermap_string := \"" + hypermap.rawString + "\";;");
             writer.WriteLine("precision := " + precision + ";;");
 
             dict.Clear();

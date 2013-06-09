@@ -123,17 +123,32 @@ namespace LP_HL
         /// </summary>
         static ListHypManager InitializeHypermaps()
         {
-            FileStream ftame = new FileStream("string_archive.txt", FileMode.Open);
+            FileStream ftame = null;
+            if (File.Exists("string_archive.txt"))
+            {
+                ftame = new FileStream("string_archive.txt", FileMode.Open);
+            }
+
+            if (!File.Exists("000.txt"))
+            {
+                throw new Exception("File 000.txt is required for processing Flyspeck linear programs");
+            }
+
             FileStream fdefs = new FileStream("000.txt", FileMode.Open);
             ListHypManager hypermaps = null;
 
             try
             {
-                hypermaps = new ListHypManager(new StreamReader(ftame), new StreamReader(fdefs));
+                hypermaps = new ListHypManager(ftame != null ? new StreamReader(ftame) : null, 
+                    new StreamReader(fdefs));
             }
             finally
             {
-                ftame.Close();
+                if (ftame != null)
+                {
+                    ftame.Close();
+                }
+
                 fdefs.Close();
             }
 

@@ -15,7 +15,7 @@ namespace LP_HL
         public ListHypManager Manager { get; private set; }
 
         // Raw data
-        public readonly string rawString;
+//        public readonly string rawString;
 
         // Main data
         private readonly List<List<int>> list;
@@ -38,10 +38,9 @@ namespace LP_HL
         /// Private constructor
         /// </summary>
         /// <param name="manager"></param>
-        private ListHyp(ListHypManager manager, string rawString)
+        private ListHyp(ListHypManager manager)
         {
             this.Manager = manager;
-            this.rawString = rawString;
             this.list = new List<List<int>>();
         }
 
@@ -49,7 +48,7 @@ namespace LP_HL
         /// Creates a list hypermap from its string representation
         /// </summary>
         /// <param name="str"></param>
-        public ListHyp(string str, ListHypManager manager) : this(manager, str)
+        public ListHyp(string str, ListHypManager manager) : this(manager)
         {
             string[] els = str.Split(' ');
             this.Id = els[0];
@@ -75,13 +74,31 @@ namespace LP_HL
 
 
         /// <summary>
+        /// Creates a list hypermap from the given list of numbers
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="manager"></param>
+        public ListHyp(List<List<int>> data, ListHypManager manager)
+            : this(manager)
+        {
+            // Make a deep copy
+            foreach (var f0 in data)
+            {
+                List<int> f = new List<int>();
+                f.AddRange(f0);
+                this.list.Add(f);
+            }
+        }
+
+
+        /// <summary>
         /// Splits the hypermap using the given list of split darts
         /// </summary>
         /// <param name="splitDarts"></param>
         /// <returns></returns>
         public ListHyp Split(List<Dart> splitDarts)
         {
-            ListHyp hyp = new ListHyp(Manager, rawString);
+            ListHyp hyp = new ListHyp(Manager);
             hyp.Id = Id;
 
             var l2 = list;
@@ -189,7 +206,14 @@ namespace LP_HL
         public int FindElementIndex(string setName, HypermapElement element)
         {
             var set = sets[setName];
-            return set.IndexOf(element);
+            int index = set.IndexOf(element);
+
+            if (index < 0)
+            {
+                throw new Exception(String.Format("Element {0} is not found in set {1}", element, setName));
+            }
+
+            return index;
         }
 
 
@@ -271,8 +295,9 @@ namespace LP_HL
             Dictionary<string, HypermapElement> mod_face5_darts = new Dictionary<string, HypermapElement>();
             Dictionary<string, HypermapElement> mod_face6_darts = new Dictionary<string, HypermapElement>();
             Dictionary<string, HypermapElement> mod_darts = new Dictionary<string, HypermapElement>();
-            Dictionary<string, HypermapElement> mod_dartPairs = new Dictionary<string, HypermapElement>();
+            Dictionary<string, HypermapElement> mod_edartPairs = new Dictionary<string, HypermapElement>();
             Dictionary<string, HypermapElement> mod_dartPairsFst = new Dictionary<string, HypermapElement>();
+            Dictionary<string, HypermapElement> mod_edartPairsFst = new Dictionary<string, HypermapElement>();
 
             for (int j = 0; j < list.Count; j++)
             {
@@ -317,7 +342,7 @@ namespace LP_HL
                 mod_face_darts.Add(mod_index.ToString(), faces[j][0]);
             }
 
-            // dart pairs
+            // extended dart pairs
             foreach (string e_dart1 in e_darts.Keys)
             {
                 var dart1 = e_darts[e_dart1] as Dart;
@@ -327,8 +352,20 @@ namespace LP_HL
                     var dart2 = e_darts[e_dart2] as Dart;
                     String e_pair = e_dart1 + "," + e_dart2;
                     DartList pair = new DartList(dart1, dart2);
-                    mod_dartPairs.Add(e_pair, pair);
-                    mod_dartPairsFst.Add(e_pair, dart1);
+                    mod_edartPairs.Add(e_pair, pair);
+                    mod_edartPairsFst.Add(e_pair, dart1);
+                }
+            }
+
+            // dart pairs
+            foreach (string dart1 in mod_darts.Keys)
+            {
+                Dart d1 = mod_darts[dart1] as Dart;
+
+                foreach (string dart2 in mod_darts.Keys)
+                {
+                    String dart_pair = dart1 + "," + dart2;
+                    mod_dartPairsFst.Add(dart_pair, d1);
                 }
             }
 
@@ -366,8 +403,9 @@ namespace LP_HL
             translationTables.Add("face4_dart", mod_face4_darts);
             translationTables.Add("face5_dart", mod_face5_darts);
             translationTables.Add("face6_dart", mod_face6_darts);
-            translationTables.Add("dart_pairs", mod_dartPairs);
             translationTables.Add("dart_pairs_fst", mod_dartPairsFst);
+            translationTables.Add("e_dart_pairs", mod_edartPairs);
+            translationTables.Add("e_dart_pairs_fst", mod_edartPairsFst);
         }
 
 
@@ -427,7 +465,7 @@ namespace LP_HL
             // Load all hypermaps
             data = new Dictionary<string, ListHyp>();
 
-            while (true)
+            while (tame_archive != null)
             {
                 string str = tame_archive.ReadLine();
                 if (str == null)
@@ -482,6 +520,7 @@ namespace LP_HL
         {
             name = null;
             string id = null;
+            List<List<int>> hypList = null;
             List<Dart> splitDarts = new List<Dart>();
             List<int> facesPermutation = null;
 
@@ -510,6 +549,20 @@ namespace LP_HL
                         id = val;
                         break;
 
+                    case "hypermap":
+                        if (val == "")
+                            break;
+
+                        hypList = new List<List<int>>();
+                        els = val.Split(';');
+                        foreach (string el in els)
+                        {
+                            List<int> f = el.Split(',').ToList().map(x => int.Parse(x));
+                            hypList.Add(f);
+                        }
+                        
+                        break;
+
                     case "split":
                         if (val == "")
                             break;
@@ -533,12 +586,23 @@ namespace LP_HL
                 }
             }
 
-            if (name == null || id == null || facesPermutation == null)
-                throw new Exception("ComputeHypermaps(): name, id, or facesPermutation are not defined");
+            if (name == null || facesPermutation == null)
+                throw new Exception("ComputeHypermaps(): name or facesPermutation are not defined");
 
-            ListHyp hyp = this[id].Split(splitDarts);
+            if (id == null && hypList == null)
+                throw new Exception("ComputeHypermaps(): both id and hypList are not defined");
+
+            ListHyp hyp = null;
+            if (hypList != null)
+            {
+                hyp = new ListHyp(hypList, this).Split(splitDarts);
+            }
+            else
+            {
+                hyp = this[id].Split(splitDarts);
+            }
+
             hyp.ComputeAllSets(facesPermutation);
-
             return hyp;
         }
 
@@ -557,25 +621,41 @@ namespace LP_HL
 
         public HypermapElement TranslateIneq(ListHyp hypermap, Label ineqId)
         {
-            string domain = constraints[ineqId.name].domain;
-            return hypermap.Translate(domain, ineqId.index);
+            try
+            {
+                string domain = constraints[ineqId.name].domain;
+                return hypermap.Translate(domain, ineqId.index);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("TranslateIneq() Error: ineqId = {0}", ineqId);
+                throw e;
+            }
         }
 
 
         public int FindIneqIndex(ListHyp hypermap, Label ineqId)
         {
-            if (!constraints.ContainsKey(ineqId.name))
-                throw new Exception("Constraint " + ineqId.name + " is not defined in 000.txt");
+            try
+            {
+                if (!constraints.ContainsKey(ineqId.name))
+                    throw new Exception("Constraint " + ineqId.name + " is not defined in 000.txt");
 
-            Definition c = constraints[ineqId.name];
-            HypermapElement element = hypermap.Translate(c.domain, ineqId.index);
-            if (element == null)
+                Definition c = constraints[ineqId.name];
+                HypermapElement element = hypermap.Translate(c.domain, ineqId.index);
+                if (element == null)
+                {
+                    throw new Exception(
+                           String.Format("Element with the index {0} is not found for the domain {1}", ineqId.index, c.domain));
+                }
+
+                return hypermap.FindElementIndex(c.set, element);
+            }
+            catch (Exception e)
             {
                 throw new Exception(
-                       String.Format("Element with the index {0} is not found for the domain {1}", ineqId.index, c.domain));
+                    String.Format("Inequality {0} problem: {1}", ineqId.name, e.Message));
             }
-
-            return hypermap.FindElementIndex(c.set, element);
         }
 
 

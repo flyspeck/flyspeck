@@ -19,10 +19,6 @@ init_ineqs();;
 let report s =
   Format.print_string s; Format.print_newline(); Format.print_flush();;
 
-let rec count_terminals lp_case =
-  match lp_case with
-    | Lp_terminal _ -> 1
-    | Lp_split (_, cs) -> itlist (+) (map count_terminals cs) 0;;
 
 
 let e_cap_var = `E:(real^3->bool)->bool` and
@@ -336,7 +332,7 @@ and verify_split6 base_ineqs std_flag arg info cs =
   let diag_tms = map mk_pair (zip split_face_tms (rotateL 2 split_face_tms)) in
   let split_th = INST (zip diag_tms (take 6 (drop 1 diag_vars))) split6_lemma in
   let split_cases = striplist dest_disj (concl split_th) in
-  let final_cases = map2 (get_final_case_th ye_sym_th) split_cases cases in
+  let final_cases = map2 (get_final_case_th arg.ye_sym_th) split_cases cases in
   let final_th = MP (end_itlist combine_cases final_cases) split_th in
     final_th;;
 
@@ -357,7 +353,8 @@ let verify_lp_certificate certificate =
   let arg = {hyp_set0 = hyp_set0; hyp_fun0 = hyp_fun0; ye_sym_th = ye_sym_th;
 	     lp_cond_th = EXPAND_CONCL_RULE "L" lp_cond0; lp_tau_th = lp_tau0; 
 	     hyp_list_tm = hyp_list0_tm; e_tm = estd_v} in
-    verify_lp_case base_ineqs true (arg, certificate.root_case);;
+  let final_th = verify_lp_case base_ineqs true (arg, certificate.root_case) in
+    (DISCH contravening_v o EXPAND_RULE "L" o EXPAND_RULE "g" o EXPAND_RULE "h") final_th;;
 
 
 
@@ -396,6 +393,12 @@ let c6 = hd (read_lp_certificates cert6_file);;
 
 let cert4_file = "/mnt/Repository/formal_lp/glpk/binary/c4.dat";;
 let c4 = hd (read_lp_certificates cert4_file);;
+
+let binary_dir = "/mnt/Repository/formal_lp/glpk/binary";;
+let files = map (fun i -> sprintf "%s/c6_%d.dat" binary_dir i) (1--9);;
+let cs = map (hd o read_lp_certificates) files;;
+
+verify_lp_certificate (nth cs 8);;
 
 
 let base_ineqs, cs = get_terminal_cases c6;;

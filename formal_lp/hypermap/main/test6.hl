@@ -16,6 +16,7 @@ open Misc_vars;;
 
 init_ineqs();;
 
+
 let report s =
   Format.print_string s; Format.print_newline(); Format.print_flush();;
 
@@ -45,6 +46,23 @@ let split4_lemma = (INST[`ye_list (g:num#num->real^3#real^3) diag1`, `a:real`;
    \/ (b <= a /\ sqrt8 <= b /\ b <= &3)
    \/ (&3 <= a /\ &3 <= b)`,
  MP_TAC Flyspeck_constants.bounds THEN ARITH_TAC);;
+
+let split5_lemma = 
+  let inst = zip (map (fun d -> mk_comb (`ye_list (g:num#num->real^3#real^3)`, d)) diag_vars) a_vars in
+    (INST inst o prove)(`(sqrt8 <= a1 /\ sqrt8 <= a2 /\ sqrt8 <= a3 /\ sqrt8 <= a4 /\ sqrt8 <= a5)
+			  \/ (a1 <= sqrt8 /\ sqrt8 <= a3 /\ sqrt8 <= a4)
+			  \/ (a2 <= sqrt8 /\ sqrt8 <= a4 /\ sqrt8 <= a5)
+			  \/ (a3 <= sqrt8 /\ sqrt8 <= a5 /\ sqrt8 <= a1)
+			  \/ (a4 <= sqrt8 /\ sqrt8 <= a1 /\ sqrt8 <= a2)
+			  \/ (a5 <= sqrt8 /\ sqrt8 <= a2 /\ sqrt8 <= a3)
+			  \/ (a1 <= sqrt8 /\ a3 <= sqrt8)
+			  \/ (a2 <= sqrt8 /\ a4 <= sqrt8)
+			  \/ (a3 <= sqrt8 /\ a5 <= sqrt8)
+			  \/ (a4 <= sqrt8 /\ a1 <= sqrt8)
+			  \/ (a5 <= sqrt8 /\ a2 <= sqrt8)`,
+			MAP_EVERY DISJ_CASES_TAC (map (fun tm -> SPECL[tm; `sqrt8`] REAL_LE_TOTAL) (take 5 (drop 1 a_vars))) THEN 
+			  ASM_REWRITE_TAC[]);;
+
 
 let split6_lemma = 
   let inst = zip (map (fun d -> mk_comb (`ye_list (g:num#num->real^3#real^3)`, d)) diag_vars) a_vars in
@@ -135,10 +153,9 @@ let diag4_lo = gen_list_ineq true dart4_y4'_lo and
 let diag5_lo_sym = PURE_ONCE_REWRITE_RULE[ye_sym0] diag5_lo and
     diag6_lo_sym = PURE_ONCE_REWRITE_RULE[ye_sym0] diag6_lo;;
 
-let tau_split4, tau_split6 =
-  let r = SPEC `d:num#num` o REWRITE_RULE[GSYM ALL_MEM] o gen_list_ineq false in
-    r lp_tau_split4, r lp_tau_split6;;
-
+let tau_split4, tau_split5_one, tau_split5_two, tau_split6 =
+  let r = SPEC `d:num#num` o REWRITE_RULE[GSYM ALL_MEM] o gen_list_ineq true in
+    r lp_tau_split4, r lp_tau_split5_one_diag, r lp_tau_split5_two_diags, r lp_tau_split6;;
 
 
 (*****************************************)
@@ -165,7 +182,12 @@ let rec cases (hyp_list, case) =
 		   
 	   (* Pent *)
 	   | Pent_split -> 
-	       failwith "Not implemented"
+	       let split_face = info.split_face in
+	       let darts = rotateL 1 (list_pairs split_face) in
+	       let splits_one = map (split_list hyp_list) darts in
+	       let splits_two = map2 split_list splits_one (rotateL 2 darts) in
+	       let case_args = zip (hyp_list :: (splits_one @ splits_two)) cs in
+		 flatten (map cases case_args)
 
 	   (* Hex *)
 	   | Hex_split ->
@@ -387,26 +409,27 @@ test 1 (verify_lp_case base_ineqs true) (arg, c6.root_case);;
 
 (**************************)
 
-
 let cert6_file = "/mnt/Repository/formal_lp/glpk/binary/c6.dat";;
 let c6 = hd (read_lp_certificates cert6_file);;
 
 let cert4_file = "/mnt/Repository/formal_lp/glpk/binary/c4.dat";;
 let c4 = hd (read_lp_certificates cert4_file);;
 
+let cert5_file = "/mnt/Repository/formal_lp/glpk/binary/c5.dat";;
+let c5 = hd (read_lp_certificates cert5_file);;
+
 let binary_dir = "/mnt/Repository/formal_lp/glpk/binary";;
 let files = map (fun i -> sprintf "%s/c6_%d.dat" binary_dir i) (1--9);;
 let cs = map (hd o read_lp_certificates) files;;
 
-verify_lp_certificate (nth cs 8);;
+verify_lp_certificate (nth cs 0);;
 
 
-let base_ineqs, cs = get_terminal_cases c6;;
+let base_ineqs, cs = get_terminal_cases c5;;
 length cs;;
 
 
-
-let th1 = test_terminal (nth cs 11);;
+let th1 = test_terminal (nth cs 10);;
 let th2 = INST[`E2:(real^3->bool)->bool`, e_cap_var] th1;;
 let th3 = itlist MY_PROVE_HYP base_ineqs th2;;
 
@@ -422,3 +445,41 @@ test 1 (verify_lp_case base_ineqs true) (arg, c4.root_case);;
 test 1 verify_lp_certificate c4;;
 (* 100: 31.674 *)
 test 1 verify_lp_certificate c6;;
+
+
+(*******************)
+
+let hyp_list, terminal = nth cs 1;;
+
+let hyp_list_tm = (to_num o create_hol_list) hyp_list;;
+let hyp_set, hyp_fun = compute_all hyp_list_tm None;;
+let r = (fun name, ind, v -> name, ind, map mk_real_int64 v);;
+let c = map r terminal.constraints and
+    tv = map r terminal.target_variables and
+    vb = map r terminal.variable_bounds;;
+prove_flyspeck_lp_step1 hyp_list_tm hyp_set hyp_fun true terminal.precision c tv vb;;
+
+let std_flag = true and
+    precision = terminal.precision and
+    constraints = c and
+    target_variables = tv and
+    variable_bounds = vb;;
+
+let precision_constant = Int 10 **/ (Int precision);;
+
+find (fun name, _, _ -> name = "yy15") c;;
+
+let sum_step = fun (name, indices, c) ->
+  try
+    let ineqs = get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices in
+    let s1 = map transform_le_ineq (zip ineqs c) in
+      List.fold_left add_step' dummy s1
+  with 
+      | Failure str -> failwith (sprintf "Problem: %s (%s)" name str)
+      | _ ->  failwith ("Problem: "^name);;
+  
+let s1' = List.fold_left add_step' dummy (map sum_step constraints);;
+let s1 = mul_step s1' (mk_real_int precision_constant);;
+let s2 = List.fold_left add_step' dummy (map sum_step target_variables);;
+let s3 = List.fold_left add_step' dummy (map sum_step variable_bounds);;
+let s4 = add_step' (add_step' s1 s2) s3;;

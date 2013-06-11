@@ -362,13 +362,32 @@ rewrite scriptL list_defs_th (Basics.BIJ_SUM bij_h).
 by apply SUM_EQ => v vV /=; rewrite ln_fan yn_fan.
 Qed.
 
+Lemma hyp_iso_comm_power H G g d: `hyp_iso g (G, H) /\ d IN dart G
+	   ==> (!k. (face_map H POWER k) (g d) = g ((face_map G POWER k) d))`.
+Proof.
+move => [iso_g d_in].
+elim => [|k Ih]; first by rewrite !POWER_0 !I_THM.
+by rewrite !COM_POWER !o_THM Ih (hyp_iso_comm iso_g) // lemma_dart_invariant_power_face.
+Qed.
 
-Lemma y8_list_def V E L g: `FAN (vec 0,V,E) /\ good_list L /\
-        hyp_iso g (hypermap_of_list L, hypermap_of_fan (V,E))
-        ==> ALL (\d. y8_list (g,V,E) d
+
+(* ExtraDefs *)
+Section ExtraDefs.
+
+Variable V: `:real^3->bool`.
+Variable E: `:(real^3->bool)->bool`.
+Variable L: `:((num)list)list`.
+Variable g: `:(num#num -> real^3#real^3)`.
+
+
+Hypothesis fanV: `FAN (vec 0,V,E)`.
+Hypothesis goodL: `good_list L`.
+Hypothesis iso_g: `hyp_iso g (hypermap_of_list L, hypermap_of_fan (V,E))`.
+
+Lemma y8_list_def: `ALL (\d. y8_list (g,V,E) d
              = ye_list g (inverse (f_list_ext L) (inverse (f_list_ext L) d))) (list_of_darts L)`.
 Proof.
-rewrite -ALL_MEM /= => [] [fanV] [goodL] iso_g d mem_d.
+rewrite -ALL_MEM /= => d mem_d.
 rewrite !list_defs_th !o_THM.
 have [dartL [_] [_] faceL] := components_hypermap_of_list goodL.
 move: mem_d; rewrite -IN_SET_OF_LIST -darts_of_list -dartL => d_in.
@@ -376,14 +395,12 @@ rewrite -faceL -!(hyp_iso_inverse_comm iso_g) ?lemma_dart_inveriant_under_invers
 by rewrite y8_fan y5_fan !(COMPONENTS_HYPERMAP_OF_FAN fanV) ye_fan.
 Qed.
 
+Variable h: `:num -> real^3`.
+Hypothesis g_eq: `!x. g x = h (FST x), h (SND x)`.
 
-Lemma y4'_list_def V E L g h: `FAN (vec 0,V,E) /\ good_list L /\
-        hyp_iso g (hypermap_of_list L, hypermap_of_fan (V,E)) /\
-        (!x. g x = h (FST x), h (SND x))
-        ==> ALL (\d. y4'_list (g,V,E) d
+Lemma y4'_list_def: `ALL (\d. y4'_list (g,V,E) d
                 = ye_list g (SND d, FST (inverse (f_list_ext L) d))) (list_of_darts L)`.
 Proof.
-move => [fanV] [goodL] [iso_g] g_eq.
 rewrite -ALL_MEM /= !list_defs_th !o_THM y4'_fan ye_fan => d mem_d.
 rewrite {3}(pair_expand d) -pair_expand.
 have [dartL [_] [_] faceL] := components_hypermap_of_list goodL.
@@ -393,15 +410,10 @@ have d_in: `d IN dart (hypermap_of_list L)`.
 by rewrite !g_eq /= -g_eq -faceH (hyp_iso_inverse_comm iso_g).
 Qed.
 
-
-Lemma y4'_list_f_def V E L g h: `FAN (vec 0,V,E) /\ good_list L /\
-        hyp_iso g (hypermap_of_list L, hypermap_of_fan (V,E)) /\
-        (!x. g x = h (FST x), h (SND x))
-        ==> ALL (\d. y4'_list (g,V,E) (f_list_ext L d)
+Lemma y4'_list_f_def: `ALL (\d. y4'_list (g,V,E) (f_list_ext L d)
                 = ye_list g (SND (f_list_ext L d), FST d)) (list_of_darts L)`.
 Proof.
-move => [fanV] [goodL] [iso_g] g_eq.
-move: (y4'_list_def fanV goodL iso_g g_eq).
+move: y4'_list_def.
 have [dartL [_] [_] faceL] := components_hypermap_of_list goodL.
 rewrite -!ALL_MEM /= => eq1 d mem_d.
 have d_in: `d IN dart (hypermap_of_list L)`.
@@ -410,6 +422,59 @@ rewrite eq1.
   by rewrite -IN_SET_OF_LIST -darts_of_list -dartL -faceL lemma_dart_invariant.
 by rewrite -faceL (PERMUTES_INVERSES `darts_of_list L`) // -dartL hypermap_lemma.
 Qed.
+
+Lemma y4'_list_inv_f_def: `ALL (\d. y4'_list (g,V,E) (inverse (f_list_ext L) d)
+                = ye_list g (FST d, FST ((inverse (f_list_ext L) POWER 2) d))) (list_of_darts L)`.
+Proof.
+move: y4'_list_def.
+have [dartL [_] [_] faceL] := components_hypermap_of_list goodL.
+rewrite -!ALL_MEM /= => eq1 d mem_d.
+have d_in: `d IN dart (hypermap_of_list L)`.
+  by rewrite dartL darts_of_list IN_SET_OF_LIST.
+rewrite eq1.
+  by rewrite -IN_SET_OF_LIST -darts_of_list -dartL -faceL lemma_dart_inveriant_under_inverse_maps.
+move: (goodL); rewrite good_list => [] [uniqL] _.
+rewrite POWER_2 o_THM; congr `ye_list g (_1, _2)` => //.
+rewrite f_list_ext_inverse // res -dartL d_in /=.
+move: (mem_d); rewrite dart_in_face find_face_alt (pair_expand d).
+by move/prev_el_list_pairs_general => [z] ->.
+Qed.
+
+Lemma y4'_list_ff_def: `ALL (\d. y4'_list (g,V,E) ((f_list_ext L POWER 2) d)
+                = ye_list g (SND ((f_list_ext L POWER 2) d), SND d)) (list_of_darts L)`.
+Proof.
+rewrite -ALL_MEM => d mem_d /=.
+rewrite !list_defs_th !o_THM.
+have ->: `g (SND ((f_list_ext L POWER 2) d), SND d) = SND (g ((f_list_ext L POWER 2) d)), SND (g d)`.
+  by rewrite !g_eq.
+have [dartL [_] [_] faceL] := components_hypermap_of_list goodL.
+have [dartH [_] [_] faceH] := COMPONENTS_HYPERMAP_OF_FAN fanV.
+have d_in: `d IN dart (hypermap_of_list L)`.
+  by rewrite dartL darts_of_list IN_SET_OF_LIST.
+rewrite -faceL -(hyp_iso_comm_power iso_g) // faceH.
+rewrite y4'_fan ye_fan; congr `dist (_1, _2)` => //.
+rewrite POWER_2 -(o_THM `inverse _`) o_ASSOC.
+rewrite (PERMUTES_INVERSES_o (F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN fanV)) o_THM I_THM.
+rewrite f_fan_pair_ext.
+case gd_in1: `g d IN _` => /=.
+  by rewrite {1}(pair_expand `g d`) f_fan_pair.
+move: (hyp_iso_dart iso_g d_in); rewrite dartH dart_of_fan_eq IN_UNION gd_in1 orFb.
+by rewrite IN_ELIM_THM /= {1}(pair_expand `g d`) PAIR_EQ => [] [v] [_] [-> ->].
+Qed.
+
+Lemma y4'_list_fff_def: `ALL (\d. y4'_list (g,V,E) ((f_list_ext L POWER 3) d)
+            = ye_list g (SND ((f_list_ext L POWER 3) d), SND (f_list_ext L d))) (list_of_darts L)`.
+Proof.
+move: y4'_list_ff_def.
+have [dartL [_] [_] faceL] := components_hypermap_of_list goodL.
+rewrite -!ALL_MEM /= => eq1 d mem_d.
+have d_in: `d IN dart (hypermap_of_list L)`.
+  by rewrite dartL darts_of_list IN_SET_OF_LIST.
+rewrite THREE POWER o_THM eq1 //.
+by rewrite -IN_SET_OF_LIST -darts_of_list -dartL -faceL lemma_dart_invariant.
+Qed.
+
+End ExtraDefs.
 
 
 (* FanAddDiag *)

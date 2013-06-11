@@ -79,6 +79,11 @@ let parse_lp_ineq s type_hints =
       failwith "Unparsed input following term";;
 
 
+let gen_raw_ineq_data name std_flag str =
+  let tm = parse_lp_ineq str ["H", `:(A)hypermap`; "V", `:C->bool`; "node_mod", `:A->C`] in
+    {name = name; tm = tm; proof = None; std_only = std_flag};;
+
+
 let add_lp_ineq_str (name, std_flag, s_tm, th) =
   let tm = parse_lp_ineq s_tm ["H", `:(A)hypermap`; "V", `:C->bool`; "node_mod", `:A->C`] in
   let proof = match th with
@@ -163,10 +168,12 @@ let generate_ineq1 =
       map (fst o strip_ALL o mk_list_th)
 	[y1_def; y2_def; y3_def; y4_def; y5_def; y6_def; y9_def] in
     let r = (fst o strip_ALL o add_lp_hyp true o REWRITE_RULE[GSYM IMP_IMP]) in
-    let def8 =  r Lp_ineqs_proofs.y8_list_def in
-    let def4' = r Lp_ineqs_proofs.y4'_list_def in
-    let def4'_f = r Lp_ineqs_proofs.y4'_list_f_def in
-      def4'_f :: def4' :: def8 :: defs in
+    let extra_defs = map r
+      [
+	y8_list_def; y4'_list_def; y4'_list_f_def; 
+	y4'_list_inv_f_def; y4'_list_ff_def; y4'_list_fff_def;
+      ] in
+      extra_defs @ defs in
 
   let mem_ths =
     [
@@ -181,7 +188,7 @@ let generate_ineq1 =
       let ltm, q_tm = dest_comb tm in
       let imp_tm, p_tm = dest_comb ltm in
       let p_tm, q_tm = dest_imp tm in
-      let p_th = PURE_REWRITE_CONV (power_th :: def_ths) p_tm in
+      let p_th = (PURE_REWRITE_CONV def_ths THENC PURE_REWRITE_CONV[power_th]) p_tm in
       let q_th = simplify q_tm in
 	MK_COMB (AP_TERM imp_tm p_th, q_th)
     else
@@ -191,10 +198,10 @@ let generate_ineq1 =
       let th1 = generate_ineq0 ineq in
       let th2, (var_tm, mem_tm) = strip_ALL th1 in
       let eq_th = 
-		if simplify_all_flag then
-			PURE_REWRITE_CONV (power_th :: def_ths) (concl th2)
-		else
-			simplify (concl th2) in
+	if simplify_all_flag then
+	  (PURE_REWRITE_CONV def_ths THENC PURE_REWRITE_CONV[power_th]) (concl th2)
+	else
+	  simplify (concl th2) in
       let th3 = EQ_MP eq_th th2 in
       let th4 =
 	try

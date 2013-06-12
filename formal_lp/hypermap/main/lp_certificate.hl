@@ -10,10 +10,8 @@ type terminal_case = {
   variable_bounds : constraint_type list;
 };;
 
-type split_type = Triangle_split | Quad_split | Pent_split | Hex_split;;
-
 type split_case = {
-  split_type : split_type;
+  split_type : string;
   split_face : int list;
 };;
 
@@ -52,10 +50,11 @@ let case_info lp_case =
       | Lp_split (info, cs) ->
 	  let _ =
 	    (match info.split_type with
-	       | Triangle_split -> split3 := !split3 + 1
-	       | Quad_split -> split4 := !split4 + 1
-	       | Pent_split -> split5 := !split5 + 1
-	       | Hex_split -> split6 := !split6 + 1) in
+	       | "tri" -> split3 := !split3 + 1
+	       | "quad" -> split4 := !split4 + 1
+	       | "pent" -> split5 := !split5 + 1
+	       | "hex" -> split6 := !split6 + 1
+	       | s -> failwith ("Unknown split type: " ^ s)) in
 	  let _ = map count cs in
 	    () in
   let _ = count lp_case in
@@ -74,5 +73,17 @@ let read_lp_certificates fname =
   let certificates = (Marshal.from_channel input : lp_certificate list) in
   let _ = close_in input in
     certificates;;
+	
+(******************)
+(* Test functions *)
+(******************)
+
+type test_split = Test_dummy | Test_info of string * int list * (test_split list);;
+
+let rec build_test_split case =
+  match case with
+    | Lp_terminal _ -> Test_dummy
+    | Lp_split (info, cs) ->
+	  Test_info (info.split_type, info.split_face, map build_test_split cs);;
 
 end;;

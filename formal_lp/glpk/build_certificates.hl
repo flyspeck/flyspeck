@@ -12,6 +12,10 @@ let mem_stat () =
     allocated free total (free /. total) in
     print_string str;;
 
+let report s =
+  Format.print_string s; Format.print_newline(); Format.print_flush();;
+
+
 (*
 mem_stat();;
 
@@ -197,26 +201,56 @@ let build_and_save_all_std =
 	save_buf ();;
 
 
+(**********************)
 
-(****************************)
-needs "../formal_lp/glpk/feasible.hl";;
+let rec build_test bb =
+  let result = solve bb in
+    if not (is_feas result) then 1
+    else
+      (* split case *)
+      let n = length (hd bb.std_faces_not_super) in
+	if n = 3 then
+	  split3_test bb
+	else if n = 4 then
+	  split4_test bb
+	else if n = 5 then
+	  split5_test bb
+	else if n = 6 then
+	  split6_test bb
+	else
+	  failwith (sprintf "build: incorrect face size - %d" n)
 
-let tame = Glpk_link.strip_archive (!archiveraw);;
-let test_tame = fst (chop_list 100 tame);;
-let test_tame = tame;;
-let test_list = map mk_bb test_tame;;
-(* let test_feas = filter_feas (map solve test_list);; *)
-let feas_bbs = filter (fun bb -> mem bb.hypermap_id feasible_ids) test_list;;
-(* 477 *)
-length feas_bbs;;
+(* split3 *)
+and split3_test bb =
+  let _ = report "split3" in
+  let split_face = hd bb.std_faces_not_super in
+  let _ = assert (length split_face = 3) in
+  let bbs = switch3 bb in
+    itlist (+) (map build_test bbs) 0
+    
+(* split4 *)
+and split4_test bb =
+  let _ = report "split4" in
+  let split_face = hd bb.std_faces_not_super in
+  let _ = assert (length split_face = 4) in
+  let bbs = switch4 bb in
+    itlist (+) (map build_test bbs) 0
 
-let std_bbs = subtract test_list feas_bbs;;
-(* 19001 *)
-length std_bbs;;
+(* split5 *)
+and split5_test bb =
+  let _ = report "split5" in
+  let split_face = hd bb.std_faces_not_super in
+  let _ = assert (length split_face = 5) in
+  let bbs = switch5 bb in
+    itlist (+) (map build_test bbs) 0
 
-let test_bbs = take 3000 (drop 5000 std_bbs);;
-
-(* build_and_save_all_std 100 test_bbs;; *)
+(* split6 *)
+and split6_test bb =
+  let _ = report "split6" in
+  let split_face = hd bb.std_faces_not_super in
+  let _ = assert (length split_face = 6) in
+  let bbs = switch6 bb in
+    itlist (+) (map build_test bbs) 0;;
 
 
 (*************************************)
@@ -243,7 +277,13 @@ let rec build (hyp_list, bb) =
 
 (* split3 *)
 and split3 hyp_list bb =
-  failwith "split3: not implemented"
+  let split_face = hd bb.std_faces_not_super in
+  let _ = assert (length split_face = 3) in
+  let bbs = switch3 bb in
+  let case_args = zip [hyp_list; hyp_list] bbs in
+  let cases = map build case_args in
+  let info = {split_type = Triangle_split; split_face = split_face} in
+    Lp_split (info, cases)
     
 (* split4 *)
 and split4 hyp_list bb =
@@ -300,123 +340,3 @@ let modify_hex_cases bb =
 
 
 (************************)
-
-
-let list_max = end_itlist max;;
-
-let hex_bbs = filter (mem 6 o map length o faces) feas_bbs;;
-(* 13 *)
-length hex_bbs;;
-
-let hex_bbs' = filter (fun bb -> not ((mem 5 o map length o faces) bb)) hex_bbs;;
-(* 9 *)
-length hex_bbs';;
-
-let test_hex = map modify_hex_cases hex_bbs';;
-let cs = map build_certificate test_hex;;
-map (fun c -> count_terminals c.root_case) cs;;
-map2 (fun c i -> write_lp_certificates (sprintf "%s/c6_%d.dat" binary_dir i) [c]) cs (1--9);;
-
-let certificate = build_certificate (nth test_hex 9);;
-count_terminals certificate.root_case;;
-
-
-write_lp_certificates (sprintf "%s/c6_2.dat" binary_dir) [certificate];;
-
-
-(***************************)
-
-let split_face = hd bb.std_faces_not_super;;
-let _ = assert (length split_face = 6);;
-let bbs = switch6 bb;;
-
-drop 5 (map faces bbs);;
-
-let bb' = nth bbs 1;;
-ampl_of_bb' (sprintf "%s/x.txt" out_dir) bb';;
-
-  
-(* Quad case *)
-let rec split4 hyp_list bb =
-  failwith "not implemented";;
-let split_face = hd bb.std_faces_not_super;;
-let _ = assert (length split_face = 4);;
-let bbs = switch4 bb;;
-let dart13 = nth split_face 1, nth split_face 2 and
-    dart24 = nth split_face 0, nth split_face 1;;
-let split13 = split_list hyp_list dart13 and
-    split24 = split_list hyp_list dart24;;
-
-
-
-
-let case_args = zip [split13; split24; split13; split24; hyp_list] bbs;;
-let cases = map build case_args;;
-let info = {split_type = Quad_split; split_face = split_face} in
-  Lp_split (info, cases);;
-
-let _ = clean_out_dir();;
-
-
-
-
-onepass [bb];;
-
-let bb = hd bbs;;
-onepass [bb];;
-
-faces bb;;
-let bbs = switch_face bb;;
-drop 3 (map faces bbs);;
-
-let x = 2;;
-
-
-(**********************************)
-
-
-needs "../formal_lp/glpk/onepass.hl";;
-
-let onepass_bbs = filter (fun bb -> mem bb.hypermap_id onepass_ids) feas_bbs;;
-(* 276 *)
-length onepass_bbs;;
-
-let pent_bbs = filter (mem 5 o map length o faces) onepass_bbs;;
-(* 185 *)
-length pent_bbs;;
-
-let pent_bbs' = filter (fun bb -> not ((mem 4 o map length o faces) bb)) pent_bbs;;
-(* 6 *)
-length pent_bbs';;
-
-let bb = nth pent_bbs' 1;;
-faces bb;;
-
-let bbs = switch5 bb;;
-
-let fname = sprintf "%s/test.txt" out_dir;;
-ampl_of_bb' fname (nth bbs 6);;
-
-faces (nth bbs 11);;
-
-let hyp_list = (snd o convert_to_list) bb.string_rep;;
-
-
-let cert = build_certificate bb;;
-write_lp_certificates (sprintf "%s/c5.dat" binary_dir) [cert];;
-
-(******************************)
-
-let not_onepass_bbs = subtract feas_bbs onepass_bbs;;
-(* 201 *)
-length not_onepass_bbs;;
-
-let pent_bbs = filter (mem 5 o map length o faces) not_onepass_bbs;;
-(* 90 *)
-length pent_bbs;;
-
-let test_bbs = take 5 pent_bbs;;
-let k = 5;;
-let cert = build_certificate (nth test_bbs k);;
-count_terminals cert.root_case;;
-write_lp_certificates (sprintf "%s/c5_%d.dat" binary_dir k) [cert];;

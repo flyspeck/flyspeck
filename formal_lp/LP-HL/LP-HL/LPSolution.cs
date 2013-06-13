@@ -85,10 +85,15 @@ namespace LP_HL
         /// </summary>
         /// <param name="r"></param>
         /// <returns></returns>
-        public static LPSolution LoadSolution(StreamReader r, int precision, LpNumber upperBound)
+        public static LPSolution LoadSolution(StreamReader r, int precision, LpNumber upperBound, bool infeasible)
         {
             LPSolution sol = new LPSolution();
             sol.UpperBound = upperBound;
+
+            if (infeasible)
+            {
+                sol.UpperBound = new LpNumber(0);
+            }
 
             string str = r.ReadLine();
             if (str == null)
@@ -98,19 +103,40 @@ namespace LP_HL
             if (els.Length != 2)
                 throw new Exception("Two numbers are expected on the first line");
 
-            // Subtract one since we don't count the objective function
-            sol.NumberOfConstraints = int.Parse(els[0]) - 1;
-            sol.NumberOfVariables = int.Parse(els[1]);
+            int nc = int.Parse(els[0]);
+            int nv = int.Parse(els[1]);
+
+            if (infeasible)
+            {
+                sol.NumberOfConstraints = nc;
+                // Do not count slack variables
+                sol.NumberOfVariables = nv - nc;
+            }
+            else
+            {
+                // Subtract one since we don't count the objective function for a feasible solution
+                sol.NumberOfConstraints = nc - 1;
+                sol.NumberOfVariables = nv;
+            }
 
             // Optimal
             var vals = ReadThirdValue(r, 1, precision);
             sol.Optimal = vals[0];
 
-            // Skip one line (the objective function)
-            ReadThirdValue(r, 1, precision);
+            if (!infeasible)
+            {
+                // Skip one line (the objective function)
+                ReadThirdValue(r, 1, precision);
+            }
 
             // Constraints
             sol.ConstraintMarginals = ReadThirdValue(r, sol.NumberOfConstraints, precision);
+
+            if (infeasible)
+            {
+                // Skip slack variables
+                ReadThirdValue(r, nc, precision);
+            }
 
             // Bounds
             sol.VariableMarginals = ReadThirdValue(r, sol.NumberOfVariables, precision);

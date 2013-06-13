@@ -163,7 +163,7 @@ namespace LP_HL
         public Inequality Round(int precision)
         {
             if (type == IneqType.Ge)
-                throw new Exception("Cannot round Ge inequalities");
+                throw new Exception("Cannot round Ge inequalities: " + this);
 
 //            if (type == IneqType.Eq)
 //                return this;

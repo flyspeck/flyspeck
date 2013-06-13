@@ -63,7 +63,7 @@ namespace LP_HL
                 // Specific LP
                 string name = args[0];
                 LpNumber upperBound = new LpNumber(decimal.Parse(args[1]));
-                ProcessLP(name, upperBound, null, true);
+                ProcessLP(name, upperBound, null, false, true);
             }
         }
 
@@ -106,9 +106,10 @@ namespace LP_HL
             try
             {
                 string name;
-                ListHyp hypermap = hypermaps.ComputeHypermap(new StreamReader(info), out name);
+                bool infeasible;
+                ListHyp hypermap = hypermaps.ComputeHypermap(new StreamReader(info), out name, out infeasible);
 
-                ProcessLP(name, new LpNumber(12), hypermap, false);
+                ProcessLP(name, new LpNumber(12), hypermap, infeasible, false);
                 return name;
             }
             finally
@@ -162,7 +163,7 @@ namespace LP_HL
         /// Creates files for producing a formal proof for the given linear program.
         /// The precision is selected automatically
         /// </summary>
-        static void ProcessLP(string fname, LpNumber upperBound, ListHyp hypermap, bool holTerms)
+        static void ProcessLP(string fname, LpNumber upperBound, ListHyp hypermap, bool infeasible, bool holTerms)
         {
             Console.WriteLine("Processing {0}...", fname);
             try
@@ -173,7 +174,7 @@ namespace LP_HL
 
                     if (hypermap != null)
                     {
-                        if (ProcessLP(fname, upperBound, precision, hypermap, holTerms))
+                        if (ProcessLP(fname, upperBound, precision, hypermap, infeasible, holTerms))
                             break;
                     }
                     else
@@ -218,10 +219,10 @@ namespace LP_HL
             fs = new FileStream(fname + ".txt", FileMode.Open);
             using (fs)
             {
-                sol = LPSolution.LoadSolution(new StreamReader(fs), precision, upperBound);
+                sol = LPSolution.LoadSolution(new StreamReader(fs), precision, upperBound, false);
             }
 
-            if (!lp.SetSolution(sol, precision))
+            if (!lp.SetSolution(sol, precision, false))
                 return false;
 
             // Create a test file containing all inequalities explicitly
@@ -236,7 +237,7 @@ namespace LP_HL
         /// <summary>
         /// Creates files for producing a formal proof for the given linear program
         /// </summary>
-        static bool ProcessLP(string fname, LpNumber upperBound, int precision, ListHyp hypermap, bool holTerms)
+        static bool ProcessLP(string fname, LpNumber upperBound, int precision, ListHyp hypermap, bool infeasible, bool holTerms)
         {
             if (precision > 6)
                 throw new Exception("Cannot solve the problem: " + fname);
@@ -258,13 +259,13 @@ namespace LP_HL
             fs = new FileStream(fname + ".txt", FileMode.Open);
             using (fs)
             {
-                sol = LPSolution.LoadSolution(new StreamReader(fs), precision, upperBound);
+                sol = LPSolution.LoadSolution(new StreamReader(fs), precision, upperBound, infeasible);
             }
 
-            if (sol.Optimal.value > upperBound.value)
+            if (!infeasible && sol.Optimal.value > upperBound.value)
                 throw new Exception("Optimal value is greater than " + upperBound.value + ": " + fname);
 
-            if (!lp.SetSolution(sol, precision))
+            if (!lp.SetSolution(sol, precision, infeasible))
                 return false;
 
             // Create a test file containing all inequalities explicitly
@@ -274,7 +275,7 @@ namespace LP_HL
 
             // Create a certificate file
             FileStream main = new FileStream(fname + "_out.hl", FileMode.Create);
-            lp.PrintCertificate(new StreamWriter(main), precision, hypermap, log, holTerms);
+            lp.PrintCertificate(new StreamWriter(main), precision, hypermap, log, infeasible, holTerms);
             main.Close();
 
             // Debug file with text inequalities

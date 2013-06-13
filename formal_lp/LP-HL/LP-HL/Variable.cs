@@ -123,6 +123,35 @@ namespace LP_HL
 
 
         /// <summary>
+        /// Sorts variables in the given order
+        /// </summary>
+        /// <param name="newList"></param>
+        public void SortVariables(List<Label> newList)
+        {
+            HashSet<Label> allVariables = new HashSet<Label>(vars.Keys);
+            varList.Clear();
+
+            foreach (Label name in newList)
+            {
+                if (allVariables.Contains(name))
+                {
+                    varList.Add(this[name]);
+                    allVariables.Remove(name);
+                }
+            }
+
+            if (allVariables.Count > 0)
+            {
+                Console.WriteLine("SortVariables(): not all variables are in the new list");
+                foreach (Label name in allVariables)
+                {
+                    varList.Add(this[name]);
+                }
+            }
+        }
+
+
+        /// <summary>
         /// Changes indices of all variables using the given hypermap
         /// </summary>
         /// <param name="hypermap"></param>

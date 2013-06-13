@@ -42,6 +42,32 @@ namespace LP_HL
             vars = new VariableCollection();
         }
 
+        /// <summary>
+        /// Sorts the variables in the order of appearance in the constraints
+        /// </summary>
+        public void ResortVariables()
+        {
+            HashSet<Label> processedVariables = new HashSet<Label>();
+            List<Label> newList = new List<Label>();
+
+            foreach (Inequality ineq in originalIneqs)
+            {
+                foreach (Term t in ineq.lhs.Terms)
+                {
+                    Label name = t.varName;
+                    if (processedVariables.Contains(name))
+                    {
+                        continue;
+                    }
+
+                    newList.Add(name);
+                    processedVariables.Add(name);
+                }
+            }
+
+            vars.SortVariables(newList);
+        }
+
 
         /// <summary>
         /// Processes all inequalities based on the given solution
@@ -49,13 +75,18 @@ namespace LP_HL
         /// <param name="sol"></param>
         /// <param name="precision"></param>
         /// <returns></returns>
-        public bool SetSolution(LPSolution sol, int precision)
+        public bool SetSolution(LPSolution sol, int precision, bool infeasible)
         {
             if (sol.NumberOfVariables != vars.Number)
                 throw new Exception("Inconsistent number of variables");
 
             if (sol.NumberOfConstraints != originalIneqs.Count)
                 throw new Exception("Inconsistent number of constraints");
+
+            if (infeasible)
+            {
+                ResortVariables();
+            }
             
             ineqs = new List<Inequality>();
 //            ineqMarginals = new List<LpNumber>();
@@ -127,7 +158,16 @@ namespace LP_HL
             }
 
             // df
-            LinearFunction df = objective - sum2.lhs;
+            LinearFunction df;
+
+            if (infeasible)
+            {
+                df = -sum2.lhs;
+            }
+            else
+            {
+                df = objective - sum2.lhs;
+            }
 
             // Compute corrections for marginals
             foreach (var term in df.Terms)

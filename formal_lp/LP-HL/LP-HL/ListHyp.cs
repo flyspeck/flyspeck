@@ -516,9 +516,10 @@ namespace LP_HL
         /// </summary>
         /// <param name="hypInfo"></param>
         /// <returns></returns>
-        public ListHyp ComputeHypermap(TextReader hypInfo, out string name)
+        public ListHyp ComputeHypermap(TextReader hypInfo, out string name, out bool infeasible)
         {
             name = null;
+            infeasible = false;
             string id = null;
             List<List<int>> hypList = null;
             List<Dart> splitDarts = new List<Dart>();
@@ -541,6 +542,10 @@ namespace LP_HL
 
                 switch (els[0].Trim())
                 {
+                    case "infeasible":
+                        infeasible = (val == "true");
+                        break;
+
                     case "name":
                         name = val;
                         break;

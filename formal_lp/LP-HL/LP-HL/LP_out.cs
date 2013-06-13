@@ -167,12 +167,15 @@ namespace LP_HL
         /// <summary>
         /// Creates a HOL certificate
         /// </summary>
-        public void PrintCertificate(StreamWriter writer, int precision, ListHyp hypermap, StreamWriter log, bool holTerms)
+        public void PrintCertificate(StreamWriter writer, int precision, ListHyp hypermap, StreamWriter log, bool infeasible, bool holTerms)
         {
             // Find target variables
-            foreach (var term in objective.Terms)
+            if (!infeasible)
             {
-                vars[term.varName].TargetVariable = true;
+                foreach (var term in objective.Terms)
+                {
+                    vars[term.varName].TargetVariable = true;
+                }
             }
 
             // Compute the precision constant
@@ -186,6 +189,8 @@ namespace LP_HL
 
             // Parameters
             writer.WriteLine("precision := " + precision + ";;");
+            writer.WriteLine("infeasible := " + (infeasible ? "true" : "false") + ";;");
+
 
             dict.Clear();
             ineqNames.Clear();

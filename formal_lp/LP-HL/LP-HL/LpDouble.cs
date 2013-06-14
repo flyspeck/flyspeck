@@ -341,6 +341,22 @@ namespace LP_HL
         }
 
         /// <summary>
+        /// Converts to Int64
+        /// </summary>
+        /// <returns></returns>
+        public Int64 ToInt64()
+        {
+            decimal val = value;
+            if (Math.Round(val) != val)
+                throw new Exception("Only integers can be converted to Int64");
+
+            if (val < Int64.MinValue || Int64.MaxValue < val)
+                throw new Exception("Cannot convert a number to Int64");
+
+            return (Int64)val;
+        }
+
+        /// <summary>
         /// Converts to an Int64 string representation
         /// </summary>
         /// <param name="precision"></param>

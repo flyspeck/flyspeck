@@ -275,7 +275,9 @@ namespace LP_HL
 
             // Create a certificate file
             FileStream main = new FileStream(fname + "_out.hl", FileMode.Create);
-            lp.PrintCertificate(new StreamWriter(main), precision, hypermap, log, infeasible, holTerms);
+            FileStream main_bin = new FileStream(fname + "_out.bin", FileMode.Create);
+            lp.PrintCertificate(new StreamWriter(main), new BinaryWriter(main_bin), precision, hypermap, log, infeasible, holTerms);
+            main_bin.Close();
             main.Close();
 
             // Debug file with text inequalities

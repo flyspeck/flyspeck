@@ -87,7 +87,15 @@ namespace LP_HL
             {
                 this.ineq = ineq;
                 this.marginal = marginal;
-                this.index = hypermap.Manager.FindIneqIndex(hypermap, ineq.Id);
+
+                if (ineq.Id.index == null || ineq.Id.index == "")
+                {
+                    this.index = 0;
+                }
+                else
+                {
+                    this.index = hypermap.Manager.FindIneqIndex(hypermap, ineq.Id);
+                }
             }
 
 
@@ -163,11 +171,41 @@ namespace LP_HL
             }
         }
 
+        // Saves all indexed inequalities in a binary file
+        private void SaveIndexedIneqs(BinaryWriter bw)
+        {
+            if (bw == null)
+            {
+                return;
+            }
+
+            bw.Write(ineqNames.Count);
+
+            foreach (string name in ineqNames)
+            {
+                var list = dict[name];
+                list.Sort();
+
+                bw.Write(name);
+                bw.Write(list.Count);
+                for (int i = 0; i < list.Count; i++)
+                {
+                    bw.Write((short)list[i].index);
+                }
+
+                for (int i = 0; i < list.Count; i++)
+                {
+                    Int64 v = list[i].marginal.ToInt64();
+                    bw.Write(v);
+                }
+            }
+        }
+        
 
         /// <summary>
         /// Creates a HOL certificate
         /// </summary>
-        public void PrintCertificate(StreamWriter writer, int precision, ListHyp hypermap, StreamWriter log, bool infeasible, bool holTerms)
+        public void PrintCertificate(StreamWriter writer, BinaryWriter bw, int precision, ListHyp hypermap, StreamWriter log, bool infeasible, bool holTerms)
         {
             // Find target variables
             if (!infeasible)
@@ -190,6 +228,11 @@ namespace LP_HL
             // Parameters
             writer.WriteLine("precision := " + precision + ";;");
             writer.WriteLine("infeasible := " + (infeasible ? "true" : "false") + ";;");
+            if (bw != null)
+            {
+                bw.Write((byte)precision);
+                bw.Write(infeasible);
+            }
 
 
             dict.Clear();
@@ -222,6 +265,7 @@ namespace LP_HL
 
             writer.WriteLine("constraints := [");
             SaveIndexedIneqs(writer, precision, holTerms);
+            SaveIndexedIneqs(bw);
             writer.WriteLine("];;");
 
             // Variables
@@ -254,6 +298,7 @@ namespace LP_HL
 
             writer.WriteLine("target_variables := [");
             SaveIndexedIneqs(writer, precision, holTerms);
+            SaveIndexedIneqs(bw);
             writer.WriteLine("];;");
 
             writer.WriteLine();
@@ -277,6 +322,7 @@ namespace LP_HL
 
             writer.WriteLine("variable_bounds := [");
             SaveIndexedIneqs(writer, precision, holTerms);
+            SaveIndexedIneqs(bw);
             writer.WriteLine("];;");
 
             // Tail
@@ -286,8 +332,15 @@ namespace LP_HL
 //            writer.WriteLine("concl (Test_case.result)");
 
             writer.Flush();
+            if (bw != null)
+            {
+                bw.Flush();
+            }
 
-            log.WriteLine("{0}\t{1}\t{2}", hypermap.Id, ineqs.Count + varIneqs.Count, vars.Number);
+            if (log != null)
+            {
+                log.WriteLine("{0}\t{1}\t{2}", hypermap.Id, ineqs.Count + varIneqs.Count, vars.Number);
+            }
         }
 
         

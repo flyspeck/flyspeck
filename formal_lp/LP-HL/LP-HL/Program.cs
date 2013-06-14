@@ -15,20 +15,20 @@ namespace LP_HL
         private static StreamWriter log;
 
         // Main
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
-            FileStream flog = new FileStream("log.txt", FileMode.Create);
-            log = new StreamWriter(flog);
-
-            using (log)
+            try
             {
-                // GenerateArithTest();
-                // return;
+                FileStream flog = new FileStream("log.txt", FileMode.Create);
+                log = new StreamWriter(flog);
 
-                // Flyspeck
-                if (args.Length == 0 || args.Length == 1)
+                using (log)
                 {
-                    try
+                    // GenerateArithTest();
+                    // return;
+
+                    // Flyspeck
+                    if (args.Length == 0 || args.Length == 1)
                     {
                         ListHypManager hypermaps = InitializeHypermaps();
                         Console.WriteLine("Processing Flyspeck linear program(s)");
@@ -42,29 +42,32 @@ namespace LP_HL
                         {
                             ProcessFlyspeckLPs(hypermaps);
                         }
+
+                        return 0;
                     }
-                    catch (Exception e)
+
+                    // Incorrect number of arguments
+                    if (args.Length != 2)
                     {
-                        Console.Error.WriteLine("ERROR: {0}", e.Message);
+                        Console.WriteLine("Usage: LP-HL lp_name upper_bound");
+                        Console.WriteLine("Files {lp_name}.lp and {lp_name}.txt must be in the current directory.");
+                        Console.WriteLine("{upper_bound} is a decimal number");
+                        return 1;
                     }
 
-                    return;
+                    // Specific LP
+                    string name = args[0];
+                    LpNumber upperBound = new LpNumber(decimal.Parse(args[1]));
+                    ProcessLP(name, upperBound, null, false, true);
                 }
-
-                // Incorrect number of arguments
-                if (args.Length != 2)
-                {
-                    Console.WriteLine("Usage: LP-HL lp_name upper_bound");
-                    Console.WriteLine("Files {lp_name}.lp and {lp_name}.txt must be in the current directory.");
-                    Console.WriteLine("{upper_bound} is a decimal number");
-                    return;
-                }
-
-                // Specific LP
-                string name = args[0];
-                LpNumber upperBound = new LpNumber(decimal.Parse(args[1]));
-                ProcessLP(name, upperBound, null, false, true);
             }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine("ERROR: {0}", e.Message);
+                return 2;
+            }
+
+            return 0;
         }
 
 
@@ -166,28 +169,20 @@ namespace LP_HL
         static void ProcessLP(string fname, LpNumber upperBound, ListHyp hypermap, bool infeasible, bool holTerms)
         {
             Console.WriteLine("Processing {0}...", fname);
-            try
+            for (int precision = 3; ; precision++)
             {
-                for (int precision = 3; ; precision++)
-                {
-                    Console.WriteLine("Precision = {0}", precision);
+                Console.WriteLine("Precision = {0}", precision);
 
-                    if (hypermap != null)
-                    {
-                        if (ProcessLP(fname, upperBound, precision, hypermap, infeasible, holTerms))
-                            break;
-                    }
-                    else
-                    {
-                        if (processLPGeneral(fname, precision, upperBound))
-                            break;
-                    }
+                if (hypermap != null)
+                {
+                    if (ProcessLP(fname, upperBound, precision, hypermap, infeasible, holTerms))
+                        break;
                 }
-            }
-            catch (Exception e)
-            {
-                Console.Error.WriteLine("ERROR: {0}", e.Message);
-//                Console.Error.WriteLine(e.StackTrace);
+                else
+                {
+                    if (processLPGeneral(fname, precision, upperBound))
+                        break;
+                }
             }
 
             Console.WriteLine("done\n");

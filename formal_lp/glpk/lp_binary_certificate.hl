@@ -1,0 +1,65 @@
+needs "../formal_lp/hypermap/main/lp_certificate.hl";;
+
+module Lp_binary_certificate = struct
+
+open Lp_certificate;;
+
+let read_string in_channel =
+  let n = input_byte in_channel in
+  let str = String.create n in
+  let _ = really_input in_channel str 0 n in
+    str;;
+
+let read_int16 in_channel =
+  let b1 = input_byte in_channel in
+  let b2 = input_byte in_channel in
+    (b2 lsl 8) lor b1;;
+
+let read_int32 in_channel =
+  let w1 = read_int16 in_channel in
+  let w2 = read_int16 in_channel in
+    (w2 lsl 16) lor w1;;
+
+
+let read_int64 in_channel =
+  let w1 = Int64.of_int (read_int16 in_channel) in
+  let w2 = Int64.shift_left (Int64.of_int (read_int16 in_channel)) 16 in
+  let w3 = Int64.shift_left (Int64.of_int (read_int16 in_channel)) 32 in
+  let w4 = Int64.shift_left (Int64.of_int (read_int16 in_channel)) 48 in
+    Int64.logor w1 (Int64.logor w2 (Int64.logor w3 w4));;
+
+
+let read_constraint in_channel =
+  let name = read_string in_channel in
+  let n_els = read_int32 in_channel in
+  let indices = map (fun _ -> read_int16 in_channel) (1--n_els) in
+  let coefficients = map (fun _ -> read_int64 in_channel) (1--n_els) in
+    name, indices, coefficients;;
+
+
+let read_constraint_list in_channel =
+  let count = read_int32 in_channel in
+    map (fun _ -> read_constraint in_channel) (1--count);;
+
+
+let read_binary_terminal fname =
+  let in_channel = open_in_bin fname in
+    try
+      let precision = input_byte in_channel in
+      let infeasible = if (input_byte in_channel <> 0) then true else false in
+      let constraints = read_constraint_list in_channel in
+      let target_vars = read_constraint_list in_channel in
+      let vars = read_constraint_list in_channel in
+      let _ = close_in in_channel in
+	{
+	  precision = precision;
+	  infeasible = infeasible;
+	  constraints = constraints;
+	  target_variables = target_vars;
+	  variable_bounds = vars;
+	}
+    with _ ->
+      let _ = close_in in_channel in
+	failwith "read_binary_terminal: failed";;
+
+end;;

@@ -1,6 +1,30 @@
 needs "../formal_lp/hypermap/main/lp_certificate.hl";;
+needs "../formal_lp/glpk/lp_binary_certificate.hl";;
 needs "../formal_lp/hypermap/computations/informal_computations.hl";;
 needs "../formal_lp/glpk/lpproc.hl";;
+
+
+module Build_certificates = struct
+
+
+(* Temporary directory where certificates are computed *)
+let tmp_dir = ref (flyspeck_dir ^ "/../formal_lp/glpk/tmp");;
+(* Output directory for certificates *)
+let output_dir = ref (flyspeck_dir ^ "/../formal_lp/glpk/binary");;
+(* Path to LP_HL.exe *)
+let lp_hl_dir = ref (flyspeck_dir ^ "/../formal_lp/LP-HL/LP-HL/bin/Release");;
+(* Main model file *)
+let model2_path = ref (tame_dir ^ "/model2.mod");;
+
+
+
+open Glpk_link;;
+open Lp_informal_computations;;
+open Lpproc;;
+open List;;
+open Lp_certificate;;
+open Lp_binary_certificate;;
+
 
 let mem_stat () =
   let stat = Gc.stat() in
@@ -12,33 +36,6 @@ let mem_stat () =
     allocated free total (free /. total) in
     print_string str;;
 
-let report s =
-  Format.print_string s; Format.print_newline(); Format.print_flush();;
-
-
-(*
-mem_stat();;
-
-Gc.set { (Gc.get()) with Gc.verbose = 0x05 };;
-Gc.compact();;
-
-mem_stat();;
-*)
-
-let empty_constraints : (Lp_certificate.constraint_type list) = [];;
-
-let hypermap_string = ref "" and
-    precision = ref 0 and
-    constraints = ref empty_constraints and
-    variable_bounds = ref empty_constraints and
-    target_variables = ref empty_constraints;;
-
-
-open Glpk_link;;
-open Lp_informal_computations;;
-open Lpproc;;
-open List;;
-open Lp_certificate;;
 
 let run_command dir com =
   let cur_dir = Sys.getcwd() in
@@ -48,16 +45,23 @@ let run_command dir com =
     result;;
 
 
-(* make_model();; *)
-let com = sprintf "sed -e 's/maximize objective:.*/maximize objective: sum{i in node} ln[i];/' -e 's/lnsum_def:.*//' %s > model2.mod" model;;
-run_command tame_dir com;;
+let make_models include_main =
+  let _ = make_model() in
+  let sed1 = "s/maximize objective:.*/maximize objective: sum{i in node} ln[i];/" and
+      sed2 = "s/lnsum_def:.*//" and
+      sed3 = "s/main:.*//" in
+  let _ = if include_main then () else
+    let cmd = sprintf "sed -e '%s' %s > %s" sed3 model !model2_path in
+    let cmd2 = sprintf "cp %s %s" !model2_path model in
+    let _ = run_command tame_dir cmd in
+    let _ = run_command tame_dir cmd2 in
+      () in
+  let cmds = [sed1; sed2] in
+  let str1 = itlist (fun cmd str -> sprintf "-e '%s' %s" cmd str) cmds "" in
+  let cmd = sprintf "sed %s %s > %s" str1 model !model2_path in
+  let _ = run_command tame_dir cmd in
+    ();;
 
-let model2 = tame_dir ^ "/model2.mod";;
-
-
-let out_dir = flyspeck_dir ^ "/../formal_lp/glpk/tmp";;
-let binary_dir = flyspeck_dir ^ "/../formal_lp/glpk/binary";;
-let lp_hl_dir = flyspeck_dir ^ "/../formal_lp/LP-HL/LP-HL/bin/Release";;
 
 let ampl_of_bb' fname bb =
   let out = open_out fname in
@@ -87,17 +91,7 @@ let find_face_index fs f =
 let build_permutation fs0 fs = map (fun f -> find_face_index fs f) fs0;;
 
 
-let gen_splits list face =
-  let pairs = list_pairs face in
-    if length face = 4 then
-      let darts = [nth pairs 0; nth pairs 1] in
-      let splits = map (split_list list) darts in
-	([], list) :: zip (map (fun x -> [x]) darts) splits
-    else
-      failwith "gen_splits: length face <> 4";;
-
-
-let save_info out_dir name hyp_list bb =
+let save_info out_dir name infeasible hyp_list bb =
   let f2 = faces bb in
   let perm = build_permutation hyp_list f2 in
   let _ = ampl_of_bb' (sprintf "%s/%s_pars.txt" out_dir name) bb in
@@ -106,11 +100,11 @@ let save_info out_dir name hyp_list bb =
   let p = sprintf in
   let lines = [
     p "name: %s" name;
+    p "infeasible: %b" infeasible;
     p "hypermap: %s" hyp_str;
     p "faces: %s" perm_str;
   ] in
     save_string (out_dir ^ "/flyspeck-" ^ name ^ ".txt") (join_lines lines);;
-
 
 
 let clean_out_dir =
@@ -118,91 +112,53 @@ let clean_out_dir =
     "000.txt";
     "string_archive.txt";
   ] in
-    fun () ->
+    fun out_dir ->
       let files = Array.to_list (Sys.readdir out_dir) in
       let files' = filter (fun name -> not (mem name permanent_files)) files in
       let _ = map (fun name -> Sys.remove (sprintf "%s/%s" out_dir name)) files' in
 	();;
-	
 
+(************************************)	
 
 (* Builds a terminal case from the given hypermap *)
-let build_terminal_case hyp_list bb =
-  let _ = clean_out_dir() in
-  let out_name = "out" in
-  let _ = save_info out_dir out_name hyp_list bb in
-  let data_file = sprintf "%s_pars.txt" out_name in
-  let solve_com = sprintf "glpsol -m %s -d %s -w %s.txt --wcpxlp %s.lp > /dev/null"  model2 data_file out_name out_name in
-  let result = run_command out_dir solve_com in
-    if result <> 0 then
-      failwith (sprintf "build_terminal_case: glpsol failed for %s" bb.hypermap_id)
-    else
-      let com = sprintf "mono %s/LP-HL.exe %s" lp_hl_dir (sprintf "flyspeck-%s.txt" out_name) in
-      let _ = run_command out_dir com in
-      let _ = hypermap_string := "";
-	precision := 0;
-	constraints := empty_constraints;
-	variable_bounds := empty_constraints;
-	target_variables := empty_constraints in
-      let _ = use_file (sprintf "%s/%s_out.hl" out_dir out_name) in
-	if !precision = 0 then
-	  failwith (sprintf "build_terminal_case failed for %s" bb.hypermap_id)
-	else
-	  let certificate = {
-	    precision = !precision;
-	    constraints = !constraints;
-	    target_variables = !target_variables;
-	    variable_bounds = !variable_bounds;
-	  } in
-	    certificate;;
+let build_terminal_case =
+  let create_infeasible_solution out_name =
+    let sed1_cmd = sprintf "sed -f %s/../sed_add_slack.sed %s.lp > %s_slack.lp" !tmp_dir out_name out_name and
+	sed2_cmd = sprintf "sed -f %s/../sed_build_objective.sed %s.lp > /dev/null" !tmp_dir out_name and
+	sed3_cmd = sprintf "sed -f %s/../sed_replace_objective.sed %s_slack.lp > %s_slack2.lp" !tmp_dir out_name out_name in
+    let _ = run_command !tmp_dir sed1_cmd and
+	_ = run_command !tmp_dir sed2_cmd and
+	_ = run_command !tmp_dir sed3_cmd in
+    let solve_com2 = sprintf "glpsol --cpxlp %s_slack2.lp -w %s.txt" out_name out_name in
+      run_command !tmp_dir solve_com2 in
+    
+    fun hyp_list infeasible bb ->
+      let error_glpsol = sprintf "build_terminal_case: glpsol failed for %s" bb.hypermap_id in
+      let _ = clean_out_dir !tmp_dir in
+      let out_name = "out" in
+	(* Create info and parameter files *)
+      let _ = save_info !tmp_dir out_name infeasible hyp_list bb in
+      let data_file = sprintf "%s_pars.txt" out_name in
+	(* Create .lp file and solve a feasible problem *)
+      let solve_com = sprintf "glpsol -m %s -d %s -w %s.txt --wcpxlp %s.lp > /dev/null"  !model2_path data_file out_name out_name in
+      let result = run_command !tmp_dir solve_com in
+      let _ = result = 0 or failwith error_glpsol in
+	(* Solve an infeasible problem *)
+      let result = if infeasible then create_infeasible_solution out_name else 0 in
+      let _ = result = 0 or failwith error_glpsol in
+	(* Run LP-HL.exe *)
+      let com = sprintf "mono %s/LP-HL.exe %s" !lp_hl_dir (sprintf "flyspeck-%s.txt" out_name) in
+      let result = run_command !tmp_dir com in
+      let _ = result = 0 or failwith (sprintf "LP-HL.exe failed for %s" bb.hypermap_id) in
+	(* Create a certificate *)
+      let terminal = read_binary_terminal (sprintf "%s/%s_out.bin" !tmp_dir out_name) in
+	terminal;;
   
-
-(* Builds an std certificate *)
-let build_std bb =
-  let hyp_list = (snd o convert_to_list) bb.string_rep in
-  let terminal = build_terminal_case hyp_list bb in
-  let root = Lp_terminal terminal in
-  let certificate = {hypermap_string = bb.string_rep; root_case = root} in
-    certificate;;
-
-
-let build_and_save_all_std =
-  let counter = ref 0 and
-      total = ref 0 in
-  let buf = ref [] and
-      file_counter = ref 0 in
-  let report s =
-    Format.print_string s; Format.print_newline(); Format.print_flush() in
-
-  let save_buf () =
-    if length !buf > 0 then
-      let _ = file_counter := !file_counter + 1 in
-      let fname = sprintf "%s/std_%d.dat" binary_dir !file_counter in
-      let _ = write_lp_certificates fname !buf in
-	buf := []
-    else
-      () in
-
-  let process max bb =
-    let _ = counter := !counter + 1 in
-    let _ = report (sprintf "%d/%d" !counter !total) in
-    let _ = buf := build_std bb :: !buf in
-      if length !buf >= max then
-	save_buf()
-      else
-	() in
-
-    fun max bbs ->
-      let _ = total := length bbs and
-	  _ = counter := 0 and
-	  _ = file_counter := 0 and
-	  _ = buf := [] in
-      let _ = map (process max) bbs in
-	save_buf ();;
 
 
 (**********************)
 
+(* Counts the number of terminal cases *)
 let rec build_test bb =
   let result = solve bb in
     if not (is_feas result) then 1
@@ -258,8 +214,12 @@ and split6_test bb =
 let rec build (hyp_list, bb) =
   let result = solve bb in
     if not (is_feas result) then
+      let infeasible =
+	match result.lpvalue with
+	  | Lp_infeasible -> true
+	  | _ -> false in
       (* terminal case *)
-      let terminal = build_terminal_case hyp_list bb in
+      let terminal = build_terminal_case hyp_list infeasible bb in
 	Lp_terminal terminal
     else
       (* split case *)
@@ -325,18 +285,65 @@ and split6 hyp_list bb =
     Lp_split (info, cases);;
 
 
-(* Builds an lp certificate *)
-let build_certificate bb =
-  let hyp_list = (snd o convert_to_list) bb.string_rep in
-  let root = build (hyp_list, bb) in
-  let certificate = {hypermap_string = bb.string_rep; root_case = root} in
-    certificate;;
-  
-
 (* Moves all hex faces to std56_flat_free *)
+(* This operation can be done on all hypermaps since branching on hexes is not required: *)
+(* there are no inequalities for std56_flat_free INTER std6 *)
 let modify_hex_cases bb =
   let faces6 = filter (fun f -> length f = 6) bb.std_faces_not_super in
     itlist (fun fc bb -> modify_bb bb true ["flat_free", fc] []) faces6 bb;;
 
 
+(* Builds an lp certificate *)
+let build_certificate modify_hex bb =
+  let bb = if modify_hex then modify_hex_cases bb else bb in
+  let hyp_list = (snd o convert_to_list) bb.string_rep in
+  let root = build (hyp_list, bb) in
+  let certificate = {hypermap_string = bb.string_rep; root_case = root} in
+    certificate;;
+
+ 
+
+
+
 (************************)
+
+(* Builds and saves certificates for all given cases *)
+let build_and_save_all =
+  let counter = ref 0 and
+      total = ref 0 in
+  let buf = ref [] and
+      file_counter = ref 0 and
+      buf_terminals = ref 0 in
+
+  let save_buf name_prefix =
+    if length !buf > 0 then
+      let _ = file_counter := !file_counter + 1 in
+      let fname = sprintf "%s/%s_%d.dat" !output_dir name_prefix !file_counter in
+      let _ = write_lp_certificates fname !buf in
+	buf := [];
+	buf_terminals := 0
+    else
+      () in
+
+  let process name_prefix max modify_hex bb =
+    let _ = counter := !counter + 1 in
+    let _ = report (sprintf "%d/%d" !counter !total) in
+    let certificate = build_certificate modify_hex bb in
+    let _ = buf := certificate :: !buf in
+    let _ = buf_terminals := !buf_terminals + count_terminals certificate.root_case in
+      if !buf_terminals >= max then
+	save_buf name_prefix
+      else
+	() in
+
+    fun name_prefix max modify_hex bbs ->
+      let _ = total := length bbs and
+	  _ = counter := 0 and
+	  _ = file_counter := 0 and
+	  _ = buf := [] and
+	  _ = buf_terminals := 0 in
+      let _ = map (process name_prefix max modify_hex) bbs in
+	save_buf name_prefix;;
+
+
+end;;

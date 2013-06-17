@@ -42,7 +42,7 @@ let FINAL_INEQ = (MY_RULE_NUM o prove)(`lin_f [] <= -- &n <=> n = 0`,
 
 let lnsum_ineqs =
   let DECIMAL_INT = prove(`!n. DECIMAL n 1 = &n`, REWRITE_TAC[DECIMAL; REAL_DIV_1]) in
-  let ineq_th = (add_lp_hyp false o REWRITE_RULE[GSYM IMP_IMP]) Lp_ineqs_proofs.lnsum_ineq in
+  let ineq_th = (add_lp_hyp false o UNDISCH_ALL o SPEC_ALL) Lp_ineqs_proofs.lnsum_ineq in
   let ineq_tm = concl ineq_th in
   let ths1 = create_approximations [9;12;15;18] ineq_tm in
   let ths2 = map generalize_hyp ths1 in
@@ -224,33 +224,41 @@ let simplify_ineq hyp_fun ineq_th =
   let eq_th = simplify_ineq_tm hyp_fun (concl ineq_th) in
     EQ_MP eq_th ineq_th;;
 
-
-let rec prove_conditions ineq_th =
-  let concl_tm = concl ineq_th in
-    if is_imp concl_tm then
-      let p_tm = lhand concl_tm in
-      let flag, p_th =
-	(* (trivial) equality *)
-	if is_eq p_tm then
-	  let ltm, rtm = dest_eq p_tm in
-	    if ltm = rtm then
-	      true, REFL ltm
-	    else
-	      false, TRUTH
-		(* n < m:num *)
-	else if is_binary "<" p_tm then
-	  true, EQT_ELIM (raw_lt_hash_conv p_tm)
-	else
-	  false, TRUTH in
-      let th1 =
-	if flag then
-	  MP ineq_th p_th
-	else
-	  UNDISCH ineq_th in
-	prove_conditions th1
-    else
-      ineq_th;;
-      
+let prove_conditions =
+  let neq_elim_th = prove(`(s <=> F) <=> ~s`, REWRITE_TAC[]) in
+  let rec prove_rec ineq_th =
+    let concl_tm = concl ineq_th in
+      if is_imp concl_tm then
+	let p_tm = lhand concl_tm in
+	let flag, p_th =
+	  (* (trivial) equality *)
+	  if is_eq p_tm then
+	    let ltm, rtm = dest_eq p_tm in
+	      if ltm = rtm then
+		true, REFL ltm
+	      else
+		false, TRUTH
+		  (* n < m:num *)
+	  else if is_binary "<" p_tm then
+	    true, EQT_ELIM (raw_lt_hash_conv p_tm)
+	      (* ~(n = m) *)
+	  else if is_neg p_tm then
+	    let s_tm = rand p_tm in
+	    let th0 = raw_eq_hash_conv s_tm in
+	    let elim_th = INST[s_tm, s_var_bool] neq_elim_th in
+	      true, EQ_MP elim_th th0
+	  else
+	    false, TRUTH in
+	let th1 =
+	  if flag then
+	    MP ineq_th p_th
+	  else
+	    UNDISCH ineq_th in
+	  prove_rec th1
+      else
+	ineq_th in
+    prove_rec;;
+    
 
 let get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices =
   let ineq0_th = (find_ineq std_flag precision name).ineq_th in
@@ -481,13 +489,18 @@ let tau_split4, tau_split5_one, tau_split5_two, tau_split6 =
 (* For instance, |- a <= sqrt8 yields |- a <= &3         *)
 let gen_extra_ineqs =
   let tm_3 = `&3` and
-      tm_sqrt8 = `sqrt8` in
+      tm_sqrt8 = `sqrt8` and
+      tm_218 = `#2.18` and
+      tm_236 = `#2.36` in
+    
   let r tm = prove(tm, MP_TAC Flyspeck_constants.bounds THEN ARITH_TAC) in
   let l_ths_list = [
     tm_3, r `&3 <= a ==> sqrt8 <= a`;
+    tm_236, r `#2.36 <= a ==> #2.18 <= a`;
   ] in
   let r_ths_list = [
     tm_sqrt8, r `a <= sqrt8 ==> a <= &3`;
+    tm_218, r `a <= #2.18 ==> a <= #2.36`;
   ] in
   let a_var_real = `a:real` in
     fun ineq_th ->
@@ -495,6 +508,7 @@ let gen_extra_ineqs =
       let l_ths = map (fun th -> MP (INST[rhs, a_var_real] th) ineq_th) (assoc_all lhs l_ths_list) and
 	  r_ths = map (fun th -> MP (INST[lhs, a_var_real] th) ineq_th) (assoc_all rhs r_ths_list) in
 	l_ths @ r_ths;;
+
 
 (* Generates ye-symmetric inequalities.                    *)
 (* Example: |- ye (a,b) <= c yields |- ye (b,a) <= c       *)
@@ -513,6 +527,7 @@ let gen_ye_sym_ineqs ye_sym_th ineq_th =
   let l_eqs = sym_eqs lhs and
       r_eqs = sym_eqs rhs in
     tl (allpairs (fun l_eq r_eq -> EQ_MP (MK_COMB (AP_TERM op_tm l_eq, r_eq)) ineq_th) l_eqs r_eqs);;
+
 
 (* Generates all extra inequalities (including ye-symmetric inequalities) *)
 let gen_all_extra_cases ye_sym_th case_tms =
@@ -543,9 +558,14 @@ let rec terminal_cases (hyp_list, case) =
     | Lp_terminal terminal -> [(hyp_list, terminal)]
     | Lp_split (info, cs) ->
 	(match info.split_type with
-	     (* Triangle *)
-	   | "tri" ->
+	     (* Triangles, edges, nodes *)
+	   | "tri" | "edge" | "236" | "218" ->
 	       let case_args = zip [hyp_list; hyp_list] cs in
+		 flatten (map terminal_cases case_args)
+		   
+	   (* Special cases *)
+	   | "high" | "mid" | "add_big" ->
+	       let case_args = zip [hyp_list] cs in
 		 flatten (map terminal_cases case_args)
 		   
 	   (* Quad *)
@@ -649,7 +669,8 @@ let get_final_case_th ye_sym_th cases_tm case_th =
 (* big_tm = `#6.25 <= a + b + c`, small_tm = `a + b + c <= #6.25              *)
 (* sym_big_ineqs = [|- #6.25 <= b + c + a; |- #6.25 <= c + a + b]             *)
 (* sym_small_ineqs = [|- b + c + a <= #6.25; |- c + a + b <= #6.25;           *)
-(*                    |- a <= #2.52; |- b <= #2.25; |- c <= #2.25]            *)
+(*                    |- a <= #2.52; |- b <= #2.25; |- c <= #2.25;            *)
+(*		      |- e(a) <= #2.52; |- e(b) <= #2.52; |- e(c) <= #2.52]   *)
 (* Here, a = ye_list g (i1,i2), b = ye_list g (i2,i3), c = ye_list g (i3,i1)  *)
 (* for split_face = [i1; i2; i3]                                              *)
 let gen_triangle_ineqs =
@@ -675,7 +696,8 @@ let gen_triangle_ineqs =
 	let th0 = INST[arg.hyp_list_tm, l_cap_var; hd dart_tms, d_var_pair; arg.e_tm, e_cap_var] small_extra in
 	let extra0 = (CONJUNCTS o UNDISCH_ALL o MY_PROVE_HYP arg.lp_cond_th o simplify_ineq hyp_fun o MP th0) mem_th in
 	  map (CONV_RULE (convert_condition hyp_fun)) extra0 in
-	split3_th, (big_tm, small_tm), (sym_big_ineqs, sym_small_ineqs @ extra_small_ineqs);;
+      let extra_sym = flatten (map (gen_ye_sym_ineqs arg.ye_sym_th) extra_small_ineqs) in
+	split3_th, (big_tm, small_tm), (sym_big_ineqs, sym_small_ineqs @ extra_small_ineqs @ extra_sym);;
 
 
 (* Verifies an lp_certificate_case *)

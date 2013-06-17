@@ -310,6 +310,23 @@ elim: ds => [|h t Ih]; rewrite split_list_list add_diag_list !foldr //.
 by rewrite -split_list_list -add_diag_list /= lp_cond_trans1.
 Qed.
 
+Lemma bij_in f s t: `BIJ f s t ==> (!x. x IN s ==> f x IN t)`.
+Proof. by rewrite BIJ INJ => [] [] [bij_in] _ _ x /bij_in. Qed.
+
+Lemma list_sum_neg s f: `list_sum s (\x. --(f x)) = --(list_sum s f)`.
+Proof. by rewrite REAL_NEG_MINUS1 list_sum_lmul -REAL_NEG_MINUS1. Qed.
+
+Lemma list_sum_sub s f1 f2: `list_sum s (\x. f1 x - f2 x) = list_sum s f1 - list_sum s f2`.
+Proof. by rewrite !real_sub list_sum_add list_sum_neg. Qed.
+
+Lemma list_sum_filter s a f: `list_sum (filter a s) f = list_sum s (\x. if a x then f x else &0)`.
+Proof.
+elim: s => [|h t Ih]; rewrite filter ?list_sum_nil //.
+rewrite list_sum_cons /= -Ih.
+case ah: `a h` => /=; first by rewrite list_sum_cons.
+by rewrite REAL_ADD_LID.
+Qed.
+
 
 (* Contravening *)
 Section Contravening.
@@ -348,19 +365,101 @@ rewrite -(iso_planar iso) -(iso_connected iso) -(iso_edge_nondegenerate iso).
 by rewrite Jgtdebu.JGTDEBU5 // Jgtdebu.JGTDEBU3 // Jgtdebu.JGTDEBU1.
 Qed.
 
+Section Bij.
 
-End Contravening.
+Variable h: `:num->real^3`.
+Variable L: `:((num)list)list`.
+Hypothesis bij_h: `BIJ h (elements_of_list L) V`.
 
-
-Lemma lnsum_ineq V L h: `BIJ h (elements_of_list L) V /\ contravening V
-        ==> &12 <= list_sum (list_of_elements L) (ln_list h)`.
+Lemma lnsum_ineq: `&12 <= list_sum (list_of_elements L) (ln_list h)`.
 Proof.
-rewrite contravening => [] [bij_h] [_] [_] [ineq] _.
+move: cV; rewrite contravening => [] [_] [_] [ineq] _.
 suff ->: `list_sum (list_of_elements L) (ln_list h) = scriptL V` by move: ineq; arith.
 rewrite list_sum_set_of_list ?uniq_list_of_elements -elements_of_list.
 rewrite scriptL list_defs_th (Basics.BIJ_SUM bij_h).
 by apply SUM_EQ => v vV /=; rewrite ln_fan yn_fan.
 Qed.
+
+Let cardV_eq: `CARD V = LENGTH (list_of_elements L)`.
+Proof.
+rewrite -Seq.size -card_set_of_list_uniq ?uniq_list_of_elements // -elements_of_list.
+by rewrite (bij_card_eq bij_h) // elements_of_list FINITE_SET_OF_LIST.
+Qed.
+
+Let y_ineqs y: `MEM y (list_of_elements L) ==> &2 <= norm (h y) /\ norm (h y) <= &2 * h0`.
+Proof.
+rewrite -IN_SET_OF_LIST -elements_of_list => y_in.
+suff: `h y IN ball_annulus` by rewrite Fnjlbxs.in_ball_annulus => [] [-> ->].
+by move: cV; rewrite contravening SUBSET => ->; rewrite (bij_in bij_h).
+Qed.
+
+Lemma lnsum13_ineq: `sizel (list_of_elements L) = 13 ==> 
+	list_sum (list_of_elements L) (\y. yn_list h y - &2) <= #0.52`.
+Proof.
+move: (cV); rewrite contravening SUBSET => [] [_] [in_ba] _ size_eq.
+have eq: `list_sum (list_of_elements L) (ln_list h) 
+	= inv (h0 - &1) * list_sum (list_of_elements L) (\y. h0 - yn_list h y / &2)`.
+  rewrite -list_sum_lmul REAL_MUL_SYM /= -real_div -lfun.
+  apply list_sum_eq => y mem_y.
+  by rewrite !list_defs_th !o_THM ln_fan !yn_fan Nonlinear_lemma.lmfun_lfun ?y_ineqs.
+move: lnsum_ineq; rewrite eq !list_sum_sub real_div list_sum_rmul.
+rewrite (list_sum_const `h0`) (list_sum_const `&2`) size_eq.
+by rewrite h0; arith.
+Qed.
+
+Lemma lnsum13_high_strict i: `MEM i (list_of_elements L)
+	/\ sizel (list_of_elements L) = 13 /\ #2.36 <= yn_list h i
+	==> !j. MEM j (list_of_elements L) /\ ~(j = i) ==> yn_list h j < #2.18`.
+Proof.
+move => [mem_i] [size13] ineq j [mem_j] j_neq_i.
+set s := `delete1 i (delete1 j (list_of_elements L))`.
+have: `list_sum s (\y. yn_list h y - &2)
+	= list_sum (list_of_elements L) (\y. yn_list h y - &2) - (yn_list h i + yn_list h j - &4)`.
+  rewrite -s_def !list_sum_delete1 mem_j /= mem_delete1_uniq ?uniq_list_of_elements //.
+  by rewrite -j_neq_i /= mem_i /=; arith.
+have: `&0 <= list_sum s (\y. yn_list h y - &2)`.
+  rewrite list_sum_ge0 list_defs_th o_THM yn_fan => x mem_x /=.
+  by rewrite REAL_SUB_LE y_ineqs (mem_delete1 j) (mem_delete1 i) s_def.
+by move: (lnsum13_ineq size13) ineq; arith.
+Qed.
+
+Lemma lnsum13_high i: `MEM i (list_of_elements L)
+	/\ sizel (list_of_elements L) = 13 /\ #2.36 <= yn_list h i
+	==> ALL (\j. ~(j = i) ==> yn_list h j <= #2.18) (list_of_elements L)`.
+Proof.
+rewrite -ALL_MEM => [] [mem_i] [size13] ineq j /= mem_j j_neq_i.
+by rewrite REAL_LT_IMP_LE (lnsum13_high_strict mem_i).
+Qed.
+
+Lemma lnsum13_mid i j: `MEM i (list_of_elements L) /\ MEM j (list_of_elements L) /\ ~(i = j)
+	/\ sizel (list_of_elements L) = 13 
+	/\ #2.18 <= yn_list h i /\ #2.18 <= yn_list h j
+	==> ALL (\k. ~(k = i) /\ ~(k = j) ==> yn_list h k <= #2.18) (list_of_elements L)
+		/\ yn_list h i <= #2.36 /\ yn_list h j <= #2.36`.
+Proof.
+rewrite -ALL_MEM => [] [mem_i] [mem_j] [i_neq_j] [size13] ineqs /=; split; last first.
+  apply: contraR i_neq_j; rewrite negb_and.
+  rewrite !REAL_NOT_LE; case => /REAL_LT_IMP_LE /lnsum13_high_strict; "ANTS_TAC" => //.
+    by move => /(_ mem_j); move: ineqs; arith.
+  by move => /(_ mem_i); move: ineqs; arith.
+move => k mem_k k_neq.
+set s := `delete1 k (delete1 i (delete1 j (list_of_elements L)))`.
+have: `list_sum s (\y. yn_list h y - &2)
+	= list_sum (list_of_elements L) (\y. yn_list h y - &2) 
+		- (yn_list h k + yn_list h i + yn_list h j - &6)`.
+  rewrite -s_def !list_sum_delete1 mem_j /=.
+  rewrite !mem_delete1_uniq ?uniq_delete1 ?uniq_list_of_elements //.
+  by rewrite i_neq_j mem_i /= !k_neq mem_k /=; arith.
+have: `&0 <= list_sum s (\y. yn_list h y - &2)`.
+  rewrite list_sum_ge0 list_defs_th o_THM yn_fan => x mem_x /=.
+  by rewrite REAL_SUB_LE y_ineqs (mem_delete1 j) (mem_delete1 i) (mem_delete1 k) s_def.
+by move: (lnsum13_ineq size13) ineqs; arith.
+Qed.
+
+End Bij.
+
+End Contravening.
+
 
 Lemma hyp_iso_comm_power H G g d: `hyp_iso g (G, H) /\ d IN dart G
 	   ==> (!k. (face_map H POWER k) (g d) = g ((face_map G POWER k) d))`.
@@ -477,8 +576,8 @@ Qed.
 End ExtraDefs.
 
 
-(* FanAddDiag *)
-Section FanAddDiag.
+(* ExtraFan *)
+Section ExtraFan.
 
 Variable V: `:real^3->bool`.
 Variable E: `:(real^3->bool)->bool`.
@@ -488,18 +587,6 @@ Hypothesis fanV: `FAN (vec 0,V,E)`.
 Let dartH: `dart (hypermap_of_fan (V,E)) = dart_of_fan (V,E)`.
 Proof. by rewrite COMPONENTS_HYPERMAP_OF_FAN. Qed.
 
-Let in_dart_inV d: `d IN dart_of_fan (V,E) ==> FST d IN V /\ SND d IN V`.
-Proof. by rewrite {1}pair_expand => /(PAIR_IN_DART_OF_FAN fanV). Qed.
-
-Lemma add_diag_eq_E d: `CARD (face (hypermap_of_fan (V,E)) d) = 3
-	==> add_diag (V,E) d = E`.
-Proof.
-case: d => v w card_eq; rewrite add_diag.
-case vw_in1: `v,w IN _` => /=.
-have vw_in: `v,w IN dart_of_fan (V,E)` by rewrite dart_of_fan_eq IN_UNION.
-have := split_fan_face_eq vw_in card_eq fanV.
-by rewrite split_fan_face PAIR_EQ => [] [_].
-Qed.
 
 Lemma f_fan_pair_ext_power_inverse k d: `d IN dart_of_fan (V,E)
 	/\ k < CARD (face (hypermap_of_fan (V,E)) d)
@@ -534,6 +621,137 @@ move/(ORBIT_MAP_INJ (F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN fanV)); apply; exists n
 by rewrite (FINITE_DART_OF_FAN fanV) -(COMPONENTS_HYPERMAP_OF_FAN fanV) -face.
 Qed.
 
+Lemma f_fan_pair_ext_in_dart1 d: `d IN dart1_of_fan (V,E) ==> 
+	f_fan_pair_ext (V,E) d IN dart1_of_fan (V,E)`.
+Proof. by move => d_in; rewrite f_fan_pair_ext d_in /= E_N_F_IN_DART1_OF_FAN. Qed.
+
+Lemma f_fan_pair_ext_power_in_dart1 k d: `d IN dart1_of_fan (V,E)
+	==> (f_fan_pair_ext (V,E) POWER k) d IN dart1_of_fan (V,E)`.
+Proof.
+move => d_in.
+elim: k => [|k Ih]; first by rewrite POWER_0 I_THM.
+by rewrite COM_POWER o_THM f_fan_pair_ext_in_dart1.
+Qed.
+
+Lemma f_fan_pair_ext_in_dart d: `d IN dart_of_fan (V,E)
+	==> f_fan_pair_ext (V,E) d IN dart_of_fan (V,E)`.
+Proof. by move => d_in; rewrite -POWER_1 f_fan_pair_ext_power_in_dart. Qed.
+
+Lemma inv_f_fan_pair_ext_power_in_dart1 k d: `d IN dart1_of_fan (V,E)
+	==> (inverse (f_fan_pair_ext (V,E)) POWER k) d IN dart1_of_fan (V,E)`.
+Proof.
+move => d_in.
+elim: k => [|k Ih]; first by rewrite POWER_0 I_THM.
+by rewrite COM_POWER o_THM INVERSE_F_IN_DART1_OF_FAN.
+Qed.
+
+Lemma face_eq_power k d: `d IN darts_k k (hypermap_of_fan (V,E))
+	==> face (hypermap_of_fan (V,E)) d = {(f_fan_pair_ext (V,E) POWER i) d | i < k}`.
+Proof.
+have hypV := COMPONENTS_HYPERMAP_OF_FAN fanV.
+rewrite darts_k inE face !hypV => [] [d_in] card_f.
+by rewrite (FINITE_ORBIT_MAP card_f (F_FAN_PAIR_EXT_PERMUTES_DART1_OF_FAN fanV)) // finite_dart1.
+Qed.
+
+Lemma face4_eq v w: `let w' = sigma_fan (vec 0) V E v w in
+		   let u = sigma_fan (vec 0) V E w' v in
+	v,w IN darts_k 4 (hypermap_of_fan (V,E))
+	==> (f_fan_pair_ext (V,E) (v,w) = (w,u)
+		/\ (f_fan_pair_ext (V,E) POWER 2) (v,w) = (u,w')
+		/\ (f_fan_pair_ext (V,E) POWER 3) (v,w) = (w',v)
+		/\ f_fan_pair_ext (V,E) (w,u) = (u,w')
+		/\ f_fan_pair_ext (V,E) (u,w') = (w',v)
+		/\ f_fan_pair_ext (V,E) (w',v) = (v,w))
+	/\ (v,w IN dart1_of_fan (V,E) /\ w,u IN dart1_of_fan (V,E)
+		/\ u,w' IN dart1_of_fan (V,E) /\ w',v IN dart1_of_fan (V,E))
+	/\ face (hypermap_of_fan (V,E)) (v,w) = {(v,w), (w,u), (u,w'), (w',v)}`.
+Proof.
+do !"CONV_TAC let_CONV".
+set w' := `sigma_fan _ V E v w`.
+set u := `sigma_fan _ V E w' v`.
+have hypV := COMPONENTS_HYPERMAP_OF_FAN fanV.
+move => vw_in4; move: (vw_in4); rewrite darts_k inE hypV => [] [vw_in] card_f.
+have := f_fan_pair_ext_power_inverse vw_in.
+rewrite card_f => inv_eq.
+have vw_in1: `v,w IN dart1_of_fan (V,E)`.
+  by rewrite CARD_FACE_GT_1 card_f fanV; arith.
+have w'v_in1: `w',v IN dart1_of_fan (V,E)`.
+  by rewrite dart1_switch -w'_def sigma_in_dart1.
+set f := `f_fan_pair_ext (V,E)`.
+have eq0: `(inverse f POWER 2) (v,w) = (u,w')`.
+  rewrite -f_def POWER_2 o_THM !INVERSE_F_FAN_PAIR_EXT_EXPLICIT //.
+  by rewrite !res vw_in1 /= w'_def w'v_in1 /= u_def.
+have ineqs: `2 < 4 /\ 4 - 2 = 2 /\ 3 < 4 /\ 4 - 3 = 1` by arith.
+have eq2: `(f POWER 2) (v,w) = u,w'` by rewrite inv_eq.
+have eq1: `f (v,w) = w,u`.
+  rewrite pair_expand -{1}f_def f_fan_pair_ext vw_in1 /= f_fan_pair FST PAIR_EQ /=.
+  move: eq2; rewrite -{1}f_def POWER_2 o_THM f_fan_pair_ext f_fan_pair_ext_in_dart1 //=.
+  by rewrite f_def {1}(pair_expand `f (v,w)`) f_fan_pair PAIR_EQ => ->.
+have eq3: `(f POWER 3) (v,w) = w',v`.
+  rewrite inv_eq // ineqs POWER_1 -f_def INVERSE_F_FAN_PAIR_EXT_EXPLICIT //.
+  by rewrite res vw_in1 /= w'_def.
+rewrite eq1 eq2 eq3 /= -eq1 -eq2 -eq3 {1}THREE POWER POWER_2 !o_THM /=.
+rewrite {1}inv_eq // ineqs POWER_1.
+rewrite -{1 2}f_def (PERMUTES_INVERSES (F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN fanV)) /=.
+rewrite -(o_THM f f) -POWER_2 vw_in1 -f_def f_fan_pair_ext_in_dart1 //.
+rewrite !f_fan_pair_ext_power_in_dart1 //.
+by rewrite (face_eq_power vw_in4) "gen_FINITE_SET 4" POWER_0 POWER_1 I_THM f_def.
+Qed.
+
+Lemma face5_eq v w: `let w' = sigma_fan (vec 0) V E v w in
+		   let u = sigma_fan (vec 0) V E w' v in
+		   let z = sigma_fan (vec 0) V E u w' in
+	v,w IN darts_k 5 (hypermap_of_fan (V,E))
+	==> (f_fan_pair_ext (V,E) (v,w) = (w,z)
+		/\ (f_fan_pair_ext (V,E) POWER 2) (v,w) = (z,u)
+		/\ (f_fan_pair_ext (V,E) POWER 3) (v,w) = (u,w')
+		/\ (f_fan_pair_ext (V,E) POWER 4) (v,w) = (w',v)
+		/\ f_fan_pair_ext (V,E) (w,z) = (z,u)
+		/\ f_fan_pair_ext (V,E) (z,u) = (u,w')
+		/\ f_fan_pair_ext (V,E) (u,w') = (w',v)
+		/\ f_fan_pair_ext (V,E) (w',v) = (v,w)
+		/\ inverse (f_fan_pair_ext (V,E)) (v,w) = (w',v))
+	/\ (v,w IN dart1_of_fan (V,E) /\ w,z IN dart1_of_fan (V,E) /\ z,u IN dart1_of_fan (V,E)
+		/\ u,w' IN dart1_of_fan (V,E) /\ w',v IN dart1_of_fan (V,E))
+	/\ face (hypermap_of_fan (V,E)) (v,w) = {(v,w), (w,z), (z,u), (u,w'), (w',v)}`.
+Proof.
+do !"CONV_TAC let_CONV".
+set w' := `sigma_fan _ V E v w`.
+set u := `sigma_fan _ V E w' v`.
+set z := `sigma_fan _ V E u w'`.
+have hypV := COMPONENTS_HYPERMAP_OF_FAN fanV.
+move => vw_in5; move: (vw_in5); rewrite darts_k inE hypV => [] [vw_in] card_f.
+have:= f_fan_pair_ext_power_inverse vw_in.
+rewrite card_f => inv_eq.
+have vw_in1: `v,w IN dart1_of_fan (V,E)`.
+  by rewrite CARD_FACE_GT_1 card_f fanV; arith.
+set f := `f_fan_pair_ext (V,E)`.
+have eq_inv1: `(inverse f) (v,w) = (w',v)`.
+  by rewrite -f_def INVERSE_F_FAN_PAIR_EXT_EXPLICIT // res vw_in1 /= w'_def.
+have eq_inv2: `(inverse f POWER 2) (v,w) = (u,w')`.
+  rewrite POWER_2 o_THM eq_inv1 -f_def INVERSE_F_FAN_PAIR_EXT_EXPLICIT //.
+  by rewrite res -{1}eq_inv1 -{1}f_def INVERSE_F_IN_DART1_OF_FAN.
+have eq_inv3: `(inverse f POWER 3) (v,w) = (z,u)`.
+  rewrite THREE COM_POWER o_THM eq_inv2 -f_def INVERSE_F_FAN_PAIR_EXT_EXPLICIT //.
+  by rewrite res -{1}eq_inv2 -{1}f_def inv_f_fan_pair_ext_power_in_dart1.
+have ineqs: `2 < 5 /\ 5 - 2 = 3 /\ 3 < 5 /\ 5 - 3 = 2 /\ 4 < 5 /\ 5 - 4 = 1` by arith.
+have eq2: `(f POWER 2) (v,w) = z,u` by rewrite inv_eq.
+have eq3: `(f POWER 3) (v,w) = u,w'` by rewrite inv_eq.
+have eq4: `(f POWER 4) (v,w) = w',v` by rewrite inv_eq // ineqs POWER_1.
+have eq1: `f (v,w) = w,z`.
+  rewrite pair_expand -{1}f_def f_fan_pair_ext vw_in1 /= f_fan_pair FST PAIR_EQ /=.
+  move: eq2; rewrite -{1}f_def POWER_2 o_THM f_fan_pair_ext f_fan_pair_ext_in_dart1 //=.
+  by rewrite f_def {1}(pair_expand `f (v,w)`) f_fan_pair PAIR_EQ => ->.
+rewrite eq1 eq2 eq3 eq4 eq_inv1 /=; split.
+  rewrite -eq1 -eq2 -eq3 -{1}eq4 POWER_2 THREE POWER POWER_2 !o_THM /=.
+  have ->: `4 = SUC 3` by arith.
+  rewrite THREE !POWER POWER_2 !o_THM /=.
+  by rewrite -eq_inv1 -f_def (PERMUTES_INVERSES (F_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN fanV)).
+rewrite -eq1 -eq2 -eq3 -eq4 vw_in1 -f_def f_fan_pair_ext_in_dart1 //.
+rewrite !f_fan_pair_ext_power_in_dart1 // !andTb.
+by rewrite (face_eq_power vw_in5) "gen_FINITE_SET 5" POWER_0 POWER_1 I_THM f_def.
+Qed.
+
 Lemma face_last_dart v w: `v,w IN dart1_of_fan (V,E)
 	==> (f_fan_pair_ext (V,E) POWER (CARD (face (hypermap_of_fan (V,E)) (v,w)) - 1)) (v,w)
 		= sigma_fan (vec 0) V E v w, v`.
@@ -544,6 +762,33 @@ have ineq := FACE_NOT_EMPTY `hypermap_of_fan (V,E)` `v,w`.
 rewrite (f_fan_pair_ext_power_inverse vw_in); first by move: ineq; arith.
 rewrite subKn // POWER_1 INVERSE_F_FAN_PAIR_EXT_EXPLICIT //.
 by rewrite res vw_in1.
+Qed.
+
+End ExtraFan.
+
+
+(* FanAddDiag *)
+Section FanAddDiag.
+
+Variable V: `:real^3->bool`.
+Variable E: `:(real^3->bool)->bool`.
+
+Hypothesis fanV: `FAN (vec 0,V,E)`.
+
+Let dartH: `dart (hypermap_of_fan (V,E)) = dart_of_fan (V,E)`.
+Proof. by rewrite COMPONENTS_HYPERMAP_OF_FAN. Qed.
+
+Let in_dart_inV d: `d IN dart_of_fan (V,E) ==> FST d IN V /\ SND d IN V`.
+Proof. by rewrite {1}pair_expand => /(PAIR_IN_DART_OF_FAN fanV). Qed.
+
+Lemma add_diag_eq_E d: `CARD (face (hypermap_of_fan (V,E)) d) = 3
+	==> add_diag (V,E) d = E`.
+Proof.
+case: d => v w card_eq; rewrite add_diag.
+case vw_in1: `v,w IN _` => /=.
+have vw_in: `v,w IN dart_of_fan (V,E)` by rewrite dart_of_fan_eq IN_UNION.
+have := split_fan_face_eq vw_in card_eq fanV.
+by rewrite split_fan_face PAIR_EQ => [] [_].
 Qed.
 
 End FanAddDiag.
@@ -1369,29 +1614,9 @@ Lemma y9_eq v w: `v,w IN dart_of_fan (V,E) /\ CARD (face (hypermap_of_fan (V,E))
 Proof.
 move => [vw_in card_f]; do !"CONV_TAC let_CONV".
 set w1 := `sigma_fan _ V E v w`.
-rewrite y9_fan.
-set f := `f_fan_pair_ext _`.
-have fH: `face_map (hypermap_of_fan (V,E)) = f`.
-  by rewrite -f_def (COMPONENTS_HYPERMAP_OF_FAN fanV).
-have f_eq: `(inverse f POWER 3) (v,w) = f (v,w)`.
-  rewrite -{2}(POWER_1 f).
-  have ->: `1 = 4 - 3` by arith.
-  apply FINITE_ORBIT_MAP_INVERSE; exists `dart (hypermap_of_fan (V,E))`.
-  by rewrite -fH !face_map_and_darts -face card_f; arith.
-rewrite pair_expand.
-have ->: `FST (f (v,w)) = w`.
-  by rewrite -f_def f_fan_pair_ext dart1_eq vw_in /= f_fan_pair.
-suff ->: `SND (f (v,w)) = sigma_fan (vec 0) V E w1 v` by [].
-have inverse_in k: `(inverse f POWER k) (v,w) IN dart1_of_fan (V,E)`.
-  rewrite dart1_eq -dartH -fH.
-  apply IN_TRANS; exists `face (hypermap_of_fan (V,E)) (v,w)`.
-  by rewrite lemma_face_subset // lemma_power_inverse_in_face2.
-rewrite -f_eq THREE COM_POWER o_THM -f_def.
-rewrite -f_def in inverse_in.
-rewrite {1}INVERSE_F_FAN_PAIR_EXT_EXPLICIT // res inverse_in /=.
-by rewrite "let_RULE inverse_f_fan_pair_ext_power2".
+rewrite y9_fan "let_RULE face4_eq" ?w1_def //.
+by rewrite darts_k inE.
 Qed.
-
 
 Lemma ys_eq_alt d: `d IN dart_of_fan (V,E)
         ==> y1_fan d = norm (FST d)

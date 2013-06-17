@@ -11,7 +11,7 @@ namespace LP_HL
     class LpNumber : IComparable<LpNumber>
     {
         // Minimal precision;
-        public const decimal DecimalEps = 1e-10m;
+        public const decimal DecimalEps = 1e-15m;
 
         // value
         public readonly decimal value;

@@ -1,0 +1,246 @@
+needs "../formal_lp/glpk/hard_lp.hl";;
+needs "../formal_lp/glpk/build_certificates.hl";;
+
+open List;;
+open Glpk_link;;
+open Lpproc;;
+open Lp_certificate;;
+open Lp_informal_computations;;
+open Build_certificates;;
+open Hard_lp;;
+
+let hard_bbs = hard_bb();;
+
+let bb = nth hard_bbs 0;;
+
+let r = allpass_hint_include_flat 20000 [bb];;
+
+length (node_list bb);;
+
+
+map (length o node_list) hard_bbs;;
+
+
+let bb = nth hard_bbs 5;;
+
+Glpk_link.resetc();;
+let r = allpass_hint_include_flat 20000 [bb];;
+
+let bbs1 = onepass_hint_include_flat [bb];;
+Lpproc.allpass 100 [bb];;
+
+
+
+(*************************)
+
+let reset_build_counters, next_build_case, next_terminal_case, report_build_progress =
+  let cases = ref 0 and
+      terminals = ref 0 in
+    (fun () -> cases := 0; terminals := 0),
+  (fun () -> cases := !cases + 1),
+  (fun () -> terminals := !terminals + 1),
+  (fun () -> report (sprintf "cases = %d; terminals = %d" !cases !terminals));;
+    
+
+let modified_bbs = ref [];;
+
+
+let set_face_numerics_info bb = 
+  let opp xs = nub (xs @ map (C opposite_edge bb) xs) in
+  let edge_of_small = opp (rotation bb.std3_small) in
+  let short_edge = opp bb.d_edge_200_225 in
+  let long_edge = opp bb.d_edge_225_252 in
+  let _ =  (intersect edge_of_small long_edge = []) or failwith "set_face_numerics" in
+  let shortadds =  subtract (edge_of_small @ short_edge) bb.d_edge_200_225 in
+  let shortfields = (map (fun t-> ("e_200_225",t)) shortadds) in
+  let longadds =  subtract long_edge bb.d_edge_225_252 in
+  let longfields = (map (fun t-> ("e_225_252",t)) longadds) in
+  let r = filter (fun t -> mem t (std_faces bb) & (length t = 3) )
+          (nub (map (C face_of_dart bb) long_edge)) in
+  let _ = (intersect (rotation bb.std3_small) r =[]) or failwith "set_face_numerics" in
+  let bigfields = map (fun t -> ("bt",t)) (subtract r bb.std3_big) in
+  let fields = shortfields @ longfields @ bigfields in
+    if fields=[] then bb, [] else
+      let new_bb = modify_bb bb false fields [] in
+	(* Don't need to add symmetric inequalities and short edges for small triangles: *)
+	(* it is done at other steps. Add new big triangles only. *)
+      let info_list = map (fun f -> {split_type = "add_big"; split_face = f}) (subtract r bb.std3_big) in
+	new_bb, info_list;;
+
+
+let set_node_numerics_info bb = 
+  if not(card_node bb = 13) then bb, [] else
+  let n_high = length bb.node_236_252 in
+  let n_mid = length bb.node_218_236 in
+  let n_highish = length (highish bb) in
+  if (n_high =0 )  & (n_mid +n_highish < 2) then bb, [] else
+  let _ = (n_mid * 18 + n_highish * 18 + n_high *36 <= 52) or failwith "set_node_numerics" in
+  let node_new_low = subtract (node_list bb) (unions [bb.node_200_218 ;bb.node_218_236; bb.node_236_252;bb.node_218_252]) in
+  let vfields_low = map (fun t -> ("200_218",t)) node_new_low in
+  let vfields_mid = map(fun t->("218_236",t)) (highish bb) in
+  let vfields = vfields_low @ vfields_mid in
+    if vfields = [] then bb, [] else
+      let new_bb = modify_bb bb false [] vfields in
+      let info =
+	if n_high > 0 then
+	  {split_type = "high"; split_face = bb.node_236_252}
+	else
+	  {split_type = "mid"; split_face = bb.node_218_236 @ highish bb} in
+	new_bb, [info];;
+
+
+let rec build hard_flag (hyp_list, bb0) =
+  let _ = next_build_case() in
+  let _ = report_build_progress() in
+
+  let bb, info_list = if not hard_flag then bb0, []
+  else
+    let bb1, list1 = set_face_numerics_info bb0 in
+    let bb2, list2 = set_node_numerics_info bb1 in
+      bb2, list1 @ list2 in
+
+  let _ = if bb = bb0 then () else (report "bb modified"; modified_bbs := bb0 :: !modified_bbs) in
+
+  let f_hint = if hard_flag then add_hints_include_flat else (fun t -> ()) in
+  let result = solve_f f_hint bb in
+  let certificate =
+    if not (is_feas result) then
+      let _ = next_terminal_case() in
+      let infeasible =
+	match result.lpvalue with
+	  | Lp_infeasible -> true
+	  | _ -> false in
+	(* terminal case *)
+      let terminal = build_terminal_case hyp_list infeasible bb in
+	Lp_terminal terminal
+    else
+      (* split case *)
+      let n = length (hd bb.std_faces_not_super) in
+	if n = 3 then
+	  if hard_flag then
+	    split3_hard hyp_list bb
+	  else
+	    split3 hard_flag hyp_list bb
+	else if n = 4 then
+	  split4 hard_flag hyp_list bb
+	else if n = 5 then
+	  split5 hard_flag hyp_list bb
+	else if n = 6 then
+	  split6 hard_flag hyp_list bb
+	else
+	  failwith (sprintf "build: incorrect face size - %d" n) in
+    itlist (fun info c -> Lp_split (info, [c])) info_list certificate
+
+(* split3 - hard cases *)
+and split3_hard hyp_list bb =
+  let _ = assert (bb.hints <> []) in
+  let bbs, split_type, list = 
+    match hd (bb.hints) with
+      | Triangle_split d -> switch_std3 d bb, "tri", face_of_dart d bb
+      | Edge_split d -> switch_edge d bb, "edge", d
+      | High_low i -> switch_node bb i, (if mem i (highish bb) then "236" else "218"), [i] in
+  let _ = map clear_hint bbs in
+  let case_args = zip [hyp_list; hyp_list] bbs in
+  let cases = map (build true) case_args in
+  let info = {split_type = split_type; split_face = list} in
+    Lp_split (info, cases)
+
+(* split3 *)
+and split3 hard_flag hyp_list bb =
+  let split_face = hd (std_tri_prebranch bb) in
+  let _ = assert (length split_face = 3) in
+  let bbs = switch3 bb in
+  let case_args = zip [hyp_list; hyp_list] bbs in
+  let cases = map (build hard_flag) case_args in
+  let info = {split_type = "tri"; split_face = split_face} in
+    Lp_split (info, cases)
+    
+(* split4 *)
+and split4 hard_flag hyp_list bb =
+  let split_face = hd bb.std_faces_not_super in
+  let _ = assert (length split_face = 4) in
+  let bbs = switch4 bb in
+  let dart13 = nth split_face 1, nth split_face 2 and
+      dart24 = nth split_face 0, nth split_face 1 in
+  let split13 = split_list hyp_list dart13 and
+      split24 = split_list hyp_list dart24 in
+  let case_args = zip [split13; split24; split13; split24; hyp_list] bbs in
+  let cases = map (build hard_flag) case_args in
+  let info = {split_type = "quad"; split_face = split_face} in
+    Lp_split (info, cases)
+
+(* split5 *)
+and split5 hard_flag hyp_list bb =
+  let split_face = hd bb.std_faces_not_super in
+  let _ = assert (length split_face = 5) in
+  let bbs = switch5 bb in
+  let darts = rotateL 1 (list_pairs split_face) in
+  let splits_one = map (split_list hyp_list) darts in
+  let splits_two = map2 split_list splits_one (rotateL 2 darts) in
+  let case_args = zip (hyp_list :: (splits_one @ splits_two)) bbs in
+  let cases = map (build hard_flag) case_args in
+  let info = {split_type = "pent"; split_face = split_face} in
+    Lp_split (info, cases)
+
+(* split6 *)
+and split6 hard_flag hyp_list bb =
+  let split_face = hd bb.std_faces_not_super in
+  let _ = assert (length split_face = 6) in
+  let bbs = switch6 bb in
+  let darts = Glpk_link.rotateL 1 (list_pairs split_face) in
+  let splits = map (split_list hyp_list) darts in
+  let case_args = zip (hyp_list :: splits) bbs in
+  let cases = map (build hard_flag) case_args in
+  let info = {split_type = "hex"; split_face = split_face} in
+    Lp_split (info, cases);;
+
+
+(* Moves all hex faces to std56_flat_free *)
+(* This operation can be done on all hypermaps since branching on hexes is not required: *)
+(* there are no inequalities for std56_flat_free INTER std6 *)
+let modify_hex_cases bb =
+  let faces6 = filter (fun f -> length f = 6) bb.std_faces_not_super in
+    itlist (fun fc bb -> modify_bb bb true ["flat_free", fc] []) faces6 bb;;
+
+
+(* Builds an lp certificate *)
+let build_certificate modify_hex bb =
+  let _ = reset_build_counters() in
+  let bb = if modify_hex then modify_hex_cases bb else bb in
+  let hyp_list = (snd o convert_to_list) bb.string_rep in
+  let hard_flag = bb.hints <> [] in
+  let root = build hard_flag (hyp_list, bb) in
+  let _ = report_build_progress() in
+  let certificate = {hypermap_string = bb.string_rep; root_case = root} in
+    certificate;;
+
+
+let bb = nth hard_bbs 2;;
+
+modified_bbs := [];;
+let cert = build_certificate true bb;;
+length !modified_bbs;;
+
+
+write_lp_certificates (sprintf "%s/hard2.dat" !output_dir) [cert];;
+
+let c = build_test_split cert.root_case;;
+let info, f, cs1 = match c with Test_info (a,b,c) -> a,b,c;;
+nth cs1 4;;
+
+
+
+let bb0 = nth !modified_bbs 1;;
+let bb1 = set_face_numerics bb0;;
+bb1 = bb0;;
+
+let bb2 = set_node_numerics bb1;;
+bb2 = bb0;;
+bb0;;
+bb2;;
+
+
+let bb = nth hard_bbs 2;;
+
+resetc();;
+allpass_hint_include_flat 1000 [bb];;

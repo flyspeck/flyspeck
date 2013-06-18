@@ -234,7 +234,7 @@ namespace LP_HL
         /// </summary>
         static bool ProcessLP(string fname, LpNumber upperBound, int precision, ListHyp hypermap, bool infeasible, bool holTerms)
         {
-            if (precision > 6)
+            if (precision > 7)
                 throw new Exception("Cannot solve the problem: " + fname);
 
             LP lp;

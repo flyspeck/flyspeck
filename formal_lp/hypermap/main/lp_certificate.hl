@@ -11,6 +11,15 @@ type terminal_case = {
   variable_bounds : constraint_type list;
 };;
 
+(* For testing *)
+let empty_terminal = {
+  precision = 0; 
+  infeasible = false; 
+  constraints = []; 
+  target_variables = [];
+  variable_bounds = [];
+};;
+
 type split_case = {
   split_type : string;
   split_face : int list;
@@ -28,10 +37,8 @@ type lp_certificate = {
 type lp_certificate_info = {
   terminals : int;
   infeasibles: int;
-  split3 : int;
-  split4 : int;
-  split5 : int;
-  split6 : int;
+  precision_table: (int * int)list;
+  split_table: (string * int)list;
 };;
 
 (* Counts the number of terminal cases *)
@@ -40,33 +47,43 @@ let rec count_terminals lp_case =
     | Lp_terminal _ -> 1
     | Lp_split (_, cs) -> itlist (+) (map count_terminals cs) 0;;
 
+
 let case_info lp_case =
   let terminals = ref 0 and
       infs = ref 0 and
-      split3 = ref 0 and
-      split4 = ref 0 and
-      split5 = ref 0 and
-      split6 = ref 0 in
+      precision = Hashtbl.create 5 and
+      split = Hashtbl.create 10 in
+  let add_precision p =
+    try
+      let n = Hashtbl.find precision p in
+	Hashtbl.replace precision p (n + 1)
+    with Not_found ->
+      Hashtbl.add precision p 1 in
+  let add_split name =
+    try
+      let n = Hashtbl.find split name in
+	Hashtbl.replace split name (n + 1)
+    with Not_found ->
+      Hashtbl.add split name 1 in
   let rec count case =
     match case with
       | Lp_terminal t -> 
 	  let _ = terminals := !terminals + 1 in
-	    infs := !infs + if t.infeasible then 1 else 0
+	  let _ = infs := !infs + if t.infeasible then 1 else 0 in
+	    add_precision t.precision
       | Lp_split (info, cs) ->
-	  let _ =
-	    (match info.split_type with
-	       | "tri" -> split3 := !split3 + 1
-	       | "quad" -> split4 := !split4 + 1
-	       | "pent" -> split5 := !split5 + 1
-	       | "hex" -> split6 := !split6 + 1
-	       | s -> failwith ("Unknown split type: " ^ s)) in
+	  let _ = add_split info.split_type in
 	  let _ = map count cs in
 	    () in
   let _ = count lp_case in
     {
       terminals = !terminals; infeasibles = !infs; 
-      split3 = !split3; split4 = !split4; split5 = !split5; split6 = !split6
+      precision_table = Hashtbl.fold (fun key v list -> (key,v) :: list) precision [];
+      split_table = Hashtbl.fold (fun key v list -> (key,v) :: list) split [];
     };;
+
+
+let certificate_info cert = case_info cert.root_case;;
 
 
 (* Writes a certificate into a binary file *)
@@ -86,12 +103,12 @@ let read_lp_certificates fname =
 (* Test functions *)
 (******************)
 
-type test_split = Test_dummy | Test_info of string * int list * (test_split list);;
+type test_split = Dummy | Info of string * int list * (test_split list);;
 
 let rec build_test_split case =
   match case with
-    | Lp_terminal _ -> Test_dummy
+    | Lp_terminal _ -> Dummy
     | Lp_split (info, cs) ->
-	  Test_info (info.split_type, info.split_face, map build_test_split cs);;
+	  Info (info.split_type, info.split_face, map build_test_split cs);;
 
 end;;

@@ -732,3 +732,876 @@ let dih_x_dim_reduction = prove_by_refinement(
   ]);;
   (* }}} *)
 
+(* start 867 *)
+
+let quadratic_root_plus_disc = prove_by_refinement(
+  `!a b c x. &0 < a /\ a * x pow 2 + b * x + c <= &0 ==>
+   &0 <= b pow 2 - &4 * a * c`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  TYPIFY `a * x pow 2 + b * x + c = a * (x + b /(&2 * a)) pow 2 - (b pow 2 - &4 * a*c)/(&4 * a)` (C SUBGOAL_THEN SUBST1_TAC);
+    Calc_derivative.CALC_ID_TAC;
+    BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
+  ONCE_REWRITE_TAC[arith `u - v <= &0 <=> u <= v`];
+  GMATCH_SIMP_TAC REAL_LE_RDIV_EQ;
+  CONJ_TAC;
+    BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
+  TYPIFY `&0 <= (a * (x + b / (&2 * a)) pow 2) * &4 * a` ENOUGH_TO_SHOW_TAC;
+    BY(REAL_ARITH_TAC);
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  CONJ_TAC;
+    GMATCH_SIMP_TAC REAL_LE_MUL;
+    ASM_REWRITE_TAC[REAL_LE_POW_2];
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let quadratic_root_exists = prove_by_refinement(
+  `!a b c x. &0 < a /\  a * x pow 2 + b * x + c <= &0 ==> 
+    (?y. x <= y /\ a * y pow 2 + b *y + c = &0)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPED_ABBREV_TAC `h = quadratic_root_plus (a, b + &2 * a *x, a * x pow 2 + b * x + c)`;
+  TYPIFY `x + h` EXISTS_TAC;
+  REWRITE_TAC[arith `a * (x + h) pow 2 + b * (x + h) +c = a * h pow 2 + (b + &2 * a *x) * h + (a * x pow 2 + b * x + c)`];
+  TYPIFY `(b + &2 * a * x) pow 2 <= (b + &2 * a * x) pow 2 - &4 * a * (a * x pow 2 + b * x + c)` (C SUBGOAL_THEN ASSUME_TAC);
+    ONCE_REWRITE_TAC[arith `v <= v - &4 * a * x <=> &0 <= a * (-- x)`];
+    GMATCH_SIMP_TAC REAL_LE_MUL;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  CONJ2_TAC;
+    EXPAND_TAC "h";
+    MATCH_MP_TAC (REWRITE_RULE[LET_DEF;LET_END_DEF] Tame_lemmas.quadratic_root_plus_works);
+    CONJ_TAC;
+      BY(ASM_TAC THEN REAL_ARITH_TAC);
+    FIRST_X_ASSUM MP_TAC;
+    BY(MESON_TAC[REAL_LE_TRANS;REAL_LE_POW_2]);
+  MATCH_MP_TAC (arith `&0 <= h ==> x <= x + h`);
+  EXPAND_TAC "h";
+  REWRITE_TAC[Sphere.quadratic_root_plus];
+  GMATCH_SIMP_TAC REAL_LE_RDIV_EQ;
+  CONJ_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  ENOUGH_TO_SHOW_TAC `(b + &2 * a * x) <= sqrt((b + &2 * a*x) pow 2) /\ sqrt((b+ &2 * a*x) pow 2) <= sqrt((b + &2 * a * x) pow 2 - &4 * a * (a * x pow 2 + b * x + c))`;
+    BY(REAL_ARITH_TAC);
+  GMATCH_SIMP_TAC SQRT_MONO_LE_EQ;
+  REWRITE_TAC[POW_2_SQRT_ABS];
+  ASM_REWRITE_TAC[];
+  CONJ2_TAC;
+    BY(REAL_ARITH_TAC);
+  SUBCONJ_TAC;
+    BY(REWRITE_TAC[REAL_LE_POW_2]);
+  BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let quadratic_root_pos_exists = prove_by_refinement(
+  `!a b c x.  a < &0 /\  &0 <= a * x pow 2 + b * x + c ==> 
+    (?y. x <= y /\ a * y pow 2 + b *y + c = &0)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC quadratic_root_exists [`--a`;`--b`;`--c`;`x`];
+  ANTS_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `y` EXISTS_TAC;
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let delta_x_root_exists = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+    &0 <= delta_x x1 x2 x3 x4 x5 x6 /\ &0 < x1 ==>
+     (?x4'. x4 <= x4' /\ delta_x x1 x2 x3 x4' x5 x6 = &0)`,
+  (* {{{ proof *)
+  [
+ REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `b = ( delta_x4 x1 x2 x3 (&0) x5 x6)` TYPED_ABBREV_TAC;
+  TYPIFY `c =  delta_x x1 x2 x3 (&0) x5 x6` TYPED_ABBREV_TAC;
+  TYPIFY `!z. delta_x x1 x2 x3 z x5 x6 = (-- x1) * z pow 2 + b * z + c` (C SUBGOAL_THEN ASSUME_TAC);
+    EXPAND_TAC "c";
+    EXPAND_TAC "b";
+    REWRITE_TAC[Sphere.delta_x;Sphere.delta_x4];
+    BY(REAL_ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC quadratic_root_pos_exists;
+  FIRST_X_ASSUM ((unlist REWRITE_TAC) o GSYM);
+  ASM_REWRITE_TAC[];
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let delta_y_root_exists = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6.
+    &0 <= delta_y y1 y2 y3 y4 y5 y6 /\ &0 < y1 /\ &0 < y4 ==>
+    (?y4'. y4 <= y4' /\ delta_y y1 y2 y3 y4' y5 y6 = &0)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.delta_y];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC delta_x_root_exists [`y1*y1`;`y2*y2`;`y3*y3`;`y4*y4`;`y5*y5`;`y6*y6`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC REAL_LT_MUL_EQ;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `sqrt(x4')` EXISTS_TAC;
+  TYPIFY `&0 <= x4'` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `<=` MP_TAC;
+    BY(MESON_TAC[REAL_LE_POW_2;REAL_LE_TRANS;arith `x*x = x pow 2`]);
+  TYPIFY `sqrt(x4') * sqrt(x4') = x4'` (C SUBGOAL_THEN ASSUME_TAC);
+    GMATCH_SIMP_TAC (GSYM SQRT_MUL);
+    GMATCH_SIMP_TAC Nonlinear_lemma.sqrtxx;
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[];
+  PROOF_BY_CONTR_TAC;
+  FIRST_X_ASSUM_ST `y4 * y4 <= x4'` MP_TAC;
+  FIRST_ASSUM_ST `(=)` (SUBST1_TAC o GSYM);
+  REWRITE_TAC[arith `~(x <= y) <=> y < x`];
+  MATCH_MP_TAC Misc_defs_and_lemmas.ABS_SQUARE;
+  TYPIFY `&0 <= sqrt x4'` (C SUBGOAL_THEN ASSUME_TAC);
+    GMATCH_SIMP_TAC SQRT_POS_LE;
+    BY(ASM_REWRITE_TAC[]);
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let edge2_flatD_x1_quadratic_root_plus = prove_by_refinement(
+  `!d x2 x3 x4 x5 x6.
+    edge2_flatD_x1 d x2 x3 x4 x5 x6 = 
+    quadratic_root_plus(x4,
+			-- delta_x1 (&0) x2 x3 x4 x5 x6,
+   d - delta_x (&0) x2 x3 x4 x5 x6 )`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.edge2_flatD_x1];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPED_ABBREV_TAC `b = (-- delta_x1 (&0) x2 x3 x4 x5 x6)`;
+  TYPED_ABBREV_TAC `c = (d - delta_x (&0) x2 x3 x4 x5 x6)`;
+  TYPIFY `!z. d - delta_x z x2 x3 x4 x5 x6 = x4 * z pow 2 + b * z + c` ((C SUBGOAL_THEN ASSUME_TAC));
+    EXPAND_TAC "c";
+    EXPAND_TAC "b";
+    REWRITE_TAC[Sphere.delta_x;Nonlin_def.delta_x1];
+    BY(REAL_ARITH_TAC);
+  ASM_REWRITE_TAC[Nonlinear_lemma.abc_quadratic];
+  ]);;
+  (* }}} *)
+
+let edge2_flatD_x1_expanded = prove_by_refinement(
+  `!d x2 x3 x4 x5 x6. 
+    edge2_flatD_x1 d x2 x3 x4 x5 x6 = (delta_x1 (&0) x2 x3 x4 x5 x6 
+    + sqrt (ups_x x2 x3 x4 * ups_x x4 x5 x6 - &4 * x4 * d)) / (&2 * x4)
+    `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[edge2_flatD_x1_quadratic_root_plus];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPED_ABBREV_TAC `b = (-- delta_x1 (&0) x2 x3 x4 x5 x6)`;
+  TYPED_ABBREV_TAC `c = (d - delta_x (&0) x2 x3 x4 x5 x6)`;
+  REWRITE_TAC[Sphere.quadratic_root_plus];
+  TYPIFY `b pow 2 - &4 * x4 * c = ups_x x2 x3 x4 * ups_x x4 x5 x6 - &4 * x4 * d` (C SUBGOAL_THEN ASSUME_TAC);
+    EXPAND_TAC "b";
+    EXPAND_TAC "c";
+    REWRITE_TAC[Sphere.delta_x;Nonlin_def.delta_x1;Sphere.ups_x];
+    BY(REAL_ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  EXPAND_TAC "b";
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let derived_form_edge2_flatD_x1 = prove_by_refinement(
+  `!x2 x3 x4 x5 x6. (&0 < ups_x x2 x3 x4 /\ &0 < ups_x x4 x5 x6 /\ &0 < x4)
+     ==> (?f'.
+    derived_form T
+    (\q. edge2_flatD_x1 (&0) q x3 x4 x5 x6) f' x2 (:real))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[edge2_flatD_x1_expanded];
+  REWRITE_TAC[Nonlin_def.delta_x1;Sphere.ups_x;arith `x - &4 * x4 * &0 = x`];
+  TYPIFY `((((x5 - x6 + x4) +    (((--x2 + -- &1 * x2) + &2 * x4 + &2 * x3) *     (--x4 * x4 - x5 * x5 - x6 * x6 +      &2 * x4 * x6 +      &2 * x4 * x5 +      &2 * x5 * x6)) *    inv    (&2 *     sqrt     ((--x2 * x2 - x3 * x3 - x4 * x4 +       &2 * x2 * x4 +       &2 * x2 * x3 +       &2 * x3 * x4) *      (--x4 * x4 - x5 * x5 - x6 * x6 +       &2 * x4 * x6 +       &2 * x4 * x5 +       &2 * x5 * x6)))) *   &2 *   x4) /  (&2 * x4) pow 2)` EXISTS_TAC;
+  Pent_hex.DERIVED_TAC MP_TAC;
+  REWRITE_TAC[GSYM Sphere.ups_x];
+  TYPIFY_GOAL_THEN `(&0 < ups_x x2 x3 x4 * ups_x x4 x5 x6 /\ ~(&2 = &0) /\ ~(x4 = &0))` (unlist REWRITE_TAC);
+  REWRITE_TAC[REAL_OF_NUM_EQ];
+  GMATCH_SIMP_TAC REAL_LT_MUL_EQ;
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    BY(ARITH_TAC);
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let edge2_flatD_x1_continuous = prove_by_refinement(
+  `!x2 x3 x4 x5 x6. (&0 < ups_x x2 x3 x4 /\ &0 < ups_x x4 x5 x6 /\ &0 < x4 ==>
+   (\q. edge2_flatD_x1 (&0) q x3 x4 x5 x6) real_continuous atreal x2)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC HAS_REAL_DERIVATIVE_IMP_CONTINUOUS_ATREAL;
+  INTRO_TAC derived_form_edge2_flatD_x1 [`x2`;`x3`;`x4`;`x5`;`x6`];
+  BY(ASM_REWRITE_TAC[Calc_derivative.derived_form;WITHINREAL_UNIV])
+  ]);;
+  (* }}} *)
+
+let IVT_edge2_flatD_x1 = prove_by_refinement(
+  `!x1m x1M x2m x2M x3 x4 x5 x6. 
+    (!x2. x2m <= x2 /\ x2 <= x2M ==> &0 < ups_x x2 x3 x4) /\
+    (&0 < ups_x x4 x5 x6) /\
+    (&0 < x4) /\ 
+    (x1m <= x1M) /\
+    (x2m <= x2M) /\
+    (delta_x x1M x2M x3 x4 x5 x6 = &0) /\
+    (!x1 x2. x1m <= x1 /\ x1 <= x1M /\ x2m <= x2 /\ x2 <= x2M ==> 
+       delta_x1 x1 x2 x3 x4 x5 x6 < &0) ==>
+    ((?x2. x2m <= x2 /\ x2 <= x2M /\ edge2_flatD_x1 (&0) x2 x3 x4 x5 x6 = x1m) \/
+       (x1m < edge2_flatD_x1 (&0) x2m x3 x4 x5 x6))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `!x2. x2m <= x2 /\ x2 <= x2M ==> x1m < edge2_flatD_x1 (&0) x2 x3 x4 x5 x6` ASM_CASES_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [`x2m`]);
+    ASM_REWRITE_TAC[arith `x <= x`];
+    BY(MESON_TAC[]);
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[NOT_FORALL_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[TAUT `~(a ==> b) <=> (a /\ ~b)`];
+  REWRITE_TAC[arith `~(x < b) <=> b <= x`];
+  REPEAT WEAKER_STRIP_TAC;
+  DISJ1_TAC;
+  INTRO_TAC REAL_IVT_INCREASING [`(\q. edge2_flatD_x1 (&0) q x3 x4 x5 x6)`;`x2`;`x2M`;`x1m`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    CONJ2_TAC;
+      ENOUGH_TO_SHOW_TAC `edge2_flatD_x1 (&0) x2M x3 x4 x5 x6 = x1M`;
+        BY(ASM_TAC THEN REAL_ARITH_TAC);
+      MATCH_MP_TAC Pent_hex.edge2_flatD_x1_delta_lemma2;
+      ASM_REWRITE_TAC[];
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_TAC THEN REAL_ARITH_TAC);
+    REWRITE_TAC[REAL_CONTINUOUS_ON_EQ_CONTINUOUS_WITHIN];
+    REWRITE_TAC[IN_REAL_INTERVAL];
+    REPEAT WEAKER_STRIP_TAC;
+    MATCH_MP_TAC REAL_CONTINUOUS_ATREAL_WITHINREAL;
+    MATCH_MP_TAC edge2_flatD_x1_continuous;
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    ASM_REWRITE_TAC[];
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  REWRITE_TAC[IN_REAL_INTERVAL];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `x` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let edge2_flatD_x1_works = prove_by_refinement(
+  `!x2 x3 x4 x5 x6.
+  &0 <= ups_x x2 x3 x4 /\ &0 <= ups_x x4 x5 x6 /\ ~(x4 = &0) ==>
+    delta_x (edge2_flatD_x1 (&0) x2 x3 x4 x5 x6) x2 x3 x4 x5 x6 = &0`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[edge2_flatD_x1_quadratic_root_plus];
+  TYPED_ABBREV_TAC `b = (-- delta_x1 (&0) x2 x3 x4 x5 x6)`;
+  TYPED_ABBREV_TAC `c = (&0 - delta_x (&0) x2 x3 x4 x5 x6)`;
+  ONCE_REWRITE_TAC[arith `d = &0 <=> &0 - d = &0`];
+  TYPIFY `!z. &0 - delta_x z x2 x3 x4 x5 x6 = x4 * z pow 2 + b * z + c` ((C SUBGOAL_THEN ASSUME_TAC));
+    EXPAND_TAC "c";
+    EXPAND_TAC "b";
+    REWRITE_TAC[Sphere.delta_x;Nonlin_def.delta_x1];
+    BY(REAL_ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC (REWRITE_RULE[LET_DEF;LET_END_DEF] Tame_lemmas.quadratic_root_plus_works);
+  TYPIFY `b pow 2 - &4 * x4 * c = ups_x x2 x3 x4 * ups_x x4 x5 x6 ` (C SUBGOAL_THEN ASSUME_TAC);
+    EXPAND_TAC "b";
+    EXPAND_TAC "c";
+    REWRITE_TAC[Sphere.delta_x;Nonlin_def.delta_x1;Sphere.ups_x];
+    BY(REAL_ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let delta_x1_decreasing = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6 x1'.
+    x1 <= x1' /\ &0 <= x4 ==>
+    delta_x1 x1' x2 x3 x4 x5 x6 <= delta_x1 x1 x2 x3 x4 x5 x6`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  ENOUGH_TO_SHOW_TAC `delta_x1 x1 x2 x3 x4 x5 x6 - delta_x1 x1' x2 x3 x4 x5 x6 = &2 * x4 * (x1' - x1)`;
+    ONCE_REWRITE_TAC[arith `d' <= d <=> &0 <= d - d'`];
+    DISCH_THEN SUBST1_TAC;
+    GMATCH_SIMP_TAC REAL_LE_MUL;
+    CONJ_TAC;
+      BY(REAL_ARITH_TAC);
+    GMATCH_SIMP_TAC REAL_LE_MUL;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  REWRITE_TAC[Nonlin_def.delta_x1];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let IVT_delta_x = prove_by_refinement(
+  `!x1m x1M x2m x2M x3 x4 x5 x6.
+         (!x2. x2m <= x2 /\ x2 <= x2M ==> &0 < ups_x x2 x3 x4) /\
+         &0 < ups_x x4 x5 x6 /\
+         &0 < x4 /\
+         x1m <= x1M /\
+         x2m <= x2M /\
+         delta_x x1M x2M x3 x4 x5 x6 = &0 /\
+         (!x2. x2m <= x2 /\ x2 <= x2M
+              ==> delta_x1 x1m x2 x3 x4 x5 x6 < &0)
+         ==> (?x2. x2m <= x2 /\
+                   x2 <= x2M /\ delta_x x1m x2 x3 x4 x5 x6 = &0) \/
+             (?x1. x1m < x1 /\ delta_x x1 x2m x3 x4 x5 x6 = &0)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC IVT_edge2_flatD_x1 [`x1m`;`x1M`;`x2m`;`x2M`;`x3`;`x4`;`x5`;`x6`];
+  ANTS_TAC;
+    (ASM_REWRITE_TAC[]);
+    REPEAT WEAKER_STRIP_TAC;
+    ENOUGH_TO_SHOW_TAC `delta_x1 x1 x2 x3 x4 x5 x6 <= delta_x1 x1m x2 x3 x4 x5 x6`;
+      MATCH_MP_TAC (arith `x < &0 ==> (y <= x ==> y< &0)`);
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    MATCH_MP_TAC delta_x1_decreasing;
+    BY(ASM_SIMP_TAC[arith `&0 < x ==> &0 <= x`]);
+  STRIP_TAC;
+    DISJ1_TAC;
+    TYPIFY `x2` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    EXPAND_TAC "x1m";
+    MATCH_MP_TAC edge2_flatD_x1_works;
+    BY(ASM_SIMP_TAC[arith `x < y ==> x <= y`;arith `&0 < x ==> ~(x = &0)`]);
+  DISJ2_TAC;
+  TYPIFY `edge2_flatD_x1 (&0) x2m x3 x4 x5 x6` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC edge2_flatD_x1_works;
+  ASM_SIMP_TAC[arith `x < y ==> x <= y`;arith `&0 < x ==> ~(x = &0)`];
+  MATCH_MP_TAC (arith `x < y ==> x <= y`);
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let delta_x1_sym = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+     delta_x1 x1 x3 x2 x4 x6 x5 = delta_x1 x1 x2 x3 x4 x5 x6 /\
+    delta_x1 x1 x5 x6 x4 x2 x3 = delta_x1 x1 x2 x3 x4 x5 x6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Nonlin_def.delta_x1];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let IVT_delta_x_3 = prove_by_refinement(
+  `!x1m x1M x2 x3m x3M x4 x5 x6.
+         (!x3. x3m <= x3 /\ x3 <= x3M ==> &0 < ups_x x2 x3 x4) /\
+         &0 < ups_x x4 x5 x6 /\
+         &0 < x4 /\
+         x1m <= x1M /\
+         x3m <= x3M /\
+         delta_x x1M x2 x3M x4 x5 x6 = &0 /\
+         (!x3. x3m <= x3 /\ x3 <= x3M
+              ==> delta_x1 x1m x2 x3 x4 x5 x6 < &0)
+         ==> (?x3. x3m <= x3 /\
+                   x3 <= x3M /\ delta_x x1m x2 x3 x4 x5 x6 = &0) \/
+             (?x1. x1m < x1 /\ delta_x x1 x2 x3m x4 x5 x6 = &0)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC IVT_delta_x [`x1m`;`x1M`;`x3m`;`x3M`;`x2`;`x4`;`x6`;`x5`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      ONCE_REWRITE_TAC[Merge_ineq.ups_x_sym];
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    CONJ_TAC;
+      FIRST_X_ASSUM_ST `ups_x` MP_TAC;
+      BY(MESON_TAC[Collect_geom.UPS_X_SYM]);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[Merge_ineq.delta_x_sym]);
+    BY(ASM_MESON_TAC[delta_x1_sym]);
+  BY(MESON_TAC[Merge_ineq.delta_x_sym])
+  ]);;
+  (* }}} *)
+
+let IVT_delta_x_5 = prove_by_refinement(
+  `!x1m x1M x2 x3 x4 x5m x5M x6.
+         (!x5. x5m <= x5 /\ x5 <= x5M ==> &0 < ups_x x4 x5 x6) /\
+         &0 < ups_x x2 x3 x4 /\
+         &0 < x4 /\
+         x1m <= x1M /\
+         x5m <= x5M /\
+         delta_x x1M x2 x3 x4 x5M x6 = &0 /\
+         (!x5. x5m <= x5 /\ x5 <= x5M
+              ==> delta_x1 x1m x2 x3 x4 x5 x6 < &0)
+         ==> (?x5. x5m <= x5 /\
+                   x5 <= x5M /\ delta_x x1m x2 x3 x4 x5 x6 = &0) \/
+             (?x1. x1m < x1 /\ delta_x x1 x2 x3 x4 x5m x6 = &0)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC IVT_delta_x [`x1m`;`x1M`;`x5m`;`x5M`;`x6`;`x4`;`x2`;`x3`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      BY(ASM_MESON_TAC[Collect_geom.UPS_X_SYM]);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[Collect_geom.UPS_X_SYM]);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[Merge_ineq.delta_x_sym]);
+    BY(ASM_MESON_TAC[delta_x1_sym]);
+  BY(MESON_TAC[Merge_ineq.delta_x_sym])
+  ]);;
+  (* }}} *)
+
+let IVT_delta_x_6 = prove_by_refinement(
+  `!x1m x1M x2 x3 x4 x5 x6m x6M.
+         (!x6. x6m <= x6 /\ x6 <= x6M ==> &0 < ups_x x4 x5 x6) /\
+         &0 < ups_x x2 x3 x4 /\
+         &0 < x4 /\
+         x1m <= x1M /\
+         x6m <= x6M /\
+         delta_x x1M x2 x3 x4 x5 x6M = &0 /\
+         (!x6. x6m <= x6 /\ x6 <= x6M
+              ==> delta_x1 x1m x2 x3 x4 x5 x6 < &0)
+         ==> (?x6. x6m <= x6 /\
+                   x6 <= x6M /\ delta_x x1m x2 x3 x4 x5 x6 = &0) \/
+             (?x1. x1m < x1 /\ delta_x x1 x2 x3 x4 x5 x6m = &0)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC IVT_delta_x [`x1m`;`x1M`;`x6m`;`x6M`;`x5`;`x4`;`x3`;`x2`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      BY(ASM_MESON_TAC[Collect_geom.UPS_X_SYM]);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[Collect_geom.UPS_X_SYM]);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[Merge_ineq.delta_x_sym]);
+    BY(ASM_MESON_TAC[delta_x1_sym]);
+  BY(MESON_TAC[Merge_ineq.delta_x_sym])
+  ]);;
+  (* }}} *)
+
+let IVT_delta_x_full = prove_by_refinement(
+  `!x1m x1M x2m x2M x3m x3M x4 x5m x5M x6m x6M.
+    &0 < x4 /\
+    (!x2 x3. x2m <= x2 /\ x2 <= x2M /\ x3m <= x3 /\ x3 <= x3M ==> &0 < ups_x x2 x3 x4) /\
+    (!x5 x6. x5m <= x5 /\ x5 <= x5M /\ x6m <= x6 /\ x6 <= x6M ==> &0 < ups_x x4 x5 x6) /\
+    x1m <= x1M /\ x2m <= x2M /\ x3m <= x3M /\ x5m <= x5M /\ x6m <= x6M /\
+    delta_x x1M x2M x3M x4 x5M x6M = &0 /\
+    (! x2 x3 x5 x6.
+       x2m <= x2 /\ x2 <= x2M /\ x3m <= x3 /\ x3 <= x3M /\
+       x5m <= x5 /\ x5 <= x5M /\ x6m <= x6 /\ x6 <= x6M ==>
+       delta_x1 x1m x2 x3 x4 x5 x6 < &0) ==>
+    (?x2 x3 x5 x6. x2m <= x2 /\ x2 <= x2M /\ x3m <= x3 /\ x3 <= x3M /\
+       x5m <= x5 /\ x5 <= x5M /\ x6m <= x6 /\ x6 <= x6M /\
+       delta_x x1m x2 x3 x4 x5 x6 = &0) \/
+    (?x1. x1m < x1 /\ delta_x x1 x2m x3m x4 x5m x6m = &0)
+`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  PROOF_BY_CONTR_TAC;
+  RULE_ASSUM_TAC (REWRITE_RULE[DE_MORGAN_THM;NOT_EXISTS_THM;TAUT `~(a /\ b) <=> a ==> ~b`;TAUT `a ==> b ==> c <=> (a /\ b) ==> c`]);
+  FIRST_X_ASSUM MP_TAC;
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC IVT_delta_x [`x1m`;`x1M`;`x2m`;`x2M`;`x3M`;`x4`;`x5M`;`x6M`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    CONJ_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  INTRO_TAC IVT_delta_x_3 [`x1m`;`x1`;`x2m`;`x3m`;`x3M`;`x4`;`x5M`;`x6M`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN MP_TAC THEN ANTS_TAC;
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    CONJ_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    CONJ_TAC;
+      BY(FIRST_X_ASSUM_ST `<` MP_TAC THEN REAL_ARITH_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  INTRO_TAC IVT_delta_x_5 [`x1m`;`x1'`;`x2m`;`x3m`;`x4`;`x5m`;`x5M`;`x6M`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN MP_TAC THEN ANTS_TAC;
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    CONJ_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    CONJ_TAC;
+      BY(REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `<` MP_TAC) THEN REAL_ARITH_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  INTRO_TAC IVT_delta_x_6 [`x1m`;`x1''`;`x2m`;`x3m`;`x4`;`x5m`;`x6m`;`x6M`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN MP_TAC THEN ANTS_TAC;
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    CONJ_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    CONJ_TAC;
+      BY(REPLICATE_TAC 3 (FIRST_X_ASSUM_ST `<` MP_TAC) THEN REAL_ARITH_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[];
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(REPLICATE_TAC 4 (FIRST_X_ASSUM_ST `<` MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let IVT_delta_x_full = prove_by_refinement(
+  `!x1m x1M x2m x2M x3m x3M x4 x5m x5M x6m x6M.
+    &0 < x4 /\
+    (!x2 x3. x2m <= x2 /\ x2 <= x2M /\ x3m <= x3 /\ x3 <= x3M ==> &0 < ups_x x2 x3 x4) /\
+    (!x5 x6. x5m <= x5 /\ x5 <= x5M /\ x6m <= x6 /\ x6 <= x6M ==> &0 < ups_x x4 x5 x6) /\
+    x1m <= x1M /\ x2m <= x2M /\ x3m <= x3M /\ x5m <= x5M /\ x6m <= x6M /\
+    delta_x x1M x2M x3M x4 x5M x6M = &0 /\
+    (! x2 x3 x5 x6.
+       x2m <= x2 /\ x2 <= x2M /\ x3m <= x3 /\ x3 <= x3M /\
+       x5m <= x5 /\ x5 <= x5M /\ x6m <= x6 /\ x6 <= x6M ==>
+       delta_x1 x1m x2 x3 x4 x5 x6 < &0) ==>
+    (?x2 x3 x5 x6. x2m <= x2 /\ x2 <= x2M /\ x3m <= x3 /\ x3 <= x3M /\
+       x5m <= x5 /\ x5 <= x5M /\ x6m <= x6 /\ x6 <= x6M /\
+       delta_x x1m x2 x3 x4 x5 x6 = &0) \/
+    (?x1. x1m < x1 /\ delta_x x1 x2m x3m x4 x5m x6m = &0)
+`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  PROOF_BY_CONTR_TAC;
+  RULE_ASSUM_TAC (REWRITE_RULE[DE_MORGAN_THM;NOT_EXISTS_THM;TAUT `~(a /\ b) <=> a ==> ~b`;TAUT `a ==> b ==> c <=> (a /\ b) ==> c`]);
+  FIRST_X_ASSUM MP_TAC;
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC IVT_delta_x [`x1m`;`x1M`;`x2m`;`x2M`;`x3M`;`x4`;`x5M`;`x6M`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    CONJ_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  INTRO_TAC IVT_delta_x_3 [`x1m`;`x1`;`x2m`;`x3m`;`x3M`;`x4`;`x5M`;`x6M`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN MP_TAC THEN ANTS_TAC;
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    CONJ_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    CONJ_TAC;
+      BY(FIRST_X_ASSUM_ST `<` MP_TAC THEN REAL_ARITH_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  INTRO_TAC IVT_delta_x_5 [`x1m`;`x1'`;`x2m`;`x3m`;`x4`;`x5m`;`x5M`;`x6M`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN MP_TAC THEN ANTS_TAC;
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    CONJ_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    CONJ_TAC;
+      BY(REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `<` MP_TAC) THEN REAL_ARITH_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  INTRO_TAC IVT_delta_x_6 [`x1m`;`x1''`;`x2m`;`x3m`;`x4`;`x5m`;`x6m`;`x6M`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN MP_TAC THEN ANTS_TAC;
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    CONJ_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[arith `x <= x`]);
+    CONJ_TAC;
+      BY(REPLICATE_TAC 3 (FIRST_X_ASSUM_ST `<` MP_TAC) THEN REAL_ARITH_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[arith `x <= x`]);
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[];
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(REPLICATE_TAC 4 (FIRST_X_ASSUM_ST `<` MP_TAC) THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let REAL_WLOG_Z2xZ2_LEMMA = prove_by_refinement(
+  `!P. (!(y1:A) y2 y3 (y4:A) y5 y6. P y1 y2 y3 y4 y5 y6 = P y1 y3 y2 y4 y6 y5) /\
+    (!y1 y2 y3 y4 y5 y6. P y1 y2 y3 y4 y5 y6 = P y1 y5 y6 y4 y2 y3) /\
+    (!y1 y2 y3 y4 y5 y6. (y3 <= y2) /\ (y5 <= y2) /\ (y6 <= y2) 
+         ==>
+       P y1 y2 y3 y4 y5 y6) ==>
+    (!y1 y2 y3 y4 y5 y6. P y1 y2 y3 y4 y5 y6)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAK_STRIP_TAC;
+  SUBGOAL_THEN `?a.  a IN {y2,y3,y5,y6} /\ (!x. x IN {y2,y3,y5,y6} ==> x <= a)` MP_TAC;
+    MATCH_MP_TAC Merge_ineq.REAL_FINITE_MAX_EXISTS;
+    BY(REWRITE_TAC[ FINITE_INSERT ; FINITE_EMPTY;NOT_INSERT_EMPTY]);
+  REPEAT WEAK_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `IN` MP_TAC);
+  REWRITE_TAC[IN_INSERT;NOT_IN_EMPTY];
+  REWRITE_TAC[MESON[] `(!x. x = y2 \/ x = y3 \/ x = y5 \/ x = y6 ==> x <= a) = (y2 <= a /\ y3 <= a /\ y5 <= a /\ y6 <= a)`];
+  BY(DISCH_THEN STRIP_ASSUME_TAC THEN ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let WLOG_3673686234 = prove_by_refinement(
+  `(!y1 y2 y3 y4 y5 y6. 
+      y3 <= y2 /\ y5 <= y2 /\ y6 <= y2 ==>
+      ineq [
+  (sqrt8,y1,#3.0);
+    (&2,y2,&2 * h0);
+    (&2,y3,&2 * h0);
+    (sqrt8,y4,&4 * h0);
+    (&2,y5,&2 * h0);
+    (&2,y6,&2 * h0)
+  ]
+    ((y2 + y3 + y5 + y6 - #7.99 > #2.75 * (y1 - sqrt8)) \/
+     (delta_y y1 y2 y3 y4 y5 y6 < &0) \/
+     (y4 < y1))) ==> (!y1 y2 y3 y4 y5 y6. ineq [
+  (sqrt8,y1,#3.0);
+    (&2,y2,&2 * h0);
+    (&2,y3,&2 * h0);
+    (sqrt8,y4,&4 * h0);
+    (&2,y5,&2 * h0);
+    (&2,y6,&2 * h0)
+  ]
+    ((y2 + y3 + y5 + y6 - #7.99 > #2.75 * (y1 - sqrt8)) \/
+     (delta_y y1 y2 y3 y4 y5 y6 < &0) \/
+     (y4 < y1)))`,
+  (* {{{ proof *)
+  [
+  DISCH_TAC;
+  MATCH_MP_TAC REAL_WLOG_Z2xZ2_LEMMA;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM kill;
+  CONJ_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    REWRITE_TAC[Sphere.ineq];
+    REWRITE_TAC[Merge_ineq.delta_y_sym];
+    BY(REAL_ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Sphere.ineq];
+  TYPIFY `delta_y y1 y5 y6 y4 y2 y3 = delta_y y1 y2 y3 y4 y5 y6` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(MESON_TAC[Merge_ineq.delta_y_sym]);
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+(* Prove "3673686234" using inequalities 
+"6170936724", "8673686234 a", "8673686234 b", "8673686234 c" *)
+
+let LEMMA_3673686234 = prove_by_refinement(
+  `
+(!y1 y2 y3 y4 y5 y6. ineq [
+    (&3,y1,&3);
+    (&2,y2,#2.52);
+    (&2,y3,#2.52);
+    (sqrt8,y4,&4 * h0);
+    (&2,y5,#2.52);
+      (&2,y6,#2.52)
+  ]
+  ( y_of_x delta_x1 y1 y2 y3 y4 y5 y6 < &0)) /\
+
+(!y1 y2 y3 y4 y5 y6. ineq [
+  (sqrt8,y1,#3.0);
+    (&2,y2,#2.07);
+    (&2,y3,#2.07);
+    (sqrt8,y4,&4 * h0);
+    (&2,y5,#2.07);
+    (&2,y6,#2.07)
+  ]
+    ((y2 + y3 + y5 + y6 - #7.99 - #0.00385 * delta_y y1 y2 y3 y4 y5 y6 >   #2.75 * ((y1 + y4)/ &2 - sqrt8)) 
+    )  ) /\
+
+(!y1 y2 y3 y4 y5 y6. ineq [
+  (sqrt8,y1,#3.0);
+    (#2.07,y2,&2 * h0);
+    (&2,y3,&2 * h0);
+    (#3.0,y4,#3.0);
+    (&2,y5,&2 * h0);
+    (&2,y6,&2 * h0)
+  ]
+    ((y2 + y3 + y5 + y6 - #7.99 > #2.75 * (y1 - sqrt8)) \/
+     (delta_y y1 y2 y3 y4 y5 y6 < &0)  )  ) /\
+
+(!y1 y2 y3 y4 y5 y6. ineq [
+  (sqrt8,y1,#3.0);
+    (#2.07,y2,&2 * h0);
+    (&2,y3,&2 * h0);
+    (sqrt8,y4,#3.0);
+    (&2,y5,&2 * h0);
+    (&2,y6,&2 * h0)
+  ]
+    ((y2 + y3 + y5 + y6 - #7.99 >   #2.75 * ((y1 + y4)/ &2 - sqrt8)) \/
+   (y2 + y3 + y5 + y6 - #7.99 - #0.00385 * delta_y y1 y2 y3 y4 y5 y6 >   #2.75 * ((y1 + y4)/ &2 - sqrt8)) \/
+     (delta_y y1 y2 y3 y4 y5 y6 < &0)  )  )
+==> (!y1 y2 y3 y4 y5 y6. ineq [
+  (sqrt8,y1,#3.0);
+    (&2,y2,&2 * h0);
+    (&2,y3,&2 * h0);
+    (sqrt8,y4,&4 * h0);
+    (&2,y5,&2 * h0);
+    (&2,y6,&2 * h0)
+  ]
+    ((y2 + y3 + y5 + y6 - #7.99 > #2.75 * (y1 - sqrt8)) \/
+     (delta_y y1 y2 y3 y4 y5 y6 < &0) \/
+     (y4 < y1))  )
+
+`,
+  (* {{{ proof *)
+  [
+  dt
+mmp WLOG_3673686234
+st/r
+fxast `delta_y` mp then st/r
+comment "case a"
+asmcase `y2 <= #2.07`
+fxast `&2,y2,#2.07` mp
+dthen (C intro [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`])
+rt[Sphere.ineq]
+repeat (fxast `y <= y2` mp)
+rat
+fxast `&2,y2,#2.07` kill
+comment "case c"
+asmcase `y4 <= #3.0`
+fxast `ineq` mp
+dthen (C intro [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`])
+rt[Sphere.ineq]
+repeat (fxast `y <= y2` mp)
+rat
+fxast `ineq` kill
+comment "case b"
+asmcse `delta_y y1 y2 y3 y4 y5 y6 < &0`
+art[Sphere.ineq]
+asmcase `y4 < y1`
+art[Sphere.ineq]
+art[]
+asmcase `y4 = #3.0`
+fxast `ineq` (C intro [`y1`;`y2`;`y3`;`y4`;`y5`;`y6`])
+art[]
+art[Sphere.ineq]
+repeat (fxast `y <= y2` mp) then rt[Sphere.h0] then rat
+fxast `ineq` kill
+comment "ups"
+rt[Sphere.ineq]
+st/r
+typ `&0 < ups_x (y1*y1) (y2*y2) (y6*y6)` sat
+mmp Merge_ineq.UPS_X_POS
+rep 14 (fxa mp)
+mp Flyspeck_constants.bounds
+rt[Sphere.h0] then rat
+typ `&0 < ups_x (y1*y1) (y3*y3) (y5*y5)` sat
+mmp Merge_ineq.UPS_X_POS
+rep 14 (fxa mp)
+mp Flyspeck_constants.bounds
+rt[Sphere.h0] then rat
+comment "construct y4'"
+typ `?y4'. y4 <= y4' /\ delta_y y1 y2 y3 y4' y5 y6 = &0` smp
+mmp delta_y_root_exists
+conj
+asm then rat
+mp Flyspeck_constants.bounds
+asm then rat
+st/r
+intro IVT_delta_x_full [`#3.0 pow 2`;`y4'*y4'`;`#2.07 pow 2`;`y2*y2`;`&2 pow 2`;`y6*y6`;`y1*y1`;`&2 pow 2`;`y5*y5`;`&2 pow 2`;`y6*y6`]
+
+rt[arith `x pow 2 = x* x`]
+ants
+  ]);;
+  (* }}} *)

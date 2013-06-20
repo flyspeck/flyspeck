@@ -1,0 +1,95 @@
+#load "unix.cma";;
+
+(* 
+Unix.putenv "FLYSPECK_DIR" "/mnt/Repository/text_formalization";; 
+*)
+
+(* The FLYSPECK_DIR environment variable must be set *)
+let flyspeck_dir = 
+  try Sys.getenv "FLYSPECK_DIR" with Not_found -> failwith "FLYSPECK_DIR must be set";;
+
+let hollight_dir =
+  (try Sys.getenv "HOLLIGHT_DIR" with Not_found -> Sys.getcwd());;
+	
+let add_to_load_path path =
+  if mem path !load_path then ()
+  else load_path := path :: !load_path;;
+
+add_to_load_path flyspeck_dir;;
+
+(* From strictbuild.hl (required by flyspeck_lib.hl) *)
+let process_to_string unixstring =
+  let p = Unix.open_process_in unixstring
+  and b = Buffer.create 64 in
+  let rec read () = Buffer.add_channel b p 1; read () in
+    try read () with End_of_file -> (let _ = Unix.close_process_in p in Buffer.contents b);;
+
+needs "general/lib.hl";;
+needs "general/flyspeck_lib.hl";;
+
+needs "../glpk/tame_archive/lpproc.ml";;
+needs "../glpk/sphere.ml";;
+needs "../glpk/tame_archive/hard_lp.ml";;
+
+needs "../formal_lp/glpk/build_certificates.hl";;
+
+module Lp_build_main = struct
+
+open List;;
+open Lpproc;;
+open Hard_lp;;
+open Build_certificates;;
+
+type lp_bbs = {
+  (* All easy lp's *)
+  easy : branchnbound list;
+  (* Hard lp's *)
+  hard : branchnbound list;
+};;
+
+let get_lp_bbs () =
+  let tame = Glpk_link.strip_archive (!archiveraw) in
+  let all_bbs = map mk_bb tame in
+  let hard_bbs, easy_bbs = partition (fun bb -> mem bb.hypermap_id Lpproc.hardid) all_bbs in
+    {easy = easy_bbs; hard = map resolve_with_hints_include_flat hard_bbs};;
+
+
+let build_all_easy max =
+  let _ = make_models false in
+  let bbs = get_lp_bbs() in
+  let _ = report "Building easy lp certificates" in
+    build_and_save_all "easy" max true bbs.easy;;
+
+
+let build_all_hard max =
+  let _ = make_models false in
+  let bbs = get_lp_bbs() in
+  let _ = report "Building hard lp certificates" in
+    build_and_save_all "hard" max true bbs.hard;;
+
+
+let build_all max =
+  let _ = build_all_easy max in
+    (* Save each hard lp certificate in a separate file: max = 1 *)
+  let _ = build_all_hard 1 in
+    ();;
+
+
+end;;
+
+
+(*
+open Build_certificates;;
+open Lp_build_main;;
+open Hard_lp;;
+make_models false;;
+let bbs = get_lp_bbs();;
+
+let bb = List.nth bbs.hard 1;;
+test_mode := true;;
+
+let cert = build_certificate true bb;;
+Lp_certificate.certificate_info cert;;
+
+allpass_hint_include_flat 20000 [bb];;
+*)

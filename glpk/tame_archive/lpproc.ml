@@ -71,7 +71,7 @@ let archiveraw = ref (Filename.concat archive_dir "string_archive.txt");;
 
 let modelbody = ref (Filename.concat tame_dir "body.mod");;
 
-let model = Filename.temp_file "graph_all_" ".mod";; 
+let model = Filename.concat tame_dir "graph_all.mod";; 
 
 (*
 let ampl_datafile = Filename.temp_file "ampl_datafile_" ".dat";;  (* only used for debugging purposes *)

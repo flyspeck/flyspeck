@@ -18,10 +18,6 @@ module Hard_lp = struct
 
 let hardidref = ref Lpproc.hardid;;
 
-let glpk_dir =  "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
-let glpk_dir = 
- Filename.concat (Filename.concat (flyspeck_dir) Filename.parent_dir_name) "glpk";;
-
 open Str;;
 open List;;
 open Glpk_link;;

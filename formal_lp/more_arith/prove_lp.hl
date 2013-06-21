@@ -196,11 +196,25 @@ let LIN_F_MUL_RAW_CONV = ONCE_REWRITE_CONV[LIN_F_MUL] THENC REWRITE_CONV[MAP];;
 (* Creates an inequality in the correct form *)
 let REAL_POS' = SPEC_ALL REAL_POS;;
 let REAL_LE_LMUL' = UNDISCH_ALL (REWRITE_RULE[GSYM IMP_IMP] (SPEC_ALL REAL_LE_LMUL));;
+let TO_LIN_F1' = SPEC_ALL TO_LIN_F1;;
+
+let rec lin_f_conv tm =
+  if is_binary "real_add" tm then
+    let ltm, rtm = dest_binary "real_add" tm in
+    let a_tm, x_tm = dest_binary "real_mul" ltm in
+    let th1 = INST[a_tm, a_var_real; x_tm, x_var_real] TO_LIN_F1' in
+    let th2 = lin_f_conv rtm in
+    let eq_th = MK_COMB (AP_TERM add_op_real th1, th2) in
+    let eq_th2 = lin_f_add_conv (rand (concl eq_th)) in
+      TRANS eq_th eq_th2
+  else
+    let a_tm, x_tm = dest_binary "real_mul" tm in
+      INST[a_tm, a_var_real; x_tm, x_var_real] TO_LIN_F1';;
 
 
 let transform_le_ineq (ineq, m) =
   let lhs, rhs = dest_binop le_op_real (concl ineq) in
-  let lhs_f_th = LIN_F_CONV lhs in
+  let lhs_f_th = lin_f_conv lhs in
   let original_th = EQ_MP (AP_THM (AP_TERM le_op_real lhs_f_th) rhs) ineq in
   let lhs = rand(concl lhs_f_th) in
   let pos_th = INST[rand m, n_var_num] REAL_POS' in
@@ -216,7 +230,7 @@ let transform_le_ineq (ineq, m) =
 	
 let transform_le_ineq_tm (ineq, m) =
   let lhs, rhs = dest_binop le_op_real ineq in
-  let lhs_f_th = LIN_F_CONV lhs in
+  let lhs_f_th = lin_f_conv lhs in
   let original_th = EQ_MP (AP_THM (AP_TERM le_op_real lhs_f_th) rhs) (ASSUME ineq) in
   let lhs = rand(concl lhs_f_th) in
   let pos_th = INST[rand m, n_var_num] REAL_POS' in
@@ -333,6 +347,22 @@ let var1_le_transform (var_ineq, m) =
               rand(concl c1_th), a_var_real; rand(concl c2_th), b_var_real]
     VAR_MUL_THM' in
     MY_PROVE_HYP pos_th (MY_PROVE_HYP (ASSUME var_ineq) (MY_PROVE_HYP c1_th (MY_PROVE_HYP c2_th th)));;
+
+
+(* Sums two inequalities *)
+let add_le_ineqs ineq1 ineq2 = 
+  let lhs1, b1tm = dest_binop le_op_real (concl ineq1) in
+  let lhs2, b2tm = dest_binop le_op_real (concl ineq2) in
+  let a1tm, xtm = dest_binop mul_op_real lhs1 in
+  let a2tm = rand(rator lhs2) in
+  let b_th = my_real_int_add_conv (mk_binop add_op_real b1tm b2tm) in
+  let a_th = my_real_int_add_conv (mk_binop add_op_real a1tm a2tm) in
+  let th0 = INST[a1tm, a1_var_real; a2tm, a2_var_real;
+                 b1tm, b1_var_real; b2tm, b2_var_real;
+                 rand(concl a_th), c1_var_real; rand(concl b_th), c2_var_real;
+                 xtm, x_var_real] VAR_ADD_THM' in
+    MY_PROVE_HYP ineq2 (MY_PROVE_HYP ineq1 (MY_PROVE_HYP b_th (MY_PROVE_HYP a_th th0)));;
+
 
 
 (* Multiplies the corresponding inequalities and finds the sum of results *)

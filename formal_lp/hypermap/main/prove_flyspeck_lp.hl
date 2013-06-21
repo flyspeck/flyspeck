@@ -294,20 +294,41 @@ let prove_flyspeck_lp_step1 hyp_list_tm hyp_set hyp_fun std_flag precision infea
       | Failure str -> failwith (sprintf "Problem: %s (%s)" name str)
       | _ ->  failwith ("Problem: "^name) in
 
-  let s1' = List.fold_left add_step' dummy (map sum_step constraints) in
-  let s1 = mul_step s1' (mk_real_int precision_constant) in
-  let s2 = List.fold_left add_step' dummy (map sum_step target_variables) in
-  let s3 = List.fold_left add_step' dummy (map sum_step variable_bounds) in
-  let s4 = add_step' (add_step' s1 s2) s3 in
+  let var_table = Hashtbl.create 1000 in
+  let add_to_var_table (name, indices, c) =
+    let ineqs = get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices in
+    let m_ineqs = map2 (fun th m -> MY_PROVE_HYP th (var1_le_transform (concl th, m))) ineqs c in
+    let _ = map (
+      fun th -> 
+	let var = (rand o lhand o concl) th in
+	  if Hashtbl.mem var_table var then
+	    let ineq1 = Hashtbl.find var_table var in
+	      Hashtbl.replace var_table var (add_le_ineqs th ineq1)
+	  else
+	    Hashtbl.add var_table var th) m_ineqs in
+      () in
 
-  let result = if infeasible then s4 else
+  let get_first_var = rand o lhand o rand o lhand o concl in
+  let ineqs1 = map sum_step constraints in
+  let ineqs2 = List.sort (fun ineq1 ineq2 ->
+			    let var1 = get_first_var ineq1 and
+				var2 = get_first_var ineq2 in
+			      compare var1 var2) ineqs1 in
+  let s1' = List.fold_right add_step' ineqs2 dummy in
+  let s1 = mul_step s1' (mk_real_int precision_constant) in
+  let r1 = if infeasible then s1 else
     let ineq_th0 = assoc precision lnsum_ineqs in
     let ineq_th1 = (INST[hyp_list_tm, l_cap_var]) ineq_th0 in
     let ineq_th2 = EQ_MP (term_rewrite (concl ineq_th1) (hyp_set "list_of_elements")) ineq_th1 in
     let ineq_th3 = simplify_ineq hyp_fun ineq_th2 in
     let ineq_th4 = to_lin_f_ineq ineq_th3 in
-      add_step' ineq_th4 s4 in
-
+      add_step' ineq_th4 s1 in
+  let _ = map add_to_var_table variable_bounds and
+      _ = map add_to_var_table target_variables in
+  let list1 = Hashtbl.fold (fun tm ineq list -> (tm, ineq) :: list) var_table [] in
+  let list2 = List.sort (fun (tm1, _) (tm2, _) -> compare tm1 tm2) list1 in
+  let var_list = map snd list2 in
+  let result = List.fold_left add_cancel_step r1 var_list in
   let n_tm = (rand o rand o rand o concl) result in
   let r_eq_th = INST[n_tm, n_var_num] FINAL_INEQ in
   let not_zero_th = NUM_EQ0_HASH_CONV n_tm in

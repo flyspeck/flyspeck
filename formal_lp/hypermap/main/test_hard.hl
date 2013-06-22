@@ -371,6 +371,8 @@ let test_t k =
   let th1 = itlist MY_PROVE_HYP base_ineqs (test_terminal t) in
     filter (is_binary "real_le") (hyp th1);;
 
+test_t 1642;;
+
 let rr = map test_t ind;;
 
 let t = nth ts 34;;
@@ -410,8 +412,21 @@ hd cases;;
 
 (****************************)
 
-let cert = (hd o read_lp_certificates o hd o get_files_with_prefix dir) "hard2";;
+let mem_stat () =
+  let stat = Gc.stat() in
+  let word = float_of_int (Sys.word_size / 8) in
+  let free = float_of_int stat.Gc.free_words *. word /. 1024.0 in
+  let total = float_of_int stat.Gc.heap_words *. word /. 1024.0 in
+  let allocated = total -. free in
+  let str = sprintf "allocated = %f (free = %f; total_size = %f; %f)\n" 
+    allocated free total (free /. total) in
+    print_string str;;
+
+mem_stat();;
+
+let cert = (hd o read_lp_certificates o hd o get_files_with_prefix dir) "hard6";;
 certificate_info cert;;
+
 
 let test_one f arg =
   let start = Unix.gettimeofday() in
@@ -420,3 +435,137 @@ let test_one f arg =
     result, finish -. start;;
 
 test_one verify_lp_certificate cert;;
+
+
+let get_all_names cert =
+  let ts = map snd (snd (get_terminal_cases cert)) in
+  let get_names t = map (fun name, _, _ -> name) t.constraints in
+  let names = flatten (map get_names ts) in
+    setify names;;
+
+
+let cert = (hd o read_lp_certificates o hd o get_files_with_prefix dir) "not_onepass1__2";;
+certificate_info cert;;
+verify_lp_certificate cert;;
+
+mem "yapex_sup_flat" (get_all_names cert);;
+
+
+(******************************)
+
+let hyp_list, terminal = nth ts 1643;;
+let hyp_list_tm = (to_num o create_hol_list) hyp_list;;
+let hyp_set, hyp_fun = compute_all hyp_list_tm None;;
+
+
+let r = (fun name, ind, v -> name, ind, map mk_real_int64 v);;
+let constraints = map r terminal.constraints and
+    target_variables = map r terminal.target_variables and
+    variable_bounds = map r terminal.variable_bounds;;
+
+let std_flag = true and
+    precision = terminal.precision and
+    infeasible = terminal.infeasible;;
+
+prove_flyspeck_lp_step1 hyp_list_tm hyp_set hyp_fun std_flag precision infeasible constraints target_variables variable_bounds;;
+
+let precision_constant = Int 10 **/ (Int precision);;
+
+let sum_step = fun (name, indices, c) ->
+  try
+    let ineqs = get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices in
+    let s1 = map transform_le_ineq (zip ineqs c) in
+      List.fold_left add_step' dummy s1
+  with 
+    | Failure str -> failwith (sprintf "Problem: %s (%s)" name str)
+    | _ ->  failwith ("Problem: "^name);;
+
+let var_table = Hashtbl.create 1000;;
+let add_to_var_table (name, indices, c) =
+  let ineqs = get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices in
+  let m_ineqs = map2 (fun th m -> MY_PROVE_HYP th (var1_le_transform (concl th, m))) ineqs c in
+  let _ = map (
+    fun th -> 
+      let var = (rand o lhand o concl) th in
+	if Hashtbl.mem var_table var then
+	  let ineq1 = Hashtbl.find var_table var in
+	  let ineq = add_le_ineqs th ineq1 in
+	  let c_tm = (lhand o lhand o concl) ineq in
+	    if c_tm = int_zero_tm then
+	      Hashtbl.remove var_table var
+	    else
+	      Hashtbl.replace var_table var ineq
+	else
+	  Hashtbl.add var_table var th) m_ineqs in
+    ();;
+
+let get_first_var = rand o lhand o rand o lhand o concl;;
+let ineqs1 = map sum_step constraints;;
+let ineqs2 = List.sort (fun ineq1 ineq2 ->
+			  let var1 = get_first_var ineq1 and
+			      var2 = get_first_var ineq2 in
+			    compare var1 var2) ineqs1;;
+let s1' = List.fold_right add_step' ineqs2 dummy;;
+let s1 = mul_step s1' (mk_real_int precision_constant);;
+let r1 = if infeasible then s1 else
+  let ineq_th0 = assoc precision lnsum_ineqs in
+  let ineq_th1 = (INST[hyp_list_tm, l_cap_var]) ineq_th0 in
+  let ineq_th2 = EQ_MP (term_rewrite (concl ineq_th1) (hyp_set "list_of_elements")) ineq_th1 in
+  let ineq_th3 = simplify_ineq hyp_fun ineq_th2 in
+  let ineq_th4 = to_lin_f_ineq ineq_th3 in
+    add_step' ineq_th4 s1;;
+let _ = map add_to_var_table variable_bounds and
+    _ = map add_to_var_table target_variables;;
+let list1 = Hashtbl.fold (fun tm ineq list -> (tm, ineq) :: list) var_table [];;
+let list2 = List.sort (fun (tm1, _) (tm2, _) -> compare tm1 tm2) list1;;
+let var_list = map snd list2;;
+
+let l = take 294 var_list;;
+let l1 = take 293 var_list;;
+let l2 = take 1 (drop 293 var_list);;
+
+
+
+List.fold_left add_cancel_step r1 l;;
+
+let result = List.fold_left add_cancel_step r1 var_list;;
+  let n_tm = (rand o rand o rand o concl) result in
+  let r_eq_th = INST[n_tm, n_var_num] FINAL_INEQ in
+  let not_zero_th = NUM_EQ0_HASH_CONV n_tm in
+    EQ_MP not_zero_th (EQ_MP r_eq_th result);;
+
+
+
+
+(**************************)
+
+
+let precision_constant = Int 10 **/ (Int precision);;
+let sum_step (name, indices, c) =
+  try
+    let ineqs = get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices in
+    let s1 = map transform_le_ineq (zip ineqs c) in
+      List.fold_left add_step' dummy s1
+  with 
+    | Failure str -> failwith (sprintf "Problem: %s (%s)" name str)
+    | _ ->  failwith ("Problem: "^name);;
+
+let s1' = List.fold_left add_step' dummy (map sum_step constraints);;
+let s1 = mul_step s1' (mk_real_int precision_constant);;
+let s2 = List.fold_left add_step' dummy (map sum_step target_variables);;
+let s3 = List.fold_left add_step' dummy (map sum_step variable_bounds);;
+let s4 = add_step' s1 (add_step' s2 s3);;
+
+let ineq_th0 = assoc precision lnsum_ineqs;;
+let ineq_th1 = (INST[hyp_list_tm, l_cap_var]) ineq_th0;;
+let ineq_th2 = EQ_MP (term_rewrite (concl ineq_th1) (hyp_set "list_of_elements")) ineq_th1;;
+let ineq_th3 = simplify_ineq hyp_fun ineq_th2;;
+let ineq_th4 = to_lin_f_ineq ineq_th3;;
+
+let result = add_step' ineq_th4 s4;;
+
+let n_tm = (rand o rand o rand o concl) result;;
+let r_eq_th = INST[n_tm, n_var_num] FINAL_INEQ;;
+let not_zero_th = NUM_EQ0_HASH_CONV n_tm;;
+EQ_MP not_zero_th (EQ_MP r_eq_th result);;
+

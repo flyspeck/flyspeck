@@ -279,6 +279,10 @@ let get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices =
 
 (****************************)
 
+let int_zero_tm = mk_comb (amp_op_real, (rand o concl o NUMERAL_TO_NUM_CONV) `0`);;
+let int_neg_zero_tm = mk_comb (neg_op_real, int_zero_tm);;
+
+
 let prove_flyspeck_lp_step1 hyp_list_tm hyp_set hyp_fun std_flag precision infeasible constraints target_variables variable_bounds =
   let precision_constant = Int 10 **/ (Int precision) in
 
@@ -303,11 +307,16 @@ let prove_flyspeck_lp_step1 hyp_list_tm hyp_set hyp_fun std_flag precision infea
 	let var = (rand o lhand o concl) th in
 	  if Hashtbl.mem var_table var then
 	    let ineq1 = Hashtbl.find var_table var in
-	      Hashtbl.replace var_table var (add_le_ineqs th ineq1)
+	  let ineq = add_le_ineqs th ineq1 in
+	  let c_tm = (lhand o lhand o concl) ineq in
+	    if c_tm = int_zero_tm or c_tm = int_neg_zero_tm then
+	      Hashtbl.remove var_table var
+	    else
+	      Hashtbl.replace var_table var ineq
 	  else
 	    Hashtbl.add var_table var th) m_ineqs in
       () in
-
+    
   let get_first_var = rand o lhand o rand o lhand o concl in
   let ineqs1 = map sum_step constraints in
   let ineqs2 = List.sort (fun ineq1 ineq2 ->
@@ -1014,6 +1023,7 @@ let verify_lp_certificate certificate =
   let _ = reset_progress(); Format.print_string (sprintf "terminals = %d: " n); Format.print_flush() in
 
   let final_th = verify_lp_case base_ineqs true (arg, certificate.root_case) in
+  let _ = Format.print_new_line() in
     (DISCH contravening_v o EXPAND_RULE "L" o EXPAND_RULE "g" o EXPAND_RULE "h") final_th;;
 
 

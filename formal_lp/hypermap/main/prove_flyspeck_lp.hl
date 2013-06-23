@@ -281,6 +281,7 @@ let get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices =
 
 let int_zero_tm = mk_comb (amp_op_real, (rand o concl o NUMERAL_TO_NUM_CONV) `0`);;
 let int_neg_zero_tm = mk_comb (neg_op_real, int_zero_tm);;
+let var_table = Hashtbl.create 1000;;
 
 
 let prove_flyspeck_lp_step1 hyp_list_tm hyp_set hyp_fun std_flag precision infeasible constraints target_variables variable_bounds =
@@ -298,7 +299,7 @@ let prove_flyspeck_lp_step1 hyp_list_tm hyp_set hyp_fun std_flag precision infea
       | Failure str -> failwith (sprintf "Problem: %s (%s)" name str)
       | _ ->  failwith ("Problem: "^name) in
 
-  let var_table = Hashtbl.create 1000 in
+  let _ = Hashtbl.clear var_table in
   let add_to_var_table (name, indices, c) =
     let ineqs = get_ineqs (hyp_list_tm, hyp_set, hyp_fun) std_flag precision name indices in
     let m_ineqs = map2 (fun th m -> MY_PROVE_HYP th (var1_le_transform (concl th, m))) ineqs c in
@@ -316,8 +317,11 @@ let prove_flyspeck_lp_step1 hyp_list_tm hyp_set hyp_fun std_flag precision infea
 	  else
 	    Hashtbl.add var_table var th) m_ineqs in
       () in
-    
-  let get_first_var = rand o lhand o rand o lhand o concl in
+
+  let get_first_var ineq_th = 
+    try 
+      (rand o lhand o rand o lhand o concl) ineq_th
+    with Failure _ -> a_var_real in
   let ineqs1 = map sum_step constraints in
   let ineqs2 = List.sort (fun ineq1 ineq2 ->
 			    let var1 = get_first_var ineq1 and

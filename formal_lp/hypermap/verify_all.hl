@@ -1,0 +1,91 @@
+needs "../formal_lp/hypermap/main/prove_flyspeck_lp.hl";;
+
+module Verify_all = struct
+
+open List;;
+open Flyspeck_lp;;
+open Lp_certificate;;
+
+
+let cert_dir = ref (flyspeck_dir ^ "/../formal_lp/glpk/binary");;
+
+let get_files_with_prefix dir prefix =
+  let files = Array.to_list (Sys.readdir dir) in
+  let n = String.length prefix in
+  let files1 = filter (fun f -> String.length f >= n) files in
+  let files2 = filter (fun f -> String.sub f 0 n = prefix) files1 in
+    map (fun f -> sprintf "%s/%s" dir f) files2;;
+	
+let mem_stat () =
+  let stat = Gc.stat() in
+  let word = float_of_int (Sys.word_size / 8) in
+  let free = float_of_int stat.Gc.free_words *. word /. 1024.0 in
+  let total = float_of_int stat.Gc.heap_words *. word /. 1024.0 in
+  let allocated = total -. free in
+  let str = sprintf "allocated = %f (free = %f; total_size = %f; %f)\n" 
+    allocated free total (free /. total) in
+    print_string str;;
+
+
+let verify_file =
+  let counter = ref 0 and
+      total = ref 0 in
+  let report s =
+    Format.print_string s; Format.print_newline(); Format.print_flush() in
+  let process certificate =
+    let _ = counter := !counter + 1 in
+    let _ = report (sprintf "%d/%d" !counter !total) in
+      verify_lp_certificate certificate in
+  let process_all file =
+    let certificates = read_lp_certificates file in
+    let _ = counter := 0 in
+    let _ = total := length certificates in
+    let start = Unix.gettimeofday() in
+    let result = map process certificates in
+    let finish = Unix.gettimeofday() in
+      result, finish -. start in
+    fun file ->
+      let _ = report (sprintf "Verifying %s" file) in
+      let result, time = process_all file in
+      let _ = Gc.compact() in
+      let _ = mem_stat() in
+	result, time;;
+
+
+let init_ineqs() =
+  try
+    let _ = Lp_ineqs.find_ineq false 3 "yd1_def" in
+    let _ = report "Inequalities are already initialized" in
+      ()
+  with Not_found ->
+    Flyspeck_lp.init_ineqs();;
+
+
+
+let verify_easy() =
+  let _ = init_ineqs() in
+  let files = get_files_with_prefix !cert_dir "easy" in
+    map verify_file files;;
+
+let verify_hard() =
+  let _ = init_ineqs() in
+  let files = get_files_with_prefix !cert_dir "hard" in
+    map verify_file files;;
+
+let verify_all() =
+  let _ = init_ineqs() in
+  let files = get_files_with_prefix !cert_dir "" in
+    map verify_file files;;
+
+
+let test_result result =
+  let ths = List.flatten (map fst result) in
+  let time = map snd result in
+  let total = end_itlist (+.) time in
+  let concls = setify (map concl ths) in
+  let hyps = unions (map (fun th -> filter (fun tm -> not (is_binary "iso" tm)) (hyp th)) ths) in
+    total, concls, hyps;;
+
+
+
+end;;

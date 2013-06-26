@@ -404,6 +404,61 @@ End A_tau.
 (* Ineqs *)
 Section Ineqs.
 
+(* Case50 *)
+Section Case50.
+
+Hypothesis h_main: `lp_main_estimate`.
+Hypothesis ineq1: "(hd (Ineq.getexact \"4652969746 1\")).ineq".
+Hypothesis ineq2: "(hd (Ineq.getexact \"4652969746 2\")).ineq".
+
+Lemma case50_ineq d: `d IN dart_of_fan (V,ESTD V)
+	/\ type_of_node (hypermap_of_fan (V,ESTD V)) d = (5,0,0)
+	==> #0.04 <= &5 * a_tau ((=) 3) V d`.
+Proof.
+move => [d_in]; rewrite NODE_TYPE_lemma // !PAIR_EQ.
+set s := `GSPEC _`.
+set q := `CARD (GSPEC _)`.
+set r := `CARD (GSPEC _)`.
+have fin_s: `FINITE s` by rewrite -s_def.
+move => eqs; rewrite "let_RULE a_tau" (eq_sym `3`) s_def -eqs a_sum_mul //.
+have in_s3 y: `y IN s ==> y IN darts_k 3 (hypermap_of_fan (V,ESTD V))`.
+  rewrite -s_def inE List_hypermap.darts_k inE => [] [y_in_n] -> /=.
+  by move: d_in; rewrite -dartH => /lemma_node_subset; rewrite SUBSET; apply.
+have in_s y: `y IN s ==> y IN dart_of_fan (V,ESTD V)`.
+  by move/in_s3; rewrite List_hypermap.darts_k inE dartH => ->.
+case y4_ge: `!y. y IN s ==> y4_fan (V,ESTD V) y <= #2.1771` => /=; last first.
+  move: y4_ge; rewrite NOT_FORALL_THM NOT_IMP REAL_NOT_LE => [] [x] [x_in_s] x_ineq.
+  rewrite -(INSERT_DELETE x_in_s) SUM_CLAUSES ?FINITE_DELETE //.
+  rewrite IN_DELETE /= -REAL_ADD_RID REAL_LE_ADD2; split; last first.
+    rewrite SUM_POS_LE FINITE_DELETE fin_s andTb IN_DELETE => y [y_in_s] _ /=.
+    rewrite (ineq_tau3_tauVEF_std h_fan) /= in_s3 // andbT.
+    by move => v1 v2 v3 cond; move: h_main; rewrite lp_main_estimate => ->.
+  move: (h_fan); rewrite lp_fan => h_fan2.
+  rewrite (dart3_tauVEF_eq_taum fanV (in_s3 x_in_s)) //.
+  rewrite INEQ_ALT !"GEN_ALL ALL" real_gt in ineq1.
+  have x_in := in_s x_in_s.
+  by rewrite REAL_LT_IMP_LE ineq1 /= !y_bounds // y_bounds // REAL_LT_IMP_LE.
+rewrite -[`sum s _`]REAL_SUB_RZERO.
+have ->: `&0 = #0.312 * sum s (\y. azim_dart (V,ESTD V) y - &2 * pi / &5)`.
+  rewrite eq_sym REAL_ENTIRE; right.
+  rewrite SUM_SUB // (SUM_CONST `&2 * pi / &5`) // eqs REAL_SUB_0.
+  have := anglesum `CARD s` q r d_in; "ANTS_TAC"; first by rewrite NODE_TYPE_lemma.
+  rewrite !eqs !REAL_MUL_LZERO !REAL_ADD_RID -{1}eqs.
+  by rewrite "let_RULE a_azim" (eq_sym `3`) s_def a_sum_mul // (ETA_AX `azim_dart _`) => ->; arith.
+rewrite -SUM_LMUL -SUM_SUB //.
+rewrite -REAL_LE_NEG -SUM_NEG SUM_BOUND_GEN fin_s andTb.
+rewrite -CARD_EQ_0 // eqs; split; first by arith.
+move => x x_in_s /=.
+rewrite -REAL_LE_NEG REAL_NEG_NEG real_div REAL_NEG_LMUL REAL_NEG_NEG -real_div.
+move: (h_fan); rewrite lp_fan => h_fan2.
+rewrite (dart3_tauVEF_eq_taum fanV (in_s3 x_in_s)) // REAL_LT_IMP_LE.
+rewrite (azim_fan_eq_dih_y fanV (in_s x_in_s)) // (y4'_eq_y4 (in_s3 x_in_s)) //.
+rewrite INEQ_ALT !"GEN_ALL ALL" real_gt in ineq2.
+by rewrite ineq2 /= 11!(y_bounds (in_s x_in_s)) y4_ge.
+Qed.
+
+End Case50.
+
 Let aux_ge a: `a > &0 ==> a >= &0`. Proof. by arith. Qed.
 
 Let aux_ineq n a b d: `(!x. x IN darts_k n (hypermap_of_fan (V,ESTD V))
@@ -599,9 +654,12 @@ End Ineqs.
 		\"azimr_hi\", (neg o r o r) azimr_hi;
 		\"taup_lo\", (r o r) taup_lo;
 		\"tauq_lo\", (r o r) tauq_lo;
+		\"case50\", (r o r) case50_ineq;
 		\"p1\", (r o r) p1_ineq;
 		\"p2\", (r o r) p2_ineq;
 		\"p3\", (r o r) p3_ineq;
+		\"q1\", (r o r) q1_ineq;
+		\"q2\", (r o r) q2_ineq;
 		\"q3\", (r o r) q3_ineq;
 		\"q4\", (r o r) q4_ineq;
 	]".
@@ -631,9 +689,9 @@ End Ineqs.
 	    th3".
 
 
-"let data1 = [
+"let data_kcblrqc = [
 	(4,0,0), [\"anglesum_lo\", `#0.259`; \"p2\", `#4.0`];
-	(5,0,0), [];
+	(5,0,0), [\"case50\", `&1`];
 	(6,0,0), [\"anglesum_hi\", `#0.626`; \"p1\", `#6.0`];
 	(7,0,0), [\"anglesum_hi\", `#0.626`; \"p1\", `#7.0`];
 	(2,1,0), [\"anglesum_lo\", `#0.453`; \"p2\", `#0.435`; 
@@ -654,10 +712,20 @@ End Ineqs.
 	(2,3,0), [\"anglesum_hi\", `#0.7573`; \"p1\", `#2.0`; 
 		\"q3\", `#3.0`; \"azimp_lo\", `#0.2626`];
 	(0,4,0), [\"anglesum_hi\", `#0.7573`; \"q3\", `#4.0`];
+	(0,5,0), [\"anglesum_hi\", `#0.972`; \"q2\", `#5.0`];
+	(1,4,0), [\"anglesum_hi\", `#0.7573`; \"p1\", `#1.0`; 
+		\"q3\", `#4.0`; \"azimp_lo\", `#0.1313`];
+	(3,3,0), [\"anglesum_hi\", `#0.972`; \"p1\", `#3.0`; 
+		\"q2\", `#3.0`; \"azimp_lo\", `#1.038`];
+	(4,2,0), [\"anglesum_hi\", `#0.7573`; \"p1\", `#4.0`; 
+		\"q3\", `#2.0`; \"azimp_lo\", `#0.5252`];
+	(6,1,0), [\"anglesum_hi\", `#4.72`; \"p1\", `#6.0`; 
+		\"q1\", `#1.0`; \"azimp_lo\", `#24.564`];
 ]".
 
+
 "let get_b_tame_ineq node_type =
-	let data = assoc node_type data1 @ [\"tausum\", `-- &1`] in
+	let data = assoc node_type data_kcblrqc @ [\"tausum\", `-- &1`] in
 	let ths = map (get_ineq node_type) data in
 	let sum = end_itlist add_ineqs ths in
 	let conv = BINOP_CONV (NUM_REDUCE_CONV THENC REWRITE_CONV[DECIMAL] THENC REAL_POLY_CONV) in
@@ -668,3 +736,64 @@ Section KCBLRQC.
 
 Hypothesis h_main: `lp_main_estimate`.
 Hypothesis ineqs: `kcblrqc_ineq_def`.
+
+
+Theorem KCBLRQC d: `d IN dart_of_fan (V,ESTD V)
+	==>  let H = hypermap_of_fan (V,ESTD V) in
+	     let (p,q,r) = type_of_node H d in
+       (r > 0) \/ (sum (set_of_face_meeting_node H d) (\f. tauVEF (V,ESTD V,f)) >= b_tame p q)`.
+Proof.
+move => d_in; "CONV_TAC let_CONV".
+have := NODE_TYPE_lemma simpleH d; "ANTS_TAC"; first by [].
+set p := `CARD _`.
+set q := `CARD _`.
+set r := `CARD _`.
+move => type_eq; rewrite type_eq; "CONV_TAC let_CONV".
+have := Cdtetat_tame.CDTETAT ineqs contrV d_in.
+rewrite type_eq LET_DEF LET_END_DEF /= => pq_in.
+case r_gt0: `r > 0` => /=.
+have r0: `r = 0` by move: r_gt0; arith.
+move: pq_in type_eq; rewrite r0 addn0 20!(IN_SING, IN_INSERT) 20!PAIR_EQ.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (0,3,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (0,4,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (0,5,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (1,2,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (1,3,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (1,4,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (2,1,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (2,2,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (2,3,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (3,1,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (3,2,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (3,3,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (4,0,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (4,1,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (4,2,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (5,0,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (5,1,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (6,0,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+case; first by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (6,1,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+by move => [-> ->] type_eq; 
+	move: "get_b_tame_ineq (7,0,0)"; "REWRITE_TAC[b_tame; PAIR_EQ; ARITH; tgt]"; arith.
+Qed.
+
+End KCBLRQC.

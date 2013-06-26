@@ -1,4 +1,6 @@
 "needs \"../formal_lp/hypermap/ineqs/lp_ineqs_proofs-compiled.hl\"".
+"needs \"../formal_lp/hypermap/ineqs/lp_main_estimate-compiled.hl\"".
+"needs \"tame/CDTETAT.hl\"".
 
 Module Kcblrqc.
 
@@ -6,25 +8,22 @@ Module Kcblrqc.
 "open Ssrnat".
 "open Hypermap".
 "open Lp_ineqs_proofs".
+"open Lp_main_estimate".
+"open Tame_lemmas".
 "open Tame_defs".
 "open Tame_general".
 "open Hypermap_and_fan".
 "open Hypermap_iso".
 
 
-"let a_azim = new_definition `a_azim n V d = 
+"let a_azim = new_definition `a_azim f_test V d = 
 		(let H = hypermap_of_fan (V,ESTD V) in
-		 let s = {y | y IN node H d /\ CARD (face H y) = n} in
+		 let s = {y | y IN node H d /\ f_test (CARD (face H y))} in
 			sum s (azim_dart (V,ESTD V)) / &(CARD s))`".
 
-"let a_azim_excep = new_definition `a_azim_excep n V d =
+"let a_tau = new_definition `a_tau f_test V d =
 		(let H = hypermap_of_fan (V,ESTD V) in
-		 let s = {y | y IN node H d /\ n <= CARD (face H y)} in
-			sum s (azim_dart (V,ESTD V)) / &(CARD s))`".
-
-"let a_tau = new_definition `a_tau n V d =
-		(let H = hypermap_of_fan (V,ESTD V) in
-		 let s = {y | y IN node H d /\ CARD (face H y) = n} in
+		 let s = {y | y IN node H d /\ f_test (CARD (face H y))} in
 			sum s (\y. tauVEF (V, ESTD V, face H y)) / &(CARD s))`".
 
 
@@ -73,10 +72,11 @@ Variables p q r: `:num`.
 
 Lemma anglesum d: `d IN dart_of_fan (V,ESTD V) 
 	/\ (p,q,r) = type_of_node (hypermap_of_fan (V,ESTD V)) d
-	==> (&p) * a_azim 3 V d + (&q) * a_azim 4 V d + (&r) * a_azim_excep 5 V d = &2 * pi`.
+	==> (&p) * a_azim ((=) 3) V d + (&q) * a_azim ((=) 4) V d 
+		+ (&r) * a_azim ((<=) 5) V d = &2 * pi`.
 Proof.
 move => [d_in]; rewrite NODE_TYPE_lemma // !PAIR_EQ => eqs.
-rewrite !eqs !"let_RULE a_azim" "let_RULE a_azim_excep" GE.
+rewrite !eqs !"let_RULE a_azim" GE (eq_sym `3`) (eq_sym `4`).
 set H := `hypermap_of_fan _`.
 rewrite !a_sum_mul //.
 rewrite -("let_RULE SUM_AZIM_DART_FULLY_SURROUNDED" fanV f_surr d_in) H_def.
@@ -86,36 +86,67 @@ congr `sum _1 _2` => //.
 by rewrite EXTENSION IN_UNION !inE -andb_orr "ARITH_RULE `!a. a >= 4 <=> a = 4 \/ 5 <= a`".
 Qed.
 
+Lemma anglesum_lo_approx d: `d IN dart_of_fan (V,ESTD V) 
+	/\ (p,q,r) = type_of_node (hypermap_of_fan (V,ESTD V)) d
+	==> #6.28318 <= (&p) * a_azim ((=) 3) V d + (&q) * a_azim ((=) 4) V d 
+		+ (&r) * a_azim ((<=) 5) V d`.
+Proof. by move/anglesum => ->; move: PI_APPROX_32; arith. Qed.
+
+Lemma anglesum_hi_approx d: `d IN dart_of_fan (V,ESTD V) 
+	/\ (p,q,r) = type_of_node (hypermap_of_fan (V,ESTD V)) d
+	==> (&p) * a_azim ((=) 3) V d + (&q) * a_azim ((=) 4) V d 
+		+ (&r) * a_azim ((<=) 5) V d <= #6.28319`.
+Proof. by move/anglesum => ->; move: PI_APPROX_32; arith. Qed.
+
 Lemma tausum_eq d: `let H = hypermap_of_fan (V,ESTD V) in
 	d IN dart_of_fan (V,ESTD V)
-	/\ (p,q,0) = type_of_node H d 
-	==> (&p) * a_tau 3 V d + (&q) * a_tau 4 V d 
+	/\ (p,q,r) = type_of_node H d 
+	==> (&p) * a_tau ((=) 3) V d + (&q) * a_tau ((=) 4) V d + (&r) * a_tau ((<=) 5) V d
 		= sum (set_of_face_meeting_node H d) (\f. tauVEF (V,ESTD V,f))`.
 Proof.
 "CONV_TAC let_CONV" => [] [d_in]; rewrite NODE_TYPE_lemma // GE !PAIR_EQ => eqs.
-rewrite !eqs !"let_RULE a_tau" !a_sum_mul // set_of_face_meeting_node.
+rewrite !eqs !"let_RULE a_tau" (eq_sym `3`) (eq_sym `4`) !a_sum_mul // set_of_face_meeting_node.
 set H := `hypermap_of_fan _`.
-rewrite -SUM_UNION.
+rewrite -!SUM_UNION.
   by rewrite !finite_sets !andTb DISJOINT EXTENSION NOT_IN_EMPTY IN_INTER !inE; arith.
+  rewrite FINITE_UNION !finite_sets !andTb DISJOINT EXTENSION NOT_IN_EMPTY.
+  by rewrite IN_INTER IN_UNION !inE; arith.
 have ->: `(\y. tauVEF (V, ESTD V, face H y)) = (\f. tauVEF (V,ESTD V,f)) o face H`.
   by rewrite FUN_EQ_THM o_THM.
 rewrite -SUM_IMAGE.
   rewrite !IN_UNION !inE -!andb_orr => x y [] [x_in_n] card_x [] [y_in_n] card_y face_eq.
   by apply: (SIMPLE_HYPERMAP_IMP_FACE_INJ face_eq x_in_n y_in_n simpleH).
 congr `sum _1 _2` => //.
-rewrite EXTENSION IN_IMAGE IN_UNION !inE IN_ELIM_THM /= -andb_orr => f.
+rewrite EXTENSION IN_IMAGE !IN_UNION !inE IN_ELIM_THM /= -!andb_orr => f.
 split => [[x] [->] [x_in] card_x | [y] [y_in] ->].
   exists x; rewrite x_in /=.
   by move: d_in; rewrite -dartH => /lemma_node_subset; rewrite SUBSET; apply.
 exists y; rewrite y_in /=.
 move: (FULLY_SURROUNDED_IMP_CARD_FACE_GE_3 fanV f_surr y); rewrite H_def.
-"ANTS_TAC"; first by rewrite -dartH.
-have -> a: `a >= 3 <=> (a = 3 \/ a = 4) \/ 5 <= a` by arith.
-case => // card_ge5.
-set s := `{y | y IN node H d /\ 5 <= CARD (face H y)}`.
-have: `y IN s` by rewrite -s_def inE.
-suff ->: `s = {}` by rewrite NOT_IN_EMPTY.
-by rewrite -CARD_EQ_0 -s_def.
+"ANTS_TAC"; last by arith.
+by rewrite -dartH.
+Qed.
+
+Lemma tausum_triangles d: `let H = hypermap_of_fan (V,ESTD V) in
+	d IN dart_of_fan (V,ESTD V)
+	/\ p,q,r = type_of_node H d
+	==> (&p) * a_tau ((=) 3) V d
+	  = sum {f | f IN set_of_face_meeting_node H d /\ CARD(f)=3 }  (\f. tauVEF (V, ESTD V,f))`.
+Proof.
+"CONV_TAC let_CONV" => [] [d_in]; rewrite NODE_TYPE_lemma // GE !PAIR_EQ => eqs.
+rewrite !eqs !"let_RULE a_tau" (eq_sym `3`) a_sum_mul //.
+set H := `hypermap_of_fan _`.
+have ->: `(\y. tauVEF (V, ESTD V, face H y)) = (\f. tauVEF (V,ESTD V,f)) o face H`.
+  by rewrite FUN_EQ_THM o_THM.
+rewrite -SUM_IMAGE.
+  rewrite !inE => x y [] [x_in_n] card_x [] [y_in_n] card_y face_eq.
+  by apply: (SIMPLE_HYPERMAP_IMP_FACE_INJ face_eq x_in_n y_in_n simpleH).
+congr `sum _1 _2` => //.
+rewrite EXTENSION IN_IMAGE set_of_face_meeting_node !inE IN_ELIM_THM /= => f.
+split => [[x] [->] [x_in] card_x | [] [y] [y_in] -> card_y].
+  rewrite card_x /=; exists x; rewrite x_in /=.
+  by move: d_in; rewrite -dartH => /lemma_node_subset; rewrite SUBSET; apply.
+by exists y; rewrite y_in /= card_y.
 Qed.
 
 End SumEqs.
@@ -141,16 +172,19 @@ Proof. by rewrite Sphere.h0; arith. Qed.
 (* A_azim3 *)
 Section A_azim3.
 
+Variables p q r: `:num`.
+
 Section Lo.
 
 Hypothesis ineq: "(hd (Ineq.getexact \"5735387903\")).ineq".
 
-Lemma azimp_lo d: `d IN dart_of_fan (V,ESTD V) 
-	/\ ~(FST (type_of_node (hypermap_of_fan (V,ESTD V)) d) = 0)
-	==> #0.852 <= a_azim 3 V d`.
+Lemma azimp_lo d: `d IN dart_of_fan (V,ESTD V)
+	/\ (p,q,r) = type_of_node (hypermap_of_fan (V,ESTD V)) d
+	/\ ~(p = 0)
+	==> #0.852 <= a_azim ((=) 3) V d`.
 Proof.
-move => [d_in]; rewrite NODE_TYPE_lemma // FST => neq.
-rewrite "let_RULE a_azim".
+move => [d_in]; rewrite NODE_TYPE_lemma // !PAIR_EQ => [] [->] neq.
+rewrite "let_RULE a_azim" (eq_sym `3`).
 set H := `hypermap_of_fan _`.
 rewrite real_div -SUM_RMUL -REAL_LE_NEG -SUM_NEG SUM_BOUND_GEN finite_sets andTb.
 rewrite -CARD_EQ_0 // neq /= real_div inE => x [x_in] card_x.
@@ -172,9 +206,9 @@ Section Hi.
 Hypothesis ineq: "(hd (Ineq.getexact \"5490182221\")).ineq".
 
 Lemma azimp_hi d: `d IN dart_of_fan (V,ESTD V) 
-	==> a_azim 3 V d <= #1.9`.
+	==> a_azim ((=) 3) V d <= #1.9`.
 Proof.
-move => d_in; rewrite "let_RULE a_azim".
+move => d_in; rewrite "let_RULE a_azim" (eq_sym `3`).
 set s := `GSPEC _`.
 case card0: `CARD s = 0` => /=.
   by rewrite card0 real_div REAL_INV_0 REAL_MUL_RZERO; arith.
@@ -196,22 +230,25 @@ End Hi.
 End A_azim3.
 
 
-(* A_azim4 *)
-Section A_azim4.
+(* A_azim4_excep *)
+Section A_azim4_excep.
+
+Variable p q r: `:num`.
 
 Section Lo.
 
 Hypothesis ineq: "(hd (Ineq.getexact \"2570626711\")).ineq".
 
 Lemma azimq_lo d: `d IN dart_of_fan (V,ESTD V) 
-	/\ ~(FST (SND (type_of_node (hypermap_of_fan (V,ESTD V)) d)) = 0)
-	==> #1.15 <= a_azim 4 V d`.
+	/\ (p,q,r) = type_of_node (hypermap_of_fan (V,ESTD V)) d
+	/\ ~(q = 0)
+	==> #1.15 <= a_azim ((=) 4) V d`.
 Proof.
-move => [d_in]; rewrite NODE_TYPE_lemma // SND FST => neq.
-rewrite "let_RULE a_azim".
+move => [d_in]; rewrite NODE_TYPE_lemma // !PAIR_EQ GE => [] [->] neq.
+rewrite "let_RULE a_azim" (eq_sym `4`).
 set H := `hypermap_of_fan _`.
 rewrite real_div -SUM_RMUL -REAL_LE_NEG -SUM_NEG SUM_BOUND_GEN finite_sets andTb.
-rewrite -CARD_EQ_0 // neq /= real_div inE => x [x_in] card_x.
+rewrite -CARD_EQ_0 // neq /= real_div inE => x [x_in] card_x /=.
 rewrite -REAL_NEG_LMUL REAL_LE_NEG REAL_LE_RMUL REAL_LE_INV ?REAL_POS // andbT.
 move: (h_fan); rewrite lp_fan => h_fan2.
 have x_in: `x IN dart_of_fan (V,ESTD V)`.
@@ -221,8 +258,35 @@ have := "GEN_ALL Tame_inequalities.DIH_Y_INEQ" ineq
 	`y1_fan x` `y2_fan x` `y3_fan (V,ESTD V) x`
 	`y4'_fan (V,ESTD V) x` `y5_fan (V,ESTD V) x` `y6_fan x`.
 rewrite INEQ_ALT !"GEN_ALL ALL" !eqs /=; "ANTS_TAC".
-  rewrite !y_bounds // y4'_hi // (y4'_lo_2h0 `4`) //.
-  by rewrite h_fan List_hypermap.darts_k inE H_def dartH x_in card_x; arith.
+  rewrite !y_bounds // y4'_hi // (y4'_lo_2h0 `CARD (face H x)`) //.
+  by rewrite h_fan List_hypermap.darts_k inE H_def dartH x_in; move: card_x; arith.
+case => //.
+case: x x_in => v w vw_in.
+rewrite !(ys_eq fanV vw_in f_surr) //.
+by apply: contraLR; rewrite REAL_NOT_LE "let_RULE Tame_lemmas.fully_surrounded_delta_pos".
+Qed.
+
+Lemma azimr_lo d: `d IN dart_of_fan (V,ESTD V) 
+	/\ (p,q,r) = type_of_node (hypermap_of_fan (V,ESTD V)) d
+	/\ ~(r = 0)
+	==> #1.15 <= a_azim ((<=) 5) V d`.
+Proof.
+move => [d_in]; rewrite NODE_TYPE_lemma // !PAIR_EQ GE => [] [->] neq.
+rewrite "let_RULE a_azim".
+set H := `hypermap_of_fan _`.
+rewrite real_div -SUM_RMUL -REAL_LE_NEG -SUM_NEG SUM_BOUND_GEN finite_sets andTb.
+rewrite -CARD_EQ_0 // neq /= real_div inE => x [x_in] card_x /=.
+rewrite -REAL_NEG_LMUL REAL_LE_NEG REAL_LE_RMUL REAL_LE_INV ?REAL_POS // andbT.
+move: (h_fan); rewrite lp_fan => h_fan2.
+have x_in: `x IN dart_of_fan (V,ESTD V)`.
+  by move: d_in; rewrite -dartH => /lemma_node_subset; rewrite SUBSET; apply.
+rewrite azim_fan_eq_dih_y // REAL_LT_IMP_LE -real_gt.
+have := "GEN_ALL Tame_inequalities.DIH_Y_INEQ" ineq
+	`y1_fan x` `y2_fan x` `y3_fan (V,ESTD V) x`
+	`y4'_fan (V,ESTD V) x` `y5_fan (V,ESTD V) x` `y6_fan x`.
+rewrite INEQ_ALT !"GEN_ALL ALL" !eqs /=; "ANTS_TAC".
+  rewrite !y_bounds // y4'_hi // (y4'_lo_2h0 `CARD (face H x)`) //.
+  by rewrite h_fan List_hypermap.darts_k inE H_def dartH x_in; move: card_x; arith.
 case => //.
 case: x x_in => v w vw_in.
 rewrite !(ys_eq fanV vw_in f_surr) //.
@@ -233,8 +297,24 @@ End Lo.
 
 Section Hi.
 
-Lemma azimq_hi d: `d IN dart_of_fan (V,ESTD V) 
-	==> a_azim 4 V d <= pi`.
+Lemma azimq_hi d: `d IN dart_of_fan (V,ESTD V)
+	==> a_azim ((=) 4) V d <= pi`.
+Proof.
+move => d_in; rewrite "let_RULE a_azim" (eq_sym `4`).
+set s := `GSPEC _`.
+case card0: `CARD s = 0` => /=.
+  by rewrite card0 real_div REAL_INV_0 REAL_MUL_RZERO; move: PI_POS; arith.
+have gt0: `&0 < &(CARD s)` by rewrite REAL_LT_LE REAL_POS REAL_OF_NUM_EQ.
+rewrite -(REAL_LE_LMUL_EQ gt0) a_sum_mul -?s_def // s_def.
+rewrite SUM_BOUND -s_def finite_sets andTb inE => x [x_in_n] card_x.
+have x_in: `x IN dart_of_fan (V,ESTD V)`.
+  by move: d_in; rewrite -dartH => /lemma_node_subset; rewrite SUBSET; apply.
+move: h_fan; rewrite lp_fan => h_fan.
+by rewrite azim_hi.
+Qed.
+
+Lemma azimr_hi d: `d IN dart_of_fan (V,ESTD V) 
+	==> a_azim ((<=) 5) V d <= pi`.
 Proof.
 move => d_in; rewrite "let_RULE a_azim".
 set s := `GSPEC _`.
@@ -251,7 +331,74 @@ Qed.
 
 End Hi.
 
-End A_azim4.
+End A_azim4_excep.
+
+
+(* A_tau *)
+Section A_tau.
+
+Variables p q r: `:num`.
+
+Hypothesis h_main: `lp_main_estimate`.
+
+Lemma taup_lo d: `d IN dart_of_fan (V,ESTD V)
+	==> &0 <= a_tau ((=) 3) V d`.
+Proof.
+move => d_in; rewrite "let_RULE a_tau" (eq_sym `3`).
+set s := `GSPEC _`.
+rewrite real_div REAL_LE_MUL REAL_LE_INV ?REAL_POS // andbT.
+rewrite SUM_POS_LE -s_def finite_sets andTb inE => x [x_in_n] card_f /=.
+rewrite (ineq_tau3_tauVEF_std h_fan) /=; split.
+by move => v1 v2 v3 cond; move: h_main; rewrite lp_main_estimate => -> //.
+rewrite List_hypermap.darts_k inE card_f /=.
+by move: d_in; rewrite -dartH => /lemma_node_subset; rewrite SUBSET; apply.
+Qed.
+
+Lemma tauq_lo d: `d IN dart_of_fan (V,ESTD V)
+	/\ (p,q,r) = type_of_node (hypermap_of_fan (V,ESTD V)) d
+	/\ ~(q = 0)
+	==> #0.206 <= a_tau ((=) 4) V d`.
+Proof.
+move => [d_in]; rewrite NODE_TYPE_lemma // !PAIR_EQ GE => [] [->] neq.
+rewrite "let_RULE a_tau" (eq_sym `4`).
+set H := `hypermap_of_fan _`.
+rewrite real_div -SUM_RMUL -REAL_LE_NEG -SUM_NEG SUM_BOUND_GEN finite_sets andTb.
+rewrite -CARD_EQ_0 // neq /= real_div inE => x [x_in] card_x /=.
+rewrite -REAL_NEG_LMUL REAL_LE_NEG REAL_LE_RMUL REAL_LE_INV ?REAL_POS // andbT.
+rewrite -H_def (ineq_tau4_tauVEF_std h_fan) /=; split.
+  by move => v1 v2 v3 cond; move: h_main; rewrite lp_main_estimate => -> //.
+rewrite List_hypermap.darts_k inE H_def card_x /=.
+by move: d_in; rewrite -dartH => /lemma_node_subset; rewrite SUBSET; apply.
+Qed.
+
+Lemma taur_lo d: `d IN dart_of_fan (V,ESTD V)
+	/\ (p,q,r) = type_of_node (hypermap_of_fan (V,ESTD V)) d
+	/\ ~(r = 0)
+	==> #0.4819 <= a_tau ((<=) 5) V d`.
+Proof.
+move => [d_in]; rewrite NODE_TYPE_lemma // !PAIR_EQ GE => [] [->] neq.
+rewrite "let_RULE a_tau".
+set H := `hypermap_of_fan _`.
+rewrite real_div -SUM_RMUL -REAL_LE_NEG -SUM_NEG SUM_BOUND_GEN finite_sets andTb.
+rewrite -CARD_EQ_0 // neq /= real_div inE => x [x_in_n] card_x /=.
+rewrite -REAL_NEG_LMUL REAL_LE_NEG REAL_LE_RMUL REAL_LE_INV ?REAL_POS // andbT.
+have x_in: `x IN dart H`.
+  by move: d_in; rewrite -dartH => /lemma_node_subset; rewrite SUBSET; apply.
+have := Crttxat_tame.CRTTXAT contrV (fully_surrounded_perimeter_bound f_surr fanV) Jgtdebu.JGTDEBU4.
+rewrite tame_9a H_def => card_f_ineq.
+have: `CARD (face H x) = 5 \/ CARD (face H x) = 6`.
+  by move: (card_f_ineq x_in) card_x; arith.
+case => card_eq.
+  rewrite -H_def (ineq_tau5_tauVEF_std h_fan) /=; split.
+    by move => v1 v2 v3 cond; move: h_main; rewrite lp_main_estimate => -> //.
+  by rewrite List_hypermap.darts_k inE H_def.
+apply: REAL_LE_TRANS; exists `#0.712`; split; first by arith.
+rewrite -H_def (ineq_tau6_tauVEF_std h_fan) /=; split.
+  by move => v1 v2 v3 cond; move: h_main; rewrite lp_main_estimate => -> //.
+by rewrite List_hypermap.darts_k inE H_def.
+Qed.
+
+End A_tau.
 
 
 (* Ineqs *)
@@ -265,10 +412,10 @@ Let aux_ineq n a b d: `(!x. x IN darts_k n (hypermap_of_fan (V,ESTD V))
 	/\ d IN dart_of_fan (V,ESTD V) /\
 	~(CARD {y | y IN node (hypermap_of_fan (V,ESTD V)) d
 		/\ CARD (face (hypermap_of_fan (V,ESTD V)) y) = n} = 0)
-	==> &0 <= a_tau n V d + a * a_azim n V d + b`.
+	==> &0 <= a_tau ((=) n) V d + a * a_azim ((=) n) V d + b`.
 Proof.
 move =>[ineq] [d_in] card_n0.
-rewrite "let_RULE a_tau" "let_RULE a_azim".
+rewrite "let_RULE a_tau" "let_RULE a_azim" (eq_sym n).
 set H := `hypermap_of_fan _`.
 set s := `GSPEC _`.
 have fin_s: `FINITE s` by rewrite -s_def.
@@ -289,9 +436,10 @@ Hypothesis ineq: "(hd (Ineq.getexact \"3296257235\")).ineq".
 
 Lemma p1_ineq d: `d IN dart_of_fan (V,ESTD V) 
 	/\ ~(FST (type_of_node (hypermap_of_fan (V,ESTD V)) d) = 0)
-	==> &0 <= a_tau 3 V d + #0.626 * a_azim 3 V d - #0.77`.
+	==> #0.77 <= a_tau ((=) 3) V d + #0.626 * a_azim ((=) 3) V d`.
 Proof.
-move => [d_in]; rewrite NODE_TYPE_lemma // FST real_sub => neq0.
+rewrite -REAL_SUB_LE real_sub -REAL_ADD_ASSOC.
+move => [d_in]; rewrite NODE_TYPE_lemma // FST => neq0.
 apply: (aux_ineq neq0 d_in) => x x_in3; rewrite aux_ge -real_sub.
 move: (x_in3);  rewrite List_hypermap.darts_k inE dartH => [] [x_in] _.
 move: h_fan; rewrite lp_fan => h_fan.
@@ -309,8 +457,9 @@ Hypothesis ineq: "(hd (Ineq.getexact \"8519146937\")).ineq".
 
 Lemma p2_ineq d: `d IN dart_of_fan (V,ESTD V) 
 	/\ ~(FST (type_of_node (hypermap_of_fan (V,ESTD V)) d) = 0)
-	==> &0 <= a_tau 3 V d - #0.259 * a_azim 3 V d + #0.32`.
+	==> -- #0.32 <= a_tau ((=) 3) V d - #0.259 * a_azim ((=) 3) V d`.
 Proof.
+rewrite -REAL_SUB_LE real_sub REAL_NEG_NEG.
 move => [d_in]; rewrite NODE_TYPE_lemma // FST real_sub -REAL_MUL_LNEG -REAL_ADD_ASSOC => neq0.
 apply: (aux_ineq neq0 d_in) => x x_in3; rewrite aux_ge.
 move: (x_in3);  rewrite List_hypermap.darts_k inE dartH => [] [x_in] _.
@@ -329,8 +478,9 @@ Hypothesis ineq: "(hd (Ineq.getexact \"4667071578\")).ineq".
 
 Lemma p3_ineq d: `d IN dart_of_fan (V,ESTD V) 
 	/\ ~(FST (type_of_node (hypermap_of_fan (V,ESTD V)) d) = 0)
-	==> &0 <= a_tau 3 V d - #0.507 * a_azim 3 V d + #0.724`.
+	==> -- #0.724 <= a_tau ((=) 3) V d - #0.507 * a_azim ((=) 3) V d`.
 Proof.
+rewrite -REAL_SUB_LE real_sub REAL_NEG_NEG.
 move => [d_in]; rewrite NODE_TYPE_lemma // FST real_sub -REAL_MUL_LNEG -REAL_ADD_ASSOC => neq0.
 apply: (aux_ineq neq0 d_in) => x x_in3; rewrite aux_ge.
 move: (x_in3);  rewrite List_hypermap.darts_k inE dartH => [] [x_in] _.
@@ -351,9 +501,10 @@ Hypothesis ineq3: "(hd (Ineq.getexact \"3287695934\")).ineq".
 
 Lemma q1_ineq d: `d IN dart_of_fan (V,ESTD V) 
 	/\ ~(FST (SND (type_of_node (hypermap_of_fan (V,ESTD V)) d)) = 0)
-	==> &0 <= a_tau 4 V d + #4.72 * a_azim 4 V d - #6.248`.
+	==> #6.248 <= a_tau ((=) 4) V d + #4.72 * a_azim ((=) 4) V d`.
 Proof.
-move => [d_in]; rewrite NODE_TYPE_lemma // SND FST real_sub => neq0.
+rewrite -REAL_SUB_LE real_sub -REAL_ADD_ASSOC.
+move => [d_in]; rewrite NODE_TYPE_lemma // SND FST => neq0.
 apply: (aux_ineq neq0 d_in) => x x_in4.
 move: (x_in4);  rewrite List_hypermap.darts_k inE dartH => [] [x_in] _.
 by rewrite -real_sub (ineq122_tauVEF ineq1 ineq2 ineq3) !y_bounds.
@@ -370,9 +521,10 @@ Hypothesis ineq3: "(hd (Ineq.getexact \"3287695934\")).ineq".
 
 Lemma q2_ineq d: `d IN dart_of_fan (V,ESTD V) 
 	/\ ~(FST (SND (type_of_node (hypermap_of_fan (V,ESTD V)) d)) = 0)
-	==> &0 <= a_tau 4 V d + #0.972 * a_azim 4 V d - #1.707`.
+	==> #1.707 <= a_tau ((=) 4) V d + #0.972 * a_azim ((=) 4) V d`.
 Proof.
-move => [d_in]; rewrite NODE_TYPE_lemma // SND FST real_sub => neq0.
+rewrite -REAL_SUB_LE real_sub -REAL_ADD_ASSOC.
+move => [d_in]; rewrite NODE_TYPE_lemma // SND FST => neq0.
 apply: (aux_ineq neq0 d_in) => x x_in4.
 move: (x_in4);  rewrite List_hypermap.darts_k inE dartH => [] [x_in] _.
 by rewrite -real_sub (ineq121_tauVEF ineq1 ineq2 ineq3) !y_bounds.
@@ -389,9 +541,10 @@ Hypothesis ineq3: "(hd (Ineq.getexact \"3287695934\")).ineq".
 
 Lemma q3_ineq d: `d IN dart_of_fan (V,ESTD V) 
 	/\ ~(FST (SND (type_of_node (hypermap_of_fan (V,ESTD V)) d)) = 0)
-	==> &0 <= a_tau 4 V d + #0.7573 * a_azim 4 V d - #1.433`.
+	==> #1.433 <= a_tau ((=) 4) V d + #0.7573 * a_azim ((=) 4) V d`.
 Proof.
-move => [d_in]; rewrite NODE_TYPE_lemma // SND FST real_sub => neq0.
+rewrite -REAL_SUB_LE real_sub -REAL_ADD_ASSOC.
+move => [d_in]; rewrite NODE_TYPE_lemma // SND FST => neq0.
 apply: (aux_ineq neq0 d_in) => x x_in4.
 move: (x_in4);  rewrite List_hypermap.darts_k inE dartH => [] [x_in] _.
 by rewrite -real_sub (ineq120_tauVEF ineq1 ineq2 ineq3) !y_bounds.
@@ -411,8 +564,9 @@ Hypothesis h_y4: "(hd (Ineq.getexact \"3287695934\")).ineq".
 
 Lemma q4_ineq d: `d IN dart_of_fan (V,ESTD V) 
 	/\ ~(FST (SND (type_of_node (hypermap_of_fan (V,ESTD V)) d)) = 0)
-	==> &0 <= a_tau 4 V d - #0.453 * a_azim 4 V d + #0.777`.
+	==> -- #0.777 <= a_tau ((=) 4) V d - #0.453 * a_azim ((=) 4) V d`.
 Proof.
+rewrite -REAL_SUB_LE real_sub REAL_NEG_NEG.
 move => [d_in]; rewrite NODE_TYPE_lemma // SND FST real_sub -REAL_MUL_LNEG -REAL_ADD_ASSOC => neq0.
 apply: (aux_ineq neq0 d_in) => x x_in4; rewrite REAL_ADD_ASSOC REAL_MUL_LNEG -real_sub.
 move: (x_in4);  rewrite List_hypermap.darts_k inE dartH => [] [x_in] _.
@@ -421,3 +575,96 @@ Qed.
 
 End Q4.
 
+End Ineqs.
+
+"let add_ineqs_hyp =
+  let imp_th = (UNDISCH o MATCH_MP EQ_IMP) kcblrqc_ineq_def in
+  let ths = CONJUNCTS imp_th in
+    fun th ->
+      itlist PROVE_HYP ths th".
+
+"let ineq_table =
+	let r = add_ineqs_hyp o UNDISCH_ALL o SPEC_ALL o REWRITE_RULE[GSYM IMP_IMP] o let_RULE in
+	let neg = ONCE_REWRITE_RULE[GSYM REAL_LE_NEG] in
+	let move_l = ONCE_REWRITE_RULE[GSYM REAL_SUB_0] in
+	[
+		\"anglesum_lo\", r anglesum_lo_approx;
+		\"anglesum_hi\", (neg o r) anglesum_hi_approx;
+		\"tausum\", (SYM o move_l o r) tausum_eq;
+		\"azimp_lo\", (r o r) azimp_lo;
+		\"azimp_hi\", (neg o r o r) azimp_hi;
+		\"azimq_lo\", (r o r) azimq_lo;
+		\"azimq_hi\", (neg o r o r) azimq_hi;
+		\"azimr_lo\", (r o r) azimr_lo;
+		\"azimr_hi\", (neg o r o r) azimr_hi;
+		\"taup_lo\", (r o r) taup_lo;
+		\"tauq_lo\", (r o r) tauq_lo;
+		\"p1\", (r o r) p1_ineq;
+		\"p2\", (r o r) p2_ineq;
+		\"p3\", (r o r) p3_ineq;
+		\"q3\", (r o r) q3_ineq;
+		\"q4\", (r o r) q4_ineq;
+	]".
+
+"let mul_ineq c_tm ineq_th =
+	if (is_eq (concl ineq_th)) then
+	  AP_TERM (mk_comb (`( * ):real->real->real`, c_tm)) ineq_th
+	else
+	  let pos_ineq = REAL_ARITH (mk_binary \"real_le\" (`&0`, c_tm)) in
+	    MATCH_MP REAL_LE_LMUL (CONJ pos_ineq ineq_th)".
+
+"let add_ineqs th1 th2 = MATCH_MP REAL_LE_ADD2 (CONJ th1 th2)".
+
+"let get_ineq (p,q,r) (name, c_tm) =
+	let p_tm = mk_small_numeral p and
+	    q_tm = mk_small_numeral q and
+	    r_tm = mk_small_numeral r in
+	let th0 = assoc name ineq_table in
+	let type_tm = mk_pair (p_tm, mk_pair (q_tm, r_tm)) in
+	let type_th = ASSUME (mk_eq (`type_of_node (hypermap_of_fan (V,ESTD V)) d`, type_tm)) in
+	let th1 = (DISCH_ALL o INST[p_tm, `p:num`; q_tm, `q:num`; r_tm, `r:num`]) th0 in
+	let th2 = (UNDISCH_ALL o REWRITE_RULE[type_th; ARITH]) th1 in
+	let th3 = mul_ineq c_tm th2 in
+	  if (is_eq (concl th3)) then
+	    MATCH_MP REAL_EQ_IMP_LE th3
+	  else
+	    th3".
+
+
+"let data1 = [
+	(4,0,0), [\"anglesum_lo\", `#0.259`; \"p2\", `#4.0`];
+	(5,0,0), [];
+	(6,0,0), [\"anglesum_hi\", `#0.626`; \"p1\", `#6.0`];
+	(7,0,0), [\"anglesum_hi\", `#0.626`; \"p1\", `#7.0`];
+	(2,1,0), [\"anglesum_lo\", `#0.453`; \"p2\", `#0.435`; 
+		\"p3\", `#1.565`; \"q4\", `#1.0`; \"azimp_lo\", `#0.00012`];
+	(3,1,0), [\"anglesum_lo\", `#0.259`; \"p2\", `#3.0`; 
+		\"q4\", `#0.572`; \"tauq_lo\", `#0.428`; \"azimq_lo\", `#0.000116`];
+	(4,1,0), [\"anglesum_hi\", `#0.626`; \"p1\", `#4.0`; 
+		\"q3\", `#0.8266`; \"tauq_lo\", `#0.1734`; \"azimq_lo\", `#0.00001582`];
+	(5,1,0), [\"anglesum_hi\", `#0.626`; \"p1\", `#5.0`; 
+		\"q3\", `#0.8266`; \"tauq_lo\", `#0.1734`; \"azimq_lo\", `#0.00001582`];
+	(1,2,0), [\"anglesum_lo\", `#0.453`; \"p2\", `#0.218`; 
+		\"p3\", `#0.782`; \"q4\", `#2.0`; \"azimp_hi\", `#0.000064`];
+	(2,2,0), [\"taup_lo\", `#2.0`; \"tauq_lo\", `#2.0`];
+	(3,2,0), [\"anglesum_hi\", `#0.626`; \"p1\", `#3.0`; 
+		\"q3\", `#1.6532`; \"tauq_lo\", `#0.3468`; \"azimq_lo\", `#0.00003164`];
+	(0,3,0), [\"tauq_lo\", `#3.0`];
+	(1,3,0), [\"taup_lo\", `#1.0`; \"tauq_lo\", `#3.0`];
+	(2,3,0), [\"anglesum_hi\", `#0.7573`; \"p1\", `#2.0`; 
+		\"q3\", `#3.0`; \"azimp_lo\", `#0.2626`];
+	(0,4,0), [\"anglesum_hi\", `#0.7573`; \"q3\", `#4.0`];
+]".
+
+"let get_b_tame_ineq node_type =
+	let data = assoc node_type data1 @ [\"tausum\", `-- &1`] in
+	let ths = map (get_ineq node_type) data in
+	let sum = end_itlist add_ineqs ths in
+	let conv = BINOP_CONV (NUM_REDUCE_CONV THENC REWRITE_CONV[DECIMAL] THENC REAL_POLY_CONV) in
+	  CONV_RULE conv sum".
+
+
+Section KCBLRQC.
+
+Hypothesis h_main: `lp_main_estimate`.
+Hypothesis ineqs: `kcblrqc_ineq_def`.

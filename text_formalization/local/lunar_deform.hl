@@ -19,17 +19,24 @@ end;;
 
 module Lunar_deform = struct
 
+
+
+
 (*
 
 
 needs "/home/user1/flyspeck/working/h.hl";;
-COLL_IN_AFF_GT_INTER_EMPTY
+needs "/home/user1/flyspeck/working/oxl_2012.hl";;
+
+
+
+COLL_IN_AFF_GT_INTER_EMPTY;;
 
 
 *)
 
 
-
+Deformation.XRECQNS;;
 
 open Localization;;
 open Wrgcvdr_cizmrrh;;
@@ -39,7 +46,7 @@ open Localization;;
 open Hypermap;;
 open Hypermap_iso;;
 open Conforming;;
-
+open Sphere;;
 
 
 (* ================================== *)
@@ -3570,11 +3577,475 @@ ASM_REWRITE_TAC[]]);;
 
 
 
+
+
+let NORM_CROSS_LE = prove_by_refinement(` norm ( u cross v) <= norm u * norm v `,
+[MP_TAC (SPEC_ALL Trigonometry1.cross_mag);
+SIMP_TAC[];
+MP_TAC SIN_BOUNDS;
+ONCE_REWRITE_TAC[REAL_ARITH` a <= b <=> &0 <= b - a `];
+REWRITE_TAC[REAL_ARITH` a * b - a * b * c = a * b * ( &1 - c ) `];
+MP_TAC NORM_POS_LE;
+REPEAT STRIP_TAC;
+ASM_MESON_TAC[REAL_LE_MUL; NORM_POS_LE]]);;
+
+
+
+
+
+let CONT_ATREAL_REAL_CONTS = prove_by_refinement (` f continuous atreal r 
+==> (\r. ((f r) cross y ) dot ( x cross y)) real_continuous atreal r `,
+[REWRITE_TAC[real_continuous_atreal; continuous_atreal];
+REPEAT STRIP_TAC;
+REWRITE_TAC[GSYM DOT_LSUB];
+REWRITE_TAC[VEC3_RULE` x cross y - z cross y = ( x - z) cross y `];
+ASM_CASES_TAC` (y:real^3) = vec 0 `;
+ASM_REWRITE_TAC[CROSS_RZERO; DOT_RZERO; REAL_ABS_0];
+EXISTS_TAC` e: real `;
+ASM_REWRITE_TAC[];
+ASM_CASES_TAC` (x:real^3) = vec 0 `;
+ASM_REWRITE_TAC[CROSS_LZERO; DOT_RZERO; REAL_ABS_0];
+EXISTS_TAC` e:real `;
+ASM_REWRITE_TAC[];
+FIRST_X_ASSUM (MP_TAC o (SPEC` e / (norm (x:real^3) * norm (y:real^3) * norm (y:real^3) ) `));
+ANTS_TAC;
+MATCH_MP_TAC REAL_LT_DIV;
+ASM_REWRITE_TAC[];
+MATCH_MP_TAC REAL_LT_MUL;
+ASM_REWRITE_TAC[NORM_POS_LT];
+MATCH_MP_TAC REAL_LT_MUL;
+ASM_REWRITE_TAC[NORM_POS_LT];
+STRIP_TAC;
+EXISTS_TAC` d:real `;
+FIRST_X_ASSUM NHANH;
+ASM_REWRITE_TAC[];
+
+REPEAT STRIP_TAC;
+MP_TAC (ISPECL [` ( f (x': real) - f r ) cross y `;` x cross y `] NORM_CAUCHY_SCHWARZ_ABS);
+ASSUME_TAC (SPECL [` (f:real -> real^3) x' - f r `;` y: real^3 `] (GEN_ALL NORM_CROSS_LE));
+MATCH_MP_TAC (REAL_ARITH` b < c ==> a <= b ==> a < c `);
+
+SUBGOAL_THEN` norm ((f (x':real) - f r) cross y) * norm (x cross y) <= (norm ( f x' - f r) * norm y ) * norm (x cross y ) ` ASSUME_TAC;
+MATCH_MP_TAC REAL_LE_RMUL;
+ASM_REWRITE_TAC[NORM_POS_LE];
+
+DOWN;
+MATCH_MP_TAC (REAL_ARITH` b < c ==> a <= b ==> a < c `);
+
+MP_TAC (
+SPECL [` x:real^3 `;` y: real^3 `] (GEN_ALL NORM_CROSS_LE));
+STRIP_TAC;
+SUBGOAL_THEN` &0 <= norm ((f: real -> real^3) x' - f r) * norm (y:real^3) ` ASSUME_TAC;
+MATCH_MP_TAC REAL_LE_MUL;
+REWRITE_TAC[NORM_POS_LE];
+UNDISCH_TAC` norm (x cross y) <= norm x * norm y `;
+DOWN THEN PHA;
+NHANH Real_ext.REAL_LE_RMUL_IMP;
+DOWN THEN DOWN;
+REWRITE_TAC[dist];
+REPEAT STRIP_TAC;
+ONCE_REWRITE_TAC[REAL_MUL_SYM];
+DOWN;
+MATCH_MP_TAC (REAL_ARITH` b < c ==> a <= b ==> a < c `);
+SUBGOAL_THEN ` &0 < norm (x:real^3) /\ &0 < norm (y:real^3) ` MP_TAC;
+ASM_REWRITE_TAC[NORM_POS_LT];
+STRIP_TAC;
+ONCE_REWRITE_TAC[REAL_ARITH` (x * y ) * a * y = a * x * y * y `];
+SUBGOAL_THEN` &0 < norm (x:real^3) * norm y * norm (y:real^3) ` MP_TAC;
+DOWN THEN DOWN;
+MESON_TAC[REAL_LT_MUL];
+UNDISCH_TAC` norm ((f:real -> real^3) x' - f r) < e / (norm (x:real^3) * norm y * norm (y:real^3)) `;
+PHA;
+NHANH REAL_LT_RMUL;
+STRIP_TAC THEN DOWN;
+ASM_SIMP_TAC[REAL_FIELD` &0 < a ==> e / a * a = e `]]);;
+
+
+
+
+
+
+
+
+let CONTINUOUS_POS_PRES = prove_by_refinement (
+` ~ collinear {(x:real^3),y, vec 0} /\ f r = a % x + b % y /\ &0 < a /\
+f continuous atreal r
+==> ? e. &0 < e /\ ! t. abs t < e ==> ! t1 t2. f ( r + t ) = t1 % x + t2 % y ==> &0 < t1 `,
+[NHANH  CONT_ATREAL_REAL_CONTS;
+REWRITE_TAC[real_continuous_atreal];
+STRIP_TAC;
+FIRST_ASSUM (MP_TAC o (SPEC` a * norm ( x cross y ) * norm ( x cross y ) `));
+ANTS_TAC;
+MATCH_MP_TAC REAL_LT_MUL;
+ASM_REWRITE_TAC[];
+MATCH_MP_TAC REAL_LT_MUL;
+REWRITE_TAC[TAUT` a /\ a <=> a `];
+REWRITE_TAC[NORM_POS_LT; CROSS_EQ_0];
+UNDISCH_TAC` ~collinear {x, y:real^3, vec 0} `;
+SIMP_TAC[INSERT_COMM];
+STRIP_TAC;
+EXISTS_TAC` d: real `; ASM_REWRITE_TAC[] ;
+GEN_TAC;
+REPEAT STRIP_TAC;
+FIRST_ASSUM (MP_TAC o (SPEC` r + (t:real) `));
+ANTS_TAC;
+ASM_REWRITE_TAC[REAL_ARITH` (a + b) - a = b `];
+
+ASM_REWRITE_TAC[GSYM DOT_LSUB; VEC3_RULE` x cross z - y cross z = ( x - y) cross z `];
+REWRITE_TAC[VECTOR_ARITH` (t1 % x + t2 % y) - (a % x + b % y) = ( t1 - a ) % x + ( t2 - b ) % y `; CROSS_LADD; CROSS_LMUL; CROSS_REFL];
+REWRITE_TAC[VECTOR_ARITH` x + a % vec 0 = x `; DOT_LMUL; REAL_ABS_MUL; DOT_SQUARE_NORM];
+SUBGOAL_THEN` &0 <= norm (x cross y) pow 2 ` MP_TAC;
+REWRITE_TAC[REAL_LE_POW_2];
+
+REWRITE_TAC[GSYM REAL_ABS_REFL];
+SIMP_TAC[REAL_POW_2];
+
+REWRITE_TAC[REAL_ABS_REFL];
+REWRITE_TAC[REAL_ARITH` &0 <= a <=> a = &0 \/ &0 < a `];
+STRIP_TAC;
+ASM_SIMP_TAC[];
+REAL_ARITH_TAC;
+ASM_SIMP_TAC[REAL_LT_RMUL_EQ];
+UNDISCH_TAC` &0 < a `;
+REAL_ARITH_TAC]);;
+
+
+
+
+
+let IVS_RHO_NODE_V_IN_FF = prove_by_refinement(` local_fan (V,E,FF) /\ v IN V ==> ivs_rho_node1 FF v, v IN FF `,
+[NHANH Local_lemmas.LOCAL_FAN_RHO_NODE_PROS2;
+STRIP_TAC;
+FIRST_X_ASSUM (MP_TAC o (SPEC`ivs_rho_node1 FF v `));
+ANTS_TAC;
+MATCH_MP_TAC Local_lemmas1.LOCAL_FAN_IVS_IN_V;
+ASM_REWRITE_TAC[];
+ASSUME_TAC2 Local_lemmas1.LOCAL_FAN_RHO_NODE_IVS;
+ASM_REWRITE_TAC[]]);;
+
+
+
+
+
+let IN_AFF_GT_IMP_AZIMEQ = prove_by_refinement(
+` x IN aff_gt {u,v} {y} ==> azim u v w  x = azim u v w y `,
+[
+ASM_CASES_TAC` collinear {u,v,w:real^3} `;
+ASM_SIMP_TAC[AZIM_DEGENERATE];
+ASM_CASES_TAC` collinear {u,v,y:real^3} `;
+ASM_SIMP_TAC[AZIM_DEGENERATE];
+DOWN_TAC;
+NHANH Fan.th3b;
+STRIP_TAC;
+DOWN THEN DOWN;
+ASM_SIMP_TAC[COLLINEAR_3_AFFINE_HULL];
+MP_TAC (ISPECL [` {u, v:real^3} `;` {y:real^3} `] AFF_GT_SUBSET_AFFINE_HULL);
+REWRITE_TAC[SUBSET];
+DISCH_THEN NHANH;
+REPEAT STRIP_TAC;
+SUBGOAL_THEN` affine hull ({u, v:real^3} UNION {y}) = affine hull {u,v} ` ASSUME_TAC;
+MATCH_MP_TAC AFFINE_HULLS_EQ;
+REWRITE_TAC[SET_RULE` {a,b} UNION {c} = {c,a,b} `];
+CONJ_TAC;
+ONCE_REWRITE_TAC[INSERT_SUBSET];
+ASM_REWRITE_TAC[];
+REWRITE_TAC[Qzksykg.SET_SUBSET_AFFINE_HULL];
+MP_TAC (SPEC` {u,v:real^3} ` Qzksykg.SET_SUBSET_AFFINE_HULL);
+MATCH_MP_TAC (SET_RULE` a SUBSET b ==> c SUBSET a ==> c SUBSET b `);
+MATCH_MP_TAC HULL_MONO;
+CONV_TAC SET_RULE;
+FIRST_X_ASSUM SUBST_ALL_TAC;
+DOWN;
+ASM_SIMP_TAC[GSYM COLLINEAR_3_AFFINE_HULL; AZIM_DEGENERATE];
+DOWN_TAC;
+REWRITE_TAC[AZIM_EQ_IMP]]);;
+
+
+
+
+let IN_AFF_GT_IMP_AZIMEQ2 = 
+MESON[IN_AFF_GT_IMP_AZIMEQ]` x IN aff_gt {u, v} {y} ==> 
+! w. azim u v w x = azim u v w y `;;
+
+
+
+
+
+let NOT_COLL_IMP_ZERO_DETER = prove_by_refinement(` ~ collinear {vec 0, u, v } ==>
+(! a b. a % u + b % v = vec 0 <=> a = &0 /\ b = &0) `,
+[REWRITE_TAC[Local_lemmas1.COLL_EQ_DEPENDENT];
+STRIP_TAC;
+GEN_TAC THEN GEN_TAC;
+EQ_TAC;
+DOWN;
+MESON_TAC[];
+SIMP_TAC[VECTOR_MUL_LZERO; VECTOR_ADD_LID]]);;
+
+
+
+let CROSS_IN_SAME_DIRECTION = prove_by_refinement (` local_fan (V,E,FF) /\
+     v IN V /\
+     {ITER n (rho_node1 FF) v | n <= l} = U /\
+     plane P /\
+     vec 0 IN P /\
+     U SUBSET P /\
+v cross rho_node1 FF v = e
+     ==> (!i. i < l 
+              ==> ? k. &0 < k /\
+ITER i (rho_node1 FF) v cross ITER ( i + 1) (rho_node1 FF ) v = k % e ) `,
+[NHANH Local_lemmas.RHO_NODE_SET_IN_A_PLANE_IMP_POS_DIRECT;
+ASM_CASES_TAC` l = 0 `;
+ASM_REWRITE_TAC[ARITH_RULE` ~( n < 0) `];
+STRIP_TAC;
+SUBGOAL_THEN` {vec 0, v, rho_node1 FF v } SUBSET P ` ASSUME_TAC;
+ONCE_REWRITE_TAC[INSERT_SUBSET];
+ASM_REWRITE_TAC[];
+MATCH_MP_TAC SUBSET_TRANS;
+EXISTS_TAC` U: real^3 -> bool `;
+ASM_REWRITE_TAC[];
+REWRITE_TAC[INSERT_SUBSET; EMPTY_SUBSET];
+EXPAND_TAC "U";
+REWRITE_TAC[IN_ELIM_THM];
+CONJ_TAC;
+EXISTS_TAC` 0 `;
+REWRITE_TAC[ITER; ARITH_RULE` 0 <= l `];
+EXISTS_TAC` 1 `;
+REWRITE_TAC[ITER1];
+MATCH_MP_TAC (ARITH_RULE` ~( l = 0) ==> 1 <= l `);
+ASM_REWRITE_TAC[];
+ASSUME_TAC2 Local_lemmas.LOCAL_FAN_CHARACTER_OF_RHO_NODE2;
+DOWN THEN DOWN;
+PHA;
+UNDISCH_TAC` plane  (P: real^3 -> bool) `;
+PHA;
+NHANH Local_lemmas.THREE_NOT_COLL_DETER_PLANE;
+STRIP_TAC;
+NHANH (ARITH_RULE` i < (l:num) ==> i <= l /\ i + 1 <= l `);
+GEN_TAC THEN STRIP_TAC;
+SUBGOAL_THEN` ITER i (rho_node1 FF) v IN U /\ ITER (i + 1) (rho_node1 FF) v IN U` ASSUME_TAC;
+EXPAND_TAC "U";
+REWRITE_TAC[IN_ELIM_THM];
+DOWN THEN DOWN;
+MESON_TAC[];
+
+DOWN;
+UNDISCH_TAC` U SUBSET (P: real^3 -> bool) `;
+REWRITE_TAC[SUBSET];
+DISCH_THEN NHANH ;
+EXPAND_TAC "P";
+REWRITE_TAC[IN_ELIM_THM; AFFINE_HULL_3];
+STRIP_TAC;
+FIRST_X_ASSUM (ASSUME_TAC2 o (SPEC ` i:num `));
+DOWN;
+ASM_REWRITE_TAC[VECTOR_MUL_RZERO; VECTOR_ADD_LID; CROSS_LADD; CROSS_RADD];
+REWRITE_TAC[CROSS_LMUL; CROSS_RMUL; CROSS_REFL; VECTOR_MUL_LZERO; VECTOR_MUL_RZERO];
+REWRITE_TAC[VECTOR_ADD_LID; VECTOR_ADD_RID];
+ASM_REWRITE_TAC[VECTOR_MUL_ASSOC];
+ONCE_REWRITE_TAC[CROSS_SKEW];
+ASM_REWRITE_TAC[VECTOR_ARITH` (v' * w') % e + (w * v'') % --e = ((v' * w') - (w * v'')) % e `];
+REWRITE_TAC[DOT_LMUL];
+UNDISCH_TAC` ~collinear {vec 0, v, rho_node1 FF v} `;
+ASM_REWRITE_TAC[GSYM CROSS_EQ_0];
+REWRITE_TAC[GSYM DOT_POS_LT];
+SIMP_TAC[REAL_LT_MUL_EQ];
+STRIP_TAC;
+MESON_TAC[]]);;
+
+
+
+
+
+let ITER_CROSS_SAME_DIRECTION = prove_by_refinement
+(`local_fan (V,E,FF) /\
+     v IN V /\
+     {ITER n (rho_node1 FF) v | n <= l} = U /\
+     plane P /\
+     vec 0 IN P /\
+     U SUBSET P 
+     ==> (!i j. i < l /\ j < l
+               ==> ? k. &0 < k /\
+ITER i (rho_node1 FF) v cross ITER ( i + 1) (rho_node1 FF ) v = 
+k % (ITER j (rho_node1 FF) v cross ITER ( j + 1) (rho_node1 FF ) v) ) `,
+[STRIP_TAC;
+ABBREV_TAC ` e = v cross rho_node1 FF v `;
+ASSUME_TAC2 CROSS_IN_SAME_DIRECTION;
+FIRST_X_ASSUM NHANH;
+REPEAT STRIP_TAC;
+ASM_REWRITE_TAC[];
+EXISTS_TAC` k / (k': real) `;
+CONJ_TAC;
+MATCH_MP_TAC REAL_LT_DIV;
+ASM_REWRITE_TAC[];
+ASM_SIMP_TAC[REAL_FIELD` &0 < a ==> x / a * a = x `; VECTOR_MUL_ASSOC]]);;
+
+
+
+let ITER_IN_AFF_GT_2_1 = prove_by_refinement(` local_fan (V,E,FF) /\
+     v IN V /\
+     {ITER n (rho_node1 FF) v | n <= l} = U /\
+     plane P /\
+     vec 0 IN P /\
+     U SUBSET P
+==> (! i. i < l - 1 ==> 
+ITER ( i + 2) (rho_node1 FF) v IN aff_lt {vec 0, ITER (i + 1) (rho_node1 FF) v } {ITER i (rho_node1 FF ) v } ) `,
+[STRIP_TAC;
+ASSUME_TAC2 Local_lemmas.LOCAL_FAN_CHARACTER_OF_RHO_NODE3;
+GEN_TAC;
+FIRST_X_ASSUM (ASSUME_TAC o (SPEC` i:num `));
+STRIP_TAC;
+SUBGOAL_THEN` {vec 0, ITER i (rho_node1 FF) v, ITER ( i + 1) (rho_node1 FF) v} SUBSET P` ASSUME_TAC;
+ONCE_REWRITE_TAC[INSERT_SUBSET];
+ASM_REWRITE_TAC[];
+MATCH_MP_TAC SUBSET_TRANS;
+EXISTS_TAC` U: real^3 -> bool`;
+ASM_REWRITE_TAC[INSERT_SUBSET; EMPTY_SUBSET];
+EXPAND_TAC "U";
+REWRITE_TAC[IN_ELIM_THM];
+CONJ_TAC;
+EXISTS_TAC` i:num `;
+ASM_REWRITE_TAC[];
+DOWN;
+ARITH_TAC;
+
+EXISTS_TAC` i + 1 `;
+ASM_REWRITE_TAC[];
+DOWN;
+ARITH_TAC;
+UNDISCH_TAC` ~collinear
+       {vec 0, ITER i (rho_node1 FF) v, ITER (i + 1) (rho_node1 FF) v} `;
+UNDISCH_TAC` {vec 0, ITER i (rho_node1 FF) v, ITER (i + 1) (rho_node1 FF) v} SUBSET
+      P `;
+UNDISCH_TAC` plane   (P:real^3 -> bool) `;
+PHA;
+NHANH Local_lemmas.THREE_NOT_COLL_DETER_PLANE;
+STRIP_TAC;
+SUBGOAL_THEN` ITER (i + 2) (rho_node1 FF) v IN U ` MP_TAC;
+EXPAND_TAC "U";
+REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` i + 2 `;
+REWRITE_TAC[];
+UNDISCH_TAC` i < l - 1 `;
+ARITH_TAC;
+UNDISCH_TAC` (U:real^3 -> bool) SUBSET P `;
+REWRITE_TAC[SUBSET];
+STRIP_TAC;
+FIRST_ASSUM NHANH;
+EXPAND_TAC "P";
+REWRITE_TAC[IN_ELIM_THM; AFFINE_HULL_3];
+STRIP_TAC;
+MP_TAC ITER_CROSS_SAME_DIRECTION;
+ANTS_TAC;
+ASM_REWRITE_TAC[SUBSET];
+DISCH_THEN (MP_TAC o (SPECL [` i + 1`;` i:num `]));
+ASSUME_TAC2 (ARITH_RULE` i < l - 1 ==> i + 1 < l `);
+ASSUME_TAC2 (ARITH_RULE` i < l - 1 ==> i < l `);
+ANTS_TAC;
+ASM_REWRITE_TAC[];
+ASM_REWRITE_TAC[ARITH_RULE` (a + 1) + 1 = a + 2 `; VECTOR_MUL_RZERO; VECTOR_ADD_LID];
+REWRITE_TAC[CROSS_RADD; CROSS_RMUL; CROSS_REFL; VECTOR_MUL_RZERO; VECTOR_ADD_RID];
+STRIP_TAC;
+DOWN;
+ABBREV_TAC` e1 = ITER i (rho_node1 FF) v cross ITER (i + 1) (rho_node1 FF) v `;
+ONCE_REWRITE_TAC[CROSS_SKEW; VECTOR_ARITH` a % -- x = ( -- a ) % x `];
+ASM_REWRITE_TAC[];
+SUBGOAL_THEN` ~( e1:real^3 = vec 0) ` MP_TAC;
+EXPAND_TAC "e1";
+REWRITE_TAC[CROSS_EQ_0];
+ASM_REWRITE_TAC[];
+SIMP_TAC[VECTOR_MUL_RCANCEL; VECTOR_ARITH` a % -- x = ( -- a ) % x `];
+STRIP_TAC THEN STRIP_TAC;
+
+
+UNDISCH_TAC` ~collinear
+       {vec 0, ITER i (rho_node1 FF) v, ITER (i + 1) (rho_node1 FF) v} `;
+ONCE_REWRITE_TAC[Collect_geom.PER_SET2];
+NHANH Fan.th3a;
+NHANH AFF_LT_2_1;
+SIMP_TAC[Collect_geom.PER_SET2];
+STRIP_TAC;
+REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC `u: real `;
+EXISTS_TAC` w: real `;
+EXISTS_TAC` v':real`;
+ASM_REWRITE_TAC[VECTOR_MUL_RZERO; VECTOR_ADD_LID];
+CONJ_TAC;
+UNDISCH_TAC` --v' = (k: real) `;
+UNDISCH_TAC ` &0 < k `;
+REAL_ARITH_TAC;
+CONJ_TAC;
+UNDISCH_TAC` u + v' + w = &1 `;
+REAL_ARITH_TAC;
+CONV_TAC VECTOR_ARITH]);;
+
+
+
+
+search[` v cross rho_node1 FF v `];;
+
+
+let AZIM_PI_ITER_LOCAL_FAN = prove_by_refinement
+(`local_fan (V,E,FF) /\
+     v IN V /\
+     {ITER n (rho_node1 FF) v | n <= l} = U /\
+     plane P /\
+     vec 0 IN P /\
+     U SUBSET P
+==> (!i. i < l - 1
+              ==> azim (vec 0) (ITER (i + 1) (rho_node1 FF ) v ) (ITER (i) (rho_node1 FF ) v ) (ITER (i + 2) (rho_node1 FF ) v )  = pi ) `,
+[NHANH ITER_IN_AFF_GT_2_1;
+STRIP_TAC;
+GEN_TAC;
+FIRST_X_ASSUM NHANH;
+STRIP_TAC;
+ASSUME_TAC2 Local_lemmas.LOCAL_FAN_CHARACTER_OF_RHO_NODE3;
+FIRST_ASSUM (MP_TAC o (SPEC` i: num `));
+FIRST_ASSUM (MP_TAC o (SPEC` i + 1`));
+STRIP_TAC;
+ONCE_REWRITE_TAC[Collect_geom.PER_SET2];
+DOWN THEN DOWN;
+DOWN;
+REWRITE_TAC[ARITH_RULE` (a + 1) + 1 = a + 2 `];
+MESON_TAC[AZIM_EQ_PI_ALT]]);;
+
+
+
+
+let LOCAL_CONVEX_NOT_COLLINEAR = prove_by_refinement
+(`convex_local_fan (V,E,FF) /\ lunar (v,w) V E
+     ==> (!u. u IN V /\ ~(u = v) /\ ~(u = w)
+              ==> ~ collinear {vec 0, v, u}) `,
+[NHANH LUNAR_IMP_IN_TWO_HAFLS_PLANE;
+REWRITE_TAC[lunar; INSERT_SUBSET];
+NHANH Local_lemmas.CVX_LO_IMP_LO;
+STRIP_TAC;
+ASSUME_TAC2 Local_lemmas.LOCAL_FAN_CHARACTER_OF_RHO_NODE2;
+ASSUME_TAC2 Local_lemmas.LOFA_IMP_NOT_COLL_IVS;
+FIRST_X_ASSUM NHANH;
+GEN_TAC;
+DOWN THEN DOWN;
+MESON_TAC[Planarity.aff_gt_imp_not_collinear]]);;
+
+
+let LOCAL_CONVEX_NOT_COLLINEAR2 = prove(` convex_local_fan (V,E,FF) /\ lunar (v,w) V E
+     ==> (!u. u IN V /\ ~(u = v) /\ ~(u = w) ==> ~collinear {vec 0, w, u})`,
+ONCE_REWRITE_TAC[Local_lemmas.LUNAR_COMM] THEN 
+NHANH LOCAL_CONVEX_NOT_COLLINEAR THEN MESON_TAC[]);;
+
+
+
+let LOCAL_FAN_RHO_NODE_PROS2 = prove(` local_fan (V,E,FF)
+     ==> (!x. x IN V ==> x,rho_node1 FF x IN FF) `, NHANH Local_lemmas.LOCAL_FAN_RHO_NODE_PROS THEN SIMP_TAC[]);;
+
+
+
 (* ============================= 
 -======================================
 ================================
 
-g `!a b V E FF f v w u.
+*)
+
+let MHAEYJN = prove_by_refinement (
+`!a b V E FF f v w u.
      convex_local_fan (V,E,FF) /\
      lunar (v,w) V E /\
      deformation f V (a,b) /\
@@ -3590,27 +4061,1329 @@ g `!a b V E FF f v w u.
                        (IMAGE (\v. f v t) V,
                         IMAGE (IMAGE (\v. f v t)) E,
                         IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF)
-                       ))`;;
+                       ))`,
+[REPEAT GEN_TAC;
+NHANH_PAT`\x. x ==> y ` Local_lemmas.CVX_LO_IMP_LO;
+NHANH_PAT`\x. x ==> y ` Local_lemmas.LOCAL_FAN_FINITE_V;
+NHANH Wrgcvdr_cizmrrh.LOCAL_FAN_IMP_FAN;
+REWRITE_TAC[FAN; UNIONS_SUBSET];
+STRIP_TAC;
+MP_TAC SUB_LUNAR_DEFORM_LEMMA;
+ANTS_TAC;
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` deformation f (V:real^3 -> bool) (a,b) `;
+REWRITE_TAC[deformation; real_interval; IN_ELIM_THM];
+ASM_SIMP_TAC[];
+REWRITE_TAC[REAL_BOUNDS_LT];
+STRIP_TAC;
+ASSUME_TAC2 XRECQNS_UPDATE;
+ASSUME_TAC2 HKIRPEP_ALT;
+DOWN THEN DOWN THEN STRIP_TAC;
+STRIP_TAC;
 
-======================== *)
+SUBGOAL_THEN` ! x y. x IN V /\ y IN V /\ ~ collinear {vec 0, x, y} /\
+(? a b .
+(f:real^3 -> real -> real^3) u (&0) = a % x + b % y /\ &0 < a ) ==>
+(?e. &0 < e /\
+                  (!t. abs t < e
+                       ==> (!t1 t2. f u (t) = t1 % x + t2 % y ==> &0 < t1))) ` ASSUME_TAC;
+
+SUBGOAL_THEN` deformation (f:real^3 -> real -> real^3) V (a,b) ` MP_TAC;
+ASM_REWRITE_TAC[];
+REWRITE_TAC[deformation];
+STRIP_TAC;
+REPEAT GEN_TAC THEN STRIP_TAC;
+FIRST_ASSUM (ASSUME_TAC2 o (SPECL [`u: real^3 `;` &0 `]));
+REPEAT GEN_TAC;
+
+ONCE_REWRITE_TAC[MESON[REAL_ARITH` t = &0 + t `]` f u t = A <=> f u ( &0 + t ) = A `];
+MATCH_MP_TAC (GEN_ALL CONTINUOUS_POS_PRES);
+EXISTS_TAC` b': real `;
+EXISTS_TAC` a': real `;
+UNDISCH_TAC` ~ collinear {vec 0, x, y:real^3} `;
+ASM_REWRITE_TAC[INSERT_COMM];
+ABBREV_TAC` ss = { (x,y) | x IN V /\
+          y IN V /\
+          ~collinear {vec 0, x, y} /\
+          (?a b. (f:real^3 -> real -> real^3) u (&0) = a % x + b % y /\ &0 < a) } ` ;
+SUBGOAL_THEN` ss SUBSET { (x,y) | x IN (V:real^3 -> bool) /\ y IN V} ` MP_TAC;
+EXPAND_TAC "ss";
+CONV_TAC SET_RULE;
+STRIP_TAC;
+SUBGOAL_THEN` FINITE {x,y | x IN (V:real^3 -> bool) /\ y IN V} ` ASSUME_TAC;
+MATCH_MP_TAC FINITE_PRODUCT;
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` ss SUBSET {x,y | x IN V /\ (y:real^3) IN V} `;
+UNDISCH_TAC` FINITE {x,y | x IN V /\ y:real^3 IN V} `;
+PHA;
+NHANH FINITE_SUBSET;
+STRIP_TAC;
+
+SUBGOAL_THEN`  (!x. (x:real^3 # real^3) IN ss ==> 
+(?e. &0 < e /\ (!t. abs t < e
+                        ==> (!t1 t2. (f:real^3 -> real -> real^3) u t = t1 % (FST x) + t2 % (SND x) ==> &0 < t1))))` MP_TAC;
+EXPAND_TAC "ss";
+REWRITE_TAC[IN_ELIM_THM];
+GEN_TAC;
+STRIP_TAC;
+ASM_SIMP_TAC[];
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+EXISTS_TAC` a': real `;
+EXISTS_TAC` b': real `;
+ASM_REWRITE_TAC[];
+DOWN;
+PHA;
+NHANH Deformation.MINIMIZE_OVER_MEMBERS;
+STRIP_TAC;
+EXISTS_TAC` min b ( min (-- a) ( min e (min e' e''))) `;
+SUBGOAL_THEN` deformation f (V: real^3 -> bool) (a,b) ` MP_TAC;
+ASM_REWRITE_TAC[];
+REWRITE_TAC[deformation; real_interval; IN_ELIM_THM];
+STRIP_TAC;
+REWRITE_TAC[REAL_LT_MIN];
+CONJ_TAC;
+ASM_REWRITE_TAC[REAL_ARITH` &0 < -- a <=> a < &0 `];
+
+REWRITE_TAC[convex_local_fan];
+GEN_TAC THEN STRIP_TAC;
+ABBREV_TAC` IV = IMAGE (\v. (f:real^3 -> real -> real^3) v t) V `;
+ABBREV_TAC` IE = IMAGE (IMAGE (\v. (f: real^3 -> real -> real^3) v t)) E`;
+ABBREV_TAC` IF = IMAGE (\uv. (f: real^3 -> real -> real^3) (FST uv) t,f (SND uv) t) FF `;
+SUBGOAL_THEN` local_fan (IV, IE , IF) ` MP_TAC;
+UNDISCH_TAC` !t. abs t < e'
+          ==> local_fan
+              (IMAGE (\v. f v t) V,
+               IMAGE (\s. IMAGE (\v. f v t) s) E,
+               IMAGE (\(u,v). (f: real^3 -> real -> real^3) u t,f v t) FF) `;
+DISCH_THEN (ASSUME_TAC2 o SPEC_ALL);
+DOWN;
+UNDISCH_TAC` v = ITER j (rho_node1 FF) w `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[ETA_AX];
+SUBGOAL_THEN`! (fg: real^3 -> real^3). (\(u:real^3,v:real^3). fg u,fg v) = (\uv. fg (FST uv),fg (SND uv)) ` ASSUME_TAC;
+REWRITE_TAC[FUN_EQ_THM; BETA_THM];
+GEN_TAC THEN GEN_TAC;
+PAT_ONCE_REWRITE_TAC`\x. f x = y ` [GSYM PAIR];
+PURE_ONCE_REWRITE_TAC[BETA_THM];
+ABBREV_TAC` x1 = FST (x:real^3 # real^3) `;
+ABBREV_TAC` x2 = SND (x:real^3 # real^3) `;
+REWRITE_TAC[BETA_THM];
+ASM_REWRITE_TAC[];
+
+SIMP_TAC[] THEN STRIP_TAC;
+GEN_TAC;
+
+UNDISCH_TAC` local_fan (IV, IE, IF) `;
+PHA;  PAT_ONCE_REWRITE_TAC`\x. y /\ x ==> z ` [GSYM PAIR];
+ABBREV_TAC` xx = FST (x:real^3 # real^3) `;
+NHANH Local_lemmas.LOCAL_FAN_IMP_IN_V;
+NHANH Local_lemmas.DETER_RHO_NODE;
+STRIP_TAC;
+ONCE_REWRITE_TAC[GSYM PAIR];
+ABBREV_TAC` xy = SND (x:real^3 # real^3) `;
+UNDISCH_TAC` xx:real^3 IN IV `;
+UNDISCH_TAC` local_fan (IV,IE,IF) `;
+PHA;
+UNDISCH_TAC` rho_node1 IF xx = xy `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[];
+
+
+NHANH Local_lemmas1.AZIM_IN_FAN_RHOND_IVS_RHOND;
+NHANH Local_lemmas1.WEDGE_IN_FAN_RHOND_IVS_RHOND;
+SIMP_TAC[];
+STRIP_TAC;
+ASSUME_TAC2 LOCAL_FAN_FACE_FF;
+SUBGOAL_THEN` lunar (v:real^3,w) V E ` MP_TAC;
+FIRST_ASSUM ACCEPT_TAC;
+REWRITE_TAC[lunar; INSERT_SUBSET];
+STRIP_TAC;
+ASSUME_TAC2 Localization.LOFA_IMP_LT_CARD_SET_V_ALT;
+ASSUME_TAC2 Local_lemmas.LOCAL_FAN_CHARACTER_OF_RHO_NODE;
+FIRST_ASSUM (ASSUME_TAC2 o (SPEC` u: real^3 `));
+DOWN THEN STRIP_TAC;
+ASSUME_TAC2 (SPEC`u: real^3 ` Local_lemmas1.IVS_RHO_NODE_DIFF_ID);
+ASSUME_TAC2 Local_lemmas.LOCAL_FAN_IMP_NOT_SEMI_IDE;
+FIRST_ASSUM (ASSUME_TAC2 o (SPEC` u: real^3 `));
+SUBGOAL_THEN`! v:real^3. v IN V ==> ivs_rho_node1 FF (rho_node1 FF v) = v ` ASSUME_TAC;
+GEN_TAC;
+STRIP_TAC;
+MATCH_MP_TAC Local_lemmas.IVS_RHO_IDD;
+ASM_REWRITE_TAC[];
+SUBGOAL_THEN`!v. v IN V ==> rho_node1 FF (ivs_rho_node1 FF v) = v ` MP_TAC;
+GEN_TAC;
+STRIP_TAC;
+MATCH_MP_TAC Local_lemmas1.LOCAL_FAN_RHO_NODE_IVS;
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+
+SUBGOAL_THEN` ! v. v: real^3 IN V ==> rho_node1 FF v IN V ` ASSUME_TAC;
+GEN_TAC THEN STRIP_TAC;
+MATCH_MP_TAC Local_lemmas.LOFA_IN_V_SO_DO_RHO_NODE_V;
+ASM_SIMP_TAC[];
+SUBGOAL_THEN` deformation f (V: real^3 -> bool) (a,b) ` MP_TAC;
+ASM_REWRITE_TAC[];
+REWRITE_TAC[deformation];
+STRIP_TAC;
+SUBGOAL_THEN` t IN real_interval (a,b) ` ASSUME_TAC;
+REWRITE_TAC[IN_ELIM_THM; real_interval];
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` abs t < b `;
+UNDISCH_TAC` abs t < -- a `;
+REAL_ARITH_TAC;
+ASSUME_TAC2 Polar_fan.IVS_RHO_NODE1_IN_V;
+SUBGOAL_THEN` (f:real^3 -> real -> real^3) (rho_node1 FF u) t = rho_node1 FF u ` ASSUME_TAC;
+FIRST_ASSUM MATCH_MP_TAC;
+ASM_SIMP_TAC[];
+SUBGOAL_THEN` (f:real^3 -> real -> real^3) (rho_node1 FF (rho_node1 FF u)) t = rho_node1 FF (rho_node1 FF u )` ASSUME_TAC;
+FIRST_ASSUM MATCH_MP_TAC;
+ASM_SIMP_TAC[];
+SUBGOAL_THEN` (f:real^3 -> real -> real^3) (ivs_rho_node1 FF u) t = ivs_rho_node1 FF u ` ASSUME_TAC;
+FIRST_ASSUM MATCH_MP_TAC;
+ASM_SIMP_TAC[];
+
+ASSUME_TAC2 Nkezbfc_local.CONVEX_LOFA_IMP_INANGLE_EQ_AZIM_IVS;
+DOWN THEN DISCH_THEN (ASSUME_TAC o GSYM);
+UNDISCH_TAC` xx: real^3 IN IV `;
+EXPAND_TAC "IV";
+REWRITE_TAC[IN_IMAGE];
+STRIP_TAC;
+SUBGOAL_THEN` ! (v:real^3). v IN V ==> (f:real^3 -> real -> real^3) v t, f (rho_node1 FF v) t IN IF ` ASSUME_TAC;
+EXPAND_TAC "IF";
+REWRITE_TAC[IN_IMAGE];
+EXPAND_TAC "FF";
+REWRITE_TAC[IN_ELIM_THM];
+GEN_TAC THEN STRIP_TAC;
+EXISTS_TAC` v', rho_node1 FF v' `;
+UNDISCH_TAC` w = ITER i (rho_node1 FF) v `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[];
+EXISTS_TAC` v': real^3 `;
+ASM_REWRITE_TAC[];
+
+SUBGOAL_THEN` ! (v:real^3). v IN V ==> rho_node1 IF ((f:real^3 -> real -> 
+real^3) v t ) = f ( rho_node1 FF v ) t ` ASSUME_TAC;
+GEN_TAC THEN STRIP_TAC;
+FIRST_X_ASSUM (ASSUME_TAC2 o (SPEC` v': real^3 `));
+DOWN;
+UNDISCH_TAC` local_fan (IV, IE, IF) `;
+PHA;
+NHANH Local_lemmas.DETER_RHO_NODE;
+SIMP_TAC[];
+SUBGOAL_THEN` ! (v:real^3). v IN V ==> ivs_rho_node1 IF ((f:real^3 -> real -> 
+real^3) v t ) = f ( ivs_rho_node1 FF v ) t ` ASSUME_TAC;
+GEN_TAC THEN STRIP_TAC;
+SUBGOAL_THEN` f (ivs_rho_node1 FF v') t, (f:real^3 -> real -> real^3) v' t IN IF ` ASSUME_TAC;
+FIRST_X_ASSUM (MP_TAC o (SPEC` ivs_rho_node1 FF v' `));
+FIRST_X_ASSUM (MP_TAC o (SPEC` ivs_rho_node1 FF v' `));
+ANTS_TAC;
+ASM_SIMP_TAC[];
+ASM_SIMP_TAC[];
+DOWN;
+UNDISCH_TAC` local_fan (IV, IE, IF) `;
+PHA;
+NHANH Local_lemmas.IVS_RHO_NODE1_DETE;
+SIMP_TAC[];
+SUBGOAL_THEN` IV SUBSET (f:real^3 -> real -> real^3) u t INSERT V ` ASSUME_TAC;
+REWRITE_TAC[SUBSET];
+EXPAND_TAC "IV";
+REWRITE_TAC[IN_IMAGE];
+GEN_TAC THEN STRIP_TAC;
+ASM_CASES_TAC` x''' = (u: real^3) `;
+ASM_REWRITE_TAC[IN_INSERT];
+ASM_SIMP_TAC[IN_INSERT];
+
+UNDISCH_TAC` x': real^3 IN V `;
+ASM_REWRITE_TAC[];
+SUBGOAL_THEN` (f:real^3 -> real -> real^3) (ivs_rho_node1 FF (ivs_rho_node1 FF u)) t = ivs_rho_node1 FF (ivs_rho_node1 FF u) ` ASSUME_TAC;
+FIRST_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+CONJ_TAC;
+ASM_SIMP_TAC[];
+ASM_SIMP_TAC[];
+UNDISCH_TAC` !v. v IN V ==> ~(rho_node1 FF (rho_node1 FF v) = v) `;
+DISCH_THEN (MP_TAC o (SPEC` ivs_rho_node1 FF (ivs_rho_node1 FF u) `));
+ANTS_TAC;
+ASM_SIMP_TAC[];
+ASM_SIMP_TAC[];
+
+SUBGOAL_THEN` convex_local_fan (V,E,FF) ` MP_TAC;
+FIRST_X_ASSUM ACCEPT_TAC;
+REWRITE_TAC[convex_local_fan];
+STRIP_TAC;
+
+
+ASSUME_TAC2 LOCAL_FAN_RHO_NODE_PROS2;
+SUBGOAL_THEN` ! v. v IN V
+     ==> wedge_in_fan_ge  (v ,rho_node1 FF v) E =
+         wedge_ge  (vec 0) v (rho_node1 FF v) (ivs_rho_node1 FF v) ` ASSUME_TAC;
+GEN_TAC;
+STRIP_TAC;
+MATCH_MP_TAC Local_lemmas1.WEDGE_IN_FAN_RHOND_IVS_RHOND;
+ASM_REWRITE_TAC[];
+SUBGOAL_THEN` ! v. v IN V
+     ==> azim_in_fan (v,rho_node1 FF v) E =
+         azim (vec 0) v (rho_node1 FF v) (ivs_rho_node1 FF v) ` ASSUME_TAC;
+GEN_TAC;
+STRIP_TAC;
+MATCH_MP_TAC Local_lemmas1.AZIM_IN_FAN_RHOND_IVS_RHOND;
+ASM_REWRITE_TAC[];
+
+(* ----- *)
+ASSUME_TAC2 Local_lemmas.LUNAR_IMP_INTERIOR_ANGLE1_EQ_PI;
+DOWN;
+NHANH IN_CONV0_IMP_AFF_EQ1;
+STRIP_TAC;
+SUBGOAL_THEN` w IN aff {vec 0, v:real^3 } ` ASSUME_TAC;
+UNDISCH_TAC` w = ITER i (rho_node1 FF ) v `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[];
+MP_TAC (SPEC` {vec 0, w:real^3} ` Qzksykg.SET_SUBSET_AFFINE_HULL);
+REWRITE_TAC[SUBSET; Sphere.aff];
+DISCH_THEN MATCH_MP_TAC;
+REWRITE_TAC[IN_INSERT];
+
+
+SUBGOAL_THEN` ! v:real^3. v IN V ==> ~collinear {vec 0, v, ivs_rho_node1 FF v} ` ASSUME_TAC;
+UNDISCH_TAC` v = ITER j (rho_node1 FF ) w `;
+DISCH_THEN (ASSUME_TAC o SYM);
+GEN_TAC THEN STRIP_TAC;
+MATCH_MP_TAC Local_lemmas.LOFA_IMP_NOT_COLL_IVS;
+ASM_REWRITE_TAC[];
+
+
+ASSUME_TAC2 LUNAR_IMP_IN_TWO_HAFLS_PLANE;
+SUBGOAL_THEN` ! x. x IN V /\ ~( x = v ) /\ ~( x = w:real^3) ==>
+~ collinear {vec 0, v, x} ` ASSUME_TAC;
+DOWN THEN PHA;
+STRIP_TAC;
+FIRST_ASSUM NHANH;
+GEN_TAC;
 
 
 
-HYP_ISO_LEMMAA;;
-HYP_ISO_DIH2K_PRESERVED;;
-
-(* =============================================================== *)
-
-
-
+SUBGOAL_THEN` ~collinear {vec 0, v, ivs_rho_node1 FF v} /\
+~collinear {vec 0, v, rho_node1 FF v} ` MP_TAC;
+ASM_SIMP_TAC[];
+MESON_TAC[Planarity.aff_gt_imp_not_collinear];
+ASM_SIMP_TAC[];
 
 
 
 
 
-Local_lemmas.HKIRPEP;;
+
+SUBGOAL_THEN` ! x. x IN V /\ ~( x = v ) /\ ~( x = w:real^3) ==>
+rho_node1 FF x IN aff_ge {vec 0, v} {x} /\ ivs_rho_node1 FF x IN aff_ge {vec 0, v} {x} ` ASSUME_TAC;
+DOWN THEN DOWN THEN PHA THEN STRIP_TAC;
+GEN_TAC;
+FIRST_ASSUM NHANH;
+STRIP_TAC;
+SUBGOAL_THEN` x'': real^3 IN V ` MP_TAC;
+FIRST_ASSUM ACCEPT_TAC;
+EXPAND_TAC "V";
+REWRITE_TAC[IN_ELIM_THM];
+STRIP_TAC;
+UNDISCH_TAC` ~collinear {vec 0, v, x'':real^3} `;
+NHANH Fan.th3a;
+STRIP_TAC;
+DOWN;
+MP_TAC (SET_RULE` {} SUBSET {x'':real^3}`);
+PHA;
+NHANH AFF_GE_MONO_RIGHT;
+REWRITE_TAC[AFF_GE_EQ_AFFINE_HULL; GSYM aff];
+STRIP_TAC;
+ASM_CASES_TAC` n = 0 `;
+UNDISCH_TAC` x'' = ITER n (rho_node1 FF) v `;
+UNDISCH_TAC` v = ITER j (rho_node1 FF ) w `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[ITER];
+UNDISCH_TAC` v = ITER j (rho_node1 FF ) w `;
+DISCH_THEN (ASSUME_TAC o SYM);
+UNDISCH_TAC` w = ITER i (rho_node1 FF ) v `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_CASES_TAC` n = (i:num) `;
+UNDISCH_TAC` x'' = ITER n (rho_node1 FF) v `;
+ASM_REWRITE_TAC[];
+ASSUME_TAC AFF_GT_SUBSET_AFF_GE;
 
 
+ASM_CASES_TAC` n < (i:num) `;
+SUBGOAL_THEN` x'' IN {ITER l (rho_node1 FF) v | 0 < l /\ l < i} ` MP_TAC;
+REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` n: num` ;
+ASM_REWRITE_TAC[ARITH_RULE` 0 < n <=> ~( n = 0) `];
+
+ASM_REWRITE_TAC[IN_INTER];
+UNDISCH_TAC` x'' = ITER n (rho_node1 FF) v `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[];
+
+SUBGOAL_THEN` ~ collinear {vec 0, v, rho_node1 FF v} ` MP_TAC;
+ASM_SIMP_TAC[];
+NHANH Fan.th3a;
+NHANH Local_lemmas1.DIJ_AFF_GE_PARTITION;
+STRIP_TAC;
+UNDISCH_TAC` ~collinear {vec 0, v, rho_node1 FF v} `;
+PHA;
+NHANH Local_lemmas.COLL_IN_AFF_GT_AFF_GT_EQ;
+ONCE_REWRITE_TAC[EQ_SYM_EQ];
+STRIP_TAC;
+ASM_REWRITE_TAC[];
+SUBGOAL_THEN` ~ collinear {vec 0, v, x'': real^3} ` MP_TAC;
+ASM_SIMP_TAC[];
+NHANH Fan.th3a;
+NHANH Local_lemmas1.DIJ_AFF_GE_PARTITION;
+ASM_SIMP_TAC[];
+
+
+STRIP_TAC;
+UNDISCH_TAC` aff {vec 0, v} = aff {vec 0, w: real^3} `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[];
+CONJ_TAC;
+ASM_CASES_TAC` n = (i - 1) `;
+EXPAND_TAC "x''";
+REWRITE_TAC[GSYM ITER];
+ASM_SIMP_TAC[ARITH_RULE` ~( i = 0) ==> SUC ( i - 1) = i `; IN_UNION];
+SUBGOAL_THEN` rho_node1 FF x'' IN {ITER l (rho_node1 FF) v | 0 < l /\ l < i} ` MP_TAC;
+REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` SUC n `;
+EXPAND_TAC "x''";
+REWRITE_TAC[GSYM ITER];
+REWRITE_TAC[ARITH_RULE` 0 < SUC n `];
+MATCH_MP_TAC (ARITH_RULE` n < i /\ ~( n = i - 1) ==> SUC n < i `);
+ASM_REWRITE_TAC[];
+ASM_REWRITE_TAC[IN_UNION; IN_INTER];
+SIMP_TAC[];
+ASM_CASES_TAC` n = 1`;
+DOWN;
+EXPAND_TAC "x''";
+SIMP_TAC[ITER1];
+ASM_SIMP_TAC[];
+SIMP_TAC[IN_UNION];
+REWRITE_TAC[aff];
+STRIP_TAC;
+DISJ1_TAC;
+MESON_TAC[HULL_SUBSET; IN_INSERT; SUBSET];
+
+SUBGOAL_THEN` ivs_rho_node1 FF x'' IN {ITER l (rho_node1 FF) v | 0 < l /\ l < i} ` MP_TAC;
+REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` n - 1 `;
+EXPAND_TAC "x''";
+ASSUME_TAC2 (ARITH_RULE`~( n = 0) ==> SUC ( n - 1) = n `);
+EXPAND_TAC "n";
+REWRITE_TAC[ITER];
+SUBGOAL_THEN` ITER (n - 1) (rho_node1 FF) v IN V ` ASSUME_TAC;
+ASSUME_TAC2 Local_lemmas.LOCAL_FAN_ORBIT_MAP_VITER;
+ASM_SIMP_TAC[];
+
+ASM_SIMP_TAC[];
+UNDISCH_TAC` ~( n = 0) `;
+UNDISCH_TAC` ~( n = 1) `;
+UNDISCH_TAC` n < (i:num) `;
+ARITH_TAC;
+ASM_REWRITE_TAC[IN_INTER; IN_UNION];
+SIMP_TAC[];
+
+ASSUME_TAC2 (ARITH_RULE`  ~( n < (i:num) ) ==> (n - i) + i = n `);
+SUBGOAL_THEN` x'' IN {ITER l (rho_node1 FF) w | 0 < l /\ l < j} ` MP_TAC;
+REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` n - (i:num) `;
+ASM_REWRITE_TAC[];
+EXPAND_TAC "n";
+REWRITE_TAC[GSYM ITER_ADD];
+ASM_REWRITE_TAC[];
+CONJ_TAC;
+UNDISCH_TAC` ~( n = (i:num)) `;
+UNDISCH_TAC` ~( n < (i:num)) `;
+ARITH_TAC;
+ASM_SIMP_TAC[ARITH_RULE` ~( n < (i:num)) ==> ( n - i < j <=> n < i + j )`];
+
+UNDISCH_TAC` x'' = ITER n (rho_node1 FF) v `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[IN_INTER];
+
+SUBGOAL_THEN` ~ collinear {vec 0, v, ivs_rho_node1 FF v}` MP_TAC;
+ASM_SIMP_TAC[];
+PHA;
+NHANH Local_lemmas.COLL_IN_AFF_GT_AFF_GT_EQ;
+ONCE_REWRITE_TAC[EQ_SYM_EQ];
+STRIP_TAC;
+SUBGOAL_THEN` ~ collinear {vec 0, v, x'':real^3} ` MP_TAC;
+ASM_SIMP_TAC[];
+NHANH Fan.th3a;
+NHANH Local_lemmas1.DIJ_AFF_GE_PARTITION;
+SIMP_TAC[];
+STRIP_TAC;
+CONJ_TAC;
+ASM_REWRITE_TAC[];
+ASM_CASES_TAC` n = (i + j) - 1 `;
+EXPAND_TAC "x''";
+REWRITE_TAC[GSYM ITER];
+ASM_SIMP_TAC[];
+ASSUME_TAC2 (ARITH_RULE` n < CARD (V:real^3 -> bool) ==> SUC (CARD V - 1) = CARD V `);
+ASM_REWRITE_TAC[];
+ASSUME_TAC2 Local_lemmas.LOFA_IMP_ITER_RHO_NODE_ID;
+FIRST_ASSUM (ASSUME_TAC2 o SPEC_ALL);
+ASM_REWRITE_TAC[IN_UNION];
+UNDISCH_TAC` aff {vec 0, v:real^3} = aff {vec 0, w} `;
+DISCH_THEN (SUBST1_TAC o SYM);
+REWRITE_TAC[aff];
+MESON_TAC[HULL_SUBSET; IN_INSERT; SUBSET];
+
+
+SUBGOAL_THEN` rho_node1 FF x'' IN {ITER l (rho_node1 FF) w | 0 < l /\ l < j} ` MP_TAC;
+REWRITE_TAC[IN_ELIM_THM];
+EXPAND_TAC "x''";
+REWRITE_TAC[GSYM ITER];
+ASM_SIMP_TAC[ARITH_RULE` ~( n < i ) ==> SUC n = SUC ( n - i ) + i `];
+REWRITE_TAC[GSYM ITER_ADD];
+ASM_REWRITE_TAC[];
+EXISTS_TAC ` SUC ( n - i ) `;
+REWRITE_TAC[];
+UNDISCH_TAC` n < CARD (V:real^3 -> bool) `;
+UNDISCH_TAC` i + j = CARD (V: real^3 -> bool) `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` ~( n < (i:num)) `;
+UNDISCH_TAC` ~ ( n = ( i + j ) - 1) `;
+ARITH_TAC;
+ASM_REWRITE_TAC[IN_INTER; IN_UNION];
+SIMP_TAC[];
+
+ASM_CASES_TAC` n = i + 1 `;
+REWRITE_TAC[IN_UNION];
+EXPAND_TAC "x''";
+FIRST_ASSUM SUBST1_TAC;
+REWRITE_TAC[GSYM ADD1; ITER];
+ASM_SIMP_TAC[aff];
+MESON_TAC[HULL_SUBSET; SUBSET; IN_INSERT];
+
+
+SUBGOAL_THEN` ivs_rho_node1 FF x'' IN {ITER l (rho_node1 FF) w | 0 < l /\ l < j} ` ASSUME_TAC;
+REWRITE_TAC[IN_ELIM_THM];
+EXPAND_TAC "x''";
+ASSUME_TAC2 (ARITH_RULE` ~( n < (i:num) ) /\ ~(n = i + 1) /\ ~( n = i ) ==> SUC ( n - 1 - i ) + i = n `);
+EXPAND_TAC "n";
+REWRITE_TAC[GSYM ITER_ADD; ITER];
+ASM_REWRITE_TAC[];
+SUBGOAL_THEN` ITER (n - 1 - i) (rho_node1 FF) w IN V ` ASSUME_TAC;
+ASM_SIMP_TAC[];
+ASSUME_TAC2 Local_lemmas.LOCAL_FAN_ORBIT_MAP_VITER;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+
+
+ASM_SIMP_TAC[];
+EXISTS_TAC` n - 1 - i `;
+ASM_REWRITE_TAC[];
+CONJ_TAC;
+UNDISCH_TAC` ~(n = i + 1) `;
+UNDISCH_TAC` ~( n < (i:num) ) `;
+UNDISCH_TAC` ~( n = (i:num)) `;
+ARITH_TAC;
+UNDISCH_TAC` n < CARD (V:real^3 -> bool) `;
+UNDISCH_TAC` i + j = CARD (V:real^3 -> bool) `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` ~( n < i:num ) `;
+UNDISCH_TAC` ~( n = i:num ) `;
+ARITH_TAC;
+DOWN;
+ASM_REWRITE_TAC[IN_INTER; IN_UNION];
+SIMP_TAC[];
+
+SUBGOAL_THEN` ! u:real^3. affine hull {vec 0, v, w, u} = affine hull {vec 0, v, u} ` ASSUME_TAC;
+GEN_TAC;
+REWRITE_TAC[GSYM SUBSET_ANTISYM_EQ];
+CONJ_TAC;
+MATCH_MP_TAC HULL_MINIMAL;
+REWRITE_TAC[AFFINE_AFFINE_HULL];
+MP_TAC (SPEC` {vec 0, v, u': real^3} ` Qzksykg.SET_SUBSET_AFFINE_HULL);
+SIMP_TAC[INSERT_SUBSET];
+STRIP_TAC;
+SUBGOAL_THEN` affine hull {vec 0, v:real^3} SUBSET affine hull {vec 0, v, u'}` MP_TAC;
+MATCH_MP_TAC HULL_MONO;
+CONV_TAC SET_RULE;
+REWRITE_TAC[SUBSET];
+DISCH_THEN MATCH_MP_TAC;
+UNDISCH_TAC` w = ITER i (rho_node1 FF ) v `;
+ASM_REWRITE_TAC[GSYM aff];
+DISCH_THEN (ASSUME_TAC o SYM);
+UNDISCH_TAC` v = ITER j (rho_node1 FF ) w `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` aff {vec 0, v} = aff { vec 0, w:real^3} `;
+DISCH_THEN (SUBST1_TAC o SYM);
+ASM_REWRITE_TAC[];
+
+
+MATCH_MP_TAC HULL_MONO;
+CONV_TAC SET_RULE;
+
+
+
+SUBGOAL_THEN`! x'. x' IN V ==> (f:real^3 -> real -> real^3) u t IN
+wedge_ge  (vec 0) (x') (rho_node1 FF x')
+     (ivs_rho_node1 FF x') ` ASSUME_TAC;
+GEN_TAC;
+STRIP_TAC;
+ASM_CASES_TAC` x'' = (v:real^3) `;
+UNDISCH_TAC` w = ITER i (rho_node1 FF ) v `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` v = ITER j (rho_node1 FF ) w `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[wedge_ge; IN_ELIM_THM];
+FIRST_ASSUM (MP_TAC o (SPEC` v, rho_node1 FF v ` ));
+ANTS_TAC;
+ASM_SIMP_TAC[];
+REWRITE_TAC[SUBSET];
+STRIP_TAC;
+FIRST_ASSUM (ASSUME_TAC2 o (SPEC` u: real^3 `));
+DOWN;
+UNDISCH_TAC` !v. v IN V
+          ==> wedge_in_fan_ge  (v,rho_node1 FF v) E =
+              wedge_ge  (vec 0) v (rho_node1 FF v) (ivs_rho_node1 FF v) `;
+DISCH_TAC;
+FIRST_ASSUM (ASSUME_TAC2 o (SPEC` v:real^3 `));
+ASM_REWRITE_TAC[wedge_ge; IN_ELIM_THM];
+SUBGOAL_THEN` ~ collinear {vec 0, v , u:real^3 } ` MP_TAC;
+ASM_SIMP_TAC[];
+STRIP_TAC;
+SUBGOAL_THEN` (!x. x IN (ss:real^3 # real^3 -> bool)
+                   ==> (!t1 t2. (f:real^3 -> real -> real^3) u t = t1 % FST x + t2 % SND x ==> &0 < t1)) ` ASSUME_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+FIRST_ASSUM (MP_TAC o (SPEC` (u:real^3, v:real^3) `));
+ANTS_TAC;
+EXPAND_TAC "ss";
+REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` u:real^3 `;
+EXISTS_TAC` v: real^3 `;
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` ~collinear {vec 0, v, u:real^3} `;
+SIMP_TAC[INSERT_COMM];
+STRIP_TAC;
+
+ASM_SIMP_TAC[];
+EXISTS_TAC` &1 `;
+EXISTS_TAC` &0 `;
+CONJ_TAC;
+CONV_TAC VECTOR_ARITH;
+REAL_ARITH_TAC;
+REWRITE_TAC[];
+STRIP_TAC;
+SUBGOAL_THEN` (f:real^3 -> real -> real^3) u t IN affine hull {vec 0, v, w, u} ` MP_TAC;
+FIRST_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+ASM_REWRITE_TAC[];
+REWRITE_TAC[IN_ELIM_THM; AFFINE_HULL_3];
+STRIP_TAC;
+DOWN;
+REWRITE_TAC[VECTOR_MUL_RZERO; VECTOR_ADD_LID];
+ONCE_REWRITE_TAC[VECTOR_ADD_SYM];
+FIRST_ASSUM NHANH;
+STRIP_TAC;
+UNDISCH_TAC` ~collinear {vec 0, v, u:real^3} `;
+NHANH Fan.th3a;
+NHANH AFF_GT_2_1;
+STRIP_TAC;
+SUBGOAL_THEN` (f:real^3 -> real -> real^3) u t IN aff_gt {vec 0, v} {u} ` ASSUME_TAC;
+ASM_REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` u': real `;
+EXISTS_TAC` v': real `;
+EXISTS_TAC` w': real`;
+ASM_REWRITE_TAC[];
+CONV_TAC VECTOR_ARITH;
+DOWN;
+NHANH IN_AFF_GT_IMP_AZIMEQ2;
+SIMP_TAC[];  
+ASM_CASES_TAC` x'' = w:real^3 `;
+UNDISCH_TAC` w = ITER i (rho_node1 FF)  v `;
+DISCH_THEN (ASSUME_TAC o SYM);
+UNDISCH_TAC` v = ITER j (rho_node1 FF) w `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[wedge_ge; IN_ELIM_THM];
+FIRST_ASSUM (MP_TAC o (SPEC` w, rho_node1 FF w `));
+ANTS_TAC;
+ASM_SIMP_TAC[];
+
+UNDISCH_TAC` !v. v IN V
+          ==> wedge_in_fan_ge  (v,rho_node1 FF v) E =
+              wedge_ge  (vec 0) v (rho_node1 FF v) (ivs_rho_node1 FF v) `;
+STRIP_TAC;
+FIRST_ASSUM (ASSUME_TAC2 o (SPEC` w: real^3 `));
+DOWN;
+SIMP_TAC[];
+STRIP_TAC;
+REWRITE_TAC[SUBSET];
+STRIP_TAC;
+FIRST_ASSUM (ASSUME_TAC2 o (SPEC` u:real^3 `));
+DOWN;
+REWRITE_TAC[wedge_ge; IN_ELIM_THM];
+SUBGOAL_THEN` ~collinear {vec 0, v, u:real^3} ` MP_TAC;
+ASM_SIMP_TAC[];
+ASM_REWRITE_TAC[Fan.collinear_fan];
+PHA THEN STRIP_TAC;
+SUBGOAL_THEN` ~( w = vec 0: real^3) ` MP_TAC;
+ASSUME_TAC2 Local_lemmas.LOFA_IMP_V_DIFF;
+ASM_SIMP_TAC[];
+ASSUME_TAC2 Local_lemmas.LOFA_IMP_V_DIFF;
+ONCE_REWRITE_TAC[EQ_SYM_EQ];
+UNDISCH_TAC` ~(u IN aff {vec 0, w: real^3}) `;
+PHA;
+REWRITE_TAC[GSYM Fan.collinear_fan];
+NHANH Fan.th3a;
+NHANH AFF_GT_2_1;
+STRIP_TAC;
+SUBGOAL_THEN` (!x. x IN ss
+                   ==> (!t1 t2. (f: real^3 -> real -> real^3) u t = t1 % FST x + t2 % SND x ==> &0 < t1)) ` MP_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+FIRST_ASSUM (MP_TAC o (SPEC` (u:real^3, w:real^3) `));
+ANTS_TAC;
+EXPAND_TAC "ss";
+REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` u:real^3 `;
+EXISTS_TAC` w:real^3 `;
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` ~collinear {vec 0, w, u: real^3} `;
+SIMP_TAC[INSERT_COMM];
+ASM_SIMP_TAC[];
+STRIP_TAC;
+EXISTS_TAC` &1 `;
+EXISTS_TAC` &0 `;
+
+
+CONJ_TAC;
+CONV_TAC VECTOR_ARITH;
+REAL_ARITH_TAC;
+
+
+REWRITE_TAC[];
+STRIP_TAC;
+
+SUBGOAL_THEN` (f:real^3 -> real -> real^3) u t IN affine hull {vec 0, v, w, u }` ASSUME_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+SUBGOAL_THEN` affine hull {vec 0, v, w, u} SUBSET affine hull {vec 0, w, u:real^3} ` MP_TAC;
+MATCH_MP_TAC HULL_MINIMAL;
+REWRITE_TAC[AFFINE_AFFINE_HULL];
+MP_TAC (ISPEC` {vec 0, w, u: real^3} ` Qzksykg.SET_SUBSET_AFFINE_HULL);
+SIMP_TAC[INSERT_SUBSET];
+STRIP_TAC;
+MP_TAC (SET_RULE` {vec 0, w:real^3} SUBSET {vec 0, w, u} `);
+NHANH (ISPEC` affine ` HULL_MONO);
+REWRITE_TAC[SUBSET];
+STRIP_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+UNDISCH_TAC` aff {vec 0, v} = aff {vec 0, w:real^3} `;
+REWRITE_TAC[aff];
+DISCH_THEN (SUBST1_TAC o SYM);
+
+
+MESON_TAC[HULL_SUBSET; IN_INSERT; SUBSET];
+REWRITE_TAC[SUBSET];
+STRIP_TAC;
+FIRST_ASSUM (ASSUME_TAC2 o (SPEC` (f:real^3 -> real -> real^3) u t `));
+DOWN;
+REWRITE_TAC[IN_ELIM_THM; AFFINE_HULL_3; VECTOR_MUL_RZERO; VECTOR_ADD_LID];
+STRIP_TAC;
+FIRST_ASSUM (MP_TAC o (SPECL [` w': real `;` v': real `]));
+ANTS_TAC;
+ASM_REWRITE_TAC[];
+CONV_TAC VECTOR_ARITH;
+STRIP_TAC;
+SUBGOAL_THEN` (f:real^3 -> real -> real^3) u t IN aff_gt {vec 0, w} {u}  ` MP_TAC;
+ASM_REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` u': real `;
+EXISTS_TAC` v': real `;
+EXISTS_TAC` w': real `;
+ASM_REWRITE_TAC[];
+CONV_TAC VECTOR_ARITH;
+STRIP_TAC;
+UNDISCH_TAC` &0 <= azim (vec 0) w (rho_node1 FF w) u `;
+UNDISCH_TAC` azim (vec 0) w (rho_node1 FF w) u <=
+      azim (vec 0) w (rho_node1 FF w) (ivs_rho_node1 FF w) `;
+PHA;
+DOWN;
+NHANH IN_AFF_GT_IMP_AZIMEQ2;
+SIMP_TAC[];
+SUBGOAL_THEN` interior_angle1 (vec 0) FF x'' = pi /\
+              rho_node1 FF x'' IN aff {x'', v, w} /\
+              ivs_rho_node1 FF x'' IN aff {x'', v, w} ` MP_TAC;
+FIRST_ASSUM MATCH_MP_TAC;
+REWRITE_TAC[IN_DIFF; IN_INSERT; NOT_IN_EMPTY];
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` w = ITER i (rho_node1 FF) v `;
+DISCH_THEN (ASSUME_TAC o SYM);
+UNDISCH_TAC` v = ITER j (rho_node1 FF) w `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[];
+SUBGOAL_THEN` azim (vec 0) x'' (rho_node1 FF x'') (ivs_rho_node1 FF x'') =
+              interior_angle1 (vec 0) FF x'' ` MP_TAC;
+ASM_SIMP_TAC[];
+DISCH_THEN (SUBST1_TAC o SYM);
+NHANH Local_lemmas.AZIM_PI_WEDGE_GE_CROSS_DOT;
+SIMP_TAC[];  
+STRIP_TAC;
+FIRST_ASSUM (MP_TAC o (SPEC` x'', rho_node1 FF x'' `));
+ANTS_TAC;
+ASM_SIMP_TAC[];
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` !v. v IN V
+          ==> wedge_in_fan_ge  (v,rho_node1 FF v) E =
+              wedge_ge  (vec 0) v (rho_node1 FF v) (ivs_rho_node1 FF v) `;
+STRIP_TAC;
+FIRST_ASSUM (ASSUME_TAC2 o (SPEC` x'': real^3 `));
+ASM_REWRITE_TAC[VECTOR_ARITH` x - vec 0 = x `; SUBSET; IN_ELIM_THM];
+STRIP_TAC;
+ABBREV_TAC` e1 = x'' cross rho_node1 FF x'' `;
+SUBGOAL_THEN` e1 dot v = &0 /\ e1 dot (w:real^3) = &0 ` MP_TAC;
+UNDISCH_TAC` vec 0 IN conv0 {v, w:real^3} `;
+REWRITE_TAC[Collect_geom.CONV0_SET2; IN_ELIM_THM];
+STRIP_TAC;
+MP_TAC (ISPEC` e1: real^3 ` DOT_RZERO);
+ASM_REWRITE_TAC[DOT_RADD; DOT_RMUL];
+FIRST_ASSUM (ASSUME_TAC2 o (SPEC` v:real^3 `));
+FIRST_ASSUM (ASSUME_TAC2 o (SPEC` w:real^3 `));
+DOWN THEN DOWN;
+UNDISCH_TAC` &0 < a' `;
+UNDISCH_TAC` &0 < b' `;
+REWRITE_TAC[REAL_ARITH` &0 <= a <=> a = &0 \/ &0 < a `];
+MESON_TAC[REAL_LT_ADD; REAL_LT_MUL; REAL_ARITH` &0 < a ==> ~(a = &0) `; REAL_ARITH` &0 < a ==> ~( a + x * &0 = &0 \/ x * &0 + a = &0) `];
+STRIP_TAC;
+UNDISCH_TAC` !u. u IN V
+          ==> ~(u = v)
+          ==> ~(u = w)
+          ==> u IN aff_gt {vec 0, v} {rho_node1 FF v} \/
+              u IN aff_gt {vec 0, v} {ivs_rho_node1 FF v} `;
+PHA THEN STRIP_TAC;
+FIRST_ASSUM (ASSUME_TAC2 o (SPEC` u:real^3 `));
+SUBGOAL_THEN` rho_node1 FF v IN V /\ ivs_rho_node1 FF v IN V ` MP_TAC;
+ASM_SIMP_TAC[];
+SUBGOAL_THEN` ~ collinear { vec 0, v,  rho_node1 FF v } /\ ~ collinear {vec 0, v, ivs_rho_node1 FF v } ` MP_TAC;
+ASM_SIMP_TAC[];
+NHANH Fan.th3a;
+NHANH AFF_GT_2_1;
+DOWN THEN STRIP_TAC;
+STRIP_TAC;
+STRIP_TAC;
+UNDISCH_TAC` u IN aff_gt {vec 0, v} {rho_node1 FF v} `;
+ASM_REWRITE_TAC[IN_ELIM_THM; VECTOR_MUL_RZERO; VECTOR_ADD_LID];
+STRIP_TAC;
+SUBGOAL_THEN` (!x. x IN ss
+                   ==> (!t1 t2. (f:real^3 -> real -> real^3) u t = t1 % FST x + t2 % SND x ==> &0 < t1)) ` MP_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+
+
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+FIRST_X_ASSUM (MP_TAC o (SPEC` rho_node1 FF v, v `));
+ANTS_TAC;
+EXPAND_TAC "ss";
+REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` rho_node1 FF v `;
+EXISTS_TAC` v: real^3 `;
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` ~collinear {vec 0, v, rho_node1 FF v}  `;
+SIMP_TAC[INSERT_COMM];
+STRIP_TAC;
+UNDISCH_TAC` u = t2 % v + t3 % rho_node1 FF v `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_SIMP_TAC[];
+EXISTS_TAC` t3: real `;
+EXISTS_TAC` t2:real `;
+ASM_REWRITE_TAC[];
+EXPAND_TAC "u";
+CONV_TAC VECTOR_ARITH;
+REWRITE_TAC[];
+SUBGOAL_THEN` (f:real^3 -> real -> real^3) u t  IN affine hull {vec 0, v, w, u } ` MP_TAC;
+ASM_SIMP_TAC[];
+FIRST_X_ASSUM (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[];
+REWRITE_TAC[IN_ELIM_THM; AFFINE_HULL_3];
+EXPAND_TAC "u";
+REWRITE_TAC[VECTOR_ARITH` u % vec 0 + v % v' + w % (t2 % v' + t3 % ax)  = ( v  + w * t2 ) % v' + ( w * t3) % ax`];
+ASM_REWRITE_TAC[];
+ONCE_REWRITE_TAC[VECTOR_ARITH` a + b = b + (a:real^N) `];
+PHA THEN STRIP_TAC;
+UNDISCH_TAC` (f:real^3 -> real -> real^3) u t = (w' * t3) % rho_node1 FF v + (v' + w' * t2) % v `;
+ONCE_REWRITE_TAC[VECTOR_ARITH` a + b = b + (a:real^N) `];
+FIRST_ASSUM NHANH;
+SIMP_TAC[DOT_RADD; DOT_RMUL];
+ASM_REWRITE_TAC[REAL_ARITH` a * &0 + x = x `];
+STRIP_TAC;
+SUBGOAL_THEN` &0 <= e1 dot rho_node1 FF v ` ASSUME_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+MATCH_MP_TAC REAL_LE_MUL;
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` &0 < w' * t3 `;
+REAL_ARITH_TAC;  STRIP_TAC;
+STRIP_TAC;
+UNDISCH_TAC` u IN aff_gt {vec 0, v} {ivs_rho_node1 FF v} `;
+ASM_REWRITE_TAC[IN_ELIM_THM; VECTOR_MUL_RZERO; VECTOR_ADD_LID];
+STRIP_TAC;
+SUBGOAL_THEN` (f:real^3 -> real -> real^3) u t IN affine hull {vec 0, v, w, u} ` MP_TAC;
+FIRST_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+ASM_REWRITE_TAC[AFFINE_HULL_3; IN_ELIM_THM];
+REWRITE_TAC[VECTOR_ARITH` u % vec 0 + v % vv + w % (t2 % vv + t3 % vc) =
+( v + w * t2 ) % vv + (w * t3 ) % vc `];
+FIRST_X_ASSUM (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+SUBGOAL_THEN` (!x. x IN ss
+                   ==> (!t1 t2. (f:real^3 -> real -> real^3) u t = t1 % FST x + t2 % SND x ==> &0 < t1)) ` ASSUME_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+FIRST_X_ASSUM (MP_TAC o (SPEC` ivs_rho_node1 FF v, v `));
+ANTS_TAC;
+EXPAND_TAC "ss";
+REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` ivs_rho_node1 FF v `;
+EXISTS_TAC` v: real^3 `;
+ASM_REWRITE_TAC[];
+ASM_SIMP_TAC[];
+UNDISCH_TAC` ~collinear {vec 0, v, ivs_rho_node1 FF v} `;
+SIMP_TAC[INSERT_COMM];
+STRIP_TAC;
+EXISTS_TAC` t3: real`;
+EXISTS_TAC` t2: real `;
+ASM_REWRITE_TAC[];
+EXPAND_TAC "u";
+CONV_TAC VECTOR_ARITH;
+REWRITE_TAC[];
+ONCE_REWRITE_TAC[VECTOR_ADD_SYM];
+DISCH_THEN (ASSUME_TAC2 o (SPECL [` w' * t3: real `; ` v' + w' * t2: real`]));
+ASM_REWRITE_TAC[DOT_RADD; DOT_RMUL; REAL_MUL_RZERO; REAL_ADD_LID];
+UNDISCH_TAC` !x. x IN V ==> &0 <= e1 dot (x: real^3) `;
+DISCH_THEN (ASSUME_TAC2 o (SPEC` ivs_rho_node1 FF v `));
+MATCH_MP_TAC REAL_LE_MUL;
+ASM_REWRITE_TAC[];
+UNDISCH_TAC` &0 < w' * t3 `;
+CONV_TAC REAL_ARITH;  
+ASM_CASES_TAC` ~( x' = (u:real^3)) /\ ~( rho_node1 FF x' = u ) /\ ~( ivs_rho_node1 FF x' = u ) ` ;
+DOWN THEN STRIP_TAC;
+UNDISCH_TAC` w = ITER i (rho_node1 FF ) v `;
+DISCH_THEN (ASSUME_TAC o SYM);
+UNDISCH_TAC` v = ITER j (rho_node1 FF ) w `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_SIMP_TAC[];
+STRIP_TAC;
+UNDISCH_TAC` !x. (x:real^3 # real^3) IN FF ==> azim_in_fan x E <= pi /\ V SUBSET wedge_in_fan_ge x E `;
+DISCH_THEN (MP_TAC o (SPEC` x', rho_node1 FF x' `));
+ANTS_TAC;
+ASM_SIMP_TAC[];
+ASM_SIMP_TAC[];
+STRIP_TAC;
+MATCH_MP_TAC SUBSET_TRANS;
+EXISTS_TAC` (f:real^3 -> real -> real^3) u t INSERT V `;
+ASM_REWRITE_TAC[INSERT_SUBSET];
+ASM_SIMP_TAC[];
+
+STRIP_TAC; 
+ASM_CASES_TAC` x' = u:real^3 `;
+ASM_SIMP_TAC[];
+SUBGOAL_THEN` rho_node1 FF u IN aff_ge {vec 0, v} {u} /\
+              ivs_rho_node1 FF u IN aff_ge {vec 0, v} {u} ` ASSUME_TAC;
+ASM_SIMP_TAC[];
+SUBGOAL_THEN` ~collinear {vec 0, v, u:real^3} ` ASSUME_TAC;
+ASM_SIMP_TAC[];
+SUBGOAL_THEN` (f: real^3 -> real -> real^3) (ivs_rho_node1 FF u) t IN IV ` ASSUME_TAC;
+EXPAND_TAC "IV";
+REWRITE_TAC[IN_IMAGE];
+EXISTS_TAC` ivs_rho_node1 FF u `;
+ASM_SIMP_TAC[];
+ABBREV_TAC` UU = {ITER n (rho_node1 IF) ( (f: real^3 -> real -> real^3) (ivs_rho_node1 FF u) t ) | n <= 2} `;
+ABBREV_TAC` P = affine hull {vec 0, v, u:real^3} `;
+ASSUME_TAC (ISPECL [` {vec 0, v:real^3 }`;` {u:real^3} `] AFF_GE_SUBSET_AFFINE_HULL);
+SUBGOAL_THEN` plane  (P:real^3 -> bool) ` ASSUME_TAC;
+REWRITE_TAC[plane];
+EXISTS_TAC` vec 0: real^3 `;
+EXISTS_TAC` v: real^3 `;
+EXISTS_TAC` u: real^3 `;
+ASM_REWRITE_TAC[];
+SUBGOAL_THEN` vec 0 IN (P:real^3 -> bool) ` ASSUME_TAC;
+MP_TAC (
+prove(` {vec 0, v, u:real^3} SUBSET affine hull {vec 0, v, u}  `,
+REWRITE_TAC[HULL_SUBSET]));
+UNDISCH_TAC` w = ITER i (rho_node1 FF ) v ` ;
+DISCH_THEN (ASSUME_TAC o SYM);
+UNDISCH_TAC` v = ITER j (rho_node1 FF ) w ` ;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[SUBSET];
+DISCH_THEN MATCH_MP_TAC;
+REWRITE_TAC[IN_INSERT];
+SUBGOAL_THEN` UU SUBSET (P: real^3 -> bool) ` ASSUME_TAC;
+EXPAND_TAC "UU";
+REWRITE_TAC[SUBSET; IN_ELIM_THM];
+GEN_TAC;
+REWRITE_TAC[ARITH_RULE` n <= 2 <=> n = 0 \/ n = 1 \/ n = 2 `];
+STRIP_TAC;
+DOWN;
+ASM_REWRITE_TAC[ITER];
+STRIP_TAC;
+UNDISCH_TAC` aff_ge {vec 0, v:real^3} {u} SUBSET affine hull ({vec 0, v} UNION {u}) `;
+UNDISCH_TAC` w = ITER i (rho_node1 FF)  v `;
+DISCH_THEN (ASSUME_TAC o SYM);
+UNDISCH_TAC` v = ITER j (rho_node1 FF)  w `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[SET_RULE` {a,b} UNION {c} = {a,b,c} `; SUBSET];
+DISCH_THEN MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+DOWN;
+DOWN;
+SIMP_TAC[ITER1];
+SUBGOAL_THEN`  rho_node1 IF ((f: real^3 -> real -> real^3) (ivs_rho_node1 FF u) t) = f (rho_node1 FF (ivs_rho_node1 FF u)) t` MP_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_SIMP_TAC[];
+SIMP_TAC[];
+ASM_SIMP_TAC[];
+
+
+SUBGOAL_THEN` (f:real^3 -> real -> real^3) u t IN affine hull {vec 0, v, w, u} ` MP_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+ASM_REWRITE_TAC[];
+SIMP_TAC[];
+UNDISCH_TAC` x'' = ITER n (rho_node1 IF) ((f: real^3 -> real -> real^3) (ivs_rho_node1 FF u) t) ` ;
+DOWN THEN SIMP_TAC[];
+REWRITE_TAC[Lvducxu.ITER12];
+SUBGOAL_THEN` rho_node1 IF (f (ivs_rho_node1 FF u) (t:real)) = f (rho_node1 FF (ivs_rho_node1 FF u)) t ` MP_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_SIMP_TAC[];
+SIMP_TAC[];
+PHA THEN STRIP_TAC;
+ASM_SIMP_TAC[];
+UNDISCH_TAC` aff_ge {vec 0, v} {u} SUBSET affine hull ({vec 0, v} UNION {u:real^3}) `;
+UNDISCH_TAC` w = ITER i (rho_node1 FF ) v `;
+DISCH_THEN (ASSUME_TAC o SYM);
+UNDISCH_TAC` v = ITER j (rho_node1 FF ) w `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[SET_RULE` {a,b} UNION {c} = {a,b,c} `; SUBSET];
+DISCH_THEN MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+ASSUME_TAC2 (
+SPECL [` IE: (real^3 -> bool) -> bool `;` IV: real^3 -> bool `;` UU: real^3 ->
+ bool `;` P: real^3  -> bool `;` 2 `;` IF: real^3 # real^3 -> bool `; `((f:real
+ ^3 -> real -> real^3) (ivs_rho_node1 FF u) t) `] (GEN_ALL
+ AZIM_PI_ITER_LOCAL_FAN));
+FIRST_X_ASSUM (MP_TAC o (SPEC` 0 `));
+ANTS_TAC;
+ARITH_TAC;
+
+UNDISCH_TAC` w = ITER i (rho_node1 FF ) v `;
+UNDISCH_TAC` v = ITER j (rho_node1 FF ) w `;
+DISCH_THEN (ASSUME_TAC o SYM);
+DISCH_THEN (ASSUME_TAC o SYM);
+REWRITE_TAC[ADD; ITER; ITER1; Lvducxu.ITER12];
+SUBGOAL_THEN` rho_node1 IF (f (ivs_rho_node1 FF u) (t:real)) = f (rho_node1 FF (ivs_rho_node1 FF u)) t ` MP_TAC;
+ASM_SIMP_TAC[];
+SIMP_TAC[];
+ASM_SIMP_TAC[];
+NHANH (MESON[PI_POS]` x = pi ==> &0 < x `);
+NHANH Local_lemmas1.AZIM_POS_IMP_SUM_2PI;
+STRIP_TAC;
+DOWN;
+ASM_REWRITE_TAC[REAL_ARITH` a + x = &2 * a <=> x = a `];
+SIMP_TAC[REAL_LE_REFL];
+STRIP_TAC;
+
+
+
+SUBGOAL_THEN` wedge_ge  (vec 0) (f u (t:real)) (rho_node1 FF u) (ivs_rho_node1 FF u) =
+wedge_ge  (vec 0) u (rho_node1 FF u) (ivs_rho_node1 FF u) ` ASSUME_TAC;
+DOWN;
+SUBGOAL_THEN` interior_angle1 (vec 0) FF u = pi ` ASSUME_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[IN_DIFF; IN_INSERT; NOT_IN_EMPTY];
+SUBGOAL_THEN` azim (vec 0) u (rho_node1 FF u) (ivs_rho_node1 FF u) = pi ` MP_TAC;
+DOWN;
+ASM_SIMP_TAC[];
+NHANH Local_lemmas.AZIM_PI_WEDGE_GE_CROSS_DOT;
+SIMP_TAC[VECTOR_SUB_RZERO];
+PHA THEN STRIP_TAC;
+SUBGOAL_THEN` affine hull {vec 0, v, u} = affine hull {vec 0, u, rho_node1 FF u } ` ASSUME_TAC;
+MATCH_MP_TAC Local_lemmas.SUBSET_NOT_COLLINEAR_AFFINE_HULL_EQ ;
+ASM_SIMP_TAC[INSERT_SUBSET; EMPTY_SUBSET];
+CONJ_TAC;
+EXPAND_TAC "P";
+MP_TAC (ISPECL [` affine: (real^3 -> bool) -> bool `;
+` { vec 0, v, u:real^3} `] HULL_SUBSET);
+REWRITE_TAC[SUBSET];
+DISCH_THEN MATCH_MP_TAC;
+REWRITE_TAC[IN_INSERT];
+UNDISCH_TAC` aff_ge {vec 0, v} {u} SUBSET affine hull ({vec 0, v} UNION {u:real^3}) `;
+REWRITE_TAC[SUBSET;SET_RULE` {a,b} UNION {c} = {a,b,c} `];
+ASM_REWRITE_TAC[];
+DISCH_THEN MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+SUBGOAL_THEN` f u (t:real) IN affine hull {vec 0, v, w, u:real^3} ` MP_TAC;
+FIRST_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+DOWN;
+ASM_REWRITE_TAC[];
+SIMP_TAC[IN_ELIM_THM; AFFINE_HULL_3];
+PHA THEN STRIP_TAC;
+SUBGOAL_THEN` (!x. x IN ss
+                   ==> (!t1 t2. (f:real^3 -> real -> real^3) u t = t1 % FST x + t2 % SND x ==> &0 < t1)) ` ASSUME_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+FIRST_ASSUM (MP_TAC o (SPEC` u, rho_node1 FF u `));
+ANTS_TAC;
+EXPAND_TAC "ss";
+REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` u: real^3 `;
+EXISTS_TAC` rho_node1 FF u `;
+ASM_REWRITE_TAC[];
+ASM_SIMP_TAC[];
+EXISTS_TAC` &1 `;
+EXISTS_TAC` &0 `;
+CONJ_TAC;
+CONV_TAC VECTOR_ARITH;
+REAL_ARITH_TAC;
+REWRITE_TAC[];
+DISCH_THEN (MP_TAC o (SPECL [` v': real `;` w': real `]));
+ANTS_TAC;
+ASM_REWRITE_TAC[];
+CONV_TAC VECTOR_ARITH;
+ASM_REWRITE_TAC[VECTOR_MUL_RZERO; VECTOR_ADD_LID; CROSS_LADD; CROSS_LMUL; CROSS_REFL; VECTOR_ADD_RID; DOT_LMUL];
+SIMP_TAC[REAL_LE_MUL_EQ];
+
+
+ASM_REWRITE_TAC[];
+FIRST_ASSUM (MP_TAC o (SPEC` u, rho_node1 FF u `));
+ANTS_TAC;
+ASM_SIMP_TAC[];
+ASM_SIMP_TAC[];
+UNDISCH_TAC` !v. v IN V
+          ==> wedge_in_fan_ge  (v,rho_node1 FF v) E =
+              wedge_ge  (vec 0) v (rho_node1 FF v) (ivs_rho_node1 FF v) `;
+DISCH_THEN (ASSUME_TAC2 o (SPEC` u:real^3 `));
+DOWN;
+SIMP_TAC[];
+
+STRIP_TAC;
+MATCH_MP_TAC SUBSET_TRANS;
+EXISTS_TAC` (f:real^3 -> real -> real^3) u t INSERT V `;
+ASM_REWRITE_TAC[];
+ASM_SIMP_TAC[INSERT_SUBSET];
+SUBGOAL_THEN`  azim_in_fan (u, rho_node1 FF u) E <= pi /\ V SUBSET wedge_in_fan_ge   (u, rho_node1 FF u) E ` ASSUME_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_SIMP_TAC[];
+DOWN THEN STRIP_TAC;
+DOWN;
+UNDISCH_TAC` wedge_in_fan_ge  (u,rho_node1 FF u) E =
+      wedge_ge  (vec 0) u (rho_node1 FF u) (ivs_rho_node1 FF u) `;
+SIMP_TAC[];
+
+SUBGOAL_THEN` (!x. (x :real^3 # real^3) IN ss
+                   ==> (!t1 t2. (f:real^3 -> real -> real^3) u t = t1 % FST x + t2 % SND x ==> &0 < t1)) ` ASSUME_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+
+UNDISCH_TAC` w = ITER i (rho_node1 FF ) v ` ;
+UNDISCH_TAC` v = ITER j (rho_node1 FF ) w ` ;
+DISCH_THEN (ASSUME_TAC o SYM);
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_CASES_TAC` rho_node1 FF x' = u `;
+ASM_SIMP_TAC[];
+SUBGOAL_THEN` ~(rho_node1 FF (rho_node1 FF ( ivs_rho_node1 FF x')) = (ivs_rho_node1 FF x')) ` MP_TAC;
+FIRST_ASSUM MATCH_MP_TAC;
+ASM_SIMP_TAC[];
+
+SUBGOAL_THEN` rho_node1 FF (ivs_rho_node1 FF x') = x' ` SUBST1_TAC;
+ASM_SIMP_TAC[];
+ASM_SIMP_TAC[];
+STRIP_TAC;
+SUBGOAL_THEN` affine hull {vec 0, v, u} = affine hull {vec 0, u, ivs_rho_node1 FF u }` MP_TAC;
+MATCH_MP_TAC Local_lemmas.SUBSET_NOT_COLLINEAR_AFFINE_HULL_EQ;
+ASM_SIMP_TAC[];
+ASSUME_TAC2 (ISPECL [` {vec 0, v:real^3} `;` {u:real^3} `] AFF_GE_SUBSET_AFFINE_HULL);
+MP_TAC (ISPECL [` affine: (real^3 -> bool) -> bool `;` {vec 0, v, u:real^3} `] HULL_SUBSET);
+SIMP_TAC[INSERT_SUBSET];
+STRIP_TAC;
+UNDISCH_TAC` aff_ge {vec 0, v} {u} SUBSET affine hull ({vec 0, v} UNION {u: real^3}) `;
+REWRITE_TAC[SET_RULE` {a,b} UNION {c} = {a,b,c} `; SUBSET];
+DISCH_THEN MATCH_MP_TAC; 
+ASM_SIMP_TAC[];
+STRIP_TAC;
+SUBGOAL_THEN` (f:real^3 -> real -> real^3) u t IN affine hull {vec 0, v, w, u} ` MP_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+ASM_REWRITE_TAC[];
+ASM_REWRITE_TAC[IN_ELIM_THM; AFFINE_HULL_3; VECTOR_MUL_RZERO; VECTOR_ADD_LID];
+STRIP_TAC;
+
+SUBGOAL_THEN` ~ collinear {vec 0, u, ivs_rho_node1 FF u } ` ASSUME_TAC;
+ASM_SIMP_TAC[];
+FIRST_ASSUM (MP_TAC o (SPEC` u, ivs_rho_node1 FF u ` ));
+ANTS_TAC;
+EXPAND_TAC "ss"; 
+REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` u:real^3 `;
+EXISTS_TAC` ivs_rho_node1 FF u `;
+ASM_REWRITE_TAC[];
+ASM_SIMP_TAC[];
+EXISTS_TAC` &1 `;
+EXISTS_TAC` &0 `;
+CONJ_TAC;
+CONV_TAC VECTOR_ARITH;
+REAL_ARITH_TAC;
+REWRITE_TAC[];
+DISCH_THEN (ASSUME_TAC2 o (SPECL [` v': real `;` w': real `]));
+DOWN THEN DOWN;
+ONCE_REWRITE_TAC[SET_RULE` {a,b} = {b,a} `];
+DOWN;
+SUBGOAL_THEN` ivs_rho_node1 FF u = x' ` ASSUME_TAC;
+EXPAND_TAC  "u";
+ASM_SIMP_TAC[];
+ASM_REWRITE_TAC[];
+PHA THEN STRIP_TAC;
+SUBGOAL_THEN` (f:real^3 -> real -> real^3) u t IN aff_gt {vec 0, x'} {u:real^3} ` MP_TAC;
+DOWN THEN DOWN;
+NHANH Fan.th3a;
+NHANH AFF_GT_2_1;
+SIMP_TAC[IN_ELIM_THM];
+STRIP_TAC;
+STRIP_TAC;
+EXISTS_TAC` u': real `;
+EXISTS_TAC` w': real `;
+EXISTS_TAC` v': real` ;
+ASM_REWRITE_TAC[];
+CONJ_TAC;
+UNDISCH_TAC` u' + v' + w' = &1 `;
+REAL_ARITH_TAC;
+CONV_TAC VECTOR_ARITH;
+NHANH IN_AFF_GT_IMP_AZIMEQ2;
+REWRITE_TAC[GSYM Rogers.AZIM_EQ_SYM];
+SIMP_TAC[wedge_ge];
+STRIP_TAC;
+UNDISCH_TAC` !x. x IN FF ==> azim_in_fan x E <= pi /\ V SUBSET wedge_in_fan_ge x E `;
+STRIP_TAC;
+FIRST_ASSUM (MP_TAC o (SPEC` x', rho_node1 FF x' `));
+ANTS_TAC;
+ASM_SIMP_TAC[];
+DOWN THEN PHA;
+ASM_SIMP_TAC[GSYM wedge_ge];
+UNDISCH_TAC` !v. v IN V
+          ==> azim (vec 0) v (rho_node1 FF v) (ivs_rho_node1 FF v) =
+              interior_angle1 (vec 0) FF v `;
+DISCH_THEN (ASSUME_TAC o GSYM);
+ASM_SIMP_TAC[];
+STRIP_TAC;
+
+MATCH_MP_TAC SUBSET_TRANS;
+EXISTS_TAC` (f:real^3 -> real -> real^3) u t INSERT V `;
+UNDISCH_TAC` (f: real^3 -> real -> real^3) u t = v' % u + w' % x' `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_SIMP_TAC[];
+UNDISCH_TAC` rho_node1 FF x' = u `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_SIMP_TAC[INSERT_SUBSET];
+SUBGOAL_THEN` (f: real^3 -> real -> real^3) u t IN
+               wedge_ge  (vec 0) x' (rho_node1 FF x') (ivs_rho_node1 FF x') ` MP_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+FIRST_ASSUM ACCEPT_TAC;
+DOWN;
+SIMP_TAC[];
+
+ASM_CASES_TAC` ivs_rho_node1 FF x' = u `;
+ASM_REWRITE_TAC[];
+SUBGOAL_THEN` x' = rho_node1 FF u ` ASSUME_TAC;
+FIRST_X_ASSUM (SUBST1_TAC o SYM);
+ASM_SIMP_TAC[];
+ASM_SIMP_TAC[];
+UNDISCH_TAC`!x. x IN FF ==> azim_in_fan x E <= pi /\ V SUBSET wedge_in_fan_ge x E `;
+DISCH_THEN (MP_TAC o (SPEC` x', rho_node1 FF x' `));
+ANTS_TAC;
+ASM_SIMP_TAC[];
+ASM_SIMP_TAC[];
+UNDISCH_TAC` !v. v IN V
+          ==> azim (vec 0) v (rho_node1 FF v) (ivs_rho_node1 FF v) =
+              interior_angle1 (vec 0) FF v `;
+DISCH_THEN (ASSUME_TAC2 o (SPEC` x': real^3 `));
+FIRST_X_ASSUM (MP_TAC o SYM);
+ASM_REWRITE_TAC[];
+SIMP_TAC[];
+STRIP_TAC;
+FIRST_X_ASSUM (MP_TAC o (SPEC` u, rho_node1 FF u `));
+ANTS_TAC;
+EXPAND_TAC "ss";
+REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` u: real^3 `;
+EXISTS_TAC` rho_node1 FF u `;
+ASM_SIMP_TAC[];
+
+
+
+EXISTS_TAC` &1 `;
+EXISTS_TAC` &0 `;
+CONJ_TAC;
+CONV_TAC VECTOR_ARITH;
+REAL_ARITH_TAC;
+ASM_REWRITE_TAC[];
+STRIP_TAC;
+SUBGOAL_THEN` affine hull {vec 0, v, u} = affine hull {vec 0, u, rho_node1 FF u } ` ASSUME_TAC;
+MATCH_MP_TAC Local_lemmas.SUBSET_NOT_COLLINEAR_AFFINE_HULL_EQ;
+ASM_SIMP_TAC[];
+MP_TAC (ISPEC ` {vec 0, v, u:real^3} ` Qzksykg.SET_SUBSET_AFFINE_HULL);
+SIMP_TAC[INSERT_SUBSET];
+ASM_SIMP_TAC[];
+STRIP_TAC;
+MP_TAC (ISPECL [` {vec 0, v:real^3} `;` {u: real^3} `] AFF_GE_SUBSET_AFFINE_HULL);
+REWRITE_TAC[SET_RULE` {a,b} UNION {c} = {a,b,c} `; SUBSET];
+DISCH_THEN MATCH_MP_TAC;
+ASM_SIMP_TAC[];
+SUBGOAL_THEN` (f:real^3 -> real -> real^3) u t IN affine hull {vec 0, v, w, u} ` MP_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+FIRST_ASSUM ACCEPT_TAC;
+ASM_REWRITE_TAC[AFFINE_HULL_3; IN_ELIM_THM; VECTOR_MUL_RZERO; VECTOR_ADD_LID];
+STRIP_TAC;
+SUBGOAL_THEN` &0 < v' ` ASSUME_TAC;
+FIRST_X_ASSUM MATCH_MP_TAC;
+EXISTS_TAC` w': real`;
+ASM_REWRITE_TAC[];
+SUBGOAL_THEN` ~ collinear {vec 0, u, rho_node1 FF u } ` MP_TAC;
+ASM_SIMP_TAC[];
+ONCE_REWRITE_TAC[Collect_geom.PER_SET2];
+NHANH Fan.th3a;
+NHANH AFF_GT_2_1;
+STRIP_TAC;
+SUBGOAL_THEN` (f:real ^3 -> real -> real^3) u t IN aff_gt {vec 0, rho_node1 FF u } {u} ` MP_TAC;
+ASM_REWRITE_TAC[IN_ELIM_THM];
+EXISTS_TAC` u': real `;
+EXISTS_TAC` w': real `;
+EXISTS_TAC` v': real `;
+ASM_REWRITE_TAC[];
+CONJ_TAC;
+UNDISCH_TAC` u' + v' + w' = &1 `;
+REAL_ARITH_TAC;
+CONV_TAC VECTOR_ARITH;
+NHANH IN_AFF_GT_IMP_AZIMEQ2;
+SIMP_TAC[];
+STRIP_TAC THEN STRIP_TAC;
+MATCH_MP_TAC SUBSET_TRANS;
+EXISTS_TAC` (f: real^3 -> real -> real^3) u t INSERT V `;
+UNDISCH_TAC` (f: real^3 -> real -> real^3) u t = v' % u + w' % rho_node1 FF u `;
+DISCH_THEN (ASSUME_TAC o SYM);
+ASM_REWRITE_TAC[];
+ASM_REWRITE_TAC[INSERT_SUBSET; wedge_ge];
+ASM_SIMP_TAC[GSYM wedge_ge];
+UNDISCH_TAC` !x'. x' IN V
+           ==> (f: real^3 -> real -> real^3) u t IN
+               wedge_ge  (vec 0) x' (rho_node1 FF x') (ivs_rho_node1 FF x') `;
+DISCH_THEN (MP_TAC o (SPEC` rho_node1 FF u `));
+ANTS_TAC;
+ASM_SIMP_TAC[];
+ASM_SIMP_TAC[];
+UNDISCH_TAC` ~(~(x' = u) /\ ~(rho_node1 FF x' = u) /\ ~(ivs_rho_node1 FF x' = u)) `;
+ASM_REWRITE_TAC[]]);;
 
 
 
@@ -3618,4 +5391,3 @@ Local_lemmas.HKIRPEP;;
 
 
 end;;
-

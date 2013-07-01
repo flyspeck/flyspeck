@@ -1047,6 +1047,9 @@ let KCZXLLE = prove_by_refinement(
   (* {{{ proof *)
   [
   REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `?r. j < k /\     k <= r /\     1 <= r /\     (!i j. i <= r /\ j <= r /\ ~(i = j) ==> ~collinear {vec 0, u i, u j}) /\     (!i. 1 <= i /\ i <= r ==> u i IN aff_gt {vec 0, u 0} {u 1}) /\     cyclic_set {u i | i <= r} (vec 0) (u 0 cross u 1) /\     (!i. i < r          ==> azim_cycle {u i | i <= r} (vec 0) (u 0 cross u 1) (u i) =              u (i + 1))` (C SUBGOAL_THEN ASSUME_TAC);
+    TYPIFY `r` EXISTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
   INTRO_TAC ECAU_aff_ge [`u`;`r`] THEN ASM_REWRITE_TAC[] THEN DISCH_TAC;
   COMMENT "planarity";
   TYPIFY `!i. i <= r ==> u i IN affine hull {vec 0,u 0,u 1}` (C SUBGOAL_THEN ASSUME_TAC);
@@ -1055,6 +1058,7 @@ let KCZXLLE = prove_by_refinement(
       MATCH_MP_TAC HULL_INC;
       ASM_REWRITE_TAC[];
       BY(SET_TAC[]);
+    RULE_ASSUM_TAC(REWRITE_RULE[arith `~(i=0) <=> 1<= i`]);
     REWRITE_TAC[GSYM Trigonometry.UIVNNRR2];
     INTRO_TAC (GEN_ALL Local_lemmas.AFF_GT_MONO) [`{vec 0,u 0}`;`{u 1}`;`{u 1}`];
     ANTS_TAC;
@@ -1064,12 +1068,42 @@ let KCZXLLE = prove_by_refinement(
     TYPIFY `u i' IN aff_gt {vec 0, u 0} {u 1}` ENOUGH_TO_SHOW_TAC;
       BY(SET_TAC[]);
     FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  COMMENT "ARITH GOES HERE";
+  TYPIFY `j <= (r:num)` (C SUBGOAL_THEN ASSUME_TAC);
+    REPLICATE_TAC 10 (FIRST_X_ASSUM kill);
     BY(ASM_TAC THEN ARITH_TAC);
+  TYPIFY `~(i = j) /\ ~(i = k) /\ 0 <= r` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REPLICATE_TAC 6 (FIRST_X_ASSUM kill) THEN ASM_TAC THEN ARITH_TAC);
+  TYPIFY `~(0 = k) /\ (1 <= k) /\ ~(0=1)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REPLICATE_TAC 10 (FIRST_X_ASSUM kill) THEN ASM_TAC THEN ARITH_TAC);
+  COMMENT "other prelims here";
+  TYPIFY `~collinear {vec 0, u 0, u 1} /\ ~collinear {vec 0,u i,u j} /\ ~collinear {vec 0,u i,u k}` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[arith `~(0=1)`]);
+  TYPIFY `DISJOINT {vec 0, u 0} {u 1}` (C SUBGOAL_THEN ASSUME_TAC);
+    GMATCH_SIMP_TAC Fan.th3a;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `~collinear {vec 0, u 0, u k} /\ ~collinear {vec 0, u 0, u 1} /\ u k IN aff_ge {vec 0, u 0} {u 1} /\ u k IN aff_gt {vec 0, u 0} {u 1}` (C SUBGOAL_THEN ASSUME_TAC);
+    BY((REPEAT CONJ_TAC) THEN (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[]);
+  TYPIFY `!i. i <= r ==> ~collinear {vec 0,u 0 cross u 1, u i}` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    ASM_CASES_TAC `i' = 0`;
+      FIRST_X_ASSUM_ST `collinear` MP_TAC;
+      ASM_REWRITE_TAC[];
+      ONCE_REWRITE_TAC[SET_RULE `{a,b,c} = {a,c,b}`];
+      REWRITE_TAC[GSYM Local_lemmas.COLL_IFF_COLL_CROSS];
+      BY(ASM_REWRITE_TAC[]);
+    RULE_ASSUM_TAC (ONCE_REWRITE_RULE[arith `~(i'=0) <=> (1 <= i' /\ ~(i' = 0))`]);
+    FIRST_X_ASSUM_ST `collinear` MP_TAC;
+    REWRITE_TAC[];
+    MATCH_MP_TAC vuy3;
+    BY((REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]));
+  COMMENT "standard";
   TYPIFY `coplanar {vec 0, u i, u j, u k}` (C SUBGOAL_THEN ASSUME_TAC);
     REWRITE_TAC[coplanar];
     GEXISTL_TAC [`(vec 0):real^3`;`u 0`;`u 1`];
     REWRITE_TAC[SUBSET;IN_INSERT;NOT_IN_EMPTY];
-    REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THEN (FIRST_X_ASSUM MATCH_MP_TAC ORELSE MATCH_MP_TAC HULL_INC) THEN ASM_TAC THEN TRY ARITH_TAC;
+    REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THEN (FIRST_X_ASSUM MATCH_MP_TAC ORELSE MATCH_MP_TAC HULL_INC) THEN ASM_REWRITE_TAC[];
     BY(REPEAT WEAKER_STRIP_TAC THEN SET_TAC[]);
   RULE_ASSUM_TAC(REWRITE_RULE[GSYM Local_lemmas1.AZIM_COND_FOR_COPLANAR]);
   FIRST_X_ASSUM DISJ_CASES_TAC;
@@ -1077,7 +1111,7 @@ let KCZXLLE = prove_by_refinement(
   PROOF_BY_CONTR_TAC THEN FIRST_X_ASSUM kill;
   INTRO_TAC (GEN_ALL Ldurdpn.LDURDPN) [`u i`;`u j`;`u k`];
   ANTS_TAC;
-    BY(CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_TAC THEN ARITH_TAC);
+    BY(CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
   ASM_REWRITE_TAC[];
   REWRITE_TAC[DE_MORGAN_THM];
   DISJ2_TAC;
@@ -1086,13 +1120,10 @@ let KCZXLLE = prove_by_refinement(
       ASM_REWRITE_TAC[Geomdetail.CONV0_SET2;SUBSET;IN_ELIM_THM];
       REPEAT WEAKER_STRIP_TAC;
       GMATCH_SIMP_TAC AFF_GT_2_1;
-      GMATCH_SIMP_TAC Fan.th3a;
-      CONJ_TAC;
-        BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_TAC THEN ARITH_TAC);
       ASM_REWRITE_TAC[IN_ELIM_THM];
       INTRO_TAC vuy1 [`u k`;`u 0`;`u 1`];
       ANTS_TAC;
-        BY((REPEAT CONJ_TAC) THEN (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_TAC THEN TRY ARITH_TAC);
+        BY(ASM_REWRITE_TAC[]);
       REPEAT WEAKER_STRIP_TAC;
       ASM_REWRITE_TAC[];
       GEXISTL_TAC [`&1 - a - b * (t0' + t1)`;`a + b * t0'`;`b*t1`];
@@ -1106,8 +1137,9 @@ let KCZXLLE = prove_by_refinement(
     TYPIFY `conv {u j,u k}` EXISTS_TAC;
     REWRITE_TAC[Geomdetail.CONV02_SU_CONV2];
     MATCH_MP_TAC Geomdetail.CONVEX_IM_CONV2_SU;
-    REWRITE_TAC[CONVEX_AFF_GT];
-    BY(CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_TAC THEN ARITH_TAC);
+    ASM_REWRITE_TAC[CONVEX_AFF_GT];
+    RULE_ASSUM_TAC(REWRITE_RULE[arith `~(j=0) <=> 1<=j`]);
+    BY( FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
   REWRITE_TAC[EXTENSION;IN_ELIM_THM;IN_INTER;NOT_IN_EMPTY];
   REWRITE_TAC[TAUT `~(a /\ b) <=> (b ==> ~a)`];
   REPEAT WEAKER_STRIP_TAC;
@@ -1118,17 +1150,14 @@ let KCZXLLE = prove_by_refinement(
     BY(REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC) THEN SET_TAC[]);
   REWRITE_TAC[];
   GMATCH_SIMP_TAC AFF_GT_2_1;
-  GMATCH_SIMP_TAC Fan.th3a;
-  CONJ_TAC;
-    BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_TAC THEN ARITH_TAC);
-  REWRITE_TAC[IN_ELIM_THM];
+  ASM_REWRITE_TAC[IN_ELIM_THM];
   REPEAT WEAKER_STRIP_TAC;
   TYPIFY `~(i = 0)` (C SUBGOAL_THEN ASSUME_TAC);
     DISCH_TAC;
     FIRST_X_ASSUM_ST `%` MP_TAC;
     ASM_REWRITE_TAC[];
     TYPIFY `~collinear {vec 0, u 0, u 1}` (C SUBGOAL_THEN MP_TAC);
-      BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_TAC THEN ARITH_TAC);
+      BY(ASM_REWRITE_TAC[]);
     REWRITE_TAC[COLLINEAR_LEMMA_ALT];
     REWRITE_TAC[DE_MORGAN_THM;NOT_EXISTS_THM];
     REPEAT WEAKER_STRIP_TAC;
@@ -1137,7 +1166,7 @@ let KCZXLLE = prove_by_refinement(
     TYPIFY `t3 % u 1 = t3 % (inv t3 * (k' - t2)) % u 0` ENOUGH_TO_SHOW_TAC;
       REWRITE_TAC[VECTOR_MUL_LCANCEL];
       DISCH_THEN DISJ_CASES_TAC;
-        BY(ASM_TAC THEN REAL_ARITH_TAC);
+        BY(FIRST_X_ASSUM (RULE_ASSUM_TAC o (unlist REWRITE_RULE)) THEN FIRST_X_ASSUM_ST `&0 < &0` MP_TAC THEN REAL_ARITH_TAC);
       BY(FIRST_X_ASSUM ACCEPT_TAC);
     FIRST_X_ASSUM MP_TAC;
     REWRITE_TAC[VECTOR_MUL_ASSOC];
@@ -1148,13 +1177,9 @@ let KCZXLLE = prove_by_refinement(
   TYPIFY `?t. &0 < t /\ x = t % u i` (C SUBGOAL_THEN MP_TAC);
     FIRST_X_ASSUM_ST `aff_gt` (C INTRO_TAC [`i`]);
     (ANTS_TAC);
-      BY(ASM_TAC THEN ARITH_TAC);
+      BY(RULE_ASSUM_TAC(REWRITE_RULE[arith `~(i=0) <=> 1 <= i`]) THEN ASM_REWRITE_TAC[]);
     GMATCH_SIMP_TAC AFF_GT_2_1;
-    GMATCH_SIMP_TAC Fan.th3a;
-    CONJ_TAC;
-      FIRST_X_ASSUM MATCH_MP_TAC;
-      BY(ASM_TAC THEN ARITH_TAC);
-    REWRITE_TAC[IN_ELIM_THM];
+    ASM_REWRITE_TAC[IN_ELIM_THM];
     REPEAT WEAKER_STRIP_TAC;
     TYPIFY `k'` EXISTS_TAC;
     ASM_REWRITE_TAC[];
@@ -1184,7 +1209,7 @@ let KCZXLLE = prove_by_refinement(
     DISCH_TAC;
     FIRST_X_ASSUM_ST `collinear` (C INTRO_TAC [`0`;`1`]);
     ANTS_TAC;
-      BY(ASM_TAC THEN ARITH_TAC);
+      BY(ASM_REWRITE_TAC[]);
     BY(ASM_MESON_TAC[COLLINEAR_LEMMA_ALT]);
   REPEAT WEAKER_STRIP_TAC;
   (COMMENT "wedge");
@@ -1201,19 +1226,16 @@ let KCZXLLE = prove_by_refinement(
         ONCE_REWRITE_TAC[SET_RULE `{a,b,c} = {a,c,b}`];
         REWRITE_TAC[GSYM Local_lemmas.COLL_IFF_COLL_CROSS];
         FIRST_X_ASSUM MATCH_MP_TAC;
-        BY(ASM_TAC THEN ARITH_TAC);
-      GMATCH_SIMP_TAC vuy3;
-      BY(REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_TAC THEN ARITH_TAC);
-    REPEAT (GMATCH_SIMP_TAC vuy3);
+        BY(ASM_REWRITE_TAC[]);
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    CONJ_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[]);
     GMATCH_SIMP_TAC YBTASCZ3;
-    CONJ_TAC;
-      EXISTS_TAC `r:num`;
-      BY(ASM_REWRITE_TAC[]);
+    ASM_REWRITE_TAC[];
     GMATCH_SIMP_TAC YBTASCZ2;
-    CONJ_TAC;
-      EXISTS_TAC `r:num`;
-      BY(ASM_REWRITE_TAC[]);
-    BY(REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_TAC THEN TRY ARITH_TAC);
+    BY(ASM_REWRITE_TAC[]);
   TYPIFY `x IN wedge (vec 0) (u 0 cross u 1) (u j) (u k)` (C SUBGOAL_THEN MP_TAC);
     BY(REPEAT (FIRST_X_ASSUM_ST `conv0` MP_TAC) THEN SET_TAC[]);
   REWRITE_TAC[Reuhady.WEDGE_SIMPLE;IN_ELIM_THM];
@@ -1240,13 +1262,11 @@ let KCZXLLE = prove_by_refinement(
         BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
       MATCH_MP_TAC YBTASCZ3;
       TYPIFY `r` EXISTS_TAC;
-      ASM_REWRITE_TAC[];
-      BY(ASM_TAC THEN ARITH_TAC);
+      BY(ASM_REWRITE_TAC[]);
     MATCH_MP_TAC (arith `x < pi ==> pi <= &2 * pi - x`);
     MATCH_MP_TAC YBTASCZ2;
     EXISTS_TAC `r:num`;
-    ASM_REWRITE_TAC[];
-    BY(ASM_TAC THEN ARITH_TAC);
+    BY(ASM_REWRITE_TAC[]);
   COMMENT "last case";
   REWRITE_TAC[arith `~(a < b) <=> b <= a`];
   INTRO_TAC Fan.sum3_azim_fan [`(vec 0):real^3`;`u 0 cross u 1`;`u j`;`u k`;`u i`];
@@ -1258,24 +1278,34 @@ let KCZXLLE = prove_by_refinement(
         BY(ASM_REWRITE_TAC[]);
       TYPIFY `r` EXISTS_TAC;
       BY(ASM_REWRITE_TAC[]);
-    COMMENT "move up";
-    TYPIFY `!i. i <= r ==> ~collinear {vec 0,u 0 cross u 1, u i}` (C SUBGOAL_THEN ASSUME_TAC);
-      REPEAT WEAKER_STRIP_TAC;
-      ASM_CASES_TAC `i' = 0`;
-        FIRST_X_ASSUM_ST `collinear` MP_TAC;
-        ASM_REWRITE_TAC[];
-        ONCE_REWRITE_TAC[SET_RULE `{a,b,c} = {a,c,b}`];
-        REWRITE_TAC[GSYM Local_lemmas.COLL_IFF_COLL_CROSS];
-        FIRST_X_ASSUM MATCH_MP_TAC;
-        BY(ASM_TAC THEN ARITH_TAC);
-      FIRST_X_ASSUM_ST `collinear` MP_TAC;
-      REWRITE_TAC[];
-      MATCH_MP_TAC vuy3;
-      BY(REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_TAC THEN ARITH_TAC);
-    BY(REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_TAC THEN ARITH_TAC);
+    BY(REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
   TYPIFY `&0 <=  azim (vec 0) (u 0 cross u 1) (u k) (u i)` ENOUGH_TO_SHOW_TAC;
     BY(REAL_ARITH_TAC);
   BY(REWRITE_TAC[Counting_spheres.AZIM_NN])
   ]);;
   (* }}} *)
 
+let NHCXLRV_PREP_LEMMA = prove_by_refinement(
+  `!V E FF f a b v w0 w1 w2.       
+    convex_local_fan (V,E,FF) /\
+     ~circular V E /\
+     deformation f V (a,b) /\
+     rho_node1 FF w1 = w2 /\
+     rho_node1 FF w0 = w1 /\
+    v IN wedge (vec 0) w1 w2 w0 /\
+    (!t. t IN real_interval (a,b) ==> (\t. azim (vec 0) (f w1 t) (f w2 t) (f v t)) real_continuous atreal t) /\
+    (!t. t IN real_interval (a,b) ==> (\t. azim (vec 0) (f w1 t) (f w2 t) (f w0 t)) real_continuous atreal t) ==>
+    (?e. &0 < e /\ 
+       (!t. abs t < e ==> (f v t) IN wedge (vec 0) (f w1 t) (f w2 t) (f w0 t)`,
+  (* {{{ proof *)
+  [
+  st/r
+  typ `~lunar (v,w1) V E` sat
+    rt[Localization.lunar]
+st/r
+fxast `wedge_in_fan_gt` mp
+rt[Localization.wedge_in_fan_gt]
+  ]);;
+  (* }}} *)
+
+WEDGE_ALT;;

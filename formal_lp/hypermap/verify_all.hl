@@ -6,7 +6,6 @@ open List;;
 open Flyspeck_lp;;
 open Lp_certificate;;
 
-
 let cert_dir = ref (flyspeck_dir ^ "/../formal_lp/glpk/binary");;
 
 let get_files_with_prefix dir prefix =
@@ -15,7 +14,17 @@ let get_files_with_prefix dir prefix =
   let files1 = filter (fun f -> String.length f >= n) files in
   let files2 = filter (fun f -> String.sub f 0 n = prefix) files1 in
     map (fun f -> sprintf "%s/%s" dir f) files2;;
-	
+
+let get_certificate_files_with_prefix dir prefix =
+  let alt_dir = dir ^ "/lp_certificates" in
+  let files1 = get_files_with_prefix dir prefix in
+  let files2 =
+    if Sys.file_exists alt_dir then
+      get_files_with_prefix alt_dir prefix
+    else
+      [] in
+    files1 @ files2;;
+
 let mem_stat () =
   let stat = Gc.stat() in
   let word = float_of_int (Sys.word_size / 8) in
@@ -64,21 +73,18 @@ let init_ineqs() =
 
 let verify_easy() =
   let _ = init_ineqs() in
-  let files = get_files_with_prefix !cert_dir "easy" in
+  let files = get_certificate_files_with_prefix !cert_dir "easy" in
     map verify_file files;;
 
 let verify_hard() =
   let _ = init_ineqs() in
-  let files = get_files_with_prefix !cert_dir "hard" in
+  let files = get_certificate_files_with_prefix !cert_dir "hard" in
     map verify_file files;;
 
 let verify_all() =
-  let _ = init_ineqs() in
-  let hard_files = get_files_with_prefix !cert_dir "hard" in
-  let all_files = get_files_with_prefix !cert_dir "" in
-  let easy_files = subtract all_files hard_files in
-    map verify_file (hard_files @ easy_files);;
-
+  let result_hard = verify_hard() in
+  let result_easy = verify_easy() in
+    result_hard @ result_easy;;
 
 let test_result result =
   let ths = List.flatten (map fst result) in

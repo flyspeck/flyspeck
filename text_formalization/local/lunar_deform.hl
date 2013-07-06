@@ -7,11 +7,6 @@
 (* ========================================================================== *)
 
 
-
-module type Lunar_deform_lemmas_type = sig
-
-end;;
-
 (* ================================================================ *)
 
 
@@ -20,24 +15,7 @@ end;;
 module Lunar_deform = struct
 
 
-
-
-(*
-
-
-needs "/home/user1/flyspeck/working/h.hl";;
-needs "/home/user1/flyspeck/working/oxl_2012.hl";;
-
-
-
-COLL_IN_AFF_GT_INTER_EMPTY;;
-
-
-*)
-
-
-Deformation.XRECQNS;;
-
+open Hales_tactic;;
 open Localization;;
 open Wrgcvdr_cizmrrh;;
 open Fan;;
@@ -54,7 +32,7 @@ open Sphere;;
 
 
 
-
+(*
 let asms_search0 sths =
   let rec immediatesublist l1 l2 =
     match (l1,l2) with
@@ -106,7 +84,7 @@ let ASM_SEARCH_TCL (tms:(term)list) (thstac:thm->tactic) : tactic =
   ASMS_SEARCH_TCL tms foo;;
 
 let ASM_SEARCH_TC = asms_search;;
-
+*)
 
 let ATTACH thm = MATCH_MP (MESON[]` ! a b. ( a ==> b ) ==> ( a <=> a /\ b )`) thm;;
 
@@ -125,6 +103,7 @@ let DOWNS n = REPLICATE_TAC n DOWN THEN PHA;;
 let REMOVE_TAC = FIRST_X_ASSUM MP_TAC THEN MATCH_MP_TAC (TAUT` a ==> b ==> a`);;
 
 
+(*
 let types_thm th = let cl = concl th in
 List.map dest_var (frees cl );;
 
@@ -133,7 +112,7 @@ let (tms,tm) = top_goal () in
 let vss = map frees (tm::tms) in
 let vs = setify (flat vss) in
 map dest_var vs;;
-
+*)
 
 
 
@@ -182,7 +161,7 @@ let MAKE_FIRST_TAC tm = UNDISCH_TAC tm THEN DISCH_TAC;;
 (* ---------- BG TEST ------------- *)
 
 
-
+(*
 let rec els L = match L with
 [] -> p ()
 | (x::l) -> e x; els l;;
@@ -190,7 +169,7 @@ let rec els L = match L with
 let rec bls L = match L with
 [] -> p ()
 | (x::l) -> b (); bls l;;
-
+*)
 
 (* ============================================= *)
 
@@ -3979,9 +3958,9 @@ CONV_TAC VECTOR_ARITH]);;
 
 
 
-
+(*
 search[` v cross rho_node1 FF v `];;
-
+*)
 
 let AZIM_PI_ITER_LOCAL_FAN = prove_by_refinement
 (`local_fan (V,E,FF) /\
@@ -4044,7 +4023,7 @@ let LOCAL_FAN_RHO_NODE_PROS2 = prove(` local_fan (V,E,FF)
 
 *)
 
-let MHAEYJN = prove_by_refinement (
+let MHAEYJN_CONVEX_LOCAL_FAN = prove_by_refinement (
 `!a b V E FF f v w u.
      convex_local_fan (V,E,FF) /\
      lunar (v,w) V E /\
@@ -5385,8 +5364,57 @@ ASM_SIMP_TAC[];
 UNDISCH_TAC` ~(~(x' = u) /\ ~(rho_node1 FF x' = u) /\ ~(ivs_rho_node1 FF x' = u)) `;
 ASM_REWRITE_TAC[]]);;
 
-
-
+let MHAEYJN = prove_by_refinement(
+`!a b V E FF f v w u.
+     convex_local_fan (V,E,FF) /\
+     lunar (v,w) V E /\
+     deformation f V (a,b) /\
+     interior_angle1 (vec 0) FF v < pi /\
+     u IN V /\
+     ~(u = v) /\
+     ~(u = w) /\
+     (!u' t. u' IN V /\ ~(u = u') /\ t IN real_interval (a,b) ==> f u' t = u') /\
+     (!t. t IN real_interval (a,b) ==> f u t IN affine hull {vec 0, v, w, u})
+     ==> (?e. &0 < e /\
+              (!t. --e < t /\ t < e
+                   ==> convex_local_fan
+                       (IMAGE (\v. f v t) V,
+                        IMAGE (IMAGE (\v. f v t)) E,
+                        IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF) /\
+                       lunar (v,w) (IMAGE (\v. f v t) V)
+                       (IMAGE (IMAGE (\v. f v t)) E)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC (GEN_ALL SUB_LUNAR_DEFORM_LEMMA) [`FF`;`a`;`b`;`u`;`v`;`w`;`V`;`f`;`E`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    RULE_ASSUM_TAC(REWRITE_RULE[Localization.deformation;IN_REAL_INTERVAL]);
+    ASM_SIMP_TAC[];
+    TYPIFY `local_fan (V,E,FF)` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_SIMP_TAC[Local_lemmas.CVX_LO_IMP_LO]);
+    CONJ_TAC;
+      MATCH_MP_TAC Local_lemmas.LOCAL_FAN_FINITE_V;
+      BY(ASM_REWRITE_TAC[]);
+    RULE_ASSUM_TAC(REWRITE_RULE[Localization.local_fan;Fan.FAN;LET_DEF;LET_END_DEF]);
+    FIRST_X_ASSUM MP_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    BY(FIRST_X_ASSUM MP_TAC THEN FIRST_X_ASSUM_ST `UNIONS` MP_TAC THEN SET_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC MHAEYJN_CONVEX_LOCAL_FAN [`a`;`b`;`V`;`E`;`FF`;`f`;`v`;`w`;`u`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `if e < e' then e else e'` EXISTS_TAC;
+  REPEAT WEAKER_STRIP_TAC;
+  CONJ_TAC;
+    BY(COND_CASES_TAC THEN ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  CONJ_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
 
 
 

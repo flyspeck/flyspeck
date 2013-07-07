@@ -1301,8 +1301,6 @@ let azim_pos_iff_nz = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
-
 (* was NHCXLRV_PREP *)
 
 let NHCXLRV = prove_by_refinement(
@@ -1394,7 +1392,6 @@ let WNWSHJT = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
 let LOFA_IMP_INANGLE_EQ_AZIM = prove_by_refinement
 (`!V E FF v. local_fan (V,E,FF) /\ v IN V ==> interior_angle1 (vec 0) FF v = azim_in_fan (v, rho_node1 FF v) E `,
 [
@@ -1451,6 +1448,34 @@ let deformation_rho_node1_equivariant1 = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let deformation_ivs_rho_node1_equivariant1 = prove_by_refinement(
+  `!f V E FF a b v t. 
+    deformation f V (a,b) /\
+    local_fan (V,E,FF) /\
+    local_fan
+                    (IMAGE (\v. f v t) V,
+                     IMAGE (\s. IMAGE (\v. f v t) s) E,
+                     IMAGE (\ (u,v). f u t,f v t) FF) /\
+    v IN V ==>
+    f (ivs_rho_node1 FF v) t = ivs_rho_node1 (IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF) (f v t)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC EQ_SYM;
+  MATCH_MP_TAC (GEN_ALL Local_lemmas.IVS_RHO_NODE1_DETE);
+  GEXISTL_TAC [`IMAGE (\v. f v t) V`;`       IMAGE (\s. IMAGE (\v. f v t) s) E`];
+  CONJ_TAC;
+    TYPIFY `IMAGE (\(u,v). f u t,f v t) FF = IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF` ENOUGH_TO_SHOW_TAC;
+      DISCH_THEN (SUBST1_TAC o GSYM);
+      BY(ASM_REWRITE_TAC[]);
+    BY(REWRITE_TAC[EXTENSION;IN_IMAGE;EXISTS_PAIR_THM]);
+  REWRITE_TAC[IN_IMAGE;EXISTS_PAIR_THM];
+  GEXISTL_TAC [`ivs_rho_node1 FF v`;`v`];
+  REWRITE_TAC[];
+  BY(ASM_MESON_TAC[Lunar_deform.IVS_RHO_NODE_V_IN_FF])
+  ]);;
+  (* }}} *)
+
 let deformation_rho_node1_equivariant = prove_by_refinement(
   `!f V E FF a b v . 
     deformation f V (a,b) /\
@@ -1482,6 +1507,14 @@ let deformation_subset = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let EXISTS_TRIPLE_THM = prove_by_refinement(
+  `!P. (?p1 p2 p3. P p1 p2 p3) <=> (?x. P (FST x) (FST (SND x)) (SND (SND x)))`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[EXISTS_PAIR_THM])
+  ]);;
+  (* }}} *)
+
 let zlz_reduction = prove_by_refinement(
   `!a b V E FF f.
      convex_local_fan (V,E,FF) /\
@@ -1489,7 +1522,26 @@ let zlz_reduction = prove_by_refinement(
      deformation f V (a,b) /\
      (!v t. v IN V /\ t IN real_interval (a,b) /\ interior_angle1 (vec 0) FF v = pi ==>
 	 interior_angle1 (vec 0) ( IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF) (f v t) <= pi) /\
-    many_more ==> (?e. &0 < e /\
+  (!u v w.
+      ?e4. v,w IN FF /\ u IN V
+           ==> &0 < e4 /\
+               (!t. --e4 < t /\ t < e4
+                    ==> aff_ge {vec 0} {f v t, f w t} INTER
+                        aff_lt {vec 0} {f u t} =
+                        {})) /\
+ (!x. ?e3. x IN FF
+           ==> &0 < e3 /\
+               (!t. --e3 < t /\ t < e3
+                    ==> IMAGE (\v. f v t) V SUBSET
+                        wedge_in_fan_ge (f (FST x) t,f (SND x) t)
+                        (IMAGE (IMAGE (\v. f v t)) E))) /\
+ (!x. ?e2. x IN FF
+           ==> &0 < e2 /\
+               (!t. --e2 < t /\ t < e2
+                    ==> azim_in_fan (f (FST x) t,f (SND x) t)
+                        (IMAGE (IMAGE (\v. f v t)) E) <=
+                        pi)) 
+   ==> (?e. &0 < e /\
               (!t. --e < t /\ t < e
                    ==> convex_local_fan
                        (IMAGE (\v. f v t) V,
@@ -1543,134 +1595,381 @@ let zlz_reduction = prove_by_refinement(
     FIRST_X_ASSUM (C INTRO_TAC [`t`]);
     BY(ASM_REWRITE_TAC[]);
   DISCH_TAC;
+  COMMENT "skolemize all variables";
   COMMENT "angle <= pi";
-  CONJ_TAC;
-    TYPIFY `!x. ?e2. x IN FF ==> ( &0 < e2 /\   (!t.  --e2 < t /\ t < e2 ==> azim_in_fan ( (\uv. f (FST uv) t,f (SND uv) t) x) (IMAGE (IMAGE (\v. f v t)) E) <= pi))` ENOUGH_TO_SHOW_TAC;
-      REWRITE_TAC[SKOLEM_THM];
-      REPEAT WEAKER_STRIP_TAC;
-      TYPIFY `?e. &0 < e /\ (!x. x IN FF ==> e <= e2 x)` (C SUBGOAL_THEN MP_TAC);
-        INTRO_TAC Packing3.REAL_FINITE_MIN_EXISTS [`IMAGE e2 FF`];
-        ANTS_TAC;
-          CONJ_TAC;
-            (MATCH_MP_TAC FINITE_IMAGE);
-            BY(ASM_REWRITE_TAC[]);
-          (MATCH_MP_TAC Fatugpd.NOT_EMPTY_IMAGE);
-          BY(ASM_REWRITE_TAC[]);
-        REPEAT WEAKER_STRIP_TAC;
-        TYPIFY `m` EXISTS_TAC;
-        REPLICATE_TAC 4 (FIRST_X_ASSUM MP_TAC);
-        REWRITE_TAC[EXTENSION;NOT_IN_EMPTY];
-        REWRITE_TAC[IN_IMAGE];
-        BY(MESON_TAC[]);
-      REPEAT WEAKER_STRIP_TAC;
-      TYPIFY `e` EXISTS_TAC;
-      ASM_REWRITE_TAC[];
-      REPEAT WEAKER_STRIP_TAC;
-      FIRST_X_ASSUM MP_TAC;
-      REWRITE_TAC[IN_IMAGE;EXISTS_PAIR_THM];
-      REPEAT WEAKER_STRIP_TAC;
-      REPEAT (FIRST_X_ASSUM (C INTRO_TAC [`p1,p2`]));
-      DISCH_TAC;
-      ASM_REWRITE_TAC[];
-      DISCH_TAC;
-      FIRST_X_ASSUM_ST `IMAGE` MP_TAC;
-      ASM_REWRITE_TAC[];
-      REPEAT WEAKER_STRIP_TAC;
-      FIRST_X_ASSUM (C INTRO_TAC [`t`]);
-      ANTS_TAC;
-        BY(ASM_TAC THEN REAL_ARITH_TAC);
-      BY(REWRITE_TAC[]);
-    GEN_TAC;
-    COMMENT "individual angle <= pi";
-    REWRITE_TAC[GSYM RIGHT_IMP_EXISTS_THM];
-    DISCH_TAC;
-    TYPIFY `?p1 p2. (x = p1,p2)` (C SUBGOAL_THEN MP_TAC);
-      BY(REWRITE_TAC[PAIR_SURJECTIVE]);
+  TYPIFY_GOAL_THEN `(!x. ?e2. x IN FF ==> ( &0 < e2 /\   (!t.  --e2 < t /\ t < e2 ==> azim_in_fan ( (\uv. f (FST uv) t,f (SND uv) t) x) (IMAGE (IMAGE (\v. f v t)) E) <= pi))) ==> (?e2. &0 < e2 /\       (!t. --e2 < t /\ t < e2            ==> (!x. x IN IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF                     ==> azim_in_fan x (IMAGE (IMAGE (\v. f v t)) E) <= pi)))` GMATCH_SIMP_TAC;
+    REWRITE_TAC[SKOLEM_THM];
     REPEAT WEAKER_STRIP_TAC;
-    TYPIFY `p1 IN V` (C SUBGOAL_THEN ASSUME_TAC);
-      BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_IMP_IN_V]);
-    TYPIFY `p2 = rho_node1 FF p1` (C SUBGOAL_THEN ASSUME_TAC);
-      MATCH_MP_TAC EQ_SYM;
-      MATCH_MP_TAC Local_lemmas.DETER_RHO_NODE;
-      ASM_REWRITE_TAC[];
-      BY(ASM_MESON_TAC[]);
-    TYPIFY `interior_angle1 (vec 0) FF p1 = azim_in_fan x E` (C SUBGOAL_THEN ASSUME_TAC);
-      INTRO_TAC LOFA_IMP_INANGLE_EQ_AZIM [`V`;`E`;`FF`;`p1`];
-      BY(ASM_MESON_TAC[]);
-    TYPIFY `interior_angle1 (vec 0) FF p1 = pi` ASM_CASES_TAC;
-      FIRST_X_ASSUM_ST `?` MP_TAC;
-      REPEAT WEAKER_STRIP_TAC;
-      TYPIFY `?e. &0 < e /\ e <= e1 /\ (!t. abs t < e ==> t IN real_interval (a,b))` (C SUBGOAL_THEN MP_TAC);
-        TYPIFY `if (b <= -- a) /\ b <= e1 then b else (if e1 <= b /\ e1 <= --a then e1 else -- a)` EXISTS_TAC;
-        REWRITE_TAC[IN_REAL_INTERVAL];
-        RULE_ASSUM_TAC(REWRITE_RULE[Localization.deformation;IN_REAL_INTERVAL]);
-        ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `?e. &0 < e /\ (!x. x IN FF ==> e <= e2 x)` (C SUBGOAL_THEN MP_TAC);
+      INTRO_TAC Packing3.REAL_FINITE_MIN_EXISTS [`IMAGE e2 FF`];
+      ANTS_TAC;
         CONJ_TAC;
-          BY(ASM_TAC THEN REAL_ARITH_TAC);
-        CONJ_TAC;
-          BY(ASM_TAC THEN REAL_ARITH_TAC);
-        GEN_TAC;
-        BY(REAL_ARITH_TAC);
-      REPEAT WEAKER_STRIP_TAC;
-      TYPIFY `e` EXISTS_TAC;
-      ASM_REWRITE_TAC[];
-      REPEAT WEAKER_STRIP_TAC;
-      GMATCH_SIMP_TAC deformation_rho_node1_equivariant1;
-      CONJ_TAC;
-        GEXISTL_TAC [`a`;`b`;`E`;`V`];
-        ASM_REWRITE_TAC[];
-        FIRST_X_ASSUM MATCH_MP_TAC;
-        BY(ASM_TAC THEN REAL_ARITH_TAC);
-      GMATCH_SIMP_TAC (GSYM LOFA_IMP_INANGLE_EQ_AZIM);
-      CONJ_TAC;
-        TYPIFY `IMAGE (\v. f v t) V` EXISTS_TAC;
-        CONJ_TAC;
-          FIRST_X_ASSUM MATCH_MP_TAC;
-          BY(REPLICATE_TAC 10 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
-        REWRITE_TAC[IN_IMAGE];
-        TYPIFY `p1` EXISTS_TAC;
+          (MATCH_MP_TAC FINITE_IMAGE);
+          BY(ASM_REWRITE_TAC[]);
+        (MATCH_MP_TAC Fatugpd.NOT_EMPTY_IMAGE);
         BY(ASM_REWRITE_TAC[]);
-      FIRST_X_ASSUM MATCH_MP_TAC;
-      ASM_REWRITE_TAC[];
-      CONJ_TAC;
-        FIRST_X_ASSUM MATCH_MP_TAC;
-        BY(REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
-      BY(ASM_MESON_TAC[]);
-    COMMENT "case azim < pi";
-    TYPIFY `interior_angle1 (vec 0) FF p1 < pi` (C SUBGOAL_THEN ASSUME_TAC);
-      RULE_ASSUM_TAC (REWRITE_RULE[Localization.convex_local_fan]);
-      FIRST_X_ASSUM_ST `wedge_in_fan_ge` MP_TAC THEN REPEAT WEAKER_STRIP_TAC;
-      TYPIFY `interior_angle1 (vec 0) FF p1 <= pi` ENOUGH_TO_SHOW_TAC;
-        BY(REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
-      ASM_REWRITE_TAC[];
-      BY(ASM_MESON_TAC[]);
-    INTRO_TAC WNWSHJT [`ivs_rho_node1 FF p1`;`p1`;`p2`;`f`;`a`;`b`];
+      REPEAT WEAKER_STRIP_TAC;
+      TYPIFY `m` EXISTS_TAC;
+      REPLICATE_TAC 4 (FIRST_X_ASSUM MP_TAC);
+      REWRITE_TAC[EXTENSION;NOT_IN_EMPTY];
+      REWRITE_TAC[IN_IMAGE];
+      BY(MESON_TAC[]);
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `e` EXISTS_TAC;
     ASM_REWRITE_TAC[];
-    REPEAT (GMATCH_SIMP_TAC (GSYM Local_lemmas1.AZIM_IN_FAN_RHOND_IVS_RHOND));
-    TYPIFY `E` EXISTS_TAC;
-    CONJ_TAC;
-      BY(ASM_MESON_TAC[]);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[IN_IMAGE;EXISTS_PAIR_THM];
+    REPEAT WEAKER_STRIP_TAC;
+    REPEAT (FIRST_X_ASSUM (C INTRO_TAC [`p1,p2`]));
+    DISCH_TAC;
+    ASM_REWRITE_TAC[];
+    DISCH_TAC;
+    FIRST_X_ASSUM_ST `IMAGE` MP_TAC;
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [`t`]);
     ANTS_TAC;
-      CONJ_TAC;
-        MATCH_MP_TAC deformation_subset;
-        TYPIFY `V` EXISTS_TAC;
+      BY(ASM_TAC THEN REAL_ARITH_TAC);
+    BY(REWRITE_TAC[]);
+  COMMENT "skolemize wedge_in_fan";
+  TYPIFY_GOAL_THEN `(!x. ?e3. x IN FF ==>  &0 < e3 /\       (!t. --e3 < t /\ t < e3            ==> (IMAGE (\v. f v t) V SUBSET                         wedge_in_fan_ge (f (FST x) t, f (SND x) t) (IMAGE (IMAGE (\v. f v t)) E)))) ==> ( (?e3. &0 < e3 /\       (!t. --e3 < t /\ t < e3            ==> (!x. x IN IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF                     ==> IMAGE (\v. f v t) V SUBSET                         wedge_in_fan_ge x (IMAGE (IMAGE (\v. f v t)) E)))))` GMATCH_SIMP_TAC;
+    REWRITE_TAC[SKOLEM_THM];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `?e. &0 < e /\ (!x. x IN FF ==> e <= e3 x)` (C SUBGOAL_THEN MP_TAC);
+      INTRO_TAC Packing3.REAL_FINITE_MIN_EXISTS [`IMAGE e3 FF`];
+      ANTS_TAC;
+        CONJ_TAC;
+          (MATCH_MP_TAC FINITE_IMAGE);
+          BY(ASM_REWRITE_TAC[]);
+        (MATCH_MP_TAC Fatugpd.NOT_EMPTY_IMAGE);
+        BY(ASM_REWRITE_TAC[]);
+      REPEAT WEAKER_STRIP_TAC;
+      TYPIFY `m` EXISTS_TAC;
+      REPLICATE_TAC 4 (FIRST_X_ASSUM MP_TAC);
+      REWRITE_TAC[EXTENSION;NOT_IN_EMPTY];
+      REWRITE_TAC[IN_IMAGE];
+      BY(MESON_TAC[]);
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `e` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[IN_IMAGE;EXISTS_PAIR_THM];
+    REPEAT WEAKER_STRIP_TAC;
+    REPEAT (FIRST_X_ASSUM (C INTRO_TAC [`p1,p2`]));
+    DISCH_TAC;
+    ASM_REWRITE_TAC[];
+    DISCH_TAC;
+    FIRST_X_ASSUM_ST `IMAGE` MP_TAC;
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [`t`]);
+    ANTS_TAC;
+      BY(ASM_TAC THEN REAL_ARITH_TAC);
+    BY(REWRITE_TAC[]);
+  TYPIFY_GOAL_THEN `(!u v w. ?e4. (v,w) IN FF /\ u IN V ==> &0 < e4 /\ (!t. --e4 < t /\ t < e4  ==> aff_ge {vec 0} {f v t, f w t} INTER aff_lt {vec 0} {f u t} = {})) ==> (?e4. &0 < e4 /\       (!t. --e4 < t /\ t < e4            ==> (!v w u.                     {v, w} IN IMAGE (IMAGE (\v. f v t)) E /\                     u IN IMAGE (\v. f v t) V                     ==> aff_ge {vec 0} {v, w} INTER aff_lt {vec 0} {u} = {}))) ` GMATCH_SIMP_TAC;
+    REWRITE_TAC[SKOLEM_THM];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `?e. &0 < e /\ (!u v w. (u,(v,w)) IN V CROSS FF ==> e <= e4 u v w)` (C SUBGOAL_THEN MP_TAC);
+      INTRO_TAC Packing3.REAL_FINITE_MIN_EXISTS [`IMAGE (\ x. e4 (FST x) (FST (SND x)) (SND(SND x))) (V CROSS FF)`];
+      ANTS_TAC;
+        CONJ_TAC;
+          (MATCH_MP_TAC FINITE_IMAGE);
+          MATCH_MP_TAC FINITE_CROSS;
+          ASM_REWRITE_TAC[];
+          BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_FINITE_V]);
+        (MATCH_MP_TAC Fatugpd.NOT_EMPTY_IMAGE);
+        REWRITE_TAC[CROSS_EQ_EMPTY];
         ASM_REWRITE_TAC[];
-        REWRITE_TAC[SUBSET;IN_INSERT;NOT_IN_EMPTY];
-        BY(ASM_MESON_TAC[Local_lemmas1.LOCAL_FAN_IVS_IN_V;Local_lemmas.LOFA_IN_V_SO_DO_RHO_NODE_V])
-
-conj
-xxd to here.
-
-mmp Local_lemmas.LOCAL_FAN_CHARACTER_OF_RHO_NODE2
-
-xxd
-
-
-
-(* need to fix e so that works with local_fan *)
-Nkezbfc_local.CONVEX_LOFA_IMP_INANGLE_EQ_AZIM
+        BY(ASM_MESON_TAC[Local_lemmas.LOFA_V_NOT_EMP]);
+      REPEAT WEAKER_STRIP_TAC;
+      TYPIFY `m` EXISTS_TAC;
+      REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC);
+      REWRITE_TAC[EXTENSION;NOT_IN_EMPTY];
+      REWRITE_TAC[IN_IMAGE];
+      REWRITE_TAC[EXISTS_PAIR_THM];
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM (C INTRO_TAC [`p1`;`p1'`;`p2`]);
+      ANTS_TAC;
+        RULE_ASSUM_TAC(REWRITE_RULE[IN_CROSS]);
+        BY(ASM_REWRITE_TAC[]);
+      (REPEAT WEAKER_STRIP_TAC);
+      ASM_REWRITE_TAC[];
+      TYPIFY `m = e4 p1 p1' p2` UNDISCH_TAC;
+      DISCH_THEN (RULE_ASSUM_TAC o (unlist REWRITE_RULE));
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_MESON_TAC[IN_CROSS]);
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `e` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC;
+    REWRITE_TAC[IN_IMAGE;EXISTS_PAIR_THM];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM_ST `IMAGE` MP_TAC;
+    REWRITE_TAC[IN_IMAGE];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `?v' w'. x' = {v',w'}` (C SUBGOAL_THEN MP_TAC);
+      TYPIFY `graph E` (C SUBGOAL_THEN ASSUME_TAC);
+        BY(ASM_MESON_TAC[Fan_defs.FAN;Wrgcvdr_cizmrrh.LOCAL_FAN_IMP_FAN]);
+      RULE_ASSUM_TAC(REWRITE_RULE[Fan_defs.graph]);
+      TYPIFY`x' HAS_SIZE 2` (C SUBGOAL_THEN ASSUME_TAC);
+        BY(REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[IN]);
+      BY(REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[Local_lemmas1.HAS_SIZE_2_EXISTS2]);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM (RULE_ASSUM_TAC o (unlist REWRITE_RULE));
+    FIRST_X_ASSUM_ST `IMAGE` MP_TAC;
+    REWRITE_TAC[SET_RULE `IMAGE f {u,v} = {f u,f v}`];
+    DISCH_THEN ( SUBST1_TAC );
+    ASM_REWRITE_TAC[];
+    TYPIFY `?v'' w''. {v',w'} = {v'',w''} /\ (v'',w'') IN FF` (C SUBGOAL_THEN MP_TAC);
+      BY(ASM_MESON_TAC[Local_lemmas.LOFA_IN_E_IMP_IN_FF;SET_RULE `{a,b} = {b,a}`]);
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `{f v' t,f w' t} = {f v'' t,f w'' t}` (C SUBGOAL_THEN SUBST1_TAC);
+      FIRST_X_ASSUM_ST `{a,b}` MP_TAC;
+      REWRITE_TAC[Collect_geom.PAIR_EQ_EXPAND];
+      BY(MESON_TAC[]);
+    FIRST_X_ASSUM (C INTRO_TAC [`x`;`v''`;`w''`]);
+    REWRITE_TAC[IN_CROSS];
+    ASM_REWRITE_TAC[];
+    DISCH_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [`x`;`v''`;`w''`]);
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(REPLICATE_TAC 10 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  BY(ASM_REWRITE_TAC[])
   ]);;
   (* }}} *)
+
+let real_interval_contains_0_ball = prove_by_refinement(
+`!a b e1. a < &0 /\ &0 < b /\ &0 < e1  ==> (?e. &0 < e /\ e <= e1 /\ (!t. abs t < e ==> t IN real_interval (a,b)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `if (b <= -- a) /\ b <= e1 then b else (if e1 <= b /\ e1 <= --a then e1 else -- a)` EXISTS_TAC;
+  REWRITE_TAC[IN_REAL_INTERVAL];
+  ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;
+  CONJ_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  CONJ_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  GEN_TAC;
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let zlz_azim = prove_by_refinement(
+  `!a b V E FF f.
+     convex_local_fan (V,E,FF) /\
+     generic V E /\
+     deformation f V (a,b) /\
+     (!v t. v IN V /\ t IN real_interval (a,b) /\ interior_angle1 (vec 0) FF v = pi ==>
+	 interior_angle1 (vec 0) ( IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF) (f v t) <= pi) ==>
+ (!x. ?e2. x IN FF
+           ==> &0 < e2 /\
+               (!t. --e2 < t /\ t < e2
+                    ==> azim_in_fan (f (FST x) t,f (SND x) t)
+                        (IMAGE (IMAGE (\v. f v t)) E) <=
+                        pi)) `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Localization.convex_local_fan];
+  REWRITE_TAC[Localization.generic];
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "preliminaries";
+  TYPIFY `!t. IMAGE (\s. IMAGE (\v. f v t) s) E = IMAGE (IMAGE (\v. f v t)) E /\ IMAGE (\(u,v). f u t,f v t) FF = IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REWRITE_TAC[EXTENSION;IN_IMAGE;EXISTS_PAIR_THM]);
+  INTRO_TAC (GEN_ALL Local_lemmas.CVX_LO_IMP_LO) [`V`;`E`;`FF`];
+  ASM_REWRITE_TAC[];
+  TYPIFY `FINITE FF` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Wrgcvdr_cizmrrh.LOCAL_FAN_FINITE_FF;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `~(FF = {})` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Polar_fan.LOCAL_FAN_NOT_EMPTY_FF;
+    BY(ASM_MESON_TAC[]);
+  COMMENT "local_fan";
+  INTRO_TAC (GEN_ALL Lunar_deform.XRECQNS_UPDATE) [`a`;`b`;`V`;`E`;`f`;`FF`];
+  ASM_REWRITE_TAC[arith `-- e < t /\ t < e <=> abs t < e`];
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "restart here";
+  TYPIFY `?p1 p2. (x = p1,p2)` (C SUBGOAL_THEN MP_TAC);
+    BY(REWRITE_TAC[PAIR_SURJECTIVE]);
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[FST;SND];
+  FIRST_X_ASSUM (RULE_ASSUM_TAC o (unlist REWRITE_RULE));
+  REWRITE_TAC[RIGHT_EXISTS_IMP_THM];
+  DISCH_TAC;
+  TYPIFY `p1 IN V` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_IMP_IN_V]);
+  TYPIFY `p2 = rho_node1 FF p1` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC EQ_SYM;
+    MATCH_MP_TAC Local_lemmas.DETER_RHO_NODE;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `interior_angle1 (vec 0) FF p1 = azim_in_fan (p1,p2) E` (C SUBGOAL_THEN ASSUME_TAC);
+    INTRO_TAC LOFA_IMP_INANGLE_EQ_AZIM [`V`;`E`;`FF`;`p1`];
+    BY(ASM_MESON_TAC[]);
+  TYPIFY `?e2. &0 < e2 /\ e2 <= e /\ (!t. abs t < e2 ==> t IN real_interval (a,b))` (C SUBGOAL_THEN MP_TAC);
+    MATCH_MP_TAC real_interval_contains_0_ball;
+    RULE_ASSUM_TAC(REWRITE_RULE[Localization.deformation;IN_REAL_INTERVAL]);
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "first case";
+  TYPIFY `interior_angle1 (vec 0) FF p1 = pi` ASM_CASES_TAC;
+    TYPIFY `e2` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    COMMENT "new insert";
+    TYPIFY `local_fan (IMAGE (\v. f v t) V,  IMAGE (IMAGE (\v. f v t)) E,  IMAGE (\uv. f (FST uv) (t),f (SND uv) (t)) FF) /\ f p1 (t) IN IMAGE (\v. f v t) V` (C SUBGOAL_THEN ASSUME_TAC);
+      CONJ_TAC;
+        ASM_REWRITE_TAC[];
+        FIRST_X_ASSUM MATCH_MP_TAC;
+        BY(REPLICATE_TAC 10 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+      REWRITE_TAC[IN_IMAGE];
+      TYPIFY `p1` EXISTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    GMATCH_SIMP_TAC deformation_rho_node1_equivariant1;
+    CONJ_TAC;
+      GEXISTL_TAC [`a`;`b`;`E`;`V`];
+      BY(ASM_REWRITE_TAC[]);
+    INTRO_TAC (GSYM LOFA_IMP_INANGLE_EQ_AZIM) [`IMAGE (\v. f v t) V`;`IMAGE (IMAGE (\v. f v t)) E`;`IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF`;`f p1 t`];
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    DISCH_TAC;
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(REPLICATE_TAC 10 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    BY(ASM_MESON_TAC[]);
+  COMMENT "second case here";
+  COMMENT "case azim < pi";
+  TYPIFY `interior_angle1 (vec 0) FF p1 < pi` (C SUBGOAL_THEN ASSUME_TAC);
+    RULE_ASSUM_TAC (REWRITE_RULE[Localization.convex_local_fan]);
+    FIRST_X_ASSUM_ST `wedge_in_fan_ge` MP_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `interior_angle1 (vec 0) FF p1 <= pi` ENOUGH_TO_SHOW_TAC;
+      BY(REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[]);
+  INTRO_TAC WNWSHJT [`ivs_rho_node1 FF p1`;`p1`;`p2`;`f`;`a`;`b`];
+  ASM_REWRITE_TAC[];
+  REPEAT (GMATCH_SIMP_TAC (GSYM Local_lemmas1.AZIM_IN_FAN_RHOND_IVS_RHOND));
+  TYPIFY `E` EXISTS_TAC;
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  ANTS_TAC;
+    CONJ_TAC;
+      MATCH_MP_TAC deformation_subset;
+      TYPIFY `V` EXISTS_TAC;
+      ASM_REWRITE_TAC[];
+      REWRITE_TAC[SUBSET;IN_INSERT;NOT_IN_EMPTY];
+      BY(ASM_MESON_TAC[Local_lemmas1.LOCAL_FAN_IVS_IN_V;Local_lemmas.LOFA_IN_V_SO_DO_RHO_NODE_V]);
+    (GMATCH_SIMP_TAC deformation_rho_node1_equivariant1);
+    GMATCH_SIMP_TAC deformation_ivs_rho_node1_equivariant1;
+    CONJ_TAC;
+      GEXISTL_TAC [`a`;`b`;`E`;`V`];
+      ASM_REWRITE_TAC[];
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(REPEAT (FIRST_X_ASSUM_ST `&0 < e1` MP_TAC) THEN REAL_ARITH_TAC);
+    CONJ_TAC;
+      GEXISTL_TAC [`a`;`b`;`E`;`V`];
+      ASM_REWRITE_TAC[];
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(REPEAT (FIRST_X_ASSUM_ST `&0 < e1` MP_TAC) THEN REAL_ARITH_TAC);
+    TYPIFY `!v. v IN V ==> f v (&0) = v` (C SUBGOAL_THEN ASSUME_TAC);
+      RULE_ASSUM_TAC (REWRITE_RULE[Localization.deformation]);
+      BY(ASM_REWRITE_TAC[]);
+    TYPIFY `f p1 (&0) = p1` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_SIMP_TAC[]);
+    ASM_REWRITE_TAC[];
+    TYPIFY `IMAGE (\uv. f (FST uv) (&0),f (SND uv) (&0)) FF = FF` (C SUBGOAL_THEN SUBST1_TAC);
+      REWRITE_TAC[IN_IMAGE;EXTENSION;EXISTS_PAIR_THM];
+      GEN_TAC;
+      INTRO_TAC (GEN_ALL Local_lemmas.LOCAL_FAN_IMP_IN_V) [`E`;`FF`;`FST x`;`SND x`;`V`];
+      ASM_REWRITE_TAC[];
+      DISCH_TAC;
+      TYPIFY `x IN FF` ASM_CASES_TAC;
+        ASM_REWRITE_TAC[];
+        GEXISTL_TAC [ `FST x`;`SND x`];
+        BY(REPLICATE_TAC 4 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[PAIR;FST;SND]);
+      ASM_REWRITE_TAC[];
+      REWRITE_TAC[NOT_EXISTS_THM];
+      REPEAT WEAKER_STRIP_TAC;
+      INTRO_TAC (GEN_ALL Local_lemmas.LOCAL_FAN_IMP_IN_V) [`E`;`FF`;`p1'`;`p2'`;`V`];
+      ASM_REWRITE_TAC[];
+      BY(REPLICATE_TAC 6 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[PAIR;FST;SND]);
+    TYPIFY `p1 IN V` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_IMP_IN_V]);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[Local_lemmas.LOCAL_FAN_CHARACTER_OF_RHO_NODE2]);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[Local_lemmas.LOFA_IMP_NOT_COLL_IVS]);
+    CONJ_TAC;
+      INTRO_TAC (GEN_ALL Local_lemmas.INTERIOR_ANGLE1_POS) [`E`;`V`;`FF`;`p1`];
+      BY(ASM_REWRITE_TAC[]);
+    BY(ASM_MESON_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `(!t. abs t < e ==> azim_in_fan (f p1 t,f (rho_node1 FF p1) t)               (IMAGE (IMAGE (\v. f v t)) E) = azim (vec 0) (f p1 t) (f (rho_node1 FF p1) t)              (f (ivs_rho_node1 FF p1) t))` (C SUBGOAL_THEN MP_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    GMATCH_SIMP_TAC deformation_rho_node1_equivariant1;
+    CONJ_TAC;
+      GEXISTL_TAC [`a`;`b`;`E`;`V`];
+      (ASM_REWRITE_TAC[]);
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    GMATCH_SIMP_TAC Local_lemmas1.AZIM_IN_FAN_RHOND_IVS_RHOND;
+    CONJ_TAC;
+      TYPIFY `IMAGE (\v. f v t) V` EXISTS_TAC;
+      CONJ_TAC;
+        FIRST_X_ASSUM MATCH_MP_TAC;
+        BY(ASM_REWRITE_TAC[]);
+      REWRITE_TAC[IN_IMAGE];
+      TYPIFY `p1` EXISTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    GMATCH_SIMP_TAC deformation_ivs_rho_node1_equivariant1;
+    GEXISTL_TAC [`a`;`b`;`E`;`V`];
+    (ASM_REWRITE_TAC[]);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  TYPIFY `if (e2 <= e') then e2 else e'` EXISTS_TAC;
+  CONJ_TAC;
+    BY(REPEAT (FIRST_X_ASSUM_ST `&0 < e` MP_TAC) THEN REAL_ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`t`]);
+  ANTS_TAC;
+    BY(REPLICATE_TAC 7 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  DISCH_THEN SUBST1_TAC;
+  MATCH_MP_TAC (arith `x < pi ==> x <= pi`);
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let zlz_generic = prove_by_refinement(
+  `!a b V E FF f.
+     convex_local_fan (V,E,FF) /\
+     generic V E /\
+     deformation f V (a,b) /\
+     (!v t. v IN V /\ t IN real_interval (a,b) /\ interior_angle1 (vec 0) FF v = pi ==>
+	 interior_angle1 (vec 0) ( IMAGE (\uv. f (FST uv) t,f (SND uv) t) FF) (f v t) <= pi) ==>
+  (!u v w.
+      ?e4. v,w IN FF /\ u IN V
+           ==> &0 < e4 /\
+               (!t. --e4 < t /\ t < e4
+                    ==> aff_ge {vec 0} {f v t, f w t} INTER
+                        aff_lt {vec 0} {f u t} =
+                        {}))`,
+  (* {{{ proof *)
+  [
+  st/r
+xxd start here.
+  ]);;
+  (* }}} *)
+
 
 
 

@@ -8,6 +8,8 @@
 
 module Xivphks = struct 
 
+  open Hales_tactic;;
+
 (* ------------------------------------------------------------------------- *)
 (* Lemma 7.141                                                               *)
 (* ------------------------------------------------------------------------- *)
@@ -270,5 +272,216 @@ let XIVPHKS = prove
       REWRITE_TAC[ARITH_RULE `(j + k + 1) + 1 = j + k + 2`;
                   ARITH_RULE `(j + k + 1) - 1 = j + k`] THEN
       REAL_ARITH_TAC]]);;
+
+(* 1..r are the straight angles. Modified from Xivphks.XIVPHKS by shifting indices. *)
+
+let XIVPHKS_SHIFT = prove_by_refinement(
+  `!W a d e r w.
+            pairwise (\i j. ~collinear {vec 0, w i, w j}) (0..(r+1)) /\
+            pairwise (\i j. ~collinear {vec 0, w i, w j}) (1..(r+2)) /\
+            (\(i,j,k). dihV (vec 0) (w i) (w j) (w k)) = d /\
+            (\(i,j,k). azim (vec 0) (w i) (w j) (w k)) = a /\
+            (\i. wedge_ge (vec 0) (w i) (w (i + 1)) (w (i - 1))) = W /\
+            &0 < &2 * e /\
+            (!i. i IN 1..(r+1) ==> &2 * e < a (i,i + 1,i - 1)) /\
+            (!i. i IN 1..(r+1) ==> a (i,i + 1,i - 1) <= pi) /\
+            (!p q.
+                 {p, q, q + 1} SUBSET 1..(r+1) /\ ~(p = q) /\ ~(p = q + 1)
+                 ==> d (p,q,q + 1) < e) /\
+            (!p q.
+                 {p, p + 1, q} SUBSET 1..(r+1) /\ q > p + 1 ==> d (p,p + 1,q) < e) /\
+            (!p q. {p + 1, p, q} SUBSET 1..(r+1) /\ q < p ==> d (p + 1,p,q) < e)
+            ==> (!k j. 1 <= j /\ j + k <= r+1 ==> w j IN W (j + k)) /\ 
+                (!k j. 1 <= j /\ j + k <= r+1 ==> w (j + k) IN W j)`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC THEN REWRITE_TAC[REAL_ARITH `&0 < &2 * e <=> &0 < e`];
+  REWRITE_TAC[IN_NUMSEG; GT; pairwise; LE_0] THEN STRIP_TAC;
+  REWRITE_TAC[AND_FORALL_THM; TAUT `(p ==> r) /\ (q /\ p ==> s) <=> p ==> r /\ (q ==> s)`];
+  INDUCT_TAC;
+    REWRITE_TAC[ADD_CLAUSES; SUB_0];
+    EXPAND_TAC "W" THEN REWRITE_TAC[Localization.wedge_ge; IN_ELIM_THM];
+    BY(REWRITE_TAC[Local_lemmas.AZIM_SPEC_DEGENERATE; azim; REAL_LE_REFL]);
+  ASM_CASES_TAC `k = 0`;
+    ASM_REWRITE_TAC[ADD_CLAUSES] THEN REWRITE_TAC[ADD1];
+    EXPAND_TAC "W" THEN REWRITE_TAC[Localization.wedge_ge; IN_ELIM_THM];
+    BY(REWRITE_TAC[ADD_SUB; azim; REAL_LE_REFL; AZIM_REFL]);
+  SUBGOAL_THEN `&2 * e < &2 * pi` ASSUME_TAC;
+    MATCH_MP_TAC REAL_LT_TRANS;
+    EXISTS_TAC `a(1,1 + 1,1 - 1):real` THEN CONJ_TAC;
+      BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC);
+    BY(EXPAND_TAC "a" THEN REWRITE_TAC[azim]);
+  REWRITE_TAC[ADD1] THEN X_GEN_TAC `j:num`;
+  MATCH_MP_TAC(TAUT `q /\ (q ==> p) ==> p /\ q`) THEN CONJ_TAC;
+    DISCH_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [`j`]);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC THEN ANTS_TAC;
+      BY(ASM_ARITH_TAC);
+    DISCH_TAC;
+    FIRST_X_ASSUM_ST `==>` MP_TAC THEN ANTS_TAC;
+      BY(ASM_ARITH_TAC);
+    DISCH_TAC;
+    SUBGOAL_THEN `a(j + k,j + k + 1,j) <= a(j + k,j + k + 1,j + k - 1)` ASSUME_TAC;
+      FIRST_X_ASSUM MP_TAC THEN MAP_EVERY EXPAND_TAC ["W"; "a"];
+      REWRITE_TAC[Localization.wedge_ge; IN_ELIM_THM];
+      DISCH_THEN(MP_TAC o CONJUNCT2) THEN MATCH_MP_TAC EQ_IMP;
+      BY(REPEAT(BINOP_TAC THEN REWRITE_TAC[]) THEN AP_TERM_TAC THEN ASM_ARITH_TAC);
+    SUBGOAL_THEN `a(j + k,j + k + 1,j + k - 1) <= pi` ASSUME_TAC;
+      ASM_SIMP_TAC[ARITH_RULE `~(k = 0) ==> j + k - 1 = (j + k) - 1`];
+      BY(REWRITE_TAC[ADD_ASSOC] THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC);
+    SUBGOAL_THEN `a(j,j + k,j + k + 1) <= pi` ASSUME_TAC;
+      SUBGOAL_THEN `a (j + k,j + k + 1,j) <= pi` MP_TAC THENL [ASM_REAL_ARITH_TAC; EXPAND_TAC "a" THEN REWRITE_TAC[]];
+      BY(MESON_TAC[FSQKWKK]);
+    SUBGOAL_THEN `a(j,j + k,j + k + 1) < e` ASSUME_TAC;
+      SUBGOAL_THEN `a(j,j + k,j + k + 1):real = d(j,j + k,j + k + 1)` SUBST1_TAC;
+        UNDISCH_TAC `a (j,j + k,j + k + 1) <= pi`;
+        MAP_EVERY EXPAND_TAC ["a"; "d"] THEN REWRITE_TAC[] THEN DISCH_TAC;
+        MATCH_MP_TAC Polar_fan.AZIM_DIHV_SAME_STRONG THEN ASM_REWRITE_TAC[];
+        BY(CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC);
+      REWRITE_TAC[ADD_ASSOC] THEN FIRST_X_ASSUM MATCH_MP_TAC;
+      REWRITE_TAC[INSERT_SUBSET; EMPTY_SUBSET; IN_NUMSEG];
+      BY(ASM_ARITH_TAC);
+    SUBGOAL_THEN `a(j,j + 1,j + k) <= a(j,j + 1,j - 1)` ASSUME_TAC;
+      UNDISCH_TAC `(w:num->real^3) (j + k) IN W j`;
+      MAP_EVERY EXPAND_TAC ["W"; "a"];
+      BY(SIMP_TAC[Localization.wedge_ge; IN_ELIM_THM]);
+    SUBGOAL_THEN `a(j,j + 1,j - 1) <= pi` ASSUME_TAC THENL [FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC; ALL_TAC];
+    SUBGOAL_THEN `a(j,j + 1,j + k) <= pi` ASSUME_TAC THENL [ASM_REAL_ARITH_TAC; ALL_TAC];
+    SUBGOAL_THEN `a(j,j + 1,j + k) < e` ASSUME_TAC;
+      ASM_CASES_TAC `k=1`;
+        BY(EXPAND_TAC "a" THEN REWRITE_TAC[] THEN ASM_REWRITE_TAC[AZIM_REFL]);
+      SUBGOAL_THEN `a(j,j + 1,j + k):real = d(j,j + 1,j + k)` SUBST1_TAC;
+        UNDISCH_TAC `a (j,j + 1,j + k) <= pi`;
+        MAP_EVERY EXPAND_TAC ["a"; "d"] THEN REWRITE_TAC[] THEN DISCH_TAC;
+        MATCH_MP_TAC Polar_fan.AZIM_DIHV_SAME_STRONG THEN ASM_REWRITE_TAC[];
+        BY(CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC);
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      REWRITE_TAC[INSERT_SUBSET; EMPTY_SUBSET; IN_NUMSEG];
+      BY(ASM_ARITH_TAC);
+    SUBGOAL_THEN `a(j,j + 1,j + k + 1):real <= a(j,j + 1,j - 1)` MP_TAC;
+      MATCH_MP_TAC REAL_LE_TRANS;
+      EXISTS_TAC `a(j,j + 1,j + k) + a(j,j + k,j + k + 1)` THEN CONJ_TAC;
+        MATCH_MP_TAC REAL_EQ_IMP_LE THEN MAP_EVERY UNDISCH_TAC [`a (j,j + k,j + k + 1):real < e`; `a (j,j + 1,j + k):real < e`];
+        EXPAND_TAC "a" THEN REWRITE_TAC[] THEN REPEAT STRIP_TAC;
+        MATCH_MP_TAC Fan.sum3_azim_fan;
+        CONJ_TAC THENL [ASM_REAL_ARITH_TAC; ALL_TAC];
+        BY(REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC);
+      MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `&2 * e` THEN CONJ_TAC;
+        BY(ASM_REAL_ARITH_TAC);
+      MATCH_MP_TAC REAL_LT_IMP_LE;
+      BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC);
+    EXPAND_TAC "W" THEN REWRITE_TAC[Localization.wedge_ge; IN_ELIM_THM];
+    BY(EXPAND_TAC "a" THEN REWRITE_TAC[azim]);
+  DISCH_TAC;
+  COMMENT "midpoint -- down to 1 goal";
+  DISCH_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`j+1`]);
+  ASM_REWRITE_TAC[arith `1 <= j+1`;arith `(j + 1) + k = j + k + 1`;];
+  REPEAT WEAKER_STRIP_TAC;
+  SUBGOAL_THEN `a(j + 1,j + 2,j + k + 1) <= a(j + 1,j + 2,j)` ASSUME_TAC;
+    UNDISCH_TAC `(w:num->real^3) (j + k + 1) IN W (j + 1)`;
+    EXPAND_TAC "W" THEN REWRITE_TAC[Localization.wedge_ge; IN_ELIM_THM];
+    BY(EXPAND_TAC "a" THEN SIMP_TAC[ARITH_RULE `(a + 1) + 1 = a + 2`; ADD_SUB]);
+  SUBGOAL_THEN `a(j + 1,j + 2,j + k + 1) + a(j + 1,j + k + 1,j) =                a(j + 1,j + 2,j)` ASSUME_TAC;
+    CONV_TAC SYM_CONV;
+    UNDISCH_TAC `a(j + 1,j + 2,j + k + 1) <= a(j + 1,j + 2,j)`;
+    EXPAND_TAC "a" THEN REWRITE_TAC[] THEN DISCH_TAC;
+    MATCH_MP_TAC Fan.sum4_azim_fan THEN ASM_REWRITE_TAC[];
+    TYPIFY_GOAL_THEN `~collinear {vec 0, w (j + 1), w j}` (unlist REWRITE_TAC);
+      FIRST_X_ASSUM_ST `collinear` kill;
+      BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC);
+    BY(REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN TRY ASM_ARITH_TAC);
+  SUBGOAL_THEN `a(j + 1,j + k + 1,j) <= a(j + 1,j + 2,j)` ASSUME_TAC;
+    FIRST_X_ASSUM(MATCH_MP_TAC o MATCH_MP (REAL_ARITH `a + b = c ==> &0 <= a ==> b <= c`));
+    BY(EXPAND_TAC "a" THEN REWRITE_TAC[azim]);
+  SUBGOAL_THEN `a(j + 1,(j + 1) + 1,(j + 1) - 1) <= pi` MP_TAC;
+    BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC);
+  REWRITE_TAC[ADD_SUB; ARITH_RULE `(n + 1) + 1 = n + 2`];
+  DISCH_TAC;
+  SUBGOAL_THEN `a(j + k + 1,j,j + 1) <= pi` ASSUME_TAC;
+    SUBGOAL_THEN `a(j + 1,j + k + 1,j) <= pi` MP_TAC;
+      BY(ASM_REAL_ARITH_TAC);
+    EXPAND_TAC "a" THEN REWRITE_TAC[];
+    BY(MESON_TAC[FSQKWKK]);
+  SUBGOAL_THEN `a(j + k + 1,j,j + 1) < e` ASSUME_TAC;
+    ASM_CASES_TAC `k = 0`;
+      BY(EXPAND_TAC "a" THEN ASM_REWRITE_TAC[Local_lemmas.AZIM_SPEC_DEGENERATE;arith `j + 0 + 1 = j+1`]);
+    SUBGOAL_THEN `a(j + k + 1,j,j + 1):real = d(j + k + 1,j,j + 1) ` SUBST1_TAC;
+      UNDISCH_TAC `a(j + k + 1,j,j + 1) <= pi`;
+      MAP_EVERY EXPAND_TAC ["a"; "d"] THEN REWRITE_TAC[] THEN DISCH_TAC;
+      MATCH_MP_TAC Polar_fan.AZIM_DIHV_SAME_STRONG THEN ASM_REWRITE_TAC[];
+      BY(CONJ_TAC THENL [FIRST_X_ASSUM_ST `collinear` kill;ALL_TAC] THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC);
+    REWRITE_TAC[ADD_ASSOC] THEN FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(REWRITE_TAC[INSERT_SUBSET; EMPTY_SUBSET; IN_NUMSEG] THEN ASM_ARITH_TAC);
+  SUBGOAL_THEN `a(j + k + 1,j + k + 2,j + 1) <= a(j + k + 1,j + k + 2,j + k)` ASSUME_TAC;
+    UNDISCH_TAC `(w:num->real^3)(j + 1) IN W (j + k + 1)`;
+    MAP_EVERY EXPAND_TAC ["W"; "a"];
+    BY(SIMP_TAC[Localization.wedge_ge; IN_ELIM_THM; ARITH_RULE `(j + k + 1) + 1 = j + k + 2`; ARITH_RULE `(j + k + 1) - 1 = j + k`]);
+  SUBGOAL_THEN `a(j + k + 1,j + k + 2,j + 1) + a(j + k + 1,j + 1,j + k) =                a(j + k + 1,j + k + 2,j + k)` ASSUME_TAC;
+    CONV_TAC SYM_CONV;
+    UNDISCH_TAC `a(j + k + 1,j + k + 2,j + 1) <= a(j + k + 1,j + k + 2,j + k)`;
+    EXPAND_TAC "a" THEN REWRITE_TAC[] THEN DISCH_TAC;
+    MATCH_MP_TAC Fan.sum4_azim_fan THEN ASM_REWRITE_TAC[];
+    BY(REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC);
+  COMMENT "ok";
+  ASM_CASES_TAC `k = 0`;
+    ASM_REWRITE_TAC[arith `j+0+1 = j+1`];
+    EXPAND_TAC "W" THEN REWRITE_TAC[];
+    ASM_SIMP_TAC[arith `1 <= j ==> (j+1)+1 = j+2 /\ (j+1)-1 = j`];
+    BY(REWRITE_TAC[Local_lemmas1.FST_LST_IN_WEDGE_GE]);
+  SUBGOAL_THEN `a(j + k + 1,(j + k + 1) + 1,(j + k + 1) - 1) <= pi` MP_TAC;
+    BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC);
+  REWRITE_TAC[ARITH_RULE `(j + k + 1) + 1 = j + k + 2`; ARITH_RULE `(j + k + 1) - 1 = j + k`];
+  DISCH_TAC;
+  SUBGOAL_THEN `a(j + k + 1,j + 1,j + k) <= a(j + k + 1,j + k + 2,j + k)` ASSUME_TAC;
+    FIRST_X_ASSUM(MATCH_MP_TAC o MATCH_MP (REAL_ARITH `a + b = c ==> &0 <= a ==> b <= c`));
+    BY(EXPAND_TAC "a" THEN REWRITE_TAC[azim]);
+  SUBGOAL_THEN `a(j + k + 1,j + 1,j + k) <= pi` ASSUME_TAC;
+    BY(ASM_REAL_ARITH_TAC);
+  SUBGOAL_THEN `a(j + k + 1,j + 1,j + k) < e` ASSUME_TAC;
+    ASM_CASES_TAC `k = 1`;
+      ASM_REWRITE_TAC[] THEN EXPAND_TAC "a" THEN REWRITE_TAC[AZIM_REFL];
+      BY(ASM_REWRITE_TAC[]);
+    SUBGOAL_THEN `a(j + k + 1,j + 1,j + k):real = d(j + k + 1,j + 1,j + k)` SUBST1_TAC;
+      UNDISCH_TAC `a(j + k + 1,j + 1,j + k) <= pi`;
+      MAP_EVERY EXPAND_TAC ["a"; "d"] THEN REWRITE_TAC[] THEN DISCH_TAC;
+      MATCH_MP_TAC Polar_fan.AZIM_DIHV_SAME_STRONG THEN ASM_REWRITE_TAC[];
+      BY(CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC);
+    SUBGOAL_THEN `d((j + k) + 1,j + k,j + 1) < e` MP_TAC;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(REWRITE_TAC[INSERT_SUBSET; EMPTY_SUBSET; IN_NUMSEG] THEN ASM_ARITH_TAC);
+    BY(EXPAND_TAC "d" THEN REWRITE_TAC[ADD_ASSOC; Counting_spheres.DIHV_SYM]);
+  COMMENT "ok";
+  ENOUGH_TO_SHOW_TAC `a(j + k + 1,j + k + 2,j) <= a(j + k + 1,j + k + 2,j + k)`;
+    MAP_EVERY EXPAND_TAC ["W"; "a"];
+    BY(SIMP_TAC[Localization.wedge_ge; azim; IN_ELIM_THM; ARITH_RULE `(j + k + 1) + 1 = j + k + 2`; ARITH_RULE `(j + k + 1) - 1 = j + k`]);
+  MATCH_MP_TAC REAL_LE_TRANS;
+  EXISTS_TAC `a(j + k + 1,j + k + 2,j) + a(j + k + 1,j,j + k)`;
+  CONJ_TAC;
+    BY(REWRITE_TAC[REAL_LE_ADDR] THEN EXPAND_TAC "a" THEN REWRITE_TAC[azim]);
+  MATCH_MP_TAC REAL_EQ_IMP_LE THEN CONV_TAC SYM_CONV;
+  EXPAND_TAC "a" THEN REWRITE_TAC[] THEN REPEAT STRIP_TAC;
+  MATCH_MP_TAC Fan.sum5_azim_fan;
+  CONJ2_TAC;
+    BY(REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC);
+  MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `&2 * e` THEN CONJ_TAC;
+    MATCH_MP_TAC REAL_LE_TRANS;
+    EXISTS_TAC `a(j + k + 1,j,j + 1) + a(j + k + 1,j + 1,j + k)`;
+    CONJ_TAC;
+      MATCH_MP_TAC REAL_EQ_IMP_LE THEN MAP_EVERY UNDISCH_TAC [`a(j + k + 1,j,j + 1):real < e`; `a(j + k + 1,j + 1,j + k):real < e`];
+      EXPAND_TAC "a" THEN REWRITE_TAC[] THEN REPEAT STRIP_TAC;
+      MATCH_MP_TAC Fan.sum3_azim_fan;
+      CONJ_TAC THENL [ASM_REAL_ARITH_TAC; ALL_TAC];
+      BY(REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC);
+    BY(ASM_REAL_ARITH_TAC);
+  SUBGOAL_THEN `&2 * e < a (j + k + 1,(j + k + 1) + 1,(j + k + 1) - 1)` MP_TAC;
+    BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_ARITH_TAC);
+  EXPAND_TAC "a";
+  REWRITE_TAC[ARITH_RULE `(j + k + 1) + 1 = j + k + 2`; ARITH_RULE `(j + k + 1) - 1 = j + k`];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
 
 end;;

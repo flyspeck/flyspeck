@@ -1,0 +1,320 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(* Section: Appendix                                                          *)
+(* Chapter: Local Fan                                                         *)
+(* Author: John Harrison                                                      *)
+(* Date: 2013-07-12                                                           *)
+(* ========================================================================== *)
+
+module Pqcsxwg = struct 
+
+  open Xbjrphc;;
+(* ------------------------------------------------------------------------- *)
+(* Suite of continuity properties for sqrt.                                  *)
+(* ------------------------------------------------------------------------- *)
+
+let CONTINUOUS_WITHIN_SQRT_COMPOSE = prove
+ (`!f s a:real^N.
+        (\x. lift(f x)) continuous (at a within s) /\
+        (&0 < f a \/ !x. x IN s ==> &0 <= f x)
+        ==> (\x. lift(sqrt(f x))) continuous (at a within s)`,
+  REPEAT GEN_TAC THEN
+  SUBGOAL_THEN
+   `(\x:real^N. lift(sqrt(f x))) = (lift o sqrt o drop) o (lift o f)`
+  SUBST1_TAC THENL [REWRITE_TAC[o_DEF; LIFT_DROP]; ALL_TAC] THEN
+  REPEAT STRIP_TAC THEN
+  (MATCH_MP_TAC CONTINUOUS_WITHIN_COMPOSE THEN
+   CONJ_TAC THENL [ASM_REWRITE_TAC[o_DEF]; ALL_TAC])
+  THENL
+   [MATCH_MP_TAC CONTINUOUS_AT_WITHIN THEN
+    MATCH_MP_TAC CONTINUOUS_AT_SQRT THEN ASM_REWRITE_TAC[o_DEF; LIFT_DROP];
+    MATCH_MP_TAC CONTINUOUS_WITHIN_LIFT_SQRT THEN
+    ASM_REWRITE_TAC[FORALL_IN_IMAGE; o_DEF; LIFT_DROP]]);;
+
+let CONTINUOUS_AT_SQRT_COMPOSE = prove
+ (`!f a:real^N.
+        (\x. lift(f x)) continuous (at a) /\ (&0 < f a \/ !x. &0 <= f x)
+        ==> (\x. lift(sqrt(f x))) continuous (at a)`,
+  REPEAT GEN_TAC THEN
+  MP_TAC(ISPECL [`f:real^N->real`; `(:real^N)`; `a:real^N`]
+        CONTINUOUS_WITHIN_SQRT_COMPOSE) THEN
+  REWRITE_TAC[WITHIN_UNIV; IN_UNIV]);;
+
+let REAL_CONTINUOUS_WITHIN_SQRT_COMPOSE = prove
+ (`!f s a:real^N.
+        f real_continuous (at a within s) /\
+        (&0 < f a \/ !x. x IN s ==> &0 <= f x)
+        ==> (\x. sqrt(f x)) real_continuous (at a within s)`,
+  REWRITE_TAC[REAL_CONTINUOUS_CONTINUOUS1; o_DEF] THEN
+  REWRITE_TAC[CONTINUOUS_WITHIN_SQRT_COMPOSE]);;
+
+let REAL_CONTINUOUS_AT_SQRT_COMPOSE = prove
+ (`!f a:real^N.
+        f real_continuous (at a) /\
+        (&0 < f a \/ !x. &0 <= f x)
+        ==> (\x. sqrt(f x)) real_continuous (at a)`,
+  REWRITE_TAC[REAL_CONTINUOUS_CONTINUOUS1; o_DEF] THEN
+  REWRITE_TAC[CONTINUOUS_AT_SQRT_COMPOSE]);;
+
+let CONTINUOUS_WITHINREAL_SQRT_COMPOSE = prove
+ (`!f s a. (\x. lift(f x)) continuous (atreal a within s) /\
+           (&0 < f a \/ !x. x IN s ==> &0 <= f x)
+           ==> (\x. lift(sqrt(f x))) continuous (atreal a within s)`,
+  REWRITE_TAC[Xbjrphc.CONTINUOUS_CONTINUOUS_WITHINREAL] THEN
+  REWRITE_TAC[o_DEF] THEN REPEAT GEN_TAC THEN DISCH_TAC THEN
+  MATCH_MP_TAC CONTINUOUS_WITHIN_SQRT_COMPOSE THEN
+  ASM_REWRITE_TAC[FORALL_IN_IMAGE; LIFT_DROP]);;
+
+let CONTINUOUS_ATREAL_SQRT_COMPOSE = prove
+ (`!f a. (\x. lift(f x)) continuous (atreal a) /\ (&0 < f a \/ !x. &0 <= f x)
+         ==> (\x. lift(sqrt(f x))) continuous (atreal a)`,
+  REPEAT GEN_TAC THEN
+  MP_TAC(ISPECL [`f:real->real`; `(:real)`; `a:real`]
+        CONTINUOUS_WITHINREAL_SQRT_COMPOSE) THEN
+  REWRITE_TAC[WITHINREAL_UNIV; IN_UNIV]);;
+
+let REAL_CONTINUOUS_WITHINREAL_SQRT_COMPOSE = prove
+ (`!f s a. f real_continuous (atreal a within s) /\
+           (&0 < f a \/ !x. x IN s ==> &0 <= f x)
+           ==> (\x. sqrt(f x)) real_continuous (atreal a within s)`,
+  REWRITE_TAC[REAL_CONTINUOUS_CONTINUOUS1; o_DEF] THEN
+  REWRITE_TAC[CONTINUOUS_WITHINREAL_SQRT_COMPOSE]);;
+
+let REAL_CONTINUOUS_ATREAL_SQRT_COMPOSE = prove
+ (`!f a. f real_continuous (atreal a) /\
+         (&0 < f a \/ !x. &0 <= f x)
+         ==> (\x. sqrt(f x)) real_continuous (atreal a)`,
+  REWRITE_TAC[REAL_CONTINUOUS_CONTINUOUS1; o_DEF] THEN
+  REWRITE_TAC[CONTINUOUS_ATREAL_SQRT_COMPOSE]);;
+
+(* ------------------------------------------------------------------------- *)
+(* Flyspeck definition of mk_simplex (corrected).                            *)
+(* ------------------------------------------------------------------------- *)
+
+let mk_simplex1 = new_definition `mk_simplex1 v0 v1 v2 x1 x2 x3 x4 x5 x6 =
+  (let uinv = &1 / ups_x x1 x2 x6 in
+  let d = delta_x x1 x2 x3 x4 x5 x6 in
+  let d5 = delta_x5 x1 x2 x3 x4 x5 x6 in
+  let d4 = delta_x4 x1 x2 x3 x4 x5 x6 in
+  let vcross =  (v1 - v0) cross (v2 - v0) in
+    v0 + uinv % ((&2 * sqrt d) % vcross + d5 % (v1 - v0) + d4 % (v2 - v0)))`;;
+
+let MK_SIMPLEX_TRANSLATION = prove
+ (`!a v0 v1 v2 x1 x2 x3 x4 x5 x6.
+        mk_simplex1 (a + v0) (a + v1) (a + v2) x1 x2 x3 x4 x5 x6 =
+        a + mk_simplex1 v0 v1 v2 x1 x2 x3 x4 x5 x6`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[mk_simplex1] THEN
+  CONV_TAC(TOP_DEPTH_CONV let_CONV) THEN
+  REWRITE_TAC[VECTOR_ARITH `(a + x) - (a + y):real^N = x - y`] THEN
+  REWRITE_TAC[GSYM VECTOR_ADD_ASSOC]);;
+
+add_translation_invariants [MK_SIMPLEX_TRANSLATION];;
+
+(* ------------------------------------------------------------------------- *)
+(* The first part of PQCSXWG.                                                *)
+(* ------------------------------------------------------------------------- *)
+
+let PQCSXWG1_concl = `!v0 v1 v2 v3 x1 x2 x3 x4 x5 x6.
+  &0 < x1 /\ &0 < x2 /\ &0 < x3 /\ &0 < x4 /\ &0 < x5 /\ &0 < x6 /\
+  ~collinear {v0,v1,v2} /\
+  x1 = dist(v1,v0) pow 2 /\
+  x2 = dist(v2,v0) pow 2 /\
+  x6 = dist(v1,v2) pow 2 /\
+  &0 < delta_x x1 x2 x3 x4 x5 x6 /\
+  v3 = mk_simplex1 v0 v1 v2 x1 x2 x3 x4 x5 x6 ==>
+     (x3 = dist(v3,v0) pow 2 /\
+      x5 = dist(v3,v1) pow 2 /\
+      x4 = dist(v3,v2) pow 2 /\
+      (v1 - v0) dot ((v2 - v0) cross (v3 - v0)) > &0)`;;
+
+let PQCSXWG1 = prove
+ (PQCSXWG1_concl,
+  GEOM_ORIGIN_TAC `v0:real^3` THEN REPEAT GEN_TAC THEN
+  REWRITE_TAC[mk_simplex1; VECTOR_SUB_RZERO; VECTOR_ADD_LID] THEN
+  REPEAT LET_TAC THEN REWRITE_TAC[CONJ_ASSOC] THEN
+  DISCH_THEN(CONJUNCTS_THEN2 MP_TAC SUBST1_TAC) THEN
+  REWRITE_TAC[GSYM CONJ_ASSOC] THEN
+  DISCH_THEN(STRIP_ASSUME_TAC o GSYM) THEN
+  REWRITE_TAC[dist; VECTOR_SUB_RZERO] THEN
+  REWRITE_TAC[VECTOR_ADD_LDISTRIB; VECTOR_MUL_ASSOC] THEN
+  REWRITE_TAC[CROSS_RADD; CROSS_RMUL;
+    VECTOR_ARITH `(a + x % b + c) - b:real^N = a + (x - &1) % b + c`;
+    VECTOR_ARITH `(a + b + x % c) - c:real^N = a + b + (x - &1) % c`] THEN
+  SUBGOAL_THEN
+   `!a b c. norm(a % vcross + b % v1 + c % v2:real^3) pow 2 =
+            norm(a % vcross) pow 2 + norm(b % v1 + c % v2) pow 2`
+   (fun th -> REWRITE_TAC[th])
+  THENL
+   [REPEAT GEN_TAC THEN MATCH_MP_TAC NORM_ADD_PYTHAGOREAN THEN
+    EXPAND_TAC "vcross" THEN REWRITE_TAC[orthogonal] THEN VEC3_TAC;
+    ALL_TAC] THEN
+  REWRITE_TAC[CROSS_REFL; VECTOR_MUL_RZERO; VECTOR_ADD_RID; real_gt] THEN
+  REWRITE_TAC[DOT_RADD; DOT_RMUL; DOT_CROSS_SELF] THEN
+  REWRITE_TAC[REAL_MUL_RZERO; REAL_ADD_RID] THEN
+  REWRITE_TAC[VEC3_RULE `v1 dot (v2 cross v) = (v1 cross v2) dot v`] THEN
+  SUBGOAL_THEN `~(vcross:real^3 = vec 0)` ASSUME_TAC THENL
+   [EXPAND_TAC "vcross" THEN REWRITE_TAC[CROSS_EQ_0] THEN ASM_REWRITE_TAC[];
+    ASM_SIMP_TAC[GSYM NORM_POW_2; NORM_POS_LT; REAL_POW_LT; REAL_LT_MUL_EQ;
+              REAL_ARITH `&0 < x * &2 * y <=> &0 < x * y`; SQRT_POS_LT]] THEN
+  SUBGOAL_THEN `&0 < ups_x x1 x2 x6` ASSUME_TAC THENL
+   [FIRST_X_ASSUM(MP_TAC o GEN_REWRITE_RULE I
+      [Collect_geom2.NOT_COL_EQ_UPS_X_POS]) THEN
+    MAP_EVERY EXPAND_TAC ["x1"; "x2"; "x6"] THEN REWRITE_TAC[DIST_SYM];
+    EXPAND_TAC "uinv" THEN
+    ASM_SIMP_TAC[REAL_LT_DIV; REAL_OF_NUM_LT; ARITH]] THEN
+  REWRITE_TAC[NORM_MUL; REAL_POW_MUL; REAL_POW2_ABS] THEN
+  ASM_SIMP_TAC[SQRT_POW_2; REAL_LT_IMP_LE] THEN
+  REWRITE_TAC[REAL_ARITH `x * &2 pow 2 * y = &4 * x * y`] THEN
+  REWRITE_TAC[NORM_POW_2; VECTOR_ARITH
+   `(a + b) dot (a + b:real^3) = a dot a + b dot b + &2 * a dot b`] THEN
+  REWRITE_TAC[DOT_LMUL] THEN REWRITE_TAC[DOT_RMUL] THEN
+  ONCE_REWRITE_TAC[REAL_ARITH
+   `x3:real = a + b /\ x5 = a + c /\ x4 = a + d <=>
+    x3 = a + b /\ x3 - x5 = b - c /\ x3 - x4 = b - d`] THEN
+  REWRITE_TAC[REAL_ARITH
+   `(b * b * x + c * c * y + &2 * b * c * z) -
+    ((b - &1) * (b - &1) * x + c * c * y + &2 * (b - &1) * c * z) =
+    (&2 * b - &1) * x + &2 * c * z /\
+    (b * b * x + c * c * y + &2 * b * c * z) -
+    (b * b * x +  (c - &1) * (c - &1) * y + &2 * b * (c - &1) * z) =
+    (&2 * c - &1) * y + &2 * b * z`] THEN
+  RULE_ASSUM_TAC(REWRITE_RULE[DIST_0]) THEN
+  ASM_REWRITE_TAC[GSYM NORM_POW_2; REAL_ARITH
+   `x = (&2 * b - &1) * y + &2 * c * z <=>
+    b * y + c * z = (y + x) / &2`] THEN
+  EXPAND_TAC "vcross" THEN REWRITE_TAC[NORM_POW_2; DOT_CROSS] THEN
+  ASM_REWRITE_TAC[GSYM NORM_POW_2] THEN
+  SUBST1_TAC(VECTOR_ARITH `(v2:real^3) dot v1 = v1 dot v2`) THEN
+  REWRITE_TAC[GSYM REAL_POW_2] THEN
+  SUBGOAL_THEN `(v1:real^3) dot v2 = ((x1 + x2) - x6) / &2` SUBST1_TAC THENL
+   [MAP_EVERY EXPAND_TAC ["x1"; "x2"; "x6"] THEN
+    REWRITE_TAC[dist; NORM_POW_2; DOT_RSUB; DOT_LSUB] THEN
+    REWRITE_TAC[DOT_SYM] THEN REAL_ARITH_TAC;
+    ALL_TAC] THEN
+  REWRITE_TAC[REAL_ARITH
+   `(&4 * u pow 2 * d) * x + (u * e) * (u * e) * y + (u * f) * (u * f) * z +
+    &2 * (u * e) * (u * f) * j =
+    u pow 2 * (&4 * d * x + e pow 2 * y + f pow 2 * z + &2 * e * f * j)`] THEN
+  REWRITE_TAC[REAL_ARITH
+   `(u * d) * x + (u * e) * y:real = z <=> u * (d * x + e * y) = z`] THEN
+  EXPAND_TAC "uinv" THEN MATCH_MP_TAC(REAL_FIELD
+   `&0 < u /\
+    u pow 2 * x = y /\ u * a = b /\ u * c = d
+    ==> x = (&1 / u) pow 2 * y /\
+        (&1 / u) * b = a /\ (&1 / u) * d = c`) THEN
+  ASM_REWRITE_TAC[] THEN MAP_EVERY EXPAND_TAC ["uinv"; "d"; "d5"; "d4"] THEN
+  REPEAT(FIRST_X_ASSUM(MP_TAC o MATCH_MP REAL_LT_IMP_NZ)) THEN
+  REWRITE_TAC[Nonlin_def.delta_x5; Nonlin_def.delta_x4] THEN
+  REWRITE_TAC[Sphere.ups_x; Sphere.delta_x] THEN CONV_TAC REAL_RING);;
+
+(* ------------------------------------------------------------------------- *)
+(* The continuity part.                                                      *)
+(* ------------------------------------------------------------------------- *)
+
+let CONTINUOUS_MK_SIMPLEX_WITHINREAL = prove
+ (`!v0 v1 v2 x1 x2 x3 x4 x5 x6 s a.
+        ~(ups_x (x1 a) (x2 a) (x6 a) = &0) /\
+        &0 < delta_x (x1 a) (x2 a) (x3 a) (x4 a) (x5 a) (x6 a) /\
+        v0 continuous (atreal a within s) /\
+        v1 continuous (atreal a within s) /\
+        v2 continuous (atreal a within s) /\
+        x1 real_continuous (atreal a within s) /\
+        x2 real_continuous (atreal a within s) /\
+        x3 real_continuous (atreal a within s) /\
+        x4 real_continuous (atreal a within s) /\
+        x5 real_continuous (atreal a within s) /\
+        x6 real_continuous (atreal a within s)
+        ==> (\t. mk_simplex1 (v0 t) (v1 t) (v2 t)
+                            (x1 t) (x2 t) (x3 t) (x4 t) (x5 t) (x6 t))
+            continuous (atreal a within s)`,
+  let POLY_CONT_TAC =
+    REPEAT((MATCH_MP_TAC REAL_CONTINUOUS_MUL ORELSE
+            MATCH_MP_TAC REAL_CONTINUOUS_ADD ORELSE
+            MATCH_MP_TAC REAL_CONTINUOUS_SUB) THEN CONJ_TAC) THEN
+    ASM_SIMP_TAC[REAL_CONTINUOUS_NEG; REAL_CONTINUOUS_CONST] in
+  REPEAT STRIP_TAC THEN REWRITE_TAC[mk_simplex1] THEN
+  CONV_TAC(TOP_DEPTH_CONV let_CONV) THEN
+  MATCH_MP_TAC CONTINUOUS_ADD THEN ASM_REWRITE_TAC[] THEN
+  MATCH_MP_TAC CONTINUOUS_MUL THEN CONJ_TAC THENL
+   [REWRITE_TAC[GSYM REAL_CONTINUOUS_CONTINUOUS1; real_div; REAL_MUL_LID] THEN
+    MATCH_MP_TAC REAL_CONTINUOUS_INV_WITHINREAL THEN
+    ASM_REWRITE_TAC[] THEN REWRITE_TAC[Sphere.ups_x] THEN POLY_CONT_TAC;
+    ALL_TAC] THEN
+  MATCH_MP_TAC CONTINUOUS_ADD THEN CONJ_TAC THENL
+   [MATCH_MP_TAC CONTINUOUS_MUL THEN
+    ASM_SIMP_TAC[CONTINUOUS_CROSS; CONTINUOUS_SUB] THEN
+    REWRITE_TAC[GSYM REAL_CONTINUOUS_CONTINUOUS1] THEN
+    MATCH_MP_TAC REAL_CONTINUOUS_LMUL THEN
+    MATCH_MP_TAC REAL_CONTINUOUS_WITHINREAL_SQRT_COMPOSE THEN
+    ASM_REWRITE_TAC[] THEN REWRITE_TAC[Sphere.delta_x] THEN POLY_CONT_TAC;
+    MATCH_MP_TAC CONTINUOUS_ADD THEN
+    REWRITE_TAC[Nonlin_def.delta_x5; Nonlin_def.delta_x4] THEN
+    CONJ_TAC THEN MATCH_MP_TAC CONTINUOUS_MUL THEN
+    ASM_SIMP_TAC[CONTINUOUS_SUB; GSYM REAL_CONTINUOUS_CONTINUOUS1] THEN
+    POLY_CONT_TAC]);;
+
+let PQCSXWG2_WITHINREAL = prove
+ (`!v0 v1 v2 x1 x2 x3 x4 x5 x6 s a.
+        ~collinear {v0 a,v1 a,v2 a} /\
+        x1 a = dist(v1 a,v0 a) pow 2 /\
+        x2 a = dist(v2 a,v0 a) pow 2 /\
+        x6 a = dist(v1 a,v2 a) pow 2 /\
+        &0 < delta_x (x1 a) (x2 a) (x3 a) (x4 a) (x5 a) (x6 a) /\
+        v0 continuous (atreal a within s) /\
+        v1 continuous (atreal a within s) /\
+        v2 continuous (atreal a within s) /\
+        x1 real_continuous (atreal a within s) /\
+        x2 real_continuous (atreal a within s) /\
+        x3 real_continuous (atreal a within s) /\
+        x4 real_continuous (atreal a within s) /\
+        x5 real_continuous (atreal a within s) /\
+        x6 real_continuous (atreal a within s)
+        ==> (\t. mk_simplex1 (v0 t) (v1 t) (v2 t)
+                            (x1 t) (x2 t) (x3 t) (x4 t) (x5 t) (x6 t))
+            continuous (atreal a within s)`,
+  REPEAT GEN_TAC THEN DISCH_THEN(STRIP_ASSUME_TAC o GSYM) THEN
+  MATCH_MP_TAC CONTINUOUS_MK_SIMPLEX_WITHINREAL THEN
+  ASM_REWRITE_TAC[] THEN FIRST_X_ASSUM(MP_TAC o GEN_REWRITE_RULE I
+      [Collect_geom2.NOT_COL_EQ_UPS_X_POS]) THEN
+  REPEAT(FIRST_X_ASSUM(SUBST1_TAC o SYM)) THEN REWRITE_TAC[DIST_SYM] THEN
+  REAL_ARITH_TAC);;
+
+let PQCSXWG2_ATREAL = prove
+ (`!v0 v1 v2 x1 x2 x3 x4 x5 x6 a.
+        ~collinear {v0 a,v1 a,v2 a} /\
+        x1 a = dist(v1 a,v0 a) pow 2 /\
+        x2 a = dist(v2 a,v0 a) pow 2 /\
+        x6 a = dist(v1 a,v2 a) pow 2 /\
+        &0 < delta_x (x1 a) (x2 a) (x3 a) (x4 a) (x5 a) (x6 a) /\
+        v0 continuous (atreal a) /\
+        v1 continuous (atreal a) /\
+        v2 continuous (atreal a) /\
+        x1 real_continuous (atreal a) /\
+        x2 real_continuous (atreal a) /\
+        x3 real_continuous (atreal a) /\
+        x4 real_continuous (atreal a) /\
+        x5 real_continuous (atreal a) /\
+        x6 real_continuous (atreal a)
+        ==> (\t. mk_simplex1 (v0 t) (v1 t) (v2 t)
+                            (x1 t) (x2 t) (x3 t) (x4 t) (x5 t) (x6 t))
+            continuous (atreal a)`,
+  ONCE_REWRITE_TAC[GSYM WITHINREAL_UNIV] THEN
+  REWRITE_TAC[PQCSXWG2_WITHINREAL]);;
+
+let PQCSXWG2_concl = `!(v0:real^3) v1 v2 v3 x1 x2 x3 x4 x5 x6.
+  &0 < x1 /\ &0 < x2 /\ &0 < x3 /\ &0 < x4 /\ &0 < x5 /\ &0 < x6 /\
+  ~collinear {v0,v1,v2} /\
+  x1 = dist(v1,v0) pow 2 /\
+  x2 = dist(v2,v0) pow 2 /\
+  x6 = dist(v1,v2) pow 2 /\
+  &0 < delta_x x1 x2 x3 x4 x5 x6 /\
+  v3 = mk_simplex1 v0 v1 v2 x1 x2 x3 x4 x5 x6 ==>
+     (\q. mk_simplex1 v0 v1 v2 x1 x2 x3 x4 q x6) continuous atreal x5`;;
+
+let PQCSXWG2 = prove
+ (PQCSXWG2_concl,
+  REPEAT STRIP_TAC THEN MATCH_MP_TAC PQCSXWG2_ATREAL THEN
+  ASM_REWRITE_TAC[REAL_CONTINUOUS_CONST; CONTINUOUS_CONST;
+                  REAL_CONTINUOUS_AT_ID]);;
+
+end;;

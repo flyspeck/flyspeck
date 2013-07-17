@@ -51,6 +51,7 @@ let frees_of_goal (asl,w) =
   let varl = List.flatten (map frees tms) in
     map (fun t -> (fst (dest_var t), t)) varl;;
 
+(*
 let retype gls tm = 
   let varl = filter has_stv (setify(frees tm)) in
   let svarl = map (fun t-> (fst(dest_var t),t)) varl in
@@ -58,6 +59,21 @@ let retype gls tm =
   with _ -> failwith ("not found: "^s) in
   let tyassoc = List.fold_left fn [] svarl in
      (instantiate ([],[],tyassoc)) tm ;;
+*)
+
+(* new version 2013-07-13. Doesn't allow any new free variables, even if type inference works *)
+
+let retype gls tm = 
+  let allv = setify(frees tm) in
+  let varl = filter has_stv allv in
+  let svarl = map (fun t-> (fst(dest_var t),t)) varl in
+  let fn = fun buff (s,t) -> try (let (_,_,m)= term_match [] t (assoc s gls) in m @ buff)
+  with _ -> failwith ("not found: "^s) in
+  let tyassoc = List.fold_left fn [] svarl in
+  let tm' = (instantiate ([],[],tyassoc)) tm in
+  let glt = map snd gls in
+  let _ = map (fun x -> mem x glt or failwith ("not found: "^ fst (dest_var x))) (setify (frees tm')) in
+    tm';;
 
 let env (asl,w) tm = 
   let gls = frees_of_goal (asl,w) in
@@ -246,6 +262,11 @@ let SUBCONJ_TAC =
 
 let SUBCONJ2_TAC =
   MATCH_MP_TAC (TAUT `B /\ (B ==>A) ==> (A /\ B)`) THEN CONJ_TAC;;
+
+let nCONJ_TAC n (asl,w) = 
+  let w' = rhs(concl(PURE_REWRITE_CONV[GSYM CONJ_ASSOC] w)) in
+  let wn = List.nth (conjuncts w') n in
+      (SUBGOAL_THEN wn ASSUME_TAC) (asl,w);;
 
 let PROOF_BY_CONTR_TAC =
   MATCH_MP_TAC (TAUT `(~A ==> F) ==> A`) THEN DISCH_TAC;;

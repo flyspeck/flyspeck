@@ -3246,74 +3246,406 @@ let dih_obtuse_mono = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
-(* 	     dihV v0 v1 v2' v3 <= dihV v0 v1 v2 v3  *)
-
-let dihV_obtuse_mono_a = prove_by_refinement(
-  `!(v0:real^3) v1 v2 v2' v3.  
-    ~coplanar {v0,v1,v2,v3} /\
-    pi / &2 < dihV v0 v2 v3 v1 ==>
-    (?e. &0 < e /\ (!t. abs t < e /\ t <= &0 /\ dist (v0,v2') = dist(v0,v2) /\
-			dist (v1,v2') = dist(v1,v2) /\ 
-			dist(v2',v3)=dist(v2,v3) + t ==>
-	     dihV v0 v3 v2' v1 <= dihV v0 v3 v2 v1))`,
+let dih_obtuse_mono_b = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+      &0 < x1 /\ 
+               &0 < delta_x x1 x2 x3 x4 x5 x6 /\
+            &0 < ups_x x1 x2 x6 /\
+    &0 < ups_x x1 x3 x5 ==>
+    (?e. &0 < e /\ (!t. abs t < e /\ t <= &0  ==>
+		      dih_x x1 x2 x3 (x4+t) x5 (x6) <= dih_x x1 x2 x3 x4 x5 x6))`,
   (* {{{ proof *)
   [
-st/r
-(* intro Merge_ineq.DIHV_DIH_X [`v0`;`v1`;`v2`;`v3`] *)
-intro Merge_ineq.DIHV_DIH_X [`v0`;`v2`;`v3`;`v1`]
-intro Merge_ineq.DIHV_DIH_X [`v0`;`v3`;`v2`;`v1`]
-rt[LET_THM;GSYM Collect_geom2.NOT_COL_EQ_UPS_X_POS]
-typ `~collinear {v0, v3, v2} /\ ~collinear {v0, v3, v1} /\ ~collinear {v0, v2, v3} /\ ~collinear {v0, v2, v1} /\ ~collinear {v0, v1, v2} /\ ~collinear {v0, v1, v3}` sat
-amt[Planarity.notcoplanar_imp_notcollinear_fan;setr `{a,b,c} = {a,c,b}`]
-art[]
-st/r
-fxast `pi` mp then art[] then st/r
-asm then rt[DIST_SYM] then st/r
-mp (orr[MESON[] `!a b c d. (a /\ b /\ c ==> d) <=> (c ==> (a /\ b ==> d))`] Merge_ineq.dih_gt_pi2)
-dthen (fun t -> fxa (mp o (mm t)))
-ants
-fyn
-fyn
-conj
-amt[ COPLANAR_3;setr `{a,b,a,c} = {a,b,c}`]
-rt[GSYM Sphere.delta_y;arith `x pow 2 = x*x`]
-fxast `coplanar` mp then rt[Oxlzlez.coplanar_delta_y]
-rt[DIST_SYM;Sphere.delta_y]
-mt[Merge_ineq.delta_x_sym]
-dt
-
-
-    INTRO_TAC continuous_nbd_pos [`\t. ups_x x1 x2 x3 (x4+t) x5 x6`;`&0`];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `  (?e1. &0 < e1 /\ (!t. abs t < e1 ==> &0 < delta_x x1 x2 x3 (x4+t) (x5) x6))` (C SUBGOAL_THEN MP_TAC);
+    INTRO_TAC continuous_nbd_pos [`\t. delta_x x1 x2 x3 (x4+t) x5 x6`;`&0`];
     ASM_SIMP_TAC[arith `d < &0 ==> &0 < --d`;arith `abs(t' - &0) = abs t'`;arith `x + &0 = x`];
     DISCH_THEN MATCH_MP_TAC;
     REWRITE_TAC[Sphere.delta_x6;Sphere.ups_x;Sphere.delta_x];
     BY(REPEAT (REPEAT CONJ_TAC THEN ( MATCH_MP_TAC REAL_CONTINUOUS_ADD ORELSE MATCH_MP_TAC REAL_CONTINUOUS_NEG ORELSE MATCH_MP_TAC REAL_CONTINUOUS_MUL ORELSE MATCH_MP_TAC REAL_CONTINUOUS_SUB THEN ASM_REWRITE_TAC[REAL_CONTINUOUS_AT_ID;REAL_CONTINUOUS_CONST;CONTINUOUS_CONST])));
-
-
-xxd
-
-  TYPIFY `?e2. &0 < e2 /\ (!t. abs t < e2 ==> ~coplanar {v0, (f (v1) t),v2,v3})` (C SUBGOAL_THEN MP_TAC);
-    INTRO_TAC Zlzthic.NONPLANAR_OPEN [`( \ (t:real). v0)`;`f (v1)`;`\ (t:real). v2`;`\ (t:real). v3`;`&0`];
-    ASM_REWRITE_TAC[CONTINUOUS_CONST];
-    ANTS_TAC;
-    fxast `deformation` mp
-      rt[Localization.deformation;IN_SING]
-      amt[]
-      rt[arith `abs (&0 - t') = abs t'`]
-st/r
-      CONJ_TAC;
-        FIRST_X_ASSUM GMATCH_SIMP_TAC;
-        ONCE_REWRITE_TAC[SET_RULE `{a,b,c,d} = {a,b,d,c}`];
-        BY(ASM_REWRITE_TAC[]);
-      FIRST_X_ASSUM_ST `deformation` MP_TAC THEN REWRITE_TAC[Localization.deformation];
-      BY(REPEAT WEAKER_STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
-    BY(REWRITE_TAC[arith `abs (&0 - t') = abs t'`] THEN MESON_TAC[]);
-
-xxd
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `e1` EXISTS_TAC;
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `t = &0` ASM_CASES_TAC;
+    BY(ASM_REWRITE_TAC[arith `x + &0 = x`;arith `x <= x`]);
+  INTRO_TAC Tame_inequalities.DIH_X_MONO_LT_4 [`x1`;`x2`;`x3`;`x4+t`;`x5`;`x6`;`x4`];
+  ANTS_TAC;
+    ASM_SIMP_TAC[];
+    BY(REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  BY(REAL_ARITH_TAC)
   ]);;
   (* }}} *)
 
+let square_add_neg_lemma = prove_by_refinement(
+  `!y t. t <= &0 /\ &0 <= t + &2 * y ==> &2 * y * t + t*t <= &0`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[arith `a <= &0 <=> &0 <= --a` ;arith `--(&2 * y * t + t*t) =  (--t) * (t+ &2 * y)`];
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let dihV_obtuse_mono_a = prove_by_refinement(
+  `!(v0:real^3) v1 v2 v3.  
+    ~coplanar {v0,v1,v2,v3} /\
+    pi / &2 < dihV v0 v2 v3 v1 ==>
+    (?e. (!v2'. &0 < e /\ (!t. abs t < e /\ t <= &0 /\ dist (v0,v2') = dist(v0,v2) /\
+			dist (v1,v2') = dist(v1,v2) /\ 
+			dist(v2',v3)=dist(v2,v3) + t ==>
+	     dihV v0 v3 v2' v1 <= dihV v0 v3 v2 v1)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Merge_ineq.DIHV_DIH_X [`v0`;`v2`;`v3`;`v1`];
+  INTRO_TAC Merge_ineq.DIHV_DIH_X [`v0`;`v3`;`v2`;`v1`];
+  REWRITE_TAC[LET_THM;GSYM Collect_geom2.NOT_COL_EQ_UPS_X_POS];
+  TYPIFY `~collinear {v0, v3, v2} /\ ~collinear {v0, v3, v1} /\ ~collinear {v0, v2, v3} /\ ~collinear {v0, v2, v1} /\ ~collinear {v0, v1, v2} /\ ~collinear {v0, v1, v3}` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Planarity.notcoplanar_imp_notcollinear_fan;SET_RULE `{a,b,c} = {a,c,b}`]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `pi` MP_TAC THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  ASM_TAC THEN REWRITE_TAC[DIST_SYM] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `&0 < dist (v0,v3) pow 2 /\ &0 < dist (v0,v2) pow 2 /\ &0 < dist(v2,v3) /\ &0 < delta_x (dist (v0,v2) pow 2) (dist (v0,v3) pow 2) (dist (v0,v1) pow 2) (dist (v1,v3) pow 2) (dist (v1,v2) pow 2) (dist (v2,v3) pow 2)` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[GSYM Trigonometry2.NOT_ZERO_EQ_POW2_LT];
+    REWRITE_TAC[GSYM DIST_NZ];
+    REWRITE_TAC[DIST_EQ_0];
+    REWRITE_TAC[CONJ_ASSOC];
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[ COPLANAR_3;SET_RULE `{a,b,a,c} = {a,b,c}`;SET_RULE `{a,b,c,a}={a,b,c}`;SET_RULE `{a,b,c,c} = {a,b,c}`]);
+    REWRITE_TAC[GSYM Sphere.delta_y;arith `x pow 2 = x*x`];
+    FIRST_X_ASSUM_ST `coplanar` MP_TAC THEN REWRITE_TAC[Oxlzlez.coplanar_delta_y];
+    REWRITE_TAC[DIST_SYM;Sphere.delta_y];
+    BY(MESON_TAC[Merge_ineq.delta_x_sym]);
+  MP_TAC (ONCE_REWRITE_RULE[MESON[] `!a b c d. (a /\ b /\ c ==> d) <=> (c ==> (a /\ b ==> d))`] Merge_ineq.dih_gt_pi2);
+  DISCH_THEN (fun t -> FIRST_X_ASSUM (MP_TAC o (MATCH_MP t)));
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  INTRO_TAC continuous_nbd_pos [`\t. ups_x (dist(v0,v3) pow 2) (dist(v0,v2) pow 2) ( (dist(v2,v3)+t) pow 2)`;`&0`];
+  ASM_SIMP_TAC[arith `d < &0 ==> &0 < --d`;arith `abs(t' - &0) = abs t'`;arith `x + &0 = x`];
+  ANTS_TAC;
+    CONJ_TAC;
+      REWRITE_TAC[Sphere.delta_x6;Sphere.ups_x;Sphere.delta_x];
+      BY(REPEAT (REPEAT CONJ_TAC THEN ( MATCH_MP_TAC REAL_CONTINUOUS_ADD ORELSE MATCH_MP_TAC REAL_CONTINUOUS_NEG ORELSE MATCH_MP_TAC REAL_CONTINUOUS_MUL ORELSE MATCH_MP_TAC REAL_CONTINUOUS_SUB ORELSE MATCH_MP_TAC REAL_CONTINUOUS_POW THEN ASM_REWRITE_TAC[REAL_CONTINUOUS_AT_ID;REAL_CONTINUOUS_CONST;CONTINUOUS_CONST])));
+    REPEAT (FIRST_X_ASSUM_ST `collinear` MP_TAC) THEN REWRITE_TAC[Collect_geom2.NOT_COL_EQ_UPS_X_POS;DIST_SYM];
+    BY(DISCH_THEN (unlist REWRITE_TAC));
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC continuous_nbd_pos [`\t. delta_x (dist (v0,v2) pow 2) (dist (v0,v3) pow 2) (dist (v0,v1) pow 2)      (dist (v1,v3) pow 2)      (dist (v1,v2) pow 2)      ((dist (v2,v3)+t) pow 2)`;`&0`];
+  ASM_SIMP_TAC[arith `d < &0 ==> &0 < --d`;arith `abs(t' - &0) = abs t'`;arith `x + &0 = x`];
+  ANTS_TAC;
+    REWRITE_TAC[Sphere.delta_x6;Sphere.ups_x;Sphere.delta_x];
+    BY(REPEAT (REPEAT CONJ_TAC THEN ( MATCH_MP_TAC REAL_CONTINUOUS_ADD ORELSE MATCH_MP_TAC REAL_CONTINUOUS_NEG ORELSE MATCH_MP_TAC REAL_CONTINUOUS_MUL ORELSE MATCH_MP_TAC REAL_CONTINUOUS_SUB ORELSE MATCH_MP_TAC REAL_CONTINUOUS_POW THEN ASM_REWRITE_TAC[REAL_CONTINUOUS_AT_ID;REAL_CONTINUOUS_CONST;CONTINUOUS_CONST])));
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC dih_obtuse_mono [`dist(v0,v3) pow 2`;`dist(v0,v2) pow 2`;`dist(v0,v1) pow 2`;`dist(v1,v2) pow 2`;`dist(v1,v3) pow 2`;`(dist(v2,v3)) pow 2`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      BY(REPEAT (FIRST_X_ASSUM_ST `delta_x` MP_TAC) THEN REWRITE_TAC[DIST_SYM] THEN MESON_TAC[Merge_ineq.delta_x_sym]);
+    REWRITE_TAC[CONJ_ASSOC];
+    CONJ_TAC;
+      BY(REPEAT (FIRST_X_ASSUM_ST `collinear` MP_TAC) THEN ONCE_REWRITE_TAC[SET_RULE `{a,b,c} = {a,c,b}`] THEN REWRITE_TAC[Collect_geom2.NOT_COL_EQ_UPS_X_POS;DIST_SYM] THEN MESON_TAC[]);
+    BY(FIRST_X_ASSUM_ST `delta_x4` MP_TAC THEN REWRITE_TAC[Sphere.delta_x4;Nonlin_def.delta_x5;DIST_SYM] THEN REAL_ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `?e2. &0 < e2 /\ (!t. abs t < e2 /\ t <= &0 ==> &2 * dist(v2,v3) * t + t * t <= &0 /\ abs(&2 * dist(v2,v3)*t + t*t ) < e'')` (C SUBGOAL_THEN MP_TAC);
+    TYPIFY `(?e2. &0 < e2 /\ (!t. abs t < e2 /\ t <= &0 ==> &2 * dist(v2,v3) * t + t * t <= &0 )) /\ (?e2. &0 < e2 /\ (!t. abs t < e2 /\ t <= &0 ==>  abs(&2 * dist(v2,v3)*t + t*t ) < e''))` ENOUGH_TO_SHOW_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      INTRO_TAC epsilon_pair [`e2`;`e2'`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+      TYPIFY `e'''` EXISTS_TAC;
+      ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+      BY(CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[] THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
+    CONJ_TAC;
+      TYPIFY `&2 * dist(v2,v3)` EXISTS_TAC;
+      REWRITE_TAC[arith `&0 < &2 * x <=> &0 < x`];
+      REWRITE_TAC[GSYM DIST_NZ];
+      CONJ_TAC;
+        BY(ASM_MESON_TAC[ COPLANAR_3;SET_RULE `{a,b,c,c} = {a,b,c}`]);
+      REPEAT WEAKER_STRIP_TAC;
+      MATCH_MP_TAC square_add_neg_lemma;
+      ASM_REWRITE_TAC[];
+      BY(FIRST_X_ASSUM_ST `abs` MP_TAC THEN REAL_ARITH_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC continuous_nbd_pos [`\t. e'' - abs(&2 * dist(v2,v3)*t + t*t)`;`&0`];
+    ASM_SIMP_TAC[arith `d < &0 ==> &0 < --d`;arith `abs(t' - &0) = abs t'`;arith `x + &0 = x`];
+    ANTS_TAC;
+      CONJ2_TAC;
+        BY(FIRST_X_ASSUM_ST `&0 < e''` MP_TAC THEN REAL_ARITH_TAC);
+      BY(REPEAT (REPEAT CONJ_TAC THEN ( MATCH_MP_TAC REAL_CONTINUOUS_ADD ORELSE MATCH_MP_TAC REAL_CONTINUOUS_NEG ORELSE MATCH_MP_TAC REAL_CONTINUOUS_ABS ORELSE MATCH_MP_TAC REAL_CONTINUOUS_MUL ORELSE MATCH_MP_TAC REAL_CONTINUOUS_SUB ORELSE MATCH_MP_TAC REAL_CONTINUOUS_POW THEN ASM_REWRITE_TAC[REAL_CONTINUOUS_AT_ID;REAL_CONTINUOUS_CONST;CONTINUOUS_CONST])));
+    BY(MESON_TAC[arith `&0 < e'' - a <=> a < e''`]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC epsilon_quad [`e`;`e'`;`e2`;`e''`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `e''''` EXISTS_TAC;
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Merge_ineq.DIHV_DIH_X [`v0`;`v3`;`v2'`;`v1`];
+  ASM_REWRITE_TAC[LET_THM];
+  ANTS_TAC;
+    ASM_TAC THEN REWRITE_TAC[DIST_SYM] THEN REPEAT WEAKER_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      BY(FIRST_X_ASSUM MATCH_MP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
+    BY(FIRST_X_ASSUM_ST `collinear` MP_TAC THEN ONCE_REWRITE_TAC[SET_RULE `{a,b,c} = {a,c,b}`] THEN REWRITE_TAC[Collect_geom2.NOT_COL_EQ_UPS_X_POS;DIST_SYM]);
+  DISCH_THEN SUBST1_TAC;
+  ASM_REWRITE_TAC[arith `(x+y) pow 2 = x pow 2 + (&2 * x * y + y* y)`;DIST_SYM];
+  FIRST_X_ASSUM_ST `dist` (C INTRO_TAC [`t`]) THEN ANTS_TAC THEN ASM_REWRITE_TAC[];
+    BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `dih_x` (C INTRO_TAC [`&2 * dist(v2,v3) *t + t*t`]);
+  ASM_REWRITE_TAC[];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+(* redo with dih_obtuse_mono_b w/o obtuse *)
+(*
+let dihV_obtuse_mono_b = prove_by_refinement(
+  `!(v0:real^3) v1 v2 v3.  
+    ~coplanar {v0,v1,v2,v3} /\
+    pi / &2 < dihV v0 v2 v3 v1 ==>
+    (?e. (!v2'. &0 < e /\ (!t. abs t < e /\ t <= &0 /\ dist (v0,v2') = dist(v0,v2) /\
+			dist (v1,v2') = dist(v1,v2) /\ 
+			dist(v2',v3)=dist(v2,v3) + t ==>
+			dihV v0 v1 v2' v3 <= dihV v0 v1 v2 v3)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Merge_ineq.DIHV_DIH_X [`v0`;`v2`;`v3`;`v1`];
+  INTRO_TAC Merge_ineq.DIHV_DIH_X [`v0`;`v3`;`v2`;`v1`];
+  INTRO_TAC Merge_ineq.DIHV_DIH_X [`v0`;`v1`;`v2`;`v3`];
+  REWRITE_TAC[LET_THM;GSYM Collect_geom2.NOT_COL_EQ_UPS_X_POS];
+  TYPIFY `~collinear {v0, v3, v2} /\ ~collinear {v0, v3, v1} /\ ~collinear {v0, v2, v3} /\ ~collinear {v0, v2, v1} /\ ~collinear {v0, v1, v2} /\ ~collinear {v0, v1, v3}` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Planarity.notcoplanar_imp_notcollinear_fan;SET_RULE `{a,b,c} = {a,c,b}`]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `pi` MP_TAC THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  ASM_TAC THEN REWRITE_TAC[DIST_SYM] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `&0 < dist(v0,v1) pow 2 /\ &0 < dist (v0,v3) pow 2 /\ &0 < dist (v0,v2) pow 2 /\ &0 < dist(v2,v3) /\ &0 < delta_x (dist (v0,v2) pow 2) (dist (v0,v3) pow 2) (dist (v0,v1) pow 2) (dist (v1,v3) pow 2) (dist (v1,v2) pow 2) (dist (v2,v3) pow 2)` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[GSYM Trigonometry2.NOT_ZERO_EQ_POW2_LT];
+    REWRITE_TAC[GSYM DIST_NZ];
+    REWRITE_TAC[DIST_EQ_0];
+    REWRITE_TAC[CONJ_ASSOC];
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[ COPLANAR_3;SET_RULE `{a,a,b,c} = {a,b,c}`;SET_RULE `{a,b,a,c} = {a,b,c}`;SET_RULE `{a,b,c,a}={a,b,c}`;SET_RULE `{a,b,c,c} = {a,b,c}`]);
+    REWRITE_TAC[GSYM Sphere.delta_y;arith `x pow 2 = x*x`];
+    FIRST_X_ASSUM_ST `coplanar` MP_TAC THEN REWRITE_TAC[Oxlzlez.coplanar_delta_y];
+    REWRITE_TAC[DIST_SYM;Sphere.delta_y];
+    BY(MESON_TAC[Merge_ineq.delta_x_sym]);
+  MP_TAC (ONCE_REWRITE_RULE[MESON[] `!a b c d. (a /\ b /\ c ==> d) <=> (c ==> (a /\ b ==> d))`] Merge_ineq.dih_gt_pi2);
+  DISCH_THEN (fun t -> FIRST_X_ASSUM (MP_TAC o (MATCH_MP t)));
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  INTRO_TAC continuous_nbd_pos [`\t. ups_x (dist(v0,v3) pow 2) (dist(v0,v2) pow 2) ( (dist(v2,v3)+t) pow 2)`;`&0`];
+  ASM_SIMP_TAC[arith `d < &0 ==> &0 < --d`;arith `abs(t' - &0) = abs t'`;arith `x + &0 = x`];
+  ANTS_TAC;
+    CONJ_TAC;
+      REWRITE_TAC[Sphere.delta_x6;Sphere.ups_x;Sphere.delta_x];
+      BY(REPEAT (REPEAT CONJ_TAC THEN ( MATCH_MP_TAC REAL_CONTINUOUS_ADD ORELSE MATCH_MP_TAC REAL_CONTINUOUS_NEG ORELSE MATCH_MP_TAC REAL_CONTINUOUS_MUL ORELSE MATCH_MP_TAC REAL_CONTINUOUS_SUB ORELSE MATCH_MP_TAC REAL_CONTINUOUS_POW THEN ASM_REWRITE_TAC[REAL_CONTINUOUS_AT_ID;REAL_CONTINUOUS_CONST;CONTINUOUS_CONST])));
+    REPEAT (FIRST_X_ASSUM_ST `collinear` MP_TAC) THEN REWRITE_TAC[Collect_geom2.NOT_COL_EQ_UPS_X_POS;DIST_SYM];
+    BY(DISCH_THEN (unlist REWRITE_TAC));
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC continuous_nbd_pos [`\t. delta_x (dist (v0,v2) pow 2) (dist (v0,v3) pow 2) (dist (v0,v1) pow 2)      (dist (v1,v3) pow 2)      (dist (v1,v2) pow 2)      ((dist (v2,v3)+t) pow 2)`;`&0`];
+  ASM_SIMP_TAC[arith `d < &0 ==> &0 < --d`;arith `abs(t' - &0) = abs t'`;arith `x + &0 = x`];
+  ANTS_TAC;
+    REWRITE_TAC[Sphere.delta_x6;Sphere.ups_x;Sphere.delta_x];
+    BY(REPEAT (REPEAT CONJ_TAC THEN ( MATCH_MP_TAC REAL_CONTINUOUS_ADD ORELSE MATCH_MP_TAC REAL_CONTINUOUS_NEG ORELSE MATCH_MP_TAC REAL_CONTINUOUS_MUL ORELSE MATCH_MP_TAC REAL_CONTINUOUS_SUB ORELSE MATCH_MP_TAC REAL_CONTINUOUS_POW THEN ASM_REWRITE_TAC[REAL_CONTINUOUS_AT_ID;REAL_CONTINUOUS_CONST;CONTINUOUS_CONST])));
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC dih_obtuse_mono [`dist(v0,v1) pow 2`;`dist(v0,v2) pow 2`;`dist(v0,v3) pow 2`;`dist(v2,v3) pow 2`;`dist(v1,v3) pow 2`;`(dist(v1,v2)) pow 2`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      BY(REPEAT (FIRST_X_ASSUM_ST `delta_x` MP_TAC) THEN REWRITE_TAC[DIST_SYM] THEN MESON_TAC[Merge_ineq.delta_x_sym]);
+    REWRITE_TAC[CONJ_ASSOC];
+    CONJ_TAC;
+      BY(REPEAT (FIRST_X_ASSUM_ST `collinear` MP_TAC) THEN REWRITE_TAC[Collect_geom2.NOT_COL_EQ_UPS_X_POS;DIST_SYM] THEN MESON_TAC[]);
+    BY(FIRST_X_ASSUM_ST `delta_x4` MP_TAC THEN REWRITE_TAC[Sphere.delta_x4;Nonlin_def.delta_x5;DIST_SYM] THEN REAL_ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `?e2. &0 < e2 /\ (!t. abs t < e2 /\ t <= &0 ==> &2 * dist(v2,v3) * t + t * t <= &0 /\ abs(&2 * dist(v2,v3)*t + t*t ) < e'')` (C SUBGOAL_THEN MP_TAC);
+    TYPIFY `(?e2. &0 < e2 /\ (!t. abs t < e2 /\ t <= &0 ==> &2 * dist(v2,v3) * t + t * t <= &0 )) /\ (?e2. &0 < e2 /\ (!t. abs t < e2 /\ t <= &0 ==>  abs(&2 * dist(v2,v3)*t + t*t ) < e''))` ENOUGH_TO_SHOW_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      INTRO_TAC epsilon_pair [`e2`;`e2'`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+      TYPIFY `e'''` EXISTS_TAC;
+      ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+      BY(CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[] THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
+    CONJ_TAC;
+      TYPIFY `&2 * dist(v2,v3)` EXISTS_TAC;
+      REWRITE_TAC[arith `&0 < &2 * x <=> &0 < x`];
+      REWRITE_TAC[GSYM DIST_NZ];
+      CONJ_TAC;
+        BY(ASM_MESON_TAC[ COPLANAR_3;SET_RULE `{a,b,c,c} = {a,b,c}`]);
+      REPEAT WEAKER_STRIP_TAC;
+      MATCH_MP_TAC square_add_neg_lemma;
+      ASM_REWRITE_TAC[];
+      BY(FIRST_X_ASSUM_ST `abs` MP_TAC THEN REAL_ARITH_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC continuous_nbd_pos [`\t. e'' - abs(&2 * dist(v2,v3)*t + t*t)`;`&0`];
+    ASM_SIMP_TAC[arith `d < &0 ==> &0 < --d`;arith `abs(t' - &0) = abs t'`;arith `x + &0 = x`];
+    ANTS_TAC;
+      CONJ2_TAC;
+        BY(FIRST_X_ASSUM_ST `&0 < e''` MP_TAC THEN REAL_ARITH_TAC);
+      BY(REPEAT (REPEAT CONJ_TAC THEN ( MATCH_MP_TAC REAL_CONTINUOUS_ADD ORELSE MATCH_MP_TAC REAL_CONTINUOUS_NEG ORELSE MATCH_MP_TAC REAL_CONTINUOUS_ABS ORELSE MATCH_MP_TAC REAL_CONTINUOUS_MUL ORELSE MATCH_MP_TAC REAL_CONTINUOUS_SUB ORELSE MATCH_MP_TAC REAL_CONTINUOUS_POW THEN ASM_REWRITE_TAC[REAL_CONTINUOUS_AT_ID;REAL_CONTINUOUS_CONST;CONTINUOUS_CONST])));
+    BY(MESON_TAC[arith `&0 < e'' - a <=> a < e''`]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC epsilon_quad [`e`;`e'`;`e2`;`e''`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `e''''` EXISTS_TAC;
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Merge_ineq.DIHV_DIH_X [`v0`;`v1`;`v2'`;`v3`];
+  ASM_REWRITE_TAC[LET_THM];
+  ANTS_TAC;
+    ASM_TAC THEN REWRITE_TAC[DIST_SYM] THEN REPEAT WEAKER_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    (REPEAT (FIRST_X_ASSUM_ST `collinear` MP_TAC) THEN REWRITE_TAC[Collect_geom2.NOT_COL_EQ_UPS_X_POS;DIST_SYM]);
+    BY(MESON_TAC[]);
+  DISCH_THEN SUBST1_TAC;
+  ASM_REWRITE_TAC[arith `(x+y) pow 2 = x pow 2 + (&2 * x * y + y* y)`;DIST_SYM];
+  FIRST_X_ASSUM_ST `dist` (C INTRO_TAC [`t`]) THEN ANTS_TAC THEN ASM_REWRITE_TAC[];
+    BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `dih_x` (C INTRO_TAC [`&2 * dist(v2,v3) *t + t*t`]);
+  ASM_REWRITE_TAC[];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+*)
+
+let dihV_obtuse_mono_b = prove_by_refinement(
+  `!(v0:real^3) v1 v2 v3.  
+    ~coplanar {v0,v1,v2,v3} ==>
+    (?e. (!v2'. &0 < e /\ (!t. abs t < e /\ t <= &0 /\ dist (v0,v2') = dist(v0,v2) /\
+			dist (v1,v2') = dist(v1,v2) /\ 
+			dist(v2',v3)=dist(v2,v3) + t ==>
+			dihV v0 v1 v2' v3 <= dihV v0 v1 v2 v3)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Merge_ineq.DIHV_DIH_X [`v0`;`v2`;`v3`;`v1`];
+  INTRO_TAC Merge_ineq.DIHV_DIH_X [`v0`;`v3`;`v2`;`v1`];
+  INTRO_TAC Merge_ineq.DIHV_DIH_X [`v0`;`v1`;`v2`;`v3`];
+  REWRITE_TAC[LET_THM;GSYM Collect_geom2.NOT_COL_EQ_UPS_X_POS];
+  TYPIFY `~collinear {v0, v3, v2} /\ ~collinear {v0, v3, v1} /\ ~collinear {v0, v2, v3} /\ ~collinear {v0, v2, v1} /\ ~collinear {v0, v1, v2} /\ ~collinear {v0, v1, v3}` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Planarity.notcoplanar_imp_notcollinear_fan;SET_RULE `{a,b,c} = {a,c,b}`]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_TAC THEN REWRITE_TAC[DIST_SYM] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `&0 < dist(v0,v1) pow 2 /\ &0 < dist (v0,v3) pow 2 /\ &0 < dist (v0,v2) pow 2 /\ &0 < dist(v2,v3) /\ &0 < delta_x (dist (v0,v2) pow 2) (dist (v0,v3) pow 2) (dist (v0,v1) pow 2) (dist (v1,v3) pow 2) (dist (v1,v2) pow 2) (dist (v2,v3) pow 2)` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[GSYM Trigonometry2.NOT_ZERO_EQ_POW2_LT];
+    REWRITE_TAC[GSYM DIST_NZ];
+    REWRITE_TAC[DIST_EQ_0];
+    REWRITE_TAC[CONJ_ASSOC];
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[ COPLANAR_3;SET_RULE `{a,a,b,c} = {a,b,c}`;SET_RULE `{a,b,a,c} = {a,b,c}`;SET_RULE `{a,b,c,a}={a,b,c}`;SET_RULE `{a,b,c,c} = {a,b,c}`]);
+    REWRITE_TAC[GSYM Sphere.delta_y;arith `x pow 2 = x*x`];
+    FIRST_X_ASSUM_ST `coplanar` MP_TAC THEN REWRITE_TAC[Oxlzlez.coplanar_delta_y];
+    REWRITE_TAC[DIST_SYM;Sphere.delta_y];
+    BY(MESON_TAC[Merge_ineq.delta_x_sym]);
+  INTRO_TAC continuous_nbd_pos [`\t. ups_x (dist(v0,v3) pow 2) (dist(v0,v2) pow 2) ( (dist(v2,v3)+t) pow 2)`;`&0`];
+  ASM_SIMP_TAC[arith `d < &0 ==> &0 < --d`;arith `abs(t' - &0) = abs t'`;arith `x + &0 = x`];
+  ANTS_TAC;
+    CONJ_TAC;
+      REWRITE_TAC[Sphere.delta_x6;Sphere.ups_x;Sphere.delta_x];
+      BY(REPEAT (REPEAT CONJ_TAC THEN ( MATCH_MP_TAC REAL_CONTINUOUS_ADD ORELSE MATCH_MP_TAC REAL_CONTINUOUS_NEG ORELSE MATCH_MP_TAC REAL_CONTINUOUS_MUL ORELSE MATCH_MP_TAC REAL_CONTINUOUS_SUB ORELSE MATCH_MP_TAC REAL_CONTINUOUS_POW THEN ASM_REWRITE_TAC[REAL_CONTINUOUS_AT_ID;REAL_CONTINUOUS_CONST;CONTINUOUS_CONST])));
+    REPEAT (FIRST_X_ASSUM_ST `collinear` MP_TAC) THEN REWRITE_TAC[Collect_geom2.NOT_COL_EQ_UPS_X_POS;DIST_SYM];
+    BY(DISCH_THEN (unlist REWRITE_TAC));
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC continuous_nbd_pos [`\t. delta_x (dist (v0,v2) pow 2) (dist (v0,v3) pow 2) (dist (v0,v1) pow 2)      (dist (v1,v3) pow 2)      (dist (v1,v2) pow 2)      ((dist (v2,v3)+t) pow 2)`;`&0`];
+  ASM_SIMP_TAC[arith `d < &0 ==> &0 < --d`;arith `abs(t' - &0) = abs t'`;arith `x + &0 = x`];
+  ANTS_TAC;
+    REWRITE_TAC[Sphere.delta_x6;Sphere.ups_x;Sphere.delta_x];
+    BY(REPEAT (REPEAT CONJ_TAC THEN ( MATCH_MP_TAC REAL_CONTINUOUS_ADD ORELSE MATCH_MP_TAC REAL_CONTINUOUS_NEG ORELSE MATCH_MP_TAC REAL_CONTINUOUS_MUL ORELSE MATCH_MP_TAC REAL_CONTINUOUS_SUB ORELSE MATCH_MP_TAC REAL_CONTINUOUS_POW THEN ASM_REWRITE_TAC[REAL_CONTINUOUS_AT_ID;REAL_CONTINUOUS_CONST;CONTINUOUS_CONST])));
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC dih_obtuse_mono_b [`dist(v0,v1) pow 2`;`dist(v0,v2) pow 2`;`dist(v0,v3) pow 2`;`dist(v2,v3) pow 2`;`dist(v1,v3) pow 2`;`(dist(v1,v2)) pow 2`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      BY(REPEAT (FIRST_X_ASSUM_ST `delta_x` MP_TAC) THEN REWRITE_TAC[DIST_SYM] THEN MESON_TAC[Merge_ineq.delta_x_sym]);
+    BY(REPEAT (FIRST_X_ASSUM_ST `collinear` MP_TAC) THEN REWRITE_TAC[Collect_geom2.NOT_COL_EQ_UPS_X_POS;DIST_SYM] THEN MESON_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `?e2. &0 < e2 /\ (!t. abs t < e2 /\ t <= &0 ==> &2 * dist(v2,v3) * t + t * t <= &0 /\ abs(&2 * dist(v2,v3)*t + t*t ) < e'')` (C SUBGOAL_THEN MP_TAC);
+    TYPIFY `(?e2. &0 < e2 /\ (!t. abs t < e2 /\ t <= &0 ==> &2 * dist(v2,v3) * t + t * t <= &0 )) /\ (?e2. &0 < e2 /\ (!t. abs t < e2 /\ t <= &0 ==>  abs(&2 * dist(v2,v3)*t + t*t ) < e''))` ENOUGH_TO_SHOW_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      INTRO_TAC epsilon_pair [`e2`;`e2'`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+      TYPIFY `e'''` EXISTS_TAC;
+      ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+      BY(CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[] THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
+    CONJ_TAC;
+      TYPIFY `&2 * dist(v2,v3)` EXISTS_TAC;
+      REWRITE_TAC[arith `&0 < &2 * x <=> &0 < x`];
+      REWRITE_TAC[GSYM DIST_NZ];
+      CONJ_TAC;
+        BY(ASM_MESON_TAC[ COPLANAR_3;SET_RULE `{a,b,c,c} = {a,b,c}`]);
+      REPEAT WEAKER_STRIP_TAC;
+      MATCH_MP_TAC square_add_neg_lemma;
+      ASM_REWRITE_TAC[];
+      BY(FIRST_X_ASSUM_ST `abs` MP_TAC THEN REAL_ARITH_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC continuous_nbd_pos [`\t. e'' - abs(&2 * dist(v2,v3)*t + t*t)`;`&0`];
+    ASM_SIMP_TAC[arith `d < &0 ==> &0 < --d`;arith `abs(t' - &0) = abs t'`;arith `x + &0 = x`];
+    ANTS_TAC;
+      CONJ2_TAC;
+        BY(FIRST_X_ASSUM_ST `&0 < e''` MP_TAC THEN REAL_ARITH_TAC);
+      BY(REPEAT (REPEAT CONJ_TAC THEN ( MATCH_MP_TAC REAL_CONTINUOUS_ADD ORELSE MATCH_MP_TAC REAL_CONTINUOUS_NEG ORELSE MATCH_MP_TAC REAL_CONTINUOUS_ABS ORELSE MATCH_MP_TAC REAL_CONTINUOUS_MUL ORELSE MATCH_MP_TAC REAL_CONTINUOUS_SUB ORELSE MATCH_MP_TAC REAL_CONTINUOUS_POW THEN ASM_REWRITE_TAC[REAL_CONTINUOUS_AT_ID;REAL_CONTINUOUS_CONST;CONTINUOUS_CONST])));
+    BY(MESON_TAC[arith `&0 < e'' - a <=> a < e''`]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC epsilon_quad [`e`;`e'`;`e2`;`e''`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `e''''` EXISTS_TAC;
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Merge_ineq.DIHV_DIH_X [`v0`;`v1`;`v2'`;`v3`];
+  ASM_REWRITE_TAC[LET_THM];
+  ANTS_TAC;
+    ASM_TAC THEN REWRITE_TAC[DIST_SYM] THEN REPEAT WEAKER_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    (REPEAT (FIRST_X_ASSUM_ST `collinear` MP_TAC) THEN REWRITE_TAC[Collect_geom2.NOT_COL_EQ_UPS_X_POS;DIST_SYM]);
+    BY(MESON_TAC[]);
+  DISCH_THEN SUBST1_TAC;
+  ASM_REWRITE_TAC[arith `(x+y) pow 2 = x pow 2 + (&2 * x * y + y* y)`;DIST_SYM];
+  FIRST_X_ASSUM_ST `dist` (C INTRO_TAC [`t`]) THEN ANTS_TAC THEN ASM_REWRITE_TAC[];
+    BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `dih_x` (C INTRO_TAC [`&2 * dist(v2,v3) *t + t*t`]);
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let dihV_obtuse_mono = prove_by_refinement(
+  `!(v0:real^3) v1 v2 v3.
+         ~coplanar {v0, v1, v2, v3} 
+         ==> (?e.  &0 < e /\ (pi / &2 < dihV v0 v2 v3 v1 ==>  
+                        (!v2' t. abs t < e /\
+                             t <= &0 /\
+                             dist (v0,v2') = dist (v0,v2) /\
+                             dist (v1,v2') = dist (v1,v2) /\
+                             dist (v2',v3) = dist (v2,v3) + t
+                             ==> 
+                                 dihV v0 v3 v2' v1 <= dihV v0 v3 v2 v1)) /\
+	    (!v2' t.                         (abs t < e /\
+                             t <= &0 /\
+                             dist (v0,v2') = dist (v0,v2) /\
+                             dist (v1,v2') = dist (v1,v2) /\
+                             dist (v2',v3) = dist (v2,v3) + t
+                             ==> dihV v0 v1 v2' v3 <= dihV v0 v1 v2 v3) ))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC (REWRITE_RULE[MESON[] `(a ==> (?e. P e)) <=> (?e. a ==> P e)`] dihV_obtuse_mono_a) [`v0`;`v1`;`v2`;`v3`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC dihV_obtuse_mono_b [`v0`;`v1`;`v2`;`v3`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPED_ABBREV_TAC `b <=> pi / &2 < dihV v0 v2 v3 v1`;
+  TYPED_ABBREV_TAC `e1 = if b then e else &1`;
+  INTRO_TAC epsilon_pair [`e1`;`e'`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    EXPAND_TAC "e1";
+    COND_CASES_TAC;
+      BY(ASM_MESON_TAC[]);
+    BY(REAL_ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `e''` EXISTS_TAC;
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
 
 let general_482_deformation = prove_by_refinement(
 `main_nonlinear_terminal_v11 ==> 
@@ -3552,34 +3884,42 @@ let general_482_deformation = prove_by_refinement(
       BY(REPEAT WEAKER_STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
     BY(REWRITE_TAC[arith `abs (&0 - t') = abs t'`] THEN MESON_TAC[]);
   REPEAT WEAKER_STRIP_TAC;
-  INTRO_TAC epsilon_triple [`e1`;`e2`;`e'`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
-  TYPIFY `!t. abs t < e''' ==> azim (vec 0) (f(v p1) t) (v (p1+1)) (v (p1+k-1)) = dihV (vec 0) (f (v p1) t) (v (p1 + 1)) (v (p1 + k - 1)) /\ azim (vec 0) (v (p1 + 1)) (v (p1 + k - 1)) (f (v p1) t)  = dihV (vec 0) (v (p1 + 1)) (v (p1 + k - 1)) (f (v p1) t) /\ azim (vec 0) (v (p1 + k - 1)) (f (v p1) t) (v (p1 + 1)) = dihV (vec 0) (v (p1 + k - 1)) (f (v p1) t) (v (p1 + 1))` (C SUBGOAL_THEN ASSUME_TAC);
+
+  comment "insert"
+  intro dihV_obtuse_mono [`(vec 0):real^3`;`v p0`;`v p1`;`v p2`]
+  rt[MESON[arith `&0 < &1`] `(a ==> ?e. !v2'. &0 < e /\ P e v2') <=> (?e. &0 < e /\ (a ==> (!v2'. P e v2')))`]
+    st/r
+    fxa mp then BURY_MP_TAC
+  comment "end insert" (* need to pull out &0 < e *)
+
+  INTRO_TAC epsilon_quad [`e1`;`e2`;`e'`;`e`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `!t. abs t < e'''' ==> azim (vec 0) (f(v p1) t) (v (p1+1)) (v (p1+k-1)) = dihV (vec 0) (f (v p1) t) (v (p1 + 1)) (v (p1 + k - 1)) /\ azim (vec 0) (v (p1 + 1)) (v (p1 + k - 1)) (f (v p1) t)  = dihV (vec 0) (v (p1 + 1)) (v (p1 + k - 1)) (f (v p1) t) /\ azim (vec 0) (v (p1 + k - 1)) (f (v p1) t) (v (p1 + 1)) = dihV (vec 0) (v (p1 + k - 1)) (f (v p1) t) (v (p1 + 1))` (C SUBGOAL_THEN ASSUME_TAC);
     GEN_TAC THEN ASM_REWRITE_TAC[] THEN DISCH_TAC;
     REPEAT (GMATCH_SIMP_TAC (GSYM AZIM_DIHV_SAME));
     INTRO_TAC Planarity.notcoplanar_imp_notcollinear_fan [`(vec 0):real^3`;`f (v p1) t`;`v(p1+k-1)`;`v(p1+1)`];
     ANTS_TAC;
-      BY(FIRST_X_ASSUM MATCH_MP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
+      (FIRST_X_ASSUM MATCH_MP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
     REWRITE_TAC[SET_RULE `{a,b,c} = {a,c,b}`];
     DISCH_THEN (unlist REWRITE_TAC);
-    BY(REPLICATE_TAC 10 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[]);
+    BY(REPLICATE_TAC 12 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[]);
   COMMENT "introduce azim";
-  INTRO_TAC azim_assumption_reduction [`s`;`k`;`p1`;`f`;`v`;`e'''`];
+  INTRO_TAC azim_assumption_reduction [`s`;`k`;`p1`;`f`;`v`;`e''''`];
   ASM_REWRITE_TAC[];
   DISCH_THEN MP_TAC THEN ANTS_TAC;
     CONJ_TAC;
       FIRST_X_ASSUM_ST `deformation` MP_TAC;
       REWRITE_TAC[Localization.deformation];
       REWRITE_TAC[IN_REAL_INTERVAL;arith `--e < t /\ t < e <=> abs t < e`];
-      BY(REPLICATE_TAC 5 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[arith `abs(&0) = &0`]);
+      BY(REPLICATE_TAC 7 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[arith `abs(&0) = &0`]);
     CONJ_TAC;
       BY(ASM_MESON_TAC[]);
-    TYPIFY `(azim (vec 0) (v (p1 + k - 1)) (v p1) (v (p1 + k - 2)) < pi \/  (        (!t. abs t < e'''             ==> dihV (vec 0) (v (p1 + k - 1)) (f (v p1) t) (v (p1 + 1)) <=                 dihV (vec 0) (v (p1 + k - 1)) (v p1) (v (p1 + 1))))) /\ (azim (vec 0) (v (p1 + 1)) (v (p1 + 2)) (v p1) < pi \/  (        (!t. abs t < e'''             ==> dihV (vec 0) (v (p1 + 1)) (v (p1 + k - 1)) (f (v p1) t) <=                 dihV (vec 0) (v (p1 + 1)) (v (p1 + k - 1)) (v p1))))` ENOUGH_TO_SHOW_TAC;
+    TYPIFY `(azim (vec 0) (v (p1 + k - 1)) (v p1) (v (p1 + k - 2)) < pi \/  (        (!t. abs t < e''''             ==> dihV (vec 0) (v (p1 + k - 1)) (f (v p1) t) (v (p1 + 1)) <=                 dihV (vec 0) (v (p1 + k - 1)) (v p1) (v (p1 + 1))))) /\ (azim (vec 0) (v (p1 + 1)) (v (p1 + 2)) (v p1) < pi \/  (        (!t. abs t < e''''             ==> dihV (vec 0) (v (p1 + 1)) (v (p1 + k - 1)) (f (v p1) t) <=                 dihV (vec 0) (v (p1 + 1)) (v (p1 + k - 1)) (v p1))))` ENOUGH_TO_SHOW_TAC;
       REPEAT WEAKER_STRIP_TAC;
       REWRITE_TAC[MESON [] `(a \/ (?e1. P e1)) <=> (?e1. (a \/ P e1))`;MESON[] `(a /\ (?e1. P e1)) <=> (?e1. a /\ P e1)`;MESON[] `((?e1. P e1) /\ b) <=> (?e1. P e1 /\ b)`];
-      GEXISTL_TAC [`e'''`;`e'''`];
+      GEXISTL_TAC [`e''''`;`e''''`];
       FIRST_X_ASSUM_ST `w IN V ==> f w (&0) = (w:real^3)` (C INTRO_TAC [`v p1`]);
       ASM_REWRITE_TAC[];
-      BY(REPLICATE_TAC 10 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[arith `abs(&0) = &0`]);
+      BY(REPLICATE_TAC 12 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[arith `abs(&0) = &0`]);
     COMMENT "obtuse case";
     (TYPIFY `pi/ &2 < dihV (vec 0) (v p1) (v (p1+1)) (v (p1+k-1))` ASM_CASES_TAC)
 

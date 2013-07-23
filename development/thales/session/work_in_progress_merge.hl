@@ -1,6 +1,8 @@
 
 (*  *)
 
+(* Need to remove Xbjrphc.  now in flyspeck.ml *)
+
 (* ========================================================================== *)
 (* COMPLETED LEMMAS  *)
 (* ========================================================================== *)
@@ -3659,11 +3661,130 @@ let real_continuous_abs = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let deformation_restrict = prove_by_refinement(
+  `!e f (V:real^A->bool) e'. deformation f V (-- e,e) /\ &0 < e' /\ (!t. abs t < e' ==> abs t < e) ==> 
+    deformation f V (-- e',e')`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Localization.deformation;IN_REAL_INTERVAL;arith `-- e < t /\ t < e <=> abs t < e`;arith `abs(&0) = &0`];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let psort_mod = prove_by_refinement(
+  `!k a b. ~(k=0) ==> psort k (a MOD k,b MOD k) = psort k (a,b)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Appendix.psort];
+  REPEAT WEAKER_STRIP_TAC;
+  BY(ASM_SIMP_TAC[MOD_MOD_REFL])
+  ]);;
+  (* }}} *)
+
+let MMs_minimize_tau_fun = prove_by_refinement(
+  `!s k v w.
+    is_scs_v39 s /\ scs_basic_v39 s /\ (scs_k_v39 s = k) /\ (3 < k) /\
+    BBprime_v39 s v /\
+    BBs_v39 s w ==> 
+    sum {i | i < k} (\i. rho_fun (norm (v i)) * azim (vec 0) (v i) (v (i + 1)) (v (i + k - 1))) <=
+    sum {i | i < k} (\i. rho_fun (norm (w i)) * azim (vec 0) (w i) (w (i + 1)) (w (i + k - 1)))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Appendix.taustar_v39;Appendix.BBprime_v39;LET_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `COND` MP_TAC) THEN ASM_SIMP_TAC[arith `3 < k ==> ~(k <= 3)`] THEN REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`w`]);
+  ASM_REWRITE_TAC[];
+  REPEAT (FIRST_X_ASSUM_ST `tau_fun` MP_TAC) THEN REPEAT (GMATCH_SIMP_TAC (REWRITE_RULE[LET_THM] Terminal.tau_fun_azim));
+  TYPIFY `k` EXISTS_TAC;
+  CONJ_TAC;
+    ASM_SIMP_TAC[arith `3 < k ==> 3 <= k`];
+    CONJ_TAC;
+      BY(FIRST_X_ASSUM_ST `BBs_v39` MP_TAC THEN ASM_REWRITE_TAC[Appendix.BBs_v39;LET_THM] THEN MESON_TAC[]);
+    MATCH_MP_TAC BBs_inj;
+    BY(ASM_MESON_TAC[]);
+  TYPIFY `k` EXISTS_TAC;
+  CONJ_TAC;
+    ASM_SIMP_TAC[arith `3 < k ==> 3 <= k`];
+    CONJ_TAC;
+      BY(REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `BBs_v39` MP_TAC) THEN ASM_REWRITE_TAC[Appendix.BBs_v39;LET_THM] THEN MESON_TAC[]);
+    MATCH_MP_TAC BBs_inj;
+    BY(ASM_MESON_TAC[]);
+  DISCH_THEN kill;
+  TYPIFY `dsv_v39 s v = dsv_v39 s w` ENOUGH_TO_SHOW_TAC;
+    TYPED_ABBREV_TAC `sv  = sum {i | i < k}     (\i. rho_fun (norm (v i)) *          azim (vec 0) (v i) (v (i + 1)) (v (i + k - 1)))`;
+    TYPED_ABBREV_TAC `sw = sum {i | i < k}     (\i. rho_fun (norm (w i)) *          azim (vec 0) (w i) (w (i + 1)) (w (i + k - 1)))`;
+    BY(REAL_ARITH_TAC);
+  REPEAT (GMATCH_SIMP_TAC Appendix.dsv_J_empty);
+  REWRITE_TAC[FUN_EQ_THM];
+  BY(ASM_MESON_TAC[Appendix.scs_basic])
+  ]);;
+  (* }}} *)
+
+let solve_mod_k = prove_by_refinement(
+  `!k a b x.  ~(k = 0) /\ b= (x + a) MOD k ==> (x MOD k = (b + k - (a MOD k)) MOD k)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC MOD_SHIFT[`k`;`b`;`(x+(a:num))`;`k - a MOD k`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[MOD_MOD_REFL]);
+  DISCH_THEN SUBST1_TAC;
+  TYPIFY `((x+a) + k - a MOD k = x + (k + (a - a MOD k)))` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(ASM_TAC THEN ARITH_TAC);
+  TYPIFY `x + k  + a - a MOD k = (a DIV k + 1) * k + x` (C SUBGOAL_THEN SUBST1_TAC);
+    INTRO_TAC DIVISION [`a`;`k`];
+    BY(ASM_TAC THEN ARITH_TAC);
+  BY(REWRITE_TAC[MOD_MULT_ADD])
+  ]);;
+  (* }}} *)
+
+let tau3_taum_nonplanar = prove_by_refinement(
+  `!(v0:real^3) v1 v2.
+    ~coplanar {vec 0,v0,v1,v2} ==>
+    tau3 v0 v1 v2 = taum (norm v0) (norm v1) (norm v2) (dist(v1,v2)) (dist(v0,v2)) (dist(v0,v1))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Appendix.tau3;Nonlinear_lemma.taum_123;Sphere.rhazim2;Sphere.rhazim3;Sphere.node2_y;Sphere.node3_y];
+  REWRITE_TAC[Sphere.rhazim;Nonlinear_lemma.sol0_const1];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `dihV (vec 0) v0 v1 v2 = dih_y (norm v0) (norm v1) (norm v2) (dist (v1,v2)) (dist (v0,v2)) (dist (v0,v1)) /\ dihV (vec 0) v1 v2 v0  = dih_y (norm v1) (norm v2) (norm v0) (dist (v0,v2)) (dist (v0,v1)) (dist (v1,v2)) /\ dihV (vec 0) v2 v0 v1 = dih_y (norm v2) (norm v0) (norm v1) (dist (v0,v1)) (dist (v1,v2))  (dist (v0,v2))` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN (unlist REWRITE_TAC);
+    BY(REAL_ARITH_TAC);
+  REPEAT (GMATCH_SIMP_TAC (REWRITE_RULE[LET_DEF;LET_END_DEF] Merge_ineq.DIHV_EQ_DIH_Y));
+  REWRITE_TAC[DIST_0];
+  REWRITE_TAC[DIST_SYM];
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `coplanar` (MP_TAC o MATCH_MP Planarity.notcoplanar_imp_notcollinear_fan);
+  BY(MESON_TAC[SET_RULE `{a,b,c} = {a,c,b}`])
+  ]);;
+  (* }}} *)
+
+let tau3_azim = prove_by_refinement(
+  `!(v0:real^3) v1 v2.
+    ~coplanar {vec 0,v0,v1,v2} /\
+    azim (vec 0) v0 v1 v2 <= pi ==>
+    tau3 v0 v1 v2 = rho (norm (v0)) * azim (vec 0) v0 v1 v2 +
+	rho (norm (v1)) * azim (vec 0) v1 v2 v0 +
+	rho (norm (v2)) * azim (vec 0) v2 v0 v1 - (pi + sol0)
+    `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Appendix.tau3];
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC (arith `a = a' /\ b = b' /\ c = c' ==> r1 *a + r2*b + r3*c -x = r1*a' + r2*b' + r3*c' - x`);
+  REPEAT (GMATCH_SIMP_TAC (GSYM Polar_fan.AZIM_DIHV_SAME_STRONG));
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `coplanar` (MP_TAC o MATCH_MP Planarity.notcoplanar_imp_notcollinear_fan);
+  BY(ASM_MESON_TAC[Xivphks.FSQKWKK;SET_RULE `{a,b,c} = {a,c,b}`])
+  ]);;
+  (* }}} *)
+
 let general_482_deformation = prove_by_refinement(
 `main_nonlinear_terminal_v11 ==> 
   (!s FF k p0 p1 p2 v.
   {v p0,v p2} = {v (p1+1),v (p1 + (k-1))} /\
-// {p0 MOD k,p2 MOD k} = {(p1+1) MOD k,(p1 + (k-1)) MOD k} /\
   FF = IMAGE (\i. (v i,v (SUC i))) (:num) /\
   is_scs_v39 s /\
   k = scs_k_v39 s /\
@@ -3964,30 +4085,262 @@ let general_482_deformation = prove_by_refinement(
       TYPIFY `dihV (vec 0) (v p1) (v (p1+1)) (v (p1+k-1)) = interior_angle1 (vec 0) FF (v p1)` ENOUGH_TO_SHOW_TAC;
         BY(REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[]);
       FIRST_X_ASSUM_ST `azim` (C INTRO_TAC [`&0`]);
-      BY(ASM_SIMP_TAC[arith `abs(&0) = &0`])
+      BY(ASM_SIMP_TAC[arith `abs(&0) = &0`]);
+    FIRST_X_ASSUM_ST `{a,b}={c,d}` (MP_TAC o GSYM) THEN REWRITE_TAC[Collect_geom.PAIR_EQ_EXPAND] THEN DISCH_THEN DISJ_CASES_TAC;
+      FIRST_X_ASSUM_ST `interior_angle1` MP_TAC THEN (FIRST_ASSUM (unlist REWRITE_TAC));
+      INTRO_TAC Ocbicby.INTERIOR_ANGLE1_AZIM [`s`;`v`;`p1 + k - 1`];
+      ASM_REWRITE_TAC[LET_THM;IN];
+      DISCH_THEN (SUBST1_TAC o GSYM);
+      TYPIFY_GOAL_THEN `v (SUC (p1+k-1)) = v p1 /\ v ((p1+k-1)+(k-1)) = v (p1 + k - 2)` (unlist REWRITE_TAC);
+        FIRST_ASSUM_ST `v(i MOD k) = v i` ((unlist ONCE_REWRITE_TAC) o GSYM);
+        FIRST_X_ASSUM_ST `3 < k` MP_TAC;
+        BY(SIMP_TAC[arith `3 < k ==> SUC (p1+k-1) = 1*k + p1 /\ ((p1+k-1)+(k-1) = (1*k + (p1+k-2)))`;MOD_MULT_ADD]);
+      DISCH_THEN (unlist REWRITE_TAC);
+      DISJ2_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM_ST ` /\ ` ((unlist REWRITE_TAC) o GSYM);
+      ONCE_REWRITE_TAC[DIHV_SYM];
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      TYPIFY `-- abs t` EXISTS_TAC;
+      REWRITE_TAC[arith `abs(-- abs t) = abs (t)`;arith `-- abs t <= &0`;arith `x + -- t = x - t`;DIST_0;DIST_SYM];
+      CONJ_TAC;
+        BY(FIRST_X_ASSUM MATCH_MP_TAC THEN FIRST_X_ASSUM (unlist REWRITE_TAC));
+      FIRST_X_ASSUM_ST `norm` (C INTRO_TAC [`t`]);
+      ANTS_TAC;
+        BY(FIRST_X_ASSUM MATCH_MP_TAC THEN FIRST_X_ASSUM (unlist REWRITE_TAC));
+      BY(REWRITE_TAC[DIST_SYM] THEN MESON_TAC[]);
+    COMMENT "second nonobtuse case";
+    FIRST_X_ASSUM_ST `interior_angle1` MP_TAC THEN (FIRST_ASSUM (unlist REWRITE_TAC));
+    INTRO_TAC Ocbicby.INTERIOR_ANGLE1_AZIM [`s`;`v`;`p1 +1`];
+    ASM_REWRITE_TAC[LET_THM;IN];
+    DISCH_THEN (SUBST1_TAC o GSYM);
+    REWRITE_TAC[arith `SUC (p1+1) = p1+2`];
+    TYPIFY_GOAL_THEN `v ((p1+1)+k-1) = v p1` (unlist REWRITE_TAC);
+      FIRST_ASSUM_ST `v(i MOD k) = v i` ((unlist ONCE_REWRITE_TAC) o GSYM);
+      FIRST_X_ASSUM_ST `3 < k` MP_TAC;
+      BY(SIMP_TAC[arith `3 < k ==> (p1+1)+k-1 = 1*k + p1`;MOD_MULT_ADD]);
+    DISCH_THEN (unlist REWRITE_TAC);
+    DISJ2_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM_ST ` /\ ` ((unlist REWRITE_TAC) o GSYM);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    TYPIFY `-- abs t` EXISTS_TAC;
+    REWRITE_TAC[arith `abs(-- abs t) = abs (t)`;arith `-- abs t <= &0`;arith `x + -- t = x - t`;DIST_0;DIST_SYM];
+    CONJ_TAC;
+      BY(FIRST_X_ASSUM MATCH_MP_TAC THEN FIRST_X_ASSUM (unlist REWRITE_TAC));
+    FIRST_X_ASSUM_ST `norm` (C INTRO_TAC [`t`]);
+    ANTS_TAC;
+      BY(FIRST_X_ASSUM MATCH_MP_TAC THEN FIRST_X_ASSUM (unlist REWRITE_TAC));
+    BY(REWRITE_TAC[DIST_SYM] THEN MESON_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "finally back to root goal";
+  TYPIFY `!i j. (v i = v j) ==> (i MOD k = j MOD k)` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_ASSUM_ST `v (i MOD k) = v i` ((unlist ONCE_REWRITE_TAC) o GSYM);
+    FIRST_X_ASSUM_ST `!i (j:num). i < k /\ j < k /\ v i = v j ==> i = j` MP_TAC;
+    FIRST_X_ASSUM_ST `!i. i MOD k < k` MP_TAC;
+    BY(MESON_TAC[]);
+  TYPIFY `psort k (p0,p2) = psort k (p1+1,p1+k-1)` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `~(k=0)` MP_TAC;
+    DISCH_TAC;
+    INTRO_TAC psort_mod [`k`];
+    FIRST_X_ASSUM (unlist REWRITE_TAC);
+    DISCH_THEN ((unlist ONCE_REWRITE_TAC) o GSYM);
+    FIRST_X_ASSUM_ST `{a,b}={c,d}` (MP_TAC) THEN REWRITE_TAC[Collect_geom.PAIR_EQ_EXPAND] THEN DISCH_THEN DISJ_CASES_TAC;
+      BY(REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[]);
+    BY(REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[Terminal.psort_sym]);
+  INTRO_TAC deformation_BBs_ALT [`s`;`k`;`f`;`v`;`e''''`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      MATCH_MP_TAC deformation_restrict;
+      TYPIFY `e'` EXISTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM_ST `norm` (C INTRO_TAC [`t`]);
+      ANTS_TAC;
+        BY(FIRST_X_ASSUM MATCH_MP_TAC THEN (FIRST_X_ASSUM (unlist REWRITE_TAC)));
+      TYPIFY `v i = v p1` ASM_CASES_TAC;
+        BY(FIRST_X_ASSUM (unlist REWRITE_TAC) THEN MESON_TAC[]);
+      FIRST_X_ASSUM_ST `!w t. ~(w = v p1) ==> f w t = w` (C INTRO_TAC [`v i`;`t`]);
+      BY(FIRST_X_ASSUM MP_TAC THEN MESON_TAC[]);
+    CONJ_TAC;
+      MATCH_MP_TAC a_assumption_reduction;
+      GEXISTL_TAC [`k`;`p1`;`e'`];
+      ASM_REWRITE_TAC[];
+      CONJ_TAC;
+        REPEAT (FIRST_X_ASSUM_ST `psort` MP_TAC);
+        BY(MESON_TAC[]);
+      TYPIFY `(?e1. &0 < e1 /\       (scs_a_v39 s p1 p2  = dist (v p1,v p2)        ==> (!t. abs t < e1                 ==> scs_a_v39 s p1 (p2) <= dist (f (v p1) t,v (p2))))) /\ (?e1. &0 < e1 /\       (scs_a_v39 s p1 (p0) = dist (v p1,v (p0))        ==> (!t. abs t < e1                 ==> scs_a_v39 s p1 (p0) <=                     dist (f (v p1) t,v (p0)))))` (C SUBGOAL_THEN ASSUME_TAC);
+        CONJ2_TAC;
+          ASM_REWRITE_TAC[];
+          TYPIFY `e'` EXISTS_TAC;
+          ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+          FIRST_X_ASSUM_ST `norm` (C INTRO_TAC [`t`]);
+          BY(FIRST_X_ASSUM (unlist REWRITE_TAC) THEN (REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC)) THEN REWRITE_TAC[DIST_SYM] THEN REAL_ARITH_TAC);
+        TYPIFY `&1` EXISTS_TAC;
+        BY(ASM_REWRITE_TAC[arith `&0 < &1`]);
+      FIRST_X_ASSUM_ST `{a,b}={c,d}` (MP_TAC) THEN REWRITE_TAC[Collect_geom.PAIR_EQ_EXPAND] THEN DISCH_THEN DISJ_CASES_TAC;
+        TYPIFY `(p1 + 1) MOD k = p0 MOD k /\ (p1+k-1) MOD k = p2 MOD k` (C SUBGOAL_THEN ASSUME_TAC);
+          BY(REPLICATE_TAC 5 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[]);
+        TYPIFY_GOAL_THEN `scs_a_v39 s p1 (p1+1) = scs_a_v39 s p1 p0 /\ scs_a_v39 s p1 (p1+k-1) = scs_a_v39 s p1 p2` (unlist REWRITE_TAC);
+          FIRST_X_ASSUM_ST `is_scs_v39` MP_TAC;
+          BY(FIRST_X_ASSUM MP_TAC THEN FIRST_X_ASSUM_ST `scs_k_v39 s = k` MP_TAC THEN MESON_TAC[Nuxcoea.CHANGE_A_SCS_MODR]);
+        FIRST_X_ASSUM kill THEN FIRST_X_ASSUM (unlist REWRITE_TAC);
+        BY(FIRST_X_ASSUM MP_TAC THEN MESON_TAC[]);
+      TYPIFY `(p1 + 1) MOD k = p2 MOD k /\ (p1+k-1) MOD k = p0 MOD k` (C SUBGOAL_THEN ASSUME_TAC);
+        BY(REPLICATE_TAC 5 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[]);
+      TYPIFY_GOAL_THEN `scs_a_v39 s p1 (p1+1) = scs_a_v39 s p1 p2 /\ scs_a_v39 s p1 (p1+k-1) = scs_a_v39 s p1 p0` (unlist REWRITE_TAC);
+        FIRST_X_ASSUM_ST `is_scs_v39` MP_TAC;
+        BY(FIRST_X_ASSUM MP_TAC THEN FIRST_X_ASSUM_ST `scs_k_v39 s = k` MP_TAC THEN MESON_TAC[Nuxcoea.CHANGE_A_SCS_MODR]);
+      FIRST_X_ASSUM kill THEN FIRST_X_ASSUM (unlist REWRITE_TAC);
+      BY(FIRST_X_ASSUM MP_TAC THEN MESON_TAC[]);
+    COMMENT "b assumption";
+    MATCH_MP_TAC b_assumption_reduction;
+    GEXISTL_TAC [`k`;`p1`;`e'`];
+    ASM_REWRITE_TAC[];
+    TYPIFY `(?e2. &0 < e2 /\       (dist (v p1,v (p2)) = scs_b_v39 s p1 (p2)        ==> (!t. abs t < e2                 ==> dist (f (v p1) t,v (p2)) <= scs_b_v39 s p1 (p2)))) /\ (?e2. &0 < e2 /\       (dist (v p1,v (p0)) = scs_b_v39 s p1 (p0)        ==> (!t. abs t < e2                 ==> dist (f (v p1) t,v (p0)) <=                     scs_b_v39 s p1 (p0))))` (C SUBGOAL_THEN ASSUME_TAC);
+      CONJ2_TAC;
+        ASM_REWRITE_TAC[];
+        TYPIFY `e'` EXISTS_TAC;
+        ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+        FIRST_X_ASSUM_ST `norm` (C INTRO_TAC [`t`]);
+        BY(FIRST_X_ASSUM (unlist REWRITE_TAC) THEN (REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC)) THEN REWRITE_TAC[DIST_SYM] THEN REAL_ARITH_TAC);
+      TYPIFY `e'` EXISTS_TAC;
+      ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM_ST `norm` (C INTRO_TAC [`t`]);
+      BY(FIRST_X_ASSUM (unlist REWRITE_TAC) THEN (REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC)) THEN REWRITE_TAC[DIST_SYM] THEN REAL_ARITH_TAC);
+    FIRST_X_ASSUM_ST `{a,b}={c,d}` (MP_TAC) THEN REWRITE_TAC[Collect_geom.PAIR_EQ_EXPAND] THEN DISCH_THEN DISJ_CASES_TAC;
+      TYPIFY `(p1 + 1) MOD k = p0 MOD k /\ (p1+k-1) MOD k = p2 MOD k` (C SUBGOAL_THEN ASSUME_TAC);
+        BY(REPLICATE_TAC 5 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[]);
+      TYPIFY_GOAL_THEN `scs_b_v39 s p1 (p1+1) = scs_b_v39 s p1 p0 /\ scs_b_v39 s p1 (p1+k-1) = scs_b_v39 s p1 p2` (unlist REWRITE_TAC);
+        FIRST_X_ASSUM_ST `is_scs_v39` MP_TAC;
+        BY(FIRST_X_ASSUM MP_TAC THEN FIRST_X_ASSUM_ST `scs_k_v39 s = k` MP_TAC THEN MESON_TAC[Nuxcoea.CHANGE_B_SCS_MODR]);
+      FIRST_X_ASSUM kill THEN FIRST_X_ASSUM (unlist REWRITE_TAC);
+      BY(FIRST_X_ASSUM MP_TAC THEN MESON_TAC[]);
+    TYPIFY `(p1 + 1) MOD k = p2 MOD k /\ (p1+k-1) MOD k = p0 MOD k` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(REPLICATE_TAC 5 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[]);
+    TYPIFY_GOAL_THEN `scs_b_v39 s p1 (p1+1) = scs_b_v39 s p1 p2 /\ scs_b_v39 s p1 (p1+k-1) = scs_b_v39 s p1 p0` (unlist REWRITE_TAC);
+      FIRST_X_ASSUM_ST `is_scs_v39` MP_TAC;
+      BY(FIRST_X_ASSUM MP_TAC THEN FIRST_X_ASSUM_ST `scs_k_v39 s = k` MP_TAC THEN MESON_TAC[Nuxcoea.CHANGE_B_SCS_MODR]);
+    FIRST_X_ASSUM kill THEN FIRST_X_ASSUM (unlist REWRITE_TAC);
+    BY(FIRST_X_ASSUM MP_TAC THEN MESON_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "back to root, next tau";
+  TYPIFY `!t. abs t < e'' ==>     sum {i | i < k} (\i. rho_fun (norm (v i)) * azim (vec 0) (v i) (v (i + 1)) (v (i + k - 1))) <=    sum {i | i < k} (\i. rho_fun (norm (f (v i) t)) * azim (vec 0) (f (v i) t) (f(v(i+1)) t) (f (v (i + k - 1)) t))` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    MATCH_MP_TAC MMs_minimize_tau_fun;
+    TYPIFY `s` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(FIRST_X_ASSUM (unlist REWRITE_TAC));
+  TYPIFY `!t. abs t < e'' ==> sum ({i | i < k} DIFF {p1 MOD k,(p1+1) MOD k, (p1+k-1) MOD k})               (\i. rho_fun (norm (f (v i) t)) *                   azim (vec 0) (f (v i) t) (f (v (i + 1)) t)                   (f (v (i + k - 1)) t)) = sum {i | i < k}              (\i. rho_fun (norm (f (v i) t)) *                   azim (vec 0) (f (v i) t) (f (v (i + 1)) t)                   (f (v (i + k - 1)) t)) - sum {p1 MOD k,(p1+1) MOD k, (p1+k-1) MOD k}              (\i. rho_fun (norm (f (v i) t)) *                   azim (vec 0) (f (v i) t) (f (v (i + 1)) t)                   (f (v (i + k - 1)) t))` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    MATCH_MP_TAC SUM_DIFF;
+    REWRITE_TAC[FINITE_NUMSEG_LT];
+    ASM_REWRITE_TAC[SUBSET;IN_INSERT;NOT_IN_EMPTY;IN_ELIM_THM];
+    BY(REPEAT WEAKER_STRIP_TAC THEN REPEAT (FIRST_X_ASSUM DISJ_CASES_TAC) THEN ASM_REWRITE_TAC[]);
+  TYPIFY `(\i. rho_fun (norm (f (v i) (&0))) *                   azim (vec 0) (f (v i) (&0)) (f (v (i + 1)) (&0))                   (f (v (i + k - 1)) (&0))) = (\i. rho_fun (norm ((v i) )) *                   azim (vec 0) ( (v i) ) ( (v (i + 1)) )                   ( (v (i + k - 1)) ))` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_REWRITE_TAC[FUN_EQ_THM];
+    GEN_TAC;
+    BY(ASM_SIMP_TAC[]);
+    typ `?e3. &0 < e3 /\ (!t. abs t < e3 ==> dist(v p1,v p2) + t IN real_interval(a,b))` smp
 
-(* two cases {a,b}={c,d}, next interior_angle1 p2 = azim (p1+k-1)... or azim (p1+1)... *)
+Zlzthic.real_interval_contains_0_ball",    
+
+
+  comment "combine e'' e1' e'''' "
+  intro epsilon_triple [`e''`;`e1'`;`e''''`] then art[] then st/r
+  TYPIFY `!t. abs t < e''''' ==> sum {p1 MOD k, (p1 + 1) MOD k, (p1 + k - 1) MOD k}              (\i. rho_fun (norm (v i)) *                   azim (vec 0) (v i) (v (i + 1)) (v (i + k - 1))) <=              sum {p1 MOD k, (p1 + 1) MOD k, (p1 + k - 1) MOD k}              (\i. rho_fun (norm (f (v i) t)) *                   azim (vec 0) (f (v i) t) (f (v (i + 1)) t)                   (f (v (i + k - 1)) t))` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_ASSUM_ST `sum` (C INTRO_TAC [`&0`]);
+    FIRST_X_ASSUM_ST `sum` (C INTRO_TAC [`t`]);
+    ASM_REWRITE_TAC[arith `abs(&0) = &0`];
+    ants
+      repeat (fxa mmp) then fxa (unlist rt)
+    ONCE_REWRITE_TAC[arith `sdiff = sfull - s3 <=> s3 = sfull - sdiff`];
+    DISCH_THEN SUBST1_TAC;
+    DISCH_THEN SUBST1_TAC;
+    FIRST_X_ASSUM_ST `sum` (C INTRO_TAC [`t`]);
+    ants
+      repeat (fxa mmp) then fxa (unlist rt)
+    ASM_REWRITE_TAC[];
+    TYPIFY `sum ({i | i < k} DIFF {p1 MOD k, (p1 + 1) MOD k, (p1 + k - 1) MOD k})     (\i. rho_fun (norm (v i)) *          azim (vec 0) (v i) (v (i + 1)) (v (i + k - 1))) = sum ({i | i < k} DIFF {p1 MOD k, (p1 + 1) MOD k, (p1 + k - 1) MOD k})     (\i. rho_fun (norm (f (v i) t)) *          azim (vec 0) (f (v i) t) (f (v (i + 1)) t) (f (v (i + k - 1)) t))` ENOUGH_TO_SHOW_TAC;
+      DISCH_THEN SUBST1_TAC;
+      BY(REWRITE_TAC[arith `(a <= b) ==> a - u <= b - u`]);
+    MATCH_MP_TAC SUM_EQ;
+    REWRITE_TAC[IN_DIFF;IN_INSERT;NOT_IN_EMPTY;IN_ELIM_THM];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY ` ~(p1 MOD k = x MOD k) /\          ~(p1 MOD k = (x + 1) MOD k) /\          ~(p1 MOD k = (x + k - 1) MOD k)` (C SUBGOAL_THEN ASSUME_TAC);
+      TYPIFY `x MOD k = (x + 0) MOD k` (C SUBGOAL_THEN SUBST1_TAC);
+        BY(REWRITE_TAC[arith `x + 0 = x`]);
+      PROOF_BY_CONTR_TAC;
+      INTRO_TAC solve_mod_k [`k`] THEN ASM_REWRITE_TAC[];
+      ONCE_REWRITE_TAC[TAUT `!a b. (a ==> b) <=> (~b ==> ~a)`];
+      DISCH_TAC;
+      FIRST_X_ASSUM_ST `x+k-1` MP_TAC THEN REWRITE_TAC[] THEN REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC;
+          GMATCH_SIMP_TAC MOD_0;
+          ASM_REWRITE_TAC[MOD_MOD_REFL;MOD_MULT_ADD;arith `a + k - 0 = 1*k + a`];
+          GMATCH_SIMP_TAC MOD_MOD_REFL;
+          BY(ASM_REWRITE_TAC[] THEN REPLICATE_TAC 2(FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[MOD_LT]);
+        TYPIFY `x MOD k = x` (C SUBGOAL_THEN SUBST1_TAC);
+          BY(FIRST_X_ASSUM_ST `x < (k:num)` MP_TAC THEN MESON_TAC[MOD_LT]);
+        DISCH_TAC;
+        FIRST_X_ASSUM_ST `~` MP_TAC;
+        ASM_REWRITE_TAC[];
+        DISJ2_TAC;
+        DISJ2_TAC;
+        TYPIFY `1 MOD k = 1` (C SUBGOAL_THEN SUBST1_TAC);
+          BY(FIRST_X_ASSUM_ST `3 < k` MP_TAC THEN MESON_TAC[MOD_LT;arith `3 < k ==> 1 < k`]);
+        MATCH_MP_TAC MOD_SHIFT;
+        BY(FIRST_X_ASSUM_ST `~(k = 0)` MP_TAC THEN MESON_TAC[MOD_MOD_REFL]);
+      TYPIFY `x MOD k = x` (C SUBGOAL_THEN SUBST1_TAC);
+        BY(FIRST_X_ASSUM_ST `x < (k:num)` MP_TAC THEN MESON_TAC[MOD_LT]);
+      DISCH_TAC;
+      FIRST_X_ASSUM_ST `~` MP_TAC;
+      ASM_REWRITE_TAC[];
+      DISJ2_TAC;
+      DISJ1_TAC;
+      TYPIFY `(k-1) MOD k = (k-1)` (C SUBGOAL_THEN SUBST1_TAC);
+        BY(FIRST_X_ASSUM_ST `~(k=0)` MP_TAC THEN MESON_TAC[MOD_LT;arith `~(k=0) ==> k - 1 < k`]);
+      TYPIFY `k - (k-1) = 1` (C SUBGOAL_THEN SUBST1_TAC);
+        BY(FIRST_X_ASSUM_ST `~(k=0)` MP_TAC THEN ARITH_TAC);
+      MATCH_MP_TAC MOD_SHIFT;
+      BY(FIRST_X_ASSUM_ST `~(k = 0)` MP_TAC THEN MESON_TAC[MOD_MOD_REFL]);
+    POP_ASSUM (fun t -> FIRST_X_ASSUM (MP_TAC o (C MATCH_MP t)));
+    (DISCH_THEN (unlist REWRITE_TAC))
+      apthm
+apterm
+apterm
+fxast `norm` (C intro [`t`])
+ants
+repeat (fxa mmp) then (fxast `abs` (unlist rt))
+typ `v x = v p1` asmcase
+fxa (unlist rt) then mt[]
+popassum (fun t -> fxa (mp o (C mm t)))
+dthen (unlist rt)
+comment "back to root: relate sum to taum"
+typ `?t'. abs t' < e''''' /\ ~(t' = &0)` smp
+typ `e''''' / &2` ex then fxast `&0 < e'''''` mp then rat
+st/r
+rep 4 (fxa (C intro [`t'`]) then ants then repeat (fxa mmp) then art[])
+st/r
+fxa mp
+rt[arith `~(x <= y) <=> y < x`]
+gtyp `!f. sum {p1 MOD k, (p1 + 1) MOD k, (p1 + k - 1) MOD k} f = f (p1 MOD k) + f ((p1 + 1) MOD k) + f ((p1+k-1) MOD k)` (unlist rt)
+g
+mmp Geomdetail.SUM_DIS3
+typ `p1 MOD k = (p1 + 0) MOD k` s1
+rt[arith `p1 + 0 = p1`]
+rt[DE_MORGAN_THM]
+repeat (gm Ocbicby.MOD_EQ_MOD_SHIFT)
+repeat (gm MOD_LT)
+fxast `3 < k` mp then ARITH_TAC
+
+
 
 xxd
-
-
-
-
-
-
-
-intro deformation_BBs_ALT [`s`;`k`;`f`;`v`;`e'`]
-ants
-art[]
-nconj 1
-st/r then typ `v i = v p1` asmcase
-art[]
-fxast `norm` (C intro [`t`])
-rep 2 (fxa mp) then mt[]
-rep 12 (fxa mp) then mt[]
-art[]
-
-comment "scs_a_v39"
+comment "old stuff"
 nconj 1
 mmp Terminal.periodic2_mod_reduce
 typ `k` ex

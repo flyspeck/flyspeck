@@ -16,9 +16,102 @@ let LET_THM = CONJ LET_DEF LET_END_DEF;;
 (* WORK IN PROGRESS *)
 (* *************************************************************************** *)
 
+let re_eqvl_imp_le = prove_by_refinement(
+  `!a b. re_eqvl a b ==> (&0 <= a <=> &0 <= b)`,
+  (* {{{ proof *)
+  [
+  TYPIFY `!a b. re_eqvl a b /\ &0 <= b ==> &0 <= a` ENOUGH_TO_SHOW_TAC;
+    BY(MESON_TAC[Leaf_cell.RE_EQVL_SYM]);
+  REWRITE_TAC[Trigonometry2.re_eqvl];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let re_eqvl_real_sgn = prove_by_refinement(
+  `!x y. re_eqvl x y <=> real_sgn x = real_sgn y`,
+  (* {{{ proof *)
+  [
+  st/r
+    mmp (taut `((a ==>b) /\ (b ==> a)) ==> (a = b)`)
+rt[Trigonometry2.re_eqvl]
+conj then st/r then art[]
+repeat (fxa mp) then rt[REAL_SGN_MUL;GSYM REAL_SGN_EQ;arith `&0 < t <=> t > &0`]
+dthen (unlist rt) then rat
+fxa mp then rt[REAL_SGN]
+typ `x = &0` asmcase
+art[arith `abs(&0) = &0`;arith `&0 / &0 = &0`;arith `&0 = x <=> x = &0`;REAL_DIV_EQ_0;REAL_ENTIRE;arith `abs y = &0 <=> y = &0`]
+mt[arith `&0 < &1`]
+dt
+typ `~(y = &0)` sat
+dt
+fxast `abs` mp
+art[arith `&0 / t = &0`;REAL_DIV_EQ_0] then asm then rat
+typ `x / y` ex
+conj2
+calc
+art[] then rat
+rt[Calc_derivative.invert_den_lt]
+rt[REAL_MUL_POS_LT]
+fxast `abs` mp then rt[GSYM REAL_SGN;real_sgn]
+rule (rr[arith `~(x = &0) <=> (&0 < x \/ x < &0) /\ ~(&0 < x /\ x < &0)`])
+assume (arith ` ~(&1 = -- &1)`)
+
+repeat condcase then art[]
+mt[arith `~(x = &0) ==> &0 < x \/ x < &0`;arith ` ~(&1 = -- &1)`]
+
+
+dt
+typ `x = (abs x / abs y) * y` sat
+calc
+rt[arith `abs y = &0 <=> y = &0`]
+subconj
+asm then cvc REAL_FIELD
+typ `
+  ]);;
+  (* }}} *)
+
+
+let quadratic_at_most_2_roots = prove_by_refinement(
+  `!a b c. ?x1 x2. !x.
+    ~(a = &0) /\ a * x pow 2 + b * x + c = &0 ==> x = x1 \/ x = x2`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  ASM_CASES_TAC `~(?x1. a * x1 pow 2 + b * x1 + c = &0)`;
+    BY(ASM_MESON_TAC[]);
+  FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[] THEN REPEAT STRIP_TAC;
+  ASM_CASES_TAC `!x2. a * x2 pow 2 + b * x2 + c = &0 ==> x2 = x1`;
+    BY(ASM_MESON_TAC[]);
+  FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[NOT_FORALL_THM] THEN REPEAT STRIP_TAC;
+  GEXISTL_TAC [`x1`;`x2`];
+  BY(GEN_TAC THEN ASM_TAC THEN CONV_TAC REAL_RING)
+(* String.length above = 414. String.length below = 233. 56% the length. *)
+(*
+g/r
+asmcs `~(?x1. a * x1 pow 2 + b * x1 + c = &0)`
+amt[]
+fx mp then rt[] then str/r
+asmcs `!x2. a * x2 pow 2 + b * x2 + c = &0 ==> x2 = x1` 
+amt[]
+fx mp then rt[NOT_FORALL_THM] then str/r
+exl [`x1`;`x2`]
+g then asm then cvc REAL_RING
+*)
+(*
+If there are no roots, we are done. Else let x1 be a root.
+If every root is x1 we are done. Else let x2 be a second root.
+Now with the two roots in hand,
+the Groebner basis (real_ring) gives an algorithmic solution to the universally quantified problem.
+*)
+]);;
+  (* }}} *)
+
+
 Cuxvzoz.deform_684_pent_exists;;
 Cuxvzoz.deform_planar_exists;;
-
 
 let deform_pent_exists = prove_by_refinement(
   `!V g23 v0 v1 v2 v3 e. ?f.
@@ -53,7 +146,9 @@ fxa mp then art[]
 rt[arith `x > &0 <=> &0 <= x /\ ~(x = &0)`]
 ants
 art[]
+conj2
 repeat (fxast `coplanar` mp) then rt[GSYM Local_lemmas.CROSS_DOT_COPLANAR] then VEC3_TAC
+
 st/r
 exl [`f`;`e'`] then amt[]
 intro Cuxvzoz.deform_planar_exists [`V`;`(\ (t:real). &0)`;`(\ (t:real). &0)`;`g23`;`v0`;`v1`;`v2`;`v3`;`e`]

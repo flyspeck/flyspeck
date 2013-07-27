@@ -792,7 +792,9 @@ let azm5_reduction = prove_by_refinement(
                         azim (vec 0) (f (v 0) t) (v 3) (f (v 4) t) /\
                         azim (vec 0) (v 1) (v 2) (f (v 0) t) =
                         azim (vec 0) (v 1) (v 2) (v 3) +
-                        azim (vec 0) (v 1) (v 3) (f (v 0) t))) /\
+                        azim (vec 0) (v 1) (v 3) (f (v 0) t) /\
+		        &0 < azim (vec 0) (f (v 0) t) (v 1) (v 3) /\
+		        azim (vec 0) (f (v 0) t) (v 1) (v 3) < pi)) /\
          (!i. ?e0. &0 < e0 /\
                    (azim (vec 0) (v i) (v (i + 1)) (v (i + 4)) = pi
                     ==> (!t. abs t < e0
@@ -803,7 +805,7 @@ let azm5_reduction = prove_by_refinement(
   (* {{{ proof *)
   [
   REPEAT WEAKER_STRIP_TAC;
-  assume (arith `~(0 = 5)`)
+  ASSUME_TAC (arith `~(0 = 5)`);
   TYPIFY `!i. i MOD 5 < 5` (C SUBGOAL_THEN ASSUME_TAC);
     BY((FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[DIVISION]);
   TYPIFY `periodic v 5` (C SUBGOAL_THEN ASSUME_TAC);
@@ -812,9 +814,9 @@ let azm5_reduction = prove_by_refinement(
     GEN_TAC;
     MATCH_MP_TAC (GSYM Oxl_def.periodic_mod);
     BY(ASM_REWRITE_TAC[arith `~(0=5)`]);
-  typ `v 5 = v 0 /\ v 6 = v 1 /\ v 7 = v 2 /\ v 8 = v 3 /\ v 9  = v 4` sat
-  fxa ((unlist ort) o GSYM)
- rt[Ocbicby.MOD_5_EXPLICIT;arith `8 = 1*5 + 3`;arith `9 = 1*5 + 4`;MOD_MULT_ADD]
+  TYPIFY `v 5 = v 0 /\ v 6 = v 1 /\ v 7 = v 2 /\ v 8 = v 3 /\ v 9  = v 4` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM ((unlist ONCE_REWRITE_TAC) o GSYM);
+    BY(REWRITE_TAC[Ocbicby.MOD_5_EXPLICIT;arith `8 = 1*5 + 3`;arith `9 = 1*5 + 4`;MOD_MULT_ADD]);
   INTRO_TAC BBs_inj [`s`;`v`;`5`];
   ASM_REWRITE_TAC[];
   DISCH_TAC;
@@ -827,34 +829,35 @@ let azm5_reduction = prove_by_refinement(
   COMMENT "first addition";
   SUBCONJ_TAC;
     INTRO_TAC Terminal.vv_split_azim_generic [`v`;`5`;`3`;`3`;`4`];
-    art[LET_THM;arith `SUC 3 = 4 /\ 3 + 4 = 7 /\ 3 + 3  = 6 /\ 3 <= 5 /\ 0 < 3 /\ 3 < 4 /\ 4 < 5`]
-      dthen sub1
+    ASM_REWRITE_TAC[LET_THM;arith `SUC 3 = 4 /\ 3 + 4 = 7 /\ 3 + 3  = 6 /\ 3 <= 5 /\ 0 < 3 /\ 3 < 4 /\ 4 < 5`];
+    DISCH_THEN SUBST1_TAC;
     INTRO_TAC Terminal.vv_split_azim_generic [`v`;`5`;`3`;`2`;`3`];
-    art[LET_THM;arith `SUC 3 = 4 /\ 3 + 3 = 6 /\ 3 + 2  = 5 /\ 3 <= 5 /\ 0 < 2 /\ 2 < 3 /\ 3 < 5`]
-      dthen sub1
-rat
-dt
+    ASM_REWRITE_TAC[LET_THM;arith `SUC 3 = 4 /\ 3 + 3 = 6 /\ 3 + 2  = 5 /\ 3 <= 5 /\ 0 < 2 /\ 2 < 3 /\ 3 < 5`];
+    DISCH_THEN SUBST1_TAC;
+    BY(REAL_ARITH_TAC);
+  DISCH_TAC;
   COMMENT "second addition";
   SUBCONJ_TAC;
     INTRO_TAC Terminal.vv_split_azim_generic [`v`;`5`;`0`;`3`;`4`];
-    NUM_REDUCE_TAC
-    art[LET_THM]
+    NUM_REDUCE_TAC;
+    BY(ASM_REWRITE_TAC[LET_THM]);
   COMMENT "third addition";
-    INTRO_TAC Terminal.vv_split_azim_generic [`v`;`5`;`0`;`3`;`4`];
-    NUM_REDUCE_TAC
-    art[LET_THM]
-      dt
-      subconj
+  INTRO_TAC Terminal.vv_split_azim_generic [`v`;`5`;`0`;`3`;`4`];
+  NUM_REDUCE_TAC;
+  ASM_REWRITE_TAC[LET_THM];
+  DISCH_TAC;
+  DISCH_TAC;
+  SUBCONJ_TAC;
     INTRO_TAC Terminal.vv_split_azim_generic [`v`;`5`;`1`;`2`;`4`];
-    NUM_REDUCE_TAC
-    art[LET_THM]
-      dt
-typ `!i j. i < 5 /\ j < 5 /\ ~(i = j) ==> ~(v i = v j)` sat
-amt[]
-typ `!t. f (v 1) t = v 1 /\ f (v 2) t = v 2 /\ f (v 3) t = v 3` sat
-g
-repeat conj then fxa mmp then repeat conj then fxa mmp then NUM_REDUCE_TAC
-comment "colinearity"
+    NUM_REDUCE_TAC;
+    BY(ASM_REWRITE_TAC[LET_THM]);
+  DISCH_TAC;
+  TYPIFY `!i j. i < 5 /\ j < 5 /\ ~(i = j) ==> ~(v i = v j)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[]);
+  TYPIFY `!t. f (v 1) t = v 1 /\ f (v 2) t = v 2 /\ f (v 3) t = v 3` (C SUBGOAL_THEN ASSUME_TAC);
+    GEN_TAC;
+    BY(REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN NUM_REDUCE_TAC);
+  COMMENT "colinearity";
   TYPIFY `!i j. ~(v i = v j) ==> ~collinear {vec 0,v i, v j}` (C SUBGOAL_THEN ASSUME_TAC);
     REPEAT GEN_TAC THEN DISCH_TAC;
     MATCH_MP_TAC Zlzthic.PROPERTIES_GENERIC_LOCAL_FAN_ALT;
@@ -862,7 +865,7 @@ comment "colinearity"
     ASM_REWRITE_TAC[IN_IMAGE;IN_UNIV];
     CONJ_TAC;
       MATCH_MP_TAC Local_lemmas.CVX_LO_IMP_LO;
-      art[]
+      BY(ASM_REWRITE_TAC[]);
     BY(MESON_TAC[]);
   COMMENT "deform collinear";
   TYPIFY `!i j. ~collinear {vec 0,v i,v j} ==> (?e1. &0 < e1 /\ (!t. abs t < e1 ==> ~collinear {vec 0, f (v i) t, f (v j) t}))` (C SUBGOAL_THEN ASSUME_TAC);
@@ -880,196 +883,171 @@ comment "colinearity"
     ASM_REWRITE_TAC[arith `3 <= 5`];
     FIRST_X_ASSUM_ST `BBs_v39` MP_TAC THEN REWRITE_TAC[Appendix.BBs_v39;LET_THM];
     BY(DISCH_THEN (unlist REWRITE_TAC));
-
-  COMMENT "do sums";
-  TYPIFY `(?e1. &0 < e1 /\      (!t. abs t < e1           ==> azim (vec 0) (v (p1 + k - 1)) (f (v p1) t) (v (p1 + k - 2)) =               azim (vec 0) (v (p1 + k - 1)) (f (v p1) t) (v (p1 + 1)) +               azim (vec 0) (v (p1 + k - 1)) (v (p1 + 1)) (v (p1 + k - 2))  /\ azim (vec 0) (v (p1 + k - 1)) (f (v p1) t) (v (p1 + k - 2)) <= pi)) /\   (?e1. &0 < e1 /\      (!t. abs t < e1           ==>                azim (vec 0) (v (p1 + 1)) (v (p1 + 2)) (f (v p1) t) =               azim (vec 0) (v (p1 + 1)) (v (p1 + 2)) (v (p1 + k - 1)) +               azim (vec 0) (v (p1 + 1)) (v (p1 + k - 1)) (f (v p1) t) /\ azim (vec 0) (v (p1 + 1)) (v (p1 + 2)) (f (v p1) t) <= pi))` (C SUBGOAL_THEN ASSUME_TAC);
-    TYPIFY `&0 < azim (vec 0) (v (p1+k-1)) (v p1) (v (p1+1)) /\ &0 < azim (vec 0) (v (p1+1)) (v (p1+k-1)) (v p1)` (C SUBGOAL_THEN ASSUME_TAC);
-      REWRITE_TAC[Zlzthic.azim_pos_iff_nz];
-      FIRST_X_ASSUM_ST `coplanar` MP_TAC;
-      BY(MESON_TAC[Local_lemmas1.AZIM_COND_FOR_COPLANAR;SET_RULE `{a,b,c,d} = {a,d,b,c}`;SET_RULE `{a,b,c,d}={a,c,d,b}`]);
+  COMMENT "merge e";
+  TYPIFY_GOAL_THEN `(?e1. &0 < e1 /\       (!t. abs t < e1            ==> azim (vec 0) (v 3) (f (v 4) t) (v 2) =                azim (vec 0) (v 3) (f (v 4) t) (f (v 0) t) +                azim (vec 0) (v 3) (f (v 0) t) (v 1) +                azim (vec 0) (v 3) (v 1) (v 2) )) /\(?e1. &0 < e1 /\       (!t. abs t < e1            ==>                azim (vec 0) (f (v 0) t) (v 1) (f (v 4) t) =                azim (vec 0) (f (v 0) t) (v 1) (v 3) +                azim (vec 0) (f (v 0) t) (v 3) (f (v 4) t) )) /\ (?e1. &0 < e1 /\       (!t. abs t < e1            ==>                 azim (vec 0) (v 1) (v 2) (f (v 0) t) =                azim (vec 0) (v 1) (v 2) (v 3) +                azim (vec 0) (v 1) (v 3) (f (v 0) t))) /\ (?e1. &0 < e1 /\       (!t. abs t < e1            ==> &0 < azim (vec 0) (f (v 0) t) (v 1) (v 3) /\                azim (vec 0) (f (v 0) t) (v 1) (v 3) < pi)) ==> (?e1. &0 < e1 /\       (!t. abs t < e1            ==> azim (vec 0) (v 3) (f (v 4) t) (v 2) =                azim (vec 0) (v 3) (f (v 4) t) (f (v 0) t) +                azim (vec 0) (v 3) (f (v 0) t) (v 1) +                azim (vec 0) (v 3) (v 1) (v 2) /\                azim (vec 0) (f (v 0) t) (v 1) (f (v 4) t) =                azim (vec 0) (f (v 0) t) (v 1) (v 3) +                azim (vec 0) (f (v 0) t) (v 3) (f (v 4) t) /\                azim (vec 0) (v 1) (v 2) (f (v 0) t) =                azim (vec 0) (v 1) (v 2) (v 3) +                azim (vec 0) (v 1) (v 3) (f (v 0) t) /\                &0 < azim (vec 0) (f (v 0) t) (v 1) (v 3) /\                azim (vec 0) (f (v 0) t) (v 1) (v 3) < pi))` (GMATCH_SIMP_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC Cuxvzoz.epsilon_quad [`e1''`;`e1'''`;`e1''''`;`e1'''''`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `e''''` EXISTS_TAC;
+    ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC THEN REPEAT CONJ_TAC THEN REPEAT (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[];
+      BY(ASM_MESON_TAC[]);
+    BY(ASM_MESON_TAC[]);
+  REWRITE_TAC[GSYM CONJ_ASSOC];
+  COMMENT "azim bounds";
+  TYPIFY `azim (vec 0) (v 0) (v 1) (v 3) < pi` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `azim (vec 0) (v 0) (v 1) (v 4) < pi` MP_TAC;
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC (arith `&0 <= y ==> (x + y < pi ==> x < pi)`);
+    BY(REWRITE_TAC[Counting_spheres.AZIM_NN]);
+  TYPIFY `~coplanar {vec 0,v 0,v 1,v 3}` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[GSYM Local_lemmas1.AZIM_COND_FOR_COPLANAR];
+    BY(REPEAT (FIRST_X_ASSUM_ST `azim (vec 0) (v 0) (v 1) (v 3)` MP_TAC) THEN REAL_ARITH_TAC);
+  TYPIFY `&0 < azim (vec 0) (v 3) (v 0) (v 1) /\  &0 < azim (vec 0) (v 1) (v 3) (v 0)` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[Zlzthic.azim_pos_iff_nz];
+    FIRST_X_ASSUM_ST `coplanar` MP_TAC;
+    BY(MESON_TAC[Local_lemmas1.AZIM_COND_FOR_COPLANAR;SET_RULE `{a,b,c,d} = {a,d,b,c}`;SET_RULE `{a,b,c,d}={a,c,d,b}`]);
+  INTRO_TAC WNWSHJT_ALT [`v 3`;`v 0`;`v 1`;`f`;`-- e`;`e`;`pi - azim (vec 0) (v 0) (v 3) (v 4)`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[arith `a < pi - b <=> a + b < pi`];
     CONJ_TAC;
-      TYPIFY `azim (vec 0) (v (p1 + k - 1)) ( (v p1) ) (v (p1 + k - 2)) < pi` ASM_CASES_TAC;
-        INTRO_TAC WNWSHJT_ALT [`v(p1+1)`;`v (p1+k-1)`;`v p1`;`f`;`-- e`;`e`;`pi - azim (vec 0) (v (p1+k-1)) (v (p1+1)) (v (p1+k-2))`];
-        ANTS_TAC;
-          ASM_REWRITE_TAC[arith `a < pi - b <=> a + b < pi`];
-          CONJ_TAC;
-            MATCH_MP_TAC Zlzthic.deformation_subset;
-            TYPIFY `IMAGE v (:num)` EXISTS_TAC;
-            ASM_REWRITE_TAC[SUBSET;IN_INSERT;NOT_IN_EMPTY;IN_UNIV];
-            REWRITE_TAC[IN_IMAGE;IN_UNIV];
-            BY(MESON_TAC[]);
-          BY(FIRST_X_ASSUM MP_TAC THEN ASM_REWRITE_TAC[]);
-        ASM_REWRITE_TAC[];
-        REPEAT WEAKER_STRIP_TAC;
-        FIRST_X_ASSUM_ST `collinear` (C INTRO_TAC [`p1 +k-1`]);
-        ASM_REWRITE_TAC[];
-        REPEAT WEAKER_STRIP_TAC;
-        INTRO_TAC epsilon_pair [`e1`;`e'`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
-        TYPIFY `e''` EXISTS_TAC THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
-        SUBCONJ_TAC;
-          MATCH_MP_TAC Fan.sum3_azim_fan;
-          ASM_REWRITE_TAC[];
-          CONJ_TAC;
-            FIRST_X_ASSUM_ST `( /\ )` (C INTRO_TAC [`t`]);
-            ASM_REWRITE_TAC[];
-            ANTS_TAC;
-              BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
-            BY(MP_TAC PI_POS THEN REAL_ARITH_TAC);
-          CONJ_TAC;
-            BY(ONCE_REWRITE_TAC[SET_RULE `{a,b,c} = {a,c,b}`] THEN ASM_REWRITE_TAC[]);
-          BY(FIRST_X_ASSUM MATCH_MP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
-        DISCH_THEN SUBST1_TAC;
-        FIRST_X_ASSUM_ST `( /\ )` (C INTRO_TAC [`t`]);
-        ANTS_TAC;
-          BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
-        BY(REAL_ARITH_TAC);
-      TYPIFY `(?e1. &0 < e1 /\	            (!t. abs t < e1                 ==> azim (vec 0) (v (p1 + k - 1)) (f (v p1) t) (v (p1 + 1)) <=                     azim (vec 0) (v (p1 + k - 1)) (v p1) (v (p1 + 1))))` (C SUBGOAL_THEN MP_TAC);
-        BY(FIRST_X_ASSUM MP_TAC THEN REPEAT (FIRST_X_ASSUM_ST `( \/ )` MP_TAC) THEN MESON_TAC[]);
-      REPEAT WEAKER_STRIP_TAC;
-      FIRST_X_ASSUM_ST `collinear` (C INTRO_TAC [`(p1+k-1)`]);
-      ASM_REWRITE_TAC[];
-      REPEAT WEAKER_STRIP_TAC;
-      INTRO_TAC epsilon_pair [`e1`;`e1'`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
-      TYPIFY `e''` EXISTS_TAC THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
-      INTRO_TAC azim_dominated_split [`(vec 0):real^3`;`v (p1+k-1)`;`v p1`;`v (p1+1)`;`v (p1+k-2)`;`(vec 0):real^3`;`v (p1+k-1)`;`f (v p1) t`;`v (p1+1)`;`v (p1+k-2)`];
-      ANTS_TAC;
-        ASM_REWRITE_TAC[];
-        CONJ_TAC;
-          BY(ONCE_REWRITE_TAC[SET_RULE `{a,b,c} = {a,c,b}`] THEN ASM_REWRITE_TAC[]);
-        CONJ_TAC;
-          BY(FIRST_X_ASSUM MATCH_MP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
-        REWRITE_TAC[arith `x <= x`];
-        BY(FIRST_X_ASSUM MATCH_MP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
-      DISCH_TAC;
-      ASM_REWRITE_TAC[];
-      FIRST_X_ASSUM (SUBST1_TAC o GSYM);
-      TYPIFY `azim (vec 0) (v (p1 + k - 1)) (v p1) (v (p1 + k - 2))  <= pi` ENOUGH_TO_SHOW_TAC;
-        ASM_REWRITE_TAC[];
-        FIRST_X_ASSUM_ST `azim` (C INTRO_TAC [`t`]);
-        ANTS_TAC;
-          BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
-        BY(REAL_ARITH_TAC);
-      FIRST_X_ASSUM_ST `x <= pi` (C INTRO_TAC [`p1 + k - 1`]);
-      FIRST_ASSUM_ST `v (i MOD k) = v i` ((unlist ONCE_REWRITE_TAC) o GSYM);
-      TYPIFY `((p1 + k - 1) + 1 ) MOD k = p1 MOD k /\ ((p1+k-1) + k-1) MOD k = (p1+k - 2) MOD k` ENOUGH_TO_SHOW_TAC;
-        BY(DISCH_THEN (unlist REWRITE_TAC));
-      FIRST_X_ASSUM_ST `~(k=0)` MP_TAC;
-      BY(SIMP_TAC[arith `~(k <= 3) ==> (p1 + k - 1) + 1 = (1*k + p1) /\ ((p1+k-1)+k-1 = 1*k + (p1+k-2))`;MOD_MULT_ADD]);
-    COMMENT "second branch";
-    TYPIFY `azim (vec 0) (v (p1 + 1))  (v (p1 + 2) ) (v (p1)) < pi` ASM_CASES_TAC;
-      INTRO_TAC WNWSHJT_ALT [`v(p1)`;`v (p1+1)`;`v (p1+k-1)`;`f`;`-- e`;`e`;`pi - azim (vec 0) (v (p1+1)) (v (p1+2)) (v (p1+k-1))`];
-      ANTS_TAC;
-        ASM_REWRITE_TAC[arith `a < pi - b <=> b + a < pi`];
-        CONJ_TAC;
-          MATCH_MP_TAC Zlzthic.deformation_subset;
-          TYPIFY `IMAGE v (:num)` EXISTS_TAC;
-          ASM_REWRITE_TAC[SUBSET;IN_INSERT;NOT_IN_EMPTY;IN_UNIV;IN_IMAGE;IN_UNIV];
-          BY(MESON_TAC[]);
-        CONJ_TAC;
-          BY(ONCE_REWRITE_TAC[SET_RULE `{a,b,c} = {a,c,b}`] THEN ASM_REWRITE_TAC[]);
-        BY(FIRST_X_ASSUM MP_TAC THEN ASM_REWRITE_TAC[]);
-      REPEAT WEAKER_STRIP_TAC;
-      FIRST_X_ASSUM_ST `collinear` (C INTRO_TAC [`p1 +1`]);
-      ASM_REWRITE_TAC[];
-      REPEAT WEAKER_STRIP_TAC;
-      INTRO_TAC epsilon_pair [`e1`;`e'`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
-      TYPIFY `e''` EXISTS_TAC THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
-      SUBCONJ_TAC;
-        MATCH_MP_TAC Fan.sum3_azim_fan;
-        ASM_REWRITE_TAC[];
-        CONJ_TAC;
-          FIRST_X_ASSUM_ST `( /\ )` (C INTRO_TAC [`t`]);
-          ASM_REWRITE_TAC[];
-          ANTS_TAC;
-            BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
-          BY(MP_TAC PI_POS THEN REAL_ARITH_TAC);
-        CONJ_TAC;
-          BY(ONCE_REWRITE_TAC[SET_RULE `{a,b,c} = {a,c,b}`] THEN ASM_REWRITE_TAC[]);
-        BY(FIRST_X_ASSUM MATCH_MP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
-      DISCH_THEN SUBST1_TAC;
-      FIRST_X_ASSUM_ST `( /\ )` (C INTRO_TAC [`t`]);
-      ANTS_TAC;
-        BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
-      ASM_REWRITE_TAC[];
-      BY(REAL_ARITH_TAC);
-    COMMENT "second asm";
-    TYPIFY `(?e1. &0 < e1 /\            (!t. abs t < e1                 ==> azim (vec 0) (v (p1 + 1)) (v (p1 + k - 1)) (f (v p1) t) <=                     azim (vec 0) (v (p1 + 1)) (v (p1 + k - 1)) ( (v p1) )))` (C SUBGOAL_THEN MP_TAC);
-      BY(FIRST_X_ASSUM MP_TAC THEN REPEAT (FIRST_X_ASSUM_ST `( \/ )` MP_TAC) THEN MESON_TAC[]);
-    REPEAT WEAKER_STRIP_TAC;
-    FIRST_X_ASSUM_ST `collinear` (C INTRO_TAC [`(p1+1)`]);
-    ASM_REWRITE_TAC[];
-    REPEAT WEAKER_STRIP_TAC;
-    INTRO_TAC epsilon_pair [`e1`;`e1'`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
-    TYPIFY `e''` EXISTS_TAC THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
-    INTRO_TAC azim_dominated_split [`(vec 0):real^3`;`v (p1+1)`;`v (p1+2)`;`v (p1+k-1)`;`v (p1)`;`(vec 0):real^3`;`v (p1+1)`;`v (p1+2)`;`v (p1+k-1)`;`f (v p1) t`];
-    ANTS_TAC;
-      ASM_REWRITE_TAC[];
-      CONJ_TAC;
-        BY(ONCE_REWRITE_TAC[SET_RULE `{a,b,c} = {a,c,b}`] THEN ASM_REWRITE_TAC[]);
-      CONJ_TAC;
-        BY(FIRST_X_ASSUM MATCH_MP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
-      REWRITE_TAC[arith `x <= x`];
-      BY(FIRST_X_ASSUM MATCH_MP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
-    DISCH_TAC;
-    ASM_REWRITE_TAC[];
-    FIRST_X_ASSUM (SUBST1_TAC o GSYM);
-    TYPIFY `azim (vec 0) (v (p1 + 1)) (v (p1+2)) (v (p1))  <= pi` ENOUGH_TO_SHOW_TAC;
-      ASM_REWRITE_TAC[];
-      FIRST_X_ASSUM_ST `azim` (C INTRO_TAC [`t`]);
-      ANTS_TAC;
-        BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
-      BY(REAL_ARITH_TAC);
-    FIRST_X_ASSUM_ST `x <= pi` (C INTRO_TAC [`p1 + 1`]);
-    FIRST_ASSUM_ST `v (i MOD k) = v i` ((unlist ONCE_REWRITE_TAC) o GSYM);
-    TYPIFY `((p1 + 1) + k - 1) MOD k = p1 MOD k` ENOUGH_TO_SHOW_TAC;
-      DISCH_THEN (unlist REWRITE_TAC);
-      BY(REWRITE_TAC[arith `(p1 + 1) + 1 = p1 + 2`]);
-    FIRST_X_ASSUM_ST `~(k=0)` MP_TAC;
-    BY(SIMP_TAC[arith `~(k <= 3) ==> ((p1 + 1) + k - 1 = 1*k + p1)`;MOD_MULT_ADD]);
-  COMMENT "final kill";
-  TYPIFY `!i. (f (v i) (&0)) = v i` (C SUBGOAL_THEN ASSUME_TAC);
-    FIRST_X_ASSUM_ST `deformation` MP_TAC THEN REWRITE_TAC[Localization.deformation];
-    REWRITE_TAC[IN_IMAGE;IN_UNIV];
-    BY(MESON_TAC[]);
-  COMMENT "final kill";
-  FIRST_X_ASSUM_ST `azim` MP_TAC THEN REPEAT WEAKER_STRIP_TAC;
-  CONJ_TAC;
-    GEN_TAC;
-    TYPIFY `~(p1 MOD k = i MOD k) /\          ~(p1 MOD k = (i + 1) MOD k) /\          ~(p1 MOD k = (i + k - 1) MOD k)` ASM_CASES_TAC;
-      TYPIFY `&1` EXISTS_TAC;
-      REWRITE_TAC[arith `&0 < &1`];
-      ASM_SIMP_TAC[];
-      BY(REWRITE_TAC[arith `pi <= pi`]);
-    RULE_ASSUM_TAC (REWRITE_RULE[DE_MORGAN_THM]);
-    FIRST_X_ASSUM MP_TAC THEN REPEAT STRIP_TAC;
-        TYPIFY ` azim (vec 0) (v i) (v (i + 1)) (v (i + k - 1)) < pi` ENOUGH_TO_SHOW_TAC;
-          BY(MESON_TAC[arith `x < pi ==> ~(x  =pi)`;arith `&0 < &1`]);
-        TYPIFY `azim (vec 0) (v i) (v (i + 1)) (v (i + k - 1))  = azim (vec 0) (v p1) (v (p1 + 1)) (v (p1 + k - 1))` ENOUGH_TO_SHOW_TAC;
-          BY(DISCH_THEN SUBST1_TAC THEN ASM_REWRITE_TAC[]);
-        REPEAT (FIRST_X_ASSUM_ST `MOD` (C INTRO_TAC [`i`;`&0`])) THEN ASM_REWRITE_TAC[];
-        BY(MESON_TAC[]);
-      TYPIFY `e1` EXISTS_TAC;
-      ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
-      ASM_SIMP_TAC[];
-      FIRST_X_ASSUM_ST `p1+k-2` (C INTRO_TAC [`t`]);
-      ASM_REWRITE_TAC[];
-      BY(REAL_ARITH_TAC);
-    TYPIFY `e1'` EXISTS_TAC;
+      MATCH_MP_TAC Zlzthic.deformation_subset;
+      TYPIFY `IMAGE v (:num)` EXISTS_TAC;
+      ASM_REWRITE_TAC[SUBSET;IN_INSERT;NOT_IN_EMPTY;IN_UNIV];
+      BY(MESON_TAC[FUN_IN_IMAGE;IN_UNIV]);
+    REWRITE_TAC[CONJ_ASSOC];
+    CONJ_TAC;
+      FIRST_X_ASSUM_ST `coplanar` MP_TAC;
+      BY(MESON_TAC[Planarity.notcoplanar_imp_notcollinear_fan;SET_RULE `{a,b,c} = {a,c,b}`]);
+    BY(REPEAT (FIRST_X_ASSUM_ST `x < pi` MP_TAC) THEN ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC WNWSHJT_ALT [`v 0`;`v 1`;`v 3`;`f`;`-- e`;`e`;`pi - azim (vec 0) (v 1) (v 2) (v 3)`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[arith `a < pi - b <=> a + b < pi`];
+    CONJ_TAC;
+      MATCH_MP_TAC Zlzthic.deformation_subset;
+      TYPIFY `IMAGE v (:num)` EXISTS_TAC;
+      ASM_REWRITE_TAC[SUBSET;IN_INSERT;NOT_IN_EMPTY;IN_UNIV];
+      BY(MESON_TAC[FUN_IN_IMAGE;IN_UNIV]);
+    REWRITE_TAC[CONJ_ASSOC];
+    CONJ_TAC;
+      FIRST_X_ASSUM_ST `coplanar` MP_TAC;
+      BY(MESON_TAC[Planarity.notcoplanar_imp_notcollinear_fan;SET_RULE `{a,b,c} = {a,c,b}`]);
+    BY(REPEAT (FIRST_X_ASSUM_ST `x < pi` MP_TAC) THEN ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "azim additivity";
+  TYPIFY `?e3. &0 < e3 /\ (!t. abs t < e3 ==> ~collinear {vec 0,f (v 0) t,f (v 4) t} /\ ~collinear {vec 0,f (v 0) t,f (v 3) t} /\ ~collinear {vec 0,f (v 0) t,f (v 1) t} /\ ~collinear {vec 0,f (v 4) t,f (v 3) t})` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_ASSUM_ST `collinear` (C INTRO_TAC [`0`;`4`]) THEN ANTS_TAC THENL [REPEAT (FIRST_X_ASSUM MATCH_MP_TAC) THEN NUM_REDUCE_TAC;REPEAT WEAKER_STRIP_TAC];
+    FIRST_ASSUM_ST `collinear` (C INTRO_TAC [`0`;`3`]) THEN ANTS_TAC THENL [REPEAT (FIRST_X_ASSUM MATCH_MP_TAC) THEN NUM_REDUCE_TAC;REPEAT WEAKER_STRIP_TAC];
+    FIRST_ASSUM_ST `collinear` (C INTRO_TAC [`0`;`1`]) THEN ANTS_TAC THENL [REPEAT (FIRST_X_ASSUM MATCH_MP_TAC) THEN NUM_REDUCE_TAC;REPEAT WEAKER_STRIP_TAC];
+    FIRST_X_ASSUM_ST `collinear` (C INTRO_TAC [`4`;`3`]) THEN ANTS_TAC THENL [REPEAT (FIRST_X_ASSUM MATCH_MP_TAC) THEN NUM_REDUCE_TAC;REPEAT WEAKER_STRIP_TAC];
+    INTRO_TAC epsilon_quad [`e1''`;`e1'''`;`e1''''`;`e1'''''`] THEN ANTS_TAC THENL [ASM_REWRITE_TAC[];REPEAT WEAKER_STRIP_TAC];
+    TYPIFY `e''''` EXISTS_TAC THEN CONJ_TAC THENL [ASM_REWRITE_TAC[];REPEAT WEAKER_STRIP_TAC];
+    BY(REPEAT CONJ_TAC THEN REPEAT (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[]);
+  FIRST_X_ASSUM MP_TAC THEN REPEAT WEAKER_STRIP_TAC;
+  SUBCONJ_TAC;
+    INTRO_TAC epsilon_triple [`e1`;`e1'`;`e3`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `e'''` EXISTS_TAC;
     ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
-    ASM_SIMP_TAC[];
-    FIRST_X_ASSUM (C INTRO_TAC [`t`]);
+    REPLICATE_TAC 3 (FIRST_X_ASSUM_ST `abs t < e` (C INTRO_TAC [`t`])) THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    REPEAT (FIRST_X_ASSUM_ST `abs t < e` (C INTRO_TAC [`t`])) THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC azim_dominated_split [`(vec 0):real^3`;`v 3`;`v 4`;`v 1`;`v 2`;`(vec 0):real^3`;`v 3`;`f (v 4) t`;`v 1`;`v 2`];
+    INTRO_TAC Terminal.vv_split_azim_generic [`v`;`5`;`3`;`3`;`4`];
+    ASM_REWRITE_TAC[LET_THM;arith `SUC 3 = 4 /\ 3 + 4 = 7 /\ 3 + 3  = 6 /\ 3 <= 5 /\ 0 < 3 /\ 3 < 4 /\ 4 < 5`];
+    DISCH_THEN (SUBST1_TAC o GSYM) THEN ASM_REWRITE_TAC[arith `x <= x`];
+    INTRO_TAC azim_dominated_split [`(vec 0):real^3`;`v 3`;`v 4`;`v 0`;`v 1`;`(vec 0):real^3`;`v 3`;`f (v 4) t`;`f (v 0) t`;`v 1`];
+    ASM_REWRITE_TAC[arith `x <= x`];
+    INTRO_TAC Terminal.vv_split_azim_generic [`v`;`5`;`3`;`2`;`3`];
+    NUM_REDUCE_TAC THEN ASM_REWRITE_TAC[LET_THM];
     ASM_REWRITE_TAC[];
-    BY(REAL_ARITH_TAC);
-  COMMENT "last one";
-  INTRO_TAC epsilon_pair [`e1`;`e1'`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
-  TYPIFY `e''` EXISTS_TAC;
+    ONCE_REWRITE_TAC[SET_RULE `{a,b,c} = {a,c,b}`] THEN ASM_REWRITE_TAC[];
+    TYPIFY_GOAL_THEN `~collinear {vec 0, v 1, v 3} /\ ~collinear {vec 0, v 1, v 3} /\ ~collinear {vec 0, v 2, v 3}` (unlist REWRITE_TAC);
+      BY(REPEAT CONJ_TAC THEN REPEAT (FIRST_X_ASSUM MATCH_MP_TAC) THEN NUM_REDUCE_TAC);
+    BY(REPLICATE_TAC 15 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  (DISCH_TAC);
+  COMMENT "azim 0 additive";
+  FIRST_X_ASSUM MP_TAC THEN REPEAT WEAKER_STRIP_TAC;
+  SUBCONJ_TAC;
+    INTRO_TAC epsilon_triple [`e'`;`e1'`;`e3`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `e''''` EXISTS_TAC;
+    ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `abs t < e` (C INTRO_TAC [`t`])) THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    REPEAT (FIRST_X_ASSUM_ST `abs t < e` (C INTRO_TAC [`t`])) THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    MATCH_MP_TAC Fan.sum3_azim_fan;
+    ASM_REWRITE_TAC[];
+    BY(REPLICATE_TAC 10 (FIRST_X_ASSUM MP_TAC) THEN MP_TAC PI_POS THEN REAL_ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "azim 1 additive";
+  SUBCONJ_TAC;
+    INTRO_TAC epsilon_pair [`e''`;`e3`] THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `e'''` EXISTS_TAC;
+    ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `abs t < e` (C INTRO_TAC [`t`])) THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    REPEAT (FIRST_X_ASSUM_ST `abs t < e` (C INTRO_TAC [`t`])) THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    MATCH_MP_TAC Fan.sum3_azim_fan;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      BY(REPLICATE_TAC 10 (FIRST_X_ASSUM MP_TAC) THEN MP_TAC PI_POS THEN REAL_ARITH_TAC);
+    ONCE_REWRITE_TAC[SET_RULE `{a,b,c} = {a,c,b}`];
+    ASM_REWRITE_TAC[];
+    BY(CONJ_TAC THEN REPEAT (FIRST_X_ASSUM MATCH_MP_TAC) THEN NUM_REDUCE_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "pi bounds";
+  CONJ_TAC;
+    TYPIFY `e'` EXISTS_TAC;
+    CONJ_TAC THENL [ASM_REWRITE_TAC[];REPEAT WEAKER_STRIP_TAC];
+    TYPIFY ` &0 < azim (vec 0) (f (v 0) t) (f (v 1) t) (f (v 3) t) /\              azim (vec 0) (f (v 0) t) (f (v 1) t) (f (v 3) t) <              pi - azim (vec 0) (v 0) (v 3) (v 4)` ENOUGH_TO_SHOW_TAC;
+      ASM_REWRITE_TAC[];
+      MATCH_MP_TAC (arith `&0 <= b ==> (&0 < a /\ a < pi - b ==> &0 < a /\ a < pi)`);
+      BY(REWRITE_TAC[Counting_spheres.AZIM_NN]);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  MATCH_MP_TAC Oxl_def.periodic_numseg;
+  TYPIFY `5` EXISTS_TAC;
+  REWRITE_TAC[arith `~(5 = 0)`];
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `periodic` MP_TAC;
+    REWRITE_TAC[Oxl_def.periodic];
+    REWRITE_TAC[arith `(i+5)+j = (i+j)+5`];
+    BY(DISCH_THEN (unlist REWRITE_TAC));
+  REWRITE_TAC[IN_NUMSEG;arith `(0 <= i /\ i <= 5-1) <=> (i = 0 \/ i = 1 \/ i = 2 \/ i = 3 \/ i = 4)`];
+  REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THEN NUM_REDUCE_TAC;
+          EXISTS_TAC `&1` THEN REPEAT (FIRST_X_ASSUM_ST `azim (vec 0) (v 0) (v 1) (v 4) < pi` MP_TAC);
+          BY(MESON_TAC[arith `&0 < &1`;arith `x < pi ==> ~(x=pi)`]);
+        REPEAT (FIRST_X_ASSUM_ST `+` kill);
+        ASM_REWRITE_TAC[] THEN EXISTS_TAC `&1` THEN REPEAT (FIRST_X_ASSUM_ST `azim (vec 0) (v 1) (v 2) (v 0) < pi` MP_TAC);
+        BY(MESON_TAC[arith `&0 < &1`;arith `x < pi ==> ~(x=pi)`]);
+      BY(ASM_REWRITE_TAC[] THEN EXISTS_TAC `&1` THEN MESON_TAC[arith `&0 < &1`;arith `x <= x`]);
+    INTRO_TAC epsilon_triple [`e1''`;`e1'`;`e1`] THEN ANTS_TAC THENL [ASM_REWRITE_TAC[];REPEAT WEAKER_STRIP_TAC];
+    TYPIFY `e'''` EXISTS_TAC THEN CONJ_TAC THENL [ASM_REWRITE_TAC[];REPEAT WEAKER_STRIP_TAC];
+    REPLICATE_TAC 3(FIRST_X_ASSUM (C INTRO_TAC [`t`]) THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC);
+    REPEAT (FIRST_X_ASSUM_ST `azim` (C INTRO_TAC [`t`])) THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM_ST `a = pi` (SUBST1_TAC o GSYM);
+    ASM_REWRITE_TAC[];
+    BY(REPLICATE_TAC 10 (FIRST_X_ASSUM MP_TAC) THEN ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC);
+  TYPIFY `e1'` EXISTS_TAC THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `4` (C INTRO_TAC [`t`]));
   ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
-  BY(CONJ_TAC THEN FIRST_X_ASSUM MP_TAC THEN (REPLICATE_TAC 4 (FIRST_X_ASSUM (C INTRO_TAC [`t`]))) THEN TRY REAL_ARITH_TAC)
-
-  #
+  BY(REPLICATE_TAC 10 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
   ]);;
   (* }}} *)
 
+(* was dihV_dih_y *)
+
+let azim_dih_y = prove_by_refinement(
+  `!v0 v1 v2 v3. ~collinear {v0,v1,v2} /\ ~collinear{v0,v1,v3} /\ azim v0 v1 v2 v3 <= pi ==>
+    azim v0 v1 v2 v3 = dih_y (dist(v0,v1)) (dist(v0,v2)) (dist(v0,v3))
+      (dist(v2,v3)) (dist(v1,v3)) (dist(v1,v2))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC AZIM_DIHV_SAME_STRONG [`v0`;`v1`;`v2`;`v3`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN SUBST1_TAC;
+  GMATCH_SIMP_TAC (REWRITE_RULE[LET_THM] Merge_ineq.DIHV_DIH_X);
+  REWRITE_TAC[Sphere.dih_y;LET_THM;arith `x*x = x pow 2`];
+  BY(ASM_REWRITE_TAC[GSYM Collect_geom2.NOT_COL_EQ_UPS_X_POS])
+  ]);;
+  (* }}} *)
 
 let IUNBUIG = prove_by_refinement(
   `main_nonlinear_terminal_v11 ==> 
@@ -1089,8 +1067,8 @@ let IUNBUIG = prove_by_refinement(
 
   (* {{{ proof *)
   [
-  st/r
 
+  REPEAT WEAKER_STRIP_TAC;
   TYPIFY `BBprime2_v39 s v` (C SUBGOAL_THEN ASSUME_TAC);
     BY(ASM_MESON_TAC[Appendix.scs_basic;Ayqjtmd.unadorned_MMs]);
   TYPIFY `BBprime_v39 s v` (C SUBGOAL_THEN ASSUME_TAC);
@@ -1110,30 +1088,89 @@ let IUNBUIG = prove_by_refinement(
     EXPAND_TAC "V";
     REWRITE_TAC[IN_IMAGE;IN_UNIV];
     BY(MESON_TAC[]);
-  intro Cuxvzoz.BBs_inj [`s`;`v`;`5`]
-art[]
-dt
-typ `!i. interior_angle1 (vec 0) FF (v i) = azim (vec 0) (v i) (v (i+1)) (v (i+4))` sat
-g
-expand "FF"
-gm (rr[LET_THM] (GSYM Ocbicby.INTERIOR_ANGLE1_AZIM))
-typ `s` ex
-art[IN;arith `5 - 1 = 4`;arith `3 < 5`;arith `SUC i = i+1`]
-intro Ocbicby.LOCAL_FAN_AZIM_POS [`s`;`v`]
-art[LET_THM;IN;arith `5-1 = 4`;arith `SUC i = i+1`]
-dt
+  INTRO_TAC Cuxvzoz.BBs_inj [`s`;`v`;`5`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY `!i. interior_angle1 (vec 0) FF (v i) = azim (vec 0) (v i) (v (i+1)) (v (i+4))` (C SUBGOAL_THEN ASSUME_TAC);
+    GEN_TAC;
+    EXPAND_TAC "FF";
+    GMATCH_SIMP_TAC (REWRITE_RULE[LET_THM] (GSYM Ocbicby.INTERIOR_ANGLE1_AZIM));
+    TYPIFY `s` EXISTS_TAC;
+    BY(ASM_REWRITE_TAC[IN;arith `5 - 1 = 4`;arith `3 < 5`;arith `SUC i = i+1`]);
+  INTRO_TAC Ocbicby.LOCAL_FAN_AZIM_POS [`s`;`v`];
+  ASM_REWRITE_TAC[LET_THM;IN;arith `5-1 = 4`;arith `SUC i = i+1`];
+  DISCH_TAC;
   TYPIFY `!i. v (i MOD 5) = v i` (C SUBGOAL_THEN ASSUME_TAC);
     GEN_TAC;
     MATCH_MP_TAC (GSYM Oxl_def.periodic_mod);
     BY(ASM_REWRITE_TAC[arith `~(0=5)`]);
-  typ `v 5 = v 0 /\ v 6 = v 1 /\ v 7 = v 2 /\ v 8 = v 3 /\ v 9  = v 4` sat
-  fxa ((unlist ort) o GSYM)
- rt[Ocbicby.MOD_5_EXPLICIT;arith `8 = 1*5 + 3`;arith `9 = 1*5 + 4`;MOD_MULT_ADD]
+  TYPIFY `v 5 = v 0 /\ v 6 = v 1 /\ v 7 = v 2 /\ v 8 = v 3 /\ v 9  = v 4` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM ((unlist ONCE_REWRITE_TAC) o GSYM);
+    BY(REWRITE_TAC[Ocbicby.MOD_5_EXPLICIT;arith `8 = 1*5 + 3`;arith `9 = 1*5 + 4`;MOD_MULT_ADD]);
   TYPIFY `~coplanar {vec 0, v 0,v 1,v 4} /\ ~coplanar {vec 0,v 1,v 2,v 0}` (C SUBGOAL_THEN ASSUME_TAC);
     ASM_REWRITE_TAC[GSYM Local_lemmas1.AZIM_COND_FOR_COPLANAR];
-amt[arith `x < pi ==> ~(x = pi)`;arith `&0 < a ==> ~(a = &0)`;arith `0+i=i`;arith `1+1=2 /\ 1+4=5`]
+    BY(ASM_MESON_TAC[arith `x < pi ==> ~(x = pi)`;arith `&0 < a ==> ~(a = &0)`;arith `0+i=i`;arith `1+1=2 /\ 1+4=5`])
+
+  typ `generic V E` sat
+fxast `scs_generic` mp then art[Appendix.scs_generic]
+    INTRO_TAC Terminal.vv_split_azim_generic [`v`;`5`;`0`;`3`;`4`];
+    NUM_REDUCE_TAC
+      art[LET_THM]
+dt
+
+  COMMENT "collinearity";
+  TYPIFY `!i j. ~(v i = v j) ==> ~collinear {vec 0,v i, v j}` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT GEN_TAC THEN DISCH_TAC;
+    MATCH_MP_TAC Zlzthic.PROPERTIES_GENERIC_LOCAL_FAN_ALT;
+    GEXISTL_TAC [`IMAGE v (:num)`;`IMAGE (\i. {v i, v (SUC i)}) (:num)`;`IMAGE (\i. (v i, v (SUC i))) (:num)`];
+    ASM_REWRITE_TAC[IN_IMAGE;IN_UNIV];
+    BY(MESON_TAC[]);
+
+typ `!i j. i < 5 /\ j < 5 /\ ~(i = j) ==> ~(v i = v j)` sat
+rep 10 (fxa mp) then mt[]
+
+comment "non coplanar 013 digression"
+repeat (fxast `interior_angle1 a b c < pi` mp) then art[] then NUM_REDUCE_TAC
+st/r
+typ `&0 < azim (vec 0) (v 0) (v 1) (v 3)` sat
+mmp (arith `~(a = &0) /\ &0 <= a ==> &0 < a`)
+fyn
+dt
+fxast `+` mp then art[arith `&0 + x = x`]
+dt
+typ `azim (vec 0) (v 0) (v 3) (v 4) < pi` sat
+fxa (sub1 o GSYM) then art[]
+fast `a = b` mp then rt[]
+mmp (arith `pi / &2 < a /\ b < pi / &2 ==> ~(a = b)`)
+conj
+intro (UNDISCH Ocbicby.SYNQIWN) [`s`;`v`;`0`;`5`]
+NUM_REDUCE_TAC
+dthen mmp
+art[]
+typ `cstab <= dist(v 1,v 4) /\ dist(v 0,v 1) = &2 /\ dist(v 0,v 4) = &2` ets
+rt[Sphere.h0] then mt[arith `x = &2 ==> x <= &2 * #1.26`]
+fast `dist s = &2` (C intro [`0`])
+fxast `dist s = &2` (C intro [`4`])
+NUM_REDUCE_TAC
+
+
+intro azim_dih_y [`(vec 0):real^3`;`v 0`;`v 1`;`v 4`]
+dthen gm
+intro azim_dih_y [`(vec 0):real^3`;`v 0`;`v 3`;`v 4`]
+dthen gm
+repeat (fxast `x < pi` mp) then simp[arith `x < pi ==> x <= pi`]
+st/r
+gtyp `(~collinear {vec 0, v 0, v 3} /\ ~collinear {vec 0, v 0, v 4}) /\ (~collinear {vec 0, v 0, v 1} /\ ~collinear {vec 0, v 0, v 4})` (unlist rt)
+repeat conj then repeat (fxa mmp) then NUM_REDUCE_TAC
+conj
 
 xxd
+
+repeat (gm AZIM_DIHV_SAME_STRONG)
+
+xxd
+intro deform_pent_exists []
+  INTRO_TAC deformation_BBs_ALT [`s`;`k`;`f`;`v`;`e`];
 
 comment "need delta 013> 0, get it from azim sums, do that before 684"
     INTRO_TAC Terminal.vv_split_azim_generic [`v`;`5`]

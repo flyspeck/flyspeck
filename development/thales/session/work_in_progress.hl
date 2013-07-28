@@ -233,6 +233,7 @@ let planar_deform_dist = prove_by_refinement(
   ]);;
   (* }}} *)
 
+(*
 let deform_pent_exists = prove_by_refinement(
   `!V g23 v0 v1 v2 v3 e. ?f.
     (
@@ -240,6 +241,74 @@ let deform_pent_exists = prove_by_refinement(
 	      (coplanar {vec 0,v0,v1,v2} ==> (v1 cross v0) dot (v2 cross v0) > &0) /\
 			~coplanar {vec 0,v0,v2,v3} /\ ~(collinear {vec 0,v1,v2}) /\
 	  &0 < azim (vec 0) v1 v2 v0 /\ azim (vec 0) v1 v2 v0 <= pi /\
+	  v2 dot (v3 cross v0) > &0 /\ 
+	  &0 < e /\
+	  g23 real_continuous_on (real_interval (--e,e)) /\
+	  g23 (&0) = &0 
+	==> 
+	  (?e'. &0 < e' /\ deformation f V (-- e', e') /\
+	     (!v t. ~(v = v1) /\ ~(v = v2) ==> f v t = v) /\
+	     (!t. abs t < e' ==> 
+		dist(v0,f v1 t) = dist(v0,v1) /\
+		dist(f v2 t,f v1 t) = dist(v2,v1) /\
+		norm(f v1 t) = norm(v1) /\
+		  dist (f v2 t,v0) = dist(v2,v0) /\
+		  dist (f v2 t,v3) = dist(v2,v3)+ g23 t /\
+		  norm(f v2 t) = norm (v2)
+	     ))))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[MESON [] `(?f. a ==> P f) <=> (a ==> (?f. P f))`];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `~coplanar {vec 0,v0,v1,v2}` ASM_CASES_TAC;
+    INTRO_TAC Cuxvzoz.deform_684_pent_exists [`V`;`g23`;`v0`;`v1`;`v2`;`v3`;`e`];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MP_TAC THEN ASM_REWRITE_TAC[];
+    REWRITE_TAC[arith `x > &0 <=> &0 <= x /\ ~(x = &0)`];
+    ANTS_TAC;
+      ASM_REWRITE_TAC[];
+      CONJ2_TAC;
+        BY(REPEAT (FIRST_X_ASSUM_ST `coplanar` MP_TAC) THEN REWRITE_TAC[GSYM Local_lemmas.CROSS_DOT_COPLANAR] THEN VEC3_TAC);
+      INTRO_TAC Trigonometry2.JBDNJJB [`v1`;`v2`;`v0`];
+      TYPIFY `((v1 cross v2) dot v0) = v1 dot (v2 cross v0)` (C SUBGOAL_THEN SUBST1_TAC);
+        BY(VEC3_TAC);
+      ONCE_REWRITE_TAC[Leaf_cell.RE_EQVL_SYM];
+      DISCH_THEN ((unlist REWRITE_TAC) o (MATCH_MP re_eqvl_imp_le));
+      BY(ASM_MESON_TAC[Local_lemmas.SIN_AZIM_POS_PI_LT]);
+    REPEAT WEAKER_STRIP_TAC;
+    BY(GEXISTL_TAC [`f`;`e'`] THEN ASM_MESON_TAC[]);
+  COMMENT "planar case";
+  INTRO_TAC Cuxvzoz.deform_planar_exists [`V`;`(\ (t:real). &0)`;`(\ (t:real). &0)`;`g23`;`v0`;`v1`;`v2`;`v3`;`e`];
+  RULE_ASSUM_TAC(REWRITE_RULE[]);
+  REPEAT WEAKER_STRIP_TAC THEN FIRST_X_ASSUM MP_TAC THEN ASM_REWRITE_TAC[arith `x + &0 = x`];
+  GMATCH_SIMP_TAC REAL_CONTINUOUS_ON_EQ_REAL_CONTINUOUS_AT THEN REWRITE_TAC[REAL_CONTINUOUS_CONST;Ocbicby.REAL_OPEN_REAL_INTERVAL];
+  ANTS_TAC;
+    CONJ_TAC;
+      BY(FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
+    BY(FIRST_X_ASSUM_ST `collinear` MP_TAC THEN MESON_TAC[COLLINEAR_2;SET_RULE `{a,b,b} = {a,b}`]);
+  REPEAT WEAKER_STRIP_TAC;
+  GEXISTL_TAC [`f`;`e'`] THEN ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `~(v0 = vec 0)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[COPLANAR_3;SET_RULE `{a,a,b,c} = {a,b,c}`]);
+  INTRO_TAC planar_deform_dist [`v0`;`v1`;`v2`;`f`;`V`;`e'`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  BY(REPLICATE_TAC 2 (FIRST_X_ASSUM (C INTRO_TAC [`t`])) THEN ASM_REWRITE_TAC[DIST_SYM] THEN REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+*)
+
+let deform_pent_exists = prove_by_refinement(
+  `!V g23 v0 v1 v2 v3 e. ?f.
+    (
+       (    v1 IN V /\ v2 IN V /\ 
+	      (coplanar {vec 0,v0,v1,v2} ==> (v1 cross v0) dot (v2 cross v0) > &0) /\
+			~coplanar {vec 0,v0,v2,v3} /\ ~(collinear {vec 0,v1,v2}) /\
+	      azim (vec 0) v1 v2 v0 <= pi /\
 	  v2 dot (v3 cross v0) > &0 /\ 
 	  &0 < e /\
 	  g23 real_continuous_on (real_interval (--e,e)) /\
@@ -588,6 +657,7 @@ let coplanar_cross_reduction = prove_by_refinement(
   ]);;
   (* }}} *)
 
+(*
 let a5_assumption_reduction = prove_by_refinement(
   `!s f v e.
     is_scs_v39 s /\
@@ -665,7 +735,90 @@ let a5_assumption_reduction = prove_by_refinement(
   BY(REPEAT (FIRST_X_ASSUM DISJ_CASES_TAC) THEN FIRST_X_ASSUM (unlist REWRITE_TAC) THEN NUM_REDUCE_TAC THEN TRY (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[])
   ]);;
   (* }}} *)
+*)
 
+let a5_assumption_reduction = prove_by_refinement(
+  `!s f v e.
+    is_scs_v39 s /\
+    scs_k_v39 s  = 5 /\
+    BBs_v39 s v /\
+    (!i j. scs_diag 5 i j ==> scs_a_v39 s i j < dist(v i,v j)) /\
+    deformation f (IMAGE v (:num)) (--e,e) /\
+    (!w t. ~(w = v 4) /\ ~(w = v 0)  ==> (f w t = w)) /\
+    (?e1. &0 < e1 /\ (!t. abs t < e1 ==> dist(f (v 4) t,f (v 0) t) = dist(v 4,v 0) /\ dist(f (v 4) t,v 3) = dist(v 4,v 3))) /\
+    (?e1. &0 < e1 /\ (!t. abs t < e1 ==> scs_a_v39 s 0 1 <= dist(f (v 0) t,v 1)))
+    ==>
+    (!i j. ?e1. &0 < e1 /\ (scs_a_v39 s i j = dist(v i,v j) ==> 
+	(!t. abs t < e1 ==> scs_a_v39 s i j <= dist(f (v i) t,f (v j) t))))
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC THEN DISCH_TAC THEN MATCH_MP_TAC I_IMP THEN ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `!i j.scs_a_v39 s (i MOD 5) (j MOD 5) = scs_a_v39 s i j  /\ scs_b_v39 s (i MOD 5) (j MOD 5) = scs_b_v39 s i j ` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `is_scs_v39` MP_TAC;
+    ASM_REWRITE_TAC[Appendix.is_scs_v39];
+    REPEAT WEAKER_STRIP_TAC;
+    BY(REPEAT (FIRST_X_ASSUM_ST `periodic2` MP_TAC) THEN MESON_TAC[periodic2_MOD;arith `~(5 = 0)`]);
+  TYPIFY `periodic v 5` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(FIRST_X_ASSUM_ST `BBs_v39` MP_TAC THEN ASM_REWRITE_TAC[Appendix.BBs_v39;LET_THM] THEN MESON_TAC[]);
+  TYPIFY `!i. v (i MOD 5) = v i` (C SUBGOAL_THEN ASSUME_TAC);
+    GEN_TAC;
+    MATCH_MP_TAC (GSYM Oxl_def.periodic_mod);
+    BY(ASM_REWRITE_TAC[arith `~(0=5)`]);
+  INTRO_TAC BBs_inj [`s`;`v`;`5`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY `!j. j < 5 ==> (j MOD 5 = j)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REWRITE_TAC[MOD_LT]);
+  COMMENT "scs_a_v39";
+  REWRITE_TAC[I_THM];
+  MATCH_MP_TAC Terminal.periodic2_mod_reduce;
+  TYPIFY `5` EXISTS_TAC;
+  ASM_REWRITE_TAC[arith `~(5=0)`];
+  CONJ_TAC;
+    MATCH_MP_TAC MOD_periodic2;
+    BY(REPLICATE_TAC 7 (FIRST_X_ASSUM MP_TAC) THEN REWRITE_TAC[] THEN MESON_TAC[arith `~(5=0)`]);
+  TYPIFY_GOAL_THEN `!P. (!i j. P i j ==> P j i) /\ (!i j. (i <= (j:num)) ==> P i j) ==> (!i j. P i j)` MATCH_MP_TAC;
+    BY(MESON_TAC[arith `i <= j \/ j <= (i:num)`]);
+  CONJ_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    ONCE_REWRITE_TAC[DIST_SYM];
+    TYPIFY `scs_a_v39 s j i = scs_a_v39 s i j` (C SUBGOAL_THEN SUBST1_TAC);
+      FIRST_X_ASSUM_ST `is_scs_v39` MP_TAC THEN REWRITE_TAC[Appendix.is_scs_v39] THEN REPEAT WEAKER_STRIP_TAC;
+      BY(ASM_MESON_TAC[]);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `!i j. i < 5 /\ j < 5 /\ ~(i=j) ==> ~(v i = v j)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[]);
+  TYPIFY `!t. f (v 2) t = v 2 /\ f (v 3) t = v 3 /\ f (v 1) t = v 1` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(GEN_TAC THEN REPEAT CONJ_TAC THEN REPEAT (FIRST_X_ASSUM MATCH_MP_TAC THEN REPEAT CONJ_TAC) THEN NUM_REDUCE_TAC);
+  REWRITE_TAC[arith `i < 5 <=> (i = 0) \/ (i = 1) \/ (i=2) \/ (i  =3) \/ (i=4)`];
+  TYPIFY `scs_diag 5 0 2 /\ scs_diag 5 0 3 /\ scs_diag 5 1 3 /\ scs_diag 5 1 4 /\ scs_diag 5 2 4` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REWRITE_TAC[Appendix.scs_diag;Uxckfpe.ARITH_5_TAC]);
+  ONCE_REWRITE_TAC[TAUT `(a ==> b ==> c) <=> (b ==> a ==> c)`];
+  TYPIFY `!i j. scs_diag 5 i j ==> (?e1. &0 < e1 /\               (scs_a_v39 s i j = dist (v i,v j)                ==> (!t. abs t < e1                         ==> scs_a_v39 s i j <= dist (f (v i) t,f (v j) t))))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[arith `x < y ==> ~(x = y)`]);
+  TYPIFY `!i. T ==> (?e1. &0 < e1 /\               (scs_a_v39 s i i = dist (v i,v i)                ==> (!t. abs t < e1                         ==> scs_a_v39 s i i <= dist (f (v i) t,f (v i) t))))` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[DIST_REFL];
+    BY(MESON_TAC[arith `x = &0 ==> x <= &0`;arith `&0 < &1`]);
+  REPEAT GEN_TAC;
+  TYPIFY `(?e1. &0 < e1 /\                    (scs_a_v39 s 0 1 = dist (v 0,v 1)                     ==> (!t. abs t < e1                              ==> scs_a_v39 s 0 1 <=                                  dist (f (v 0) t,f (v 1) t)))) /\     (?e1. &0 < e1 /\                    (scs_a_v39 s 1 2 = dist (v 1,v 2)                     ==> (!t. abs t < e1                              ==> scs_a_v39 s 1 2 <=                                  dist (f (v 1) t,f (v 2) t)))) /\     (?e1. &0 < e1 /\                    (scs_a_v39 s 2 3 = dist (v 2,v 3)                     ==> (!t. abs t < e1                              ==> scs_a_v39 s 2 3 <=                                  dist (f (v 2) t,f (v 3) t)))) /\     (?e1. &0 < e1 /\                    (scs_a_v39 s 3 4 = dist (v 3,v 4)                     ==> (!t. abs t < e1                              ==> scs_a_v39 s 3 4 <=                                  dist (f (v 3) t,f (v 4) t)))) /\      (?e1. &0 < e1 /\                    (scs_a_v39 s 0 4 = dist (v 0,v 4)                     ==> (!t. abs t < e1                              ==> scs_a_v39 s 0 4 <=                                  dist (f (v 0) t,f (v 4) t))))` (C SUBGOAL_THEN MP_TAC);
+    ASM_REWRITE_TAC[];
+    TYPIFY_GOAL_THEN `!a b. (?e1. &0 < e1 /\ (a = b ==> (!t. abs t < e1 ==> a <= b)))` (unlist REWRITE_TAC);
+      BY(MESON_TAC[arith `&0 < &1`;arith `(a = b) ==> (a <= b)`]);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[]);
+    ONCE_REWRITE_TAC[DIST_SYM];
+    BY(ASM_MESON_TAC[arith `x = y ==> x <= y`]);
+  REWRITE_TAC[LEFT_OR_DISTRIB;RIGHT_OR_DISTRIB;GSYM DISJ_ASSOC];
+  ONCE_REWRITE_TAC[TAUT `(a1 /\ a2 /\ a3 /\ a4 /\ a5) <=> ((T ==> a1) /\ (T ==> a2) /\ (T ==> a3) /\ (T ==> a4) /\ (T ==> a5))`];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  BY(REPEAT (FIRST_X_ASSUM DISJ_CASES_TAC) THEN FIRST_X_ASSUM (unlist REWRITE_TAC) THEN NUM_REDUCE_TAC THEN TRY (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+(*
 let b5_assumption_reduction = prove_by_refinement(
   `!s f v e.
     is_scs_v39 s /\
@@ -757,6 +910,103 @@ let b5_assumption_reduction = prove_by_refinement(
   BY(REPEAT (FIRST_X_ASSUM DISJ_CASES_TAC) THEN FIRST_X_ASSUM (unlist REWRITE_TAC) THEN NUM_REDUCE_TAC THEN TRY (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[])
   ]);;
   (* }}} *)
+*)
+
+let b5_assumption_reduction = prove_by_refinement(
+  `!s f v e.
+    is_scs_v39 s /\
+    scs_k_v39 s  = 5 /\
+    BBs_v39 s v /\
+    (!i j. scs_diag 5 i j ==> &4 * h0 < scs_b_v39 s i j) /\
+    deformation f (IMAGE v (:num)) (--e,e) /\
+    (!w t. ~(w = v 4) /\ ~(w = v 0)  ==> (f w t = w)) /\
+    (?e1. &0 < e1 /\ (!t. abs t < e1 ==> dist(f (v 4) t,f (v 0) t) = dist(v 4,v 0) /\ dist(f (v 4) t,v 3) = dist(v 4,v 3))) /\
+    (?e1. &0 < e1 /\ (!t. abs t < e1 ==> dist(f (v 0) t, (v 1)) <= dist(v 0, v 1)))
+    ==>
+    (!i j. ?e1. &0 < e1 /\ (dist(v i,v j) = scs_b_v39 s i j ==> 
+	(!t. abs t < e1 ==> dist(f (v i) t,f (v j) t) <= scs_b_v39 s i j)))
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC THEN DISCH_TAC THEN MATCH_MP_TAC I_IMP THEN ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `!i j.scs_a_v39 s (i MOD 5) (j MOD 5) = scs_a_v39 s i j  /\ scs_b_v39 s (i MOD 5) (j MOD 5) = scs_b_v39 s i j ` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `is_scs_v39` MP_TAC;
+    ASM_REWRITE_TAC[Appendix.is_scs_v39];
+    REPEAT WEAKER_STRIP_TAC;
+    BY(REPEAT (FIRST_X_ASSUM_ST `periodic2` MP_TAC) THEN MESON_TAC[periodic2_MOD;arith `~(5 = 0)`]);
+  TYPIFY `periodic v 5` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(FIRST_X_ASSUM_ST `BBs_v39` MP_TAC THEN ASM_REWRITE_TAC[Appendix.BBs_v39;LET_THM] THEN MESON_TAC[]);
+  TYPIFY `!i. v (i MOD 5) = v i` (C SUBGOAL_THEN ASSUME_TAC);
+    GEN_TAC;
+    MATCH_MP_TAC (GSYM Oxl_def.periodic_mod);
+    BY(ASM_REWRITE_TAC[arith `~(0=5)`]);
+  INTRO_TAC BBs_inj [`s`;`v`;`5`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY `!j. j < 5 ==> (j MOD 5 = j)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REWRITE_TAC[MOD_LT]);
+  COMMENT "scs_b_v39";
+  REWRITE_TAC[I_THM];
+  MATCH_MP_TAC Terminal.periodic2_mod_reduce;
+  TYPIFY `5` EXISTS_TAC;
+  ASM_REWRITE_TAC[arith `~(5=0)`];
+  CONJ_TAC;
+    MATCH_MP_TAC MOD_periodic2;
+    BY(REPLICATE_TAC 7 (FIRST_X_ASSUM MP_TAC) THEN REWRITE_TAC[] THEN MESON_TAC[arith `~(5=0)`]);
+  TYPIFY_GOAL_THEN `!P. (!i j. P i j ==> P j i) /\ (!i j. (i <= (j:num)) ==> P i j) ==> (!i j. P i j)` MATCH_MP_TAC;
+    BY(MESON_TAC[arith `i <= j \/ j <= (i:num)`]);
+  CONJ_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    ONCE_REWRITE_TAC[DIST_SYM];
+    TYPIFY `scs_b_v39 s j i = scs_b_v39 s i j` (C SUBGOAL_THEN SUBST1_TAC);
+      FIRST_X_ASSUM_ST `is_scs_v39` MP_TAC THEN REWRITE_TAC[Appendix.is_scs_v39] THEN REPEAT WEAKER_STRIP_TAC;
+      BY(ASM_MESON_TAC[]);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `!i j. i < 5 /\ j < 5 /\ ~(i=j) ==> ~(v i = v j)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[]);
+  TYPIFY `!t. f (v 2) t = v 2 /\ f (v 3) t = v 3 /\ f (v 1) t = v 1` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(GEN_TAC THEN REPEAT CONJ_TAC THEN REPEAT (FIRST_X_ASSUM MATCH_MP_TAC THEN REPEAT CONJ_TAC) THEN NUM_REDUCE_TAC);
+  TYPIFY `scs_diag 5 0 2 /\ scs_diag 5 0 3 /\ scs_diag 5 1 3 /\ scs_diag 5 1 4 /\ scs_diag 5 2 4` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REWRITE_TAC[Appendix.scs_diag;Uxckfpe.ARITH_5_TAC]);
+  TYPIFY `!i j. scs_diag 5 i j ==> (?e1. &0 < e1 /\               (dist (v i,v j) = scs_b_v39 s i j                ==> (!t. abs t < e1                         ==> dist (f (v i) t,f (v j) t) <= scs_b_v39 s i j)))` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `&1` EXISTS_TAC;
+    (REWRITE_TAC[arith `&0 < &1`]);
+    TYPIFY `dist(v i,v j) <= &4 * h0` ENOUGH_TO_SHOW_TAC;
+      FIRST_X_ASSUM_ST `&4 * h0` (C INTRO_TAC [`i`;`j`]);
+      ASM_REWRITE_TAC[];
+      BY(REAL_ARITH_TAC);
+    INTRO_TAC DIST_TRIANGLE [`v i`;`(vec 0):real^3`;`v j`];
+    REWRITE_TAC[DIST_0];
+    TYPIFY `!i. norm (v i) <= &2 * h0` ENOUGH_TO_SHOW_TAC;
+      BY(DISCH_TAC THEN FIRST_ASSUM (C INTRO_TAC [`i`]) THEN FIRST_X_ASSUM (C INTRO_TAC [`j`]) THEN REAL_ARITH_TAC);
+    FIRST_X_ASSUM_ST `BBs_v39` MP_TAC THEN REWRITE_TAC[Appendix.BBs_v39;LET_THM] THEN REPEAT WEAKER_STRIP_TAC;
+    BY(FIRST_X_ASSUM_ST `ball_annulus` MP_TAC THEN REWRITE_TAC[Terminal.IMAGE_SUBSET_IN;IN_UNIV] THEN MESON_TAC[Fnjlbxs.in_ball_annulus]);
+  TYPIFY `!i. T ==> (?e1. &0 < e1 /\               (dist (v i,v i) = scs_b_v39 s i i                ==> (!t. abs t < e1                         ==> dist (f (v i) t,f (v i) t) <= scs_b_v39 s i i)))` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[DIST_REFL];
+    BY(MESON_TAC[arith `x = &0 ==> x <= &0`;arith `&0 < &1`]);
+  REPEAT GEN_TAC;
+  TYPIFY `(?e1. &0 < e1 /\           (dist (v 0,v 1) = scs_b_v39 s 0 1            ==> (!t. abs t < e1                     ==> dist (f (v 0) t,f (v 1) t) <= scs_b_v39 s 0 1))) /\(?e1. &0 < e1 /\           (dist (v 1,v 2) = scs_b_v39 s 1 2            ==> (!t. abs t < e1                     ==> dist (f (v 1) t,f (v 2) t) <= scs_b_v39 s 1 2))) /\(?e1. &0 < e1 /\           (dist (v 2,v 3) = scs_b_v39 s 2 3            ==> (!t. abs t < e1                     ==> dist (f (v 2) t,f (v 3) t) <= scs_b_v39 s 2 3))) /\(?e1. &0 < e1 /\           (dist (v 3,v 4) = scs_b_v39 s 3 4            ==> (!t. abs t < e1                     ==> dist (f (v 3) t,f (v 4) t) <= scs_b_v39 s 3 4))) /\(?e1. &0 < e1 /\           (dist (v 0,v 4) = scs_b_v39 s 0 4            ==> (!t. abs t < e1                     ==> dist (f (v 0) t,f (v 4) t) <= scs_b_v39 s 0 4)))` (C SUBGOAL_THEN MP_TAC);
+    ASM_REWRITE_TAC[];
+    TYPIFY_GOAL_THEN `!a b. (?e1. &0 < e1 /\ (a = b ==> (!t. abs t < e1 ==> a <= b)))` (unlist REWRITE_TAC);
+      BY(MESON_TAC[arith `&0 < &1`;arith `(a = b) ==> (a <= b)`]);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[]);
+    REPEAT (FIRST_X_ASSUM_ST `dist(v 4,v 0)` MP_TAC);
+    REWRITE_TAC[DIST_SYM];
+    BY(ASM_MESON_TAC[arith `x = y ==> x <= y`]);
+  DISCH_TAC;
+  REWRITE_TAC[arith `i < 5 <=> (i = 0) \/ (i = 1) \/ (i=2) \/ (i  =3) \/ (i=4)`];
+  ONCE_REWRITE_TAC[TAUT `(a ==> b ==> c) <=> (b ==> a ==> c)`];
+  REWRITE_TAC[LEFT_OR_DISTRIB;RIGHT_OR_DISTRIB;GSYM DISJ_ASSOC];
+  FIRST_X_ASSUM MP_TAC;
+  ONCE_REWRITE_TAC[TAUT `(a1 /\ a2 /\ a3 /\ a4 /\ a5) <=> ((T ==> a1) /\ (T ==> a2) /\ (T ==> a3) /\ (T ==> a4) /\ (T ==> a5))`];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  BY(REPEAT (FIRST_X_ASSUM DISJ_CASES_TAC) THEN FIRST_X_ASSUM (unlist REWRITE_TAC) THEN NUM_REDUCE_TAC THEN TRY (FIRST_X_ASSUM MATCH_MP_TAC) THEN ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
 
 
 (* next azim reduction *)
@@ -778,6 +1028,7 @@ let azm5_reduction = prove_by_refinement(
                     azim (vec 0) (v 3) (v 0) (v 1))) /\
      (?e1. &0 < e1 /\
            (!t. abs t < e1
+	          // make this a dih_y condition?? 
                 ==> azim (vec 0) (v 3) (f (v 4) t) (f (v 0) t) =
                     azim (vec 0) (v 3) (v 4) (v 0) /\
                     azim (vec 0) (f (v 4) t) (f (v 0) t) (v 3) =
@@ -1060,6 +1311,48 @@ let azim_dih_y = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let L13_LEMMA = prove_by_refinement(
+  `main_nonlinear_terminal_v11
+ ==>
+ (!V E FF s v. IMAGE (\i. v i,v (SUC i)) (:num) = FF
+ /\ is_scs_v39 s
+ /\ scs_k_v39 s = 5
+ /\ scs_basic_v39 s
+ /\ scs_generic v
+ /\ BBs_v39 s v
+ /\ IMAGE v (:num) = V
+ /\ IMAGE (\i. {v i, v (SUC i)}) (:num) = E
+ /\ ~coplanar {vec 0, v 1, v 2, v 0}
+ ==> &0 < azim (vec 0) (v 0) (v 1) (v 3) )`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[arith `&0 < a <=> ~(a = &0) /\ (&0 <= a)`];
+  REWRITE_TAC[Counting_spheres.AZIM_NN];
+  DISCH_TAC;
+  FIRST_X_ASSUM_ST `coplanar {vec 0,v 1 ,v 2,v 0}` MP_TAC;
+  REWRITE_TAC[];
+  INTRO_TAC EGHNAVX_SCS [`s`;`5`;`v`;`0`];
+  ASM_REWRITE_TAC[LET_THM];
+  NUM_REDUCE_TAC;
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM kill;
+  FIRST_X_ASSUM (C INTRO_TAC [`3`;`2`]);
+  NUM_REDUCE_TAC;
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[coplanar];
+  GEXISTL_TAC [`(vec 0):real^3`;`v 0`;`v 1`];
+  TYPIFY `{vec 0, v 0, v 1} SUBSET affine hull  {vec 0, v 0, v 1} /\  v 2 IN affine hull  {vec 0, v 0, v 1}` ENOUGH_TO_SHOW_TAC;
+    BY(SET_TAC[]);
+  REWRITE_TAC[HULL_SUBSET];
+  INTRO_TAC AFF_GT_SUBSET_AFFINE_HULL [`{vec 0,v 0}`;`{v 1}`];
+  TYPIFY `{vec 0, v 0} UNION {v 1} = {vec 0, v 0, v 1}` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(SET_TAC[]);
+  BY(FIRST_X_ASSUM MP_TAC THEN SET_TAC[])
+  ]);;
+  (* }}} *)
+
 let IUNBUIG = prove_by_refinement(
   `main_nonlinear_terminal_v11 ==> 
   (!s FF v.
@@ -1070,8 +1363,11 @@ let IUNBUIG = prove_by_refinement(
   scs_basic_v39 s /\
   scs_generic v /\
   (!i j. scs_diag 5 i j ==> scs_a_v39 s i j <= cstab /\ cstab < dist(v i,v j) /\ &4 * h0 < scs_b_v39 s i j) /\
+  scs_a_v39 s 0 1 = &2 /\
+  scs_b_v39 s 0 1 <= cstab /\
      interior_angle1 (vec 0) FF (v 0) < pi /\      interior_angle1 (vec 0) FF (v 1) < pi /\
   (!i. ~(i MOD 5 = 0)  ==> dist(v i,v (i+1)) = &2) /\
+
   xrr (norm (v 0)) (norm (v 3)) (dist(v 0,v 3)) <= #15.53 /\ 
   xrr (norm (v 1)) (norm (v 3)) (dist(v 1,v 3)) <= #15.53 ==>
   dist(v 0,v 1) = &2)`,
@@ -1120,15 +1416,13 @@ let IUNBUIG = prove_by_refinement(
     BY(REWRITE_TAC[Ocbicby.MOD_5_EXPLICIT;arith `8 = 1*5 + 3`;arith `9 = 1*5 + 4`;MOD_MULT_ADD]);
   TYPIFY `~coplanar {vec 0, v 0,v 1,v 4} /\ ~coplanar {vec 0,v 1,v 2,v 0}` (C SUBGOAL_THEN ASSUME_TAC);
     ASM_REWRITE_TAC[GSYM Local_lemmas1.AZIM_COND_FOR_COPLANAR];
-    BY(ASM_MESON_TAC[arith `x < pi ==> ~(x = pi)`;arith `&0 < a ==> ~(a = &0)`;arith `0+i=i`;arith `1+1=2 /\ 1+4=5`])
-
-  typ `generic V E` sat
-fxast `scs_generic` mp then art[Appendix.scs_generic]
-    INTRO_TAC Terminal.vv_split_azim_generic [`v`;`5`;`0`;`3`;`4`];
-    NUM_REDUCE_TAC
-      art[LET_THM]
-dt
-
+    BY(ASM_MESON_TAC[arith `x < pi ==> ~(x = pi)`;arith `&0 < a ==> ~(a = &0)`;arith `0+i=i`;arith `1+1=2 /\ 1+4=5`]);
+  TYPIFY `generic V E` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(FIRST_X_ASSUM_ST `scs_generic` MP_TAC THEN ASM_REWRITE_TAC[Appendix.scs_generic]);
+  INTRO_TAC Terminal.vv_split_azim_generic [`v`;`5`;`0`;`3`;`4`];
+  NUM_REDUCE_TAC;
+  ASM_REWRITE_TAC[LET_THM];
+  DISCH_TAC;
   COMMENT "collinearity";
   TYPIFY `!i j. ~(v i = v j) ==> ~collinear {vec 0,v i, v j}` (C SUBGOAL_THEN ASSUME_TAC);
     REPEAT GEN_TAC THEN DISCH_TAC;
@@ -1136,13 +1430,165 @@ dt
     GEXISTL_TAC [`IMAGE v (:num)`;`IMAGE (\i. {v i, v (SUC i)}) (:num)`;`IMAGE (\i. (v i, v (SUC i))) (:num)`];
     ASM_REWRITE_TAC[IN_IMAGE;IN_UNIV];
     BY(MESON_TAC[]);
+  TYPIFY `!i j. i < 5 /\ j < 5 /\ ~(i = j) ==> ~(v i = v j)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REPLICATE_TAC 10 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[]);
+  COMMENT "non coplanar 013 digression";
+  INTRO_TAC (UNDISCH L13_LEMMA) [`V`;`E`;`FF`;`s`;`v`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `interior_angle1 a b c < pi` MP_TAC) THEN ASM_REWRITE_TAC[] THEN NUM_REDUCE_TAC;
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `azim (vec 0) (v 0) (v 1) (v 3) < pi` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `+` MP_TAC;
+    MATCH_MP_TAC (arith `&0 <= a2 /\ a < pi   ==> (a = a1 + a2 ==> a1 < pi)`);
+    REWRITE_TAC[Counting_spheres.AZIM_NN];
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `~coplanar {vec 0,v 0, v 1,v 3}` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[GSYM Local_lemmas1.AZIM_COND_FOR_COPLANAR];
+    BY(REPLICATE_TAC 4 (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  COMMENT "introduce deformation";
+  INTRO_TAC deform_pent_exists [`V`;`(\t. -- abs t)`;`v 3`;`v 4`;`v 0`;`v 1`;`&1`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  ANTS_TAC;
+    REWRITE_TAC[arith `&0 < &1`;arith `--abs (&0) = &0`];
+    CONJ_TAC;
+      DISCH_TAC;
+      INTRO_TAC coplanar_cross_reduction [`s`;`5`;`v`;`3`];
+      NUM_REDUCE_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    CONJ_TAC;
+      FIRST_X_ASSUM MP_TAC;
+      BY(MESON_TAC[SET_RULE `{a,b,c,d} = {a,d,b,c}`]);
+    CONJ_TAC;
+      BY(REPEAT (FIRST_X_ASSUM MATCH_MP_TAC) THEN NUM_REDUCE_TAC);
+    CONJ_TAC;
+      INTRO_TAC (GEN_ALL Local_lemmas.CONVEX_LOFA_IMP_INANGLE_LE_PI) [`E`;`V`;`FF`;`v 4`];
+      ASM_REWRITE_TAC[];
+      NUM_REDUCE_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    CONJ_TAC;
+      INTRO_TAC Trigonometry.JBDNJJB [`v 0`;`v 1`;`v 3`];
+      TYPIFY `v 0 dot (v 1 cross v 3) = ((v 0 cross v 1) dot v 3)` (C SUBGOAL_THEN SUBST1_TAC);
+        BY(VEC3_TAC);
+      REWRITE_TAC[arith `x > &0 <=> &0 < x`];
+      ONCE_REWRITE_TAC[Leaf_cell.RE_EQVL_SYM];
+      REWRITE_TAC[Trigonometry2.re_eqvl];
+      REPEAT WEAKER_STRIP_TAC;
+      ASM_REWRITE_TAC[];
+      GMATCH_SIMP_TAC REAL_LT_MUL_EQ;
+      BY(ASM_REWRITE_TAC[Cuxvzoz.sin_azim_pos]);
+    GMATCH_SIMP_TAC REAL_CONTINUOUS_ON_EQ_REAL_CONTINUOUS_AT;
+    REWRITE_TAC[Ocbicby.REAL_OPEN_REAL_INTERVAL];
+    REPEAT WEAKER_STRIP_TAC;
+    MATCH_MP_TAC REAL_CONTINUOUS_NEG;
+    BY(REWRITE_TAC[real_continuous_abs]);
+  REPEAT WEAKER_STRIP_TAC;
+  (COMMENT "reduction lemmas");
+  PROOF_BY_CONTR_TAC;
+  TYPIFY `&2 < dist(v 0,v 1)` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `scs_a_v39` (C INTRO_TAC [`0`;`1`]);
+    BY(ASM_REWRITE_TAC[] THEN FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
+  FIRST_X_ASSUM_ST `~` MP_TAC THEN REWRITE_TAC[];
+  TYPIFY `!i. f (v i) (&0) = v i` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `deformation` MP_TAC THEN REWRITE_TAC[Localization.deformation];
+    BY(ASM_MESON_TAC[]);
+  INTRO_TAC a5_assumption_reduction [`s`;`f`;`v`;`e'`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM_ST `scs_diag` (C INTRO_TAC [`i`;`j`]);
+      BY(ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC);
+    CONJ_TAC;
+      TYPIFY `e'` EXISTS_TAC THEN CONJ_TAC THENL [ASM_REWRITE_TAC[];REPEAT WEAKER_STRIP_TAC];
+      FIRST_X_ASSUM (C INTRO_TAC [`t`]) THEN ASM_REWRITE_TAC[DIST_SYM];
+      BY(MESON_TAC[]);
+    INTRO_TAC Cuxvzoz.continuous_nbd_pos [`\ t. dist(f (v 0) t,v 1) - &2`;`&0`];
+    ASM_REWRITE_TAC[arith `abs (t' - &0) = abs t'`;arith `&0 < a - b <=> b < a`];
+    ANTS_TAC;
+      FIRST_X_ASSUM_ST `deformation` MP_TAC THEN REWRITE_TAC[Localization.deformation];
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM_ST `atreal` (C INTRO_TAC [`v 0`;`&0`]);
+      ASM_REWRITE_TAC[];
+      DISCH_TAC;
+      BY((REPEAT (REPEAT CONJ_TAC THEN (MATCH_MP_TAC REAL_CONTINUOUS_ADD ORELSE MATCH_MP_TAC Local_lemmas1.CON_ATREAL_REAL_CON ORELSE MATCH_MP_TAC Local_lemmas1.CON_ATREAL_REAL_CON2 ORELSE MATCH_MP_TAC REAL_CONTINUOUS_MUL ORELSE MATCH_MP_TAC REAL_CONTINUOUS_POW ORELSE MATCH_MP_TAC REAL_CONTINUOUS_SUB THEN ASM_REWRITE_TAC[REAL_CONTINUOUS_CONST;ETA_AX]))));
+    BY(MESON_TAC[arith `x < y ==> x <= y`]);
+  DISCH_TAC;
+  (COMMENT "b5 reduction")
+  intro b5_assumption_reduction [`s`;`f`;`v`;`e'`]
+    art[]
+    ants
+conj
+    amt[]
+    conj
+    typ `e'` ex
+    fxast `norm` mp then art[DIST_SYM] 
+mt[]
+typ `e'` ex
+conj thenl [art[];st/r]
+fxast `norm` (C intro [`t`]) then art[DIST_SYM]
+dthen (unlist rt)
+rat
+dt
 
-typ `!i j. i < 5 /\ j < 5 /\ ~(i = j) ==> ~(v i = v j)` sat
-rep 10 (fxa mp) then mt[]
+comment "deform collinear"
+typ `!t. f (v 1) t = v 1 /\ f (v 2) t = v 2 /\ f (v 3) t = v 3` sat
+g then repeat conj then fxa mmp then conj then fxa mmp then  NUM_REDUCE_TAC
 
-comment "non coplanar 013 digression"
-repeat (fxast `interior_angle1 a b c < pi` mp) then art[] then NUM_REDUCE_TAC
+typ `!i j. i < 5 /\ j < 5 /\ ~(v i = v j) ==> (?e. &0 < e /\ (!t. abs t < e==> ~collinear {vec 0, f (v i) t, f (v j) t}))` sat
 st/r
+intro (GEN_ALL Local_lemmas1.CONTINUOUS_PRESERVE_COLLINEAR) [`&0`;`(vec 0):real^3`;`f (v i)`;`f (v j)`]
+rt[arith `abs(&0 - r') = abs r'`] then dthen mmp
+art[]
+fxast `deformation` mp then rt[Localization.deformation]
+st/r
+rt[CONJ_ASSOC] then conj
+repeat conj then fxa mmp then art[]
+fxa mmp
+fxa mmp
+amt[]
+comment "azim reduction"
+intro azm5_reduction [`s`;`f`;`v`;`e'`]
+art[]
+ants
+conj
+rep 10 (fxa mp) then mt[]
+conj
+rep 3 (fxast `a < pi` mp) then art[] then mt[]
+conj2
+fa (C intro [`0`;`4`])
+fxa (C intro [`3`;`4`])
+NUM_REDUCE_TAC
+gtyp `~(v 3 = v 4) /\ ~(v 0 = v 4)` (unlist rt)
+conj then fxa mmp then NUM_REDUCE_TAC
+art[]
+st/r
+intro epsilon_triple [`e`;`e'`;`e''`] then art[] then st/r
+typ `e'''` ex then art[] then st/r
+
+(* ordering problem, need deformed azim<=pi to convert to dih_y with azim_dih_y. *)
+
+
+(* convert azim to dih_y *)
+
+xxd
+(* mislabeled variables *)
+comment "reduction lemmas"
+
+art[]
+
+
+comment "deformation in BBs"
+  INTRO_TAC deformation_BBs_ALT [`s`;`k`;`f`;`v`;`e`];
+
+  INTRO_TAC (UNDISCH Ocbicby.LEMMA_6843920790) [`norm (v 3)`;`norm (v 0)`;`norm (v 1)`;`dist(v 0,v 1)`;`dist (v 1,v 3)`;`dist(v 0,v 3)`];
+
+
+  ]);;
+  (* }}} *)
+
 typ `&0 < azim (vec 0) (v 0) (v 1) (v 3)` sat
 mmp (arith `~(a = &0) /\ &0 <= a ==> &0 < a`)
 fyn
@@ -1174,22 +1620,4 @@ st/r
 gtyp `(~collinear {vec 0, v 0, v 3} /\ ~collinear {vec 0, v 0, v 4}) /\ (~collinear {vec 0, v 0, v 1} /\ ~collinear {vec 0, v 0, v 4})` (unlist rt)
 repeat conj then repeat (fxa mmp) then NUM_REDUCE_TAC
 conj
-
-xxd
-
-repeat (gm AZIM_DIHV_SAME_STRONG)
-
-xxd
-intro deform_pent_exists []
-  INTRO_TAC deformation_BBs_ALT [`s`;`k`;`f`;`v`;`e`];
-
-comment "need delta 013> 0, get it from azim sums, do that before 684"
-    INTRO_TAC Terminal.vv_split_azim_generic [`v`;`5`]
-;`p1 + 1`;`k-2`;`k-1`];
-
-  INTRO_TAC (UNDISCH Ocbicby.LEMMA_6843920790) [`norm (v 3)`;`norm (v 0)`;`norm (v 1)`;`dist(v 0,v 1)`;`dist (v 1,v 3)`;`dist(v 0,v 3)`];
-
-
-  ]);;
-  (* }}} *)
 

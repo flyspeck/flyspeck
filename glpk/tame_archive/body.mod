@@ -445,15 +445,15 @@ ineq120 'ID[4240815464 a]'
   { (i,j) in dart_std4 } : 
   (((tau[j]) + ((0.7573 * (azim[i,j])) - 1.433)) - 0.) >= 0.0;
 
+# test 7/2013. Remove this and 704...
+#ineq121 'ID[6944699408 a]' 
+#  { (i,j) in dart_std4 } : 
+#  (((tau[j]) + ((0.972 * (azim[i,j])) - 1.707)) - 0.) >= 0.0;
 
-ineq121 'ID[6944699408 a]' 
-  { (i,j) in dart_std4 } : 
-  (((tau[j]) + ((0.972 * (azim[i,j])) - 1.707)) - 0.) >= 0.0;
 
-
-ineq122 'ID[7043724150 a]' 
-  { (i,j) in dart_std4 } : 
-  (((tau[j]) + ((4.72 * (azim[i,j])) - 6.248)) - 0.) >= 0.0;
+#ineq122 'ID[7043724150 a]' 
+#  { (i,j) in dart_std4 } : 
+#  (((tau[j]) + ((4.72 * (azim[i,j])) - 6.248)) - 0.) >= 0.0;
 
 
 # Symmetry section

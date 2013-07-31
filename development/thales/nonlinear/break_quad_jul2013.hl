@@ -1,0 +1,471 @@
+(* ************************************************************************** *)
+(* July 2013.
+   T. Hales
+   Notes on breaking up the quadrilateral inequalities in ineq.hl into pieces of at most
+   6 variables.
+*)
+(* ************************************************************************** *)
+
+
+(* ************************************************************************** *)
+(* INEQ "3862621143 revised" *)
+(* ************************************************************************** *)
+
+(*
+This inequality is not quite in final form. The inequalities are still too slow.
+*)
+
+(* If dih < 2.15 then Main-inequality d(4) implies the result. WLOG dih > 2.15. *)
+
+(*
+One way to break up quad 386..revised appears in the following inequalities.
+Another approach:
+Change num1 lower bound from 2.38 to 2.9/h0.  Then both back edges can
+be deformed to 2.  Even the front edges can be deformed to 2, by obtuseness of front angle
+and the sign of dih in the inequality.  So all top edges=2.  
+This is contrary to the diagonal constraints in 386...revised.
+*)
+
+run
+  {
+    idv="test dih";
+    doc = "The denominator should be cleared, upper bound increased to &4*h0, delta_y bound made 0";
+    tags=[];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (&2,y4,&2 * h0);
+	 (#3.9,y5,#4.2);
+	 (&2,y6,&2 * h0)]
+      (
+       dih_y y1 y2 y3 y4 y5 y6 < #2.15 / &2 \/
+       delta_y y1 y2 y3 y4 y5 y6 < #0.1)`;
+  };;
+
+run
+{
+  idv="test dih 2";
+  doc="
+    (EAR) A bound on the dih of an ear in a quad,
+   The disjunct   (dih_y y1 y2 y3 y4 y5 y6 < #2.15 / &2  has been 'linearized'. 
+   Tan[2.15 / 2]^2 = (>=) 3.418
+   In more detail, this calc shows that delta > 0 or dih < 2.15 / 2
+   ";
+  tags=[Xconvert;];
+  ineq = Sphere.all_forall `ineq [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (&2,y4,&2 * h0);
+	 (#3.9,y5,&4 * h0);
+	 (&2,y6,&2 * h0)]
+(let tan2lower = #3.418 in
+   ((&4 * x1_delta_y y1 y2 y3 y4 y5 y6 < tan2lower * delta4_squared_y y1 y2 y3 y4 y5 y6) \/
+      delta_y y1 y2 y3 y4 y5 y6 < &0))`;
+};;
+
+
+(* an ineq in main_estimate_ineq.hl, gives that both sides are acute. when cross_diag > 3.01 *)
+
+run2
+  {
+    idv="test side azim 3862621143";
+    doc = "This allows us to restrict the domain on both sides to delta > 16.
+     Tan[2.15 - Pi/2]^2 >= 0.4277.
+     Too slow!! (992 secs).
+     ";
+    tags=[Xconvert];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (&2 ,y4, &2 * h0);
+	 (#3.01,y5,#3.9);
+	 (&2,y6,&2 * h0)]
+(let tan2lower = #0.4277 in
+      (
+	&4 * x1_delta_y y1 y2 y3 y4 y5 y6 < tan2lower * delta4_squared_y y1 y2 y3 y4 y5 y6) \/
+     //  dih_y y1 y2 y3 y4 y5 y6 < #2.15 - pi / &2 \/
+       delta_y y1 y2 y3 y4 y5 y6 < &0 \/
+       delta_y y1 y2 y3 y4 y5 y6 > &16)`;
+  };;
+
+run2
+  {
+    idv="test side' 3862621143";
+    doc = "";
+    tags=[Xconvert];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (&2 ,y4, &2 * h0);
+	 (#3.01,y5,#3.9);
+	 (&2,y6,&2 * h0)]
+      (taum y1 y2 y3 y4 y5 y6  > #0.453  * dih_y y1 y2 y3 y4 y5 y6 - #0.77 / &2 \/
+	 delta_y y1 y2 y3 y4 y5 y6 < &16  \/       dih_y y1 y2 y3 y4 y5 y6 < #2.15 - pi / &2
+)`;
+  };;
+
+
+(* ************************************************************************** *)
+(* INEQ "4240815464 a" *)
+(* ************************************************************************** *)
+
+
+skip
+  {
+    idv="5365514595"; (* test full 4240815464 *)
+    doc = "
+     The following inequalities make 4240815464 into a derived inequality.
+     If dih > 1.621, then the main_estimate d(4) inequality implies this, so wlog dih < 1.621.
+     We may take y4 <= 3.36, for otherwise dih > 1.621.
+     When 3.01 <= y4 <= 3.36, dih < 1.621 ==> Delta(back) > 98 ==> taum(back) > 0.
+     We replace the back taum with 0, and run the 6D ineq on the front simplex.
+     -
+     When 2.62 <= y4 <= 3.01, use taum(back) >= 1.03. to remove the back simplex. Run on the front.
+     -
+     When 2.52 <= y4 <= 3.01, use a custom linear lower bound on tam(back) to remove the back simplex.
+     -
+     passes when we zero out back term. ";
+    tags=[];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (#3.01 ,y4, #3.36);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0);
+	 (&2,y7,&2 * h0);
+	 (&2,y8,&2 * h0);
+	 (&2,y9,&2 * h0)
+]
+      (
+	taum y1 y2 y3 y4 y5 y6  + taum y7 y2 y3 y4 y8 y9 +
+	  #0.7573 * dih_y y1 y2 y3 y4 y5 y6 - #1.433 > &0 \/
+	  dih_y y1 y2 y3 y4 y5 y6 > #1.621)`;
+  };;
+
+add
+  {
+    idv="3397113841"; (* test dih (delta4) 4240815464 *)
+    doc = "Justifies linearized dih when y4 >= 3.36";
+    tags=[Xconvert];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (#3.36 ,y4, #3.36);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)]
+      (
+       delta4_y y1 y2 y3 y4 y5 y6 < &0)`;
+  };;
+
+add
+  {
+    idv="6078657299"; (* test dih 4240815464 *)
+    doc = "Monotonic in y4.
+      y4 > 3.36 ==> dih > 1.621.
+      Tan[Pi - 1.621]^2 >= 396.1.
+       ";
+    tags=[Xconvert];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (#3.36 ,y4, #3.36);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)]
+  (let tan2lower = #396.1 in
+   ((&4 * x1_delta_y y1 y2 y3 y4 y5 y6 < tan2lower * delta4_squared_y y1 y2 y3 y4 y5 y6) \/
+//       dih_y y1 y2 y3 y4 y5 y6 > #1.621 \/
+      delta_y y1 y2 y3 y4 y5 y6 < &0))`;
+  };;
+
+add
+  {
+    idv="8384429938"; (* test delta98 lindih 4240815464 *)
+    doc = "Justifies linearlized dih on [3.01,3.36] s.t. delta<98.";
+    tags=[Xconvert];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (#3.01 ,y4, #3.36);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)
+//	 (&2,y7,&2 * h0)
+]
+      (
+//	delta_y (&2 * h0) y2 y3 y4 (&2) (&2) > &98 \/
+	y_of_x (delta_234_x ((&2 * h0) pow 2) (&4) (&4)) y1 y2 y3 y4 y5 y6 > &98 \/
+	  delta4_y y1 y2 y3 y4 y5 y6 < &0 
+)`;
+  };;
+
+add
+  {
+    idv="9893763499"; (* test delta98 4240815464 *)
+    doc = "Use monotonicity of Delta to reduce to y7=2.52, y8=2, y9=2. Shows dih>1.621 ==> delta>98";
+    tags=[Xconvert];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (#3.01 ,y4, #3.36);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)
+//	 (&2,y7,&2 * h0)
+]
+  (let tan2lower = #396.1 in
+   ((&4 * x1_delta_y y1 y2 y3 y4 y5 y6 < tan2lower * delta4_squared_y y1 y2 y3 y4 y5 y6) \/
+//	  dih_y y1 y2 y3 y4 y5 y6 > #1.621 \/
+//	delta_y (&2 * h0) y2 y3 y4 (&2) (&2) > &98 \/
+	y_of_x (delta_234_x ((&2 * h0) pow 2) (&4) (&4)) y1 y2 y3 y4 y5 y6 > &98 
+))`;
+  };;
+
+add
+  {
+    idv="5429228381"; (* test back98 4240815464 *)
+    doc = "taum lower bound on back simplex when y4 in [3.01,3.36]";
+    tags=[Xconvert];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (#3.01 ,y4, #3.36);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)
+]
+      (
+	taum y1 y2 y3 y4 y5 y6 > -- #0.07 \/ 
+	  delta_y y1 y2 y3 y4 y5 y6 < &98)`;
+  };;
+
+add
+  {
+    idv="3508342905"; (* test front98 4240815464 *)
+    doc = "lower bound on front simplex when y4 in [3.01,3.36]";
+    tags=[Xconvert];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (#3.01 ,y4, #3.36);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)
+]
+      (
+	taum y1 y2 y3 y4 y5 y6   - #0.07 +
+	  #0.7573 * dih_y y1 y2 y3 y4 y5 y6 - #1.433 > &0 \/
+	  dih_y y1 y2 y3 y4 y5 y6 > #1.621 \/
+        delta_y y1 y2 y3 y4 y5 y6 < &98)`;
+  };;
+
+add
+  {
+    idv="2862885615"; (* test front103 4240815464 *)
+    doc = "lower bound on front simplex when y4 [2.62,3.01]";
+    tags=[Xconvert];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (#2.62 ,y4, #3.01);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)
+]
+      (
+	taum y1 y2 y3 y4 y5 y6 + #0.103 +
+	  #0.7573 * dih_y y1 y2 y3 y4 y5 y6 - #1.433 > &0 \/
+	  dih_y y1 y2 y3 y4 y5 y6 > #1.621)`;
+  };;
+
+add
+  {
+    idv="1611600345";  (* test back 4240815464 *)
+    doc = "lower bound on back simplex when y4 in [2.52,2.62]";
+    tags=[Xconvert];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (#2.52 ,y4, #2.62);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)
+]
+      (
+	taum y1 y2 y3 y4 y5 y6 > #0.095 + #0.14 * (y2 + y3 - &4) )`;
+  };;
+
+add
+  {
+    idv="2608321088"; (* test front 4240815464 *)
+    doc = "";
+    tags=[Xconvert];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (#2.52 ,y4, #2.62);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)
+]
+      (
+	taum y1 y2 y3 y4 y5 y6 + #0.095 + #0.14 * (y2 + y3 - y4) +
+	  #0.7573 * dih_y y1 y2 y3 y4 y5 y6 - #1.433 > &0 \/
+	  dih_y y1 y2 y3 y4 y5 y6 > #1.621)`;
+  };;
+
+
+(* ************************************************************************** *)
+(* DEPRECATED INEQ 704377224150 *)
+(* ************************************************************************** *)
+
+skip
+  {
+    idv="test azim 70437224150";
+    doc = "";
+    tags=[];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (#2.65,y4,sqrt8);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)]
+      (dih_y y1 y2 y3 y4 y5 y6 > #1.215)`;
+  };;
+
+skip
+  {
+    idv="old test front 70437224150";
+    doc = "";
+    tags=[];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (&2 * h0,y4,#2.77);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)]
+      (taum y1 y2 y3 y4 y5 y6 + #0.0842 + #0.16 * (y2 + y3 - &4) + -- #0.018 * (y4 - &2 * h0) + #4.72 * dih_y y1 y2 y3 y4 y5 y6 > #6.235)`;
+  };;
+
+skip
+  {
+    idv="old test back 70437224150";
+    doc = "";
+    tags=[];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (&2 * h0,y4,#2.84);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)]
+      (taum y1 y2 y3 y4 y5 y6 > #0.0842 + #0.16 * (y2 + y3  - &4) - #0.018 * (y4 - &2 * h0))`;
+  };;
+
+skip
+  {
+    idv="test front 70437224150";
+    doc = "";
+    tags=[];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (&2 * h0,y4,#2.65);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)]
+      (taum y1 y2 y3 y4 y5 y6 + #0.0842 + #0.17 * (y2 + y3 - &4) + -- #0.01 * (y4 - &2 * h0) + #4.72 * dih_y y1 y2 y3 y4 y5 y6 > #6.248)`;
+  };;
+
+skip
+  {
+    idv="test back 70437224150";
+    doc = "";
+    tags=[];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (&2 * h0,y4,#2.65);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)]
+      (taum y1 y2 y3 y4 y5 y6 > #0.0842 + #0.17 * (y2 + y3  - &4) - #0.01 * (y4 - &2 * h0))`;
+  };;
+
+skip
+  {
+    idv="test";
+    doc = "";
+    tags=[];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (#3.23,y4,#3.4);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)]
+      (dih_y y1 y2 y3 y4 y5 y6 > #1.544)`;
+  };;
+
+skip
+  {
+    idv="test front";
+    doc = "";
+    tags=[];
+  ineq = Sphere.all_forall `ineq
+      [
+	 (&2,y1,&2 * h0);
+	 (&2,y2,&2 * h0);
+	 (&2,y3,&2 * h0);
+	 (&2 * h0,y4,#2.84);
+	 (&2,y5,&2 * h0);
+	 (&2,y6,&2 * h0)]
+      (taum y1 y2 y3 y4 y5 y6 + #0.0842 + #0.16 * (y2 + y3 - &4) + -- #0.018 * (y4 - &2 * h0) + #0.972 * dih_y y1 y2 y3 y4 y5 y6 > #1.707)`;
+  };;
+
+skip
+  {
+idv="test";
+doc = "If  minor diag >= 3, then 3/1.26 > 2.38 and we can contract.
+          15.53: arc[2,2,2.52]2 < arc[2,2,Sqrt[15.53]].
+           Added May 12, 2011.
+       c2 upper bound changed from 15.53 to 16.0 on May 23.";
+tags=[];
+ineq = Sphere.all_forall `ineq
+  [
+  (&1 , e1, &1 + sol0/ pi);
+  (&1 , e2, &1 + sol0/ pi);
+  (&1 , e3, &1 + sol0/ pi);
+  ((&2 / h0) pow 2, a2, (&2 * h0) pow 2);
+  ((&2/ h0) pow 2, b2, #3.01 pow 2);
+  ((#2.9 / h0) pow 2, c2,#16.0)
+  ]
+   ((num1 e1 e2 e3 a2 b2 c2 ) > &0) `;
+};;

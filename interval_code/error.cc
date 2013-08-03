@@ -8,17 +8,45 @@
 extern "C" {
 #include <stdlib.h>
 #include <time.h>
-#include <sys/time.h>
+  // #include <sys/time.h>
 }
 #include <cstdlib>
 #include <unistd.h>
 #include <iostream>
 #include "error.h"
 
+
+
+
 using namespace std;
 
 static int ERROR_COUNT=0;
 static int CORNER_COUNT=0;
+
+static  double timelimit =0.0;
+static time_t start = clock();
+
+void error::set_overtime(double millisec) {
+  timelimit = millisec;
+}
+
+double error::cpu_millisecs() {
+  time_t end = clock();
+  return (1000.0 * (((double) (end - start)) / CLOCKS_PER_SEC));
+}
+
+void error::halt_overtime() {
+  time_t end = clock();
+  if (timelimit > 0.0 && (cpu_millisecs() > timelimit))
+    {
+      cout << "Too LONG msecs=" << timelimit << "; Bailing out..."<< endl<< flush;
+      exit(0);
+    }
+}
+
+
+
+
 
 void error::printTime()
         {

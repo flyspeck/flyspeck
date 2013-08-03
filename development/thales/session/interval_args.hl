@@ -1,3 +1,38 @@
+open Sphere2;;
+
+type iargs = Iarg_facet of (int * bool * float * iargs)
+	     | Iarg_null
+	     | Iarg_cut of (int * float * iargs * iargs);;
+
+Iarg_cut (3,0.5,Iarg_null,Iarg_null);;
+
+
+
+Random.init 0;;
+
+let getprep s = hd(filter (fun t -> t.idv = s) (!Prep.prep_ineqs));;
+
+let nth = List.nth;;
+
+let rec cart a b = 
+  match a with
+    | [] -> []
+    | a::rest -> (map (fun x -> (a,x)) b) @ cart rest b;;
+
+let maxlist xs = List.fold_right max xs (nth xs 0);;
+
+let minlist xs = List.fold_right min xs (nth xs 0);;
+
+let fst_safe_chop n ls = if List.length ls < n then ls else fst(chop_list n ls);;
+
+let ( MSEC_INC ) = 1000;; (* global parameter for msec target size *)
+
+let msec_inc = float_of_int MSEC_INC;;
+
+(* eval *)
+
+eval_command "3 * 4";;
+
 let float_cache = ref (fun() -> 0.0);;
 
 let eval_float s = 
@@ -7,9 +42,41 @@ let eval_float s =
     let t= (!float_cache)() in
       t;;
 
+let fn_cache = ref (Sphere2.delta_x);;
+
+let mk_fn nanvalue tm = 
+  let iis = Parse_ineq.ocaml_string_of_term tm in
+  let (b,r) = eval_command ~silent:false
+    (Printf.sprintf 
+       "fn_cache := (fun x1 x2 x3 x4 x5 x6 -> 
+         let e =  ( %s ) in
+         if (compare e nan = 0) then %f else e)" iis nanvalue) in
+  let _ = b or (print_string (r^"\n"^(string_of_term tm)^"\n"); failwith "bad input string") in
+    (!fn_cache);;
+
+let mk_neg_fn tm = 
+  mk_fn (- 1.0) (mk_comb (` ( -- ) `, tm));;
+
+mk_neg_fn `delta_x x1 x2 x3 x4 x5 x6` 2. 2. 2. 2. 2. 2.;;
+
+(*
+let iis_eval iisk xlist = 
+  let x = List.nth xlist in
+  let iis = Parse_ineq.ocaml_string_of_term iisk in
+  eval_float (Printf.sprintf 
+"let x1 = %f in
+ let x2 = %f in
+ let x3 = %f in
+ let x4 = %f in
+ let x5 = %f in
+ let x6 = %f in
+ let e =     ( -. ( %s ) ) in
+   if (compare e nan = 0) then - 1.0 else e" 
+(x 0) (x 1) (x 2) (x 3) (x 4) (x 5) iis);;
+*)
 
 
-(* This version omits the given bounds. Added 2013/7/30 for nonrigorous partitioning experiments. *)
+(* Parse *)
 
 let cpp_template_arg = Printf.sprintf "
  const char svn[] = %s;
@@ -34,7 +101,6 @@ let cpp_template_arg = Printf.sprintf "
         %s // other options.
 	return  prove::recursiveVerifier(0,x,z,x0,z0,I,%d,opt); // len
 	}";;
-
 
 let mk_cpp_arg_proc t s tags = 
   let sharp = if  mem Sharp tags then 1 else 0 in
@@ -63,7 +129,7 @@ let mkfile_arg t s tags  =
   Flyspeck_lib.output_filestring tmpfile
    (join_lines [cpp_header;Auto_lib.interval_code;(mk_cpp_arg_proc t s tags);cpp_tail]);;
 
-let execute_args ex tags s testineq xlist zlist =  (* xxd add args *)
+let execute_args ex tags s testineq xlist zlist =  
    let x = List.nth xlist in
    let z = List.nth zlist in
    let args = Printf.sprintf " %f %f %f %f %f %f   %f %f %f %f %f %f"
@@ -74,18 +140,34 @@ let execute_args ex tags s testineq xlist zlist =  (* xxd add args *)
   let _ = (not ex) or (0=  Sys.command(interval_dir^"/test_auto"^args)) or failwith "interval execution error" in
     ();;
 
-let rerun xlist zlist = 
+let rec trim s = 
+  let white c = mem c [' '; '\012'; '\n'; '\r'; '\t'] in
+  let n = String.length s in
+  let subs k = String.sub s k (n-1) in
+    if (n > 0 && white (s.[0])) then trim (subs 1)
+    else if (n > 1 && white (s.[n-1])) then trim (subs 0)
+    else s;;
+
+let run_out = Filename.temp_file "run" ".out";;
+
+let rerun_timer xlist zlist timer = 
    let x = List.nth xlist in
    let z = List.nth zlist in
-   let args = Printf.sprintf " %f %f %f %f %f %f   %f %f %f %f %f %f"
-      (x 0) (x 1) (x 2) (x 3) (x 4) (x 5)     (z 0) (z 1) (z 2) (z 3) (z 4) (z 5) in
+   let args = Printf.sprintf " %f %f %f %f %f %f   %f %f %f %f %f %f %f"
+      (x 0) (x 1) (x 2) (x 3) (x 4) (x 5)     (z 0) (z 1) (z 2) (z 3) (z 4) (z 5) (float_of_int timer) in
   let interval_dir = flyspeck_dir^"/../interval_code" in
-  let _ = (0=  Sys.command(interval_dir^"/test_auto"^args)) or failwith "interval execution error" in
-    ();;
+  let _ = (0=  Sys.command(interval_dir^"/test_auto"^args^" | tee "^run_out)) or 
+    failwith "interval execution error" in
+  let outs = trim (process_to_string ("grep msecs "^run_out^" | sed 's/^.*msecs=//' | sed 's/;.*$//' ")) in
+(*  let _ = report (":"^outs^":") in *)
+  let msecs = try (int_of_string (outs)) with _ -> timer in
+    (msecs);;
+
+let rerun xlist zlist = rerun_timer xlist zlist 0;;
 
 let process_and_prep_args ex (s,tags,case) = 
   let _ = report ("process and prep args: "^s) in
-  let (s,tags,testineq) = preprocess (s,tags,case) in
+  let (s,tags,testineq) = (* preprocess debug *) (s,tags,case) in
   let (x,y,_) = dest_nonlin testineq in
     (execute_args ex tags s testineq , x, y);;
 
@@ -93,12 +175,492 @@ let testsplit_idq ex idq =
   let splits = Optimize.preprocess_split_idq idq in
     map (fun (s,tags,testineq) -> execute_args ex tags s testineq) splits;;
 
+(* domain constants *)
+
+let idvlist = map (fun t -> t.idv) (!Prep.prep_ineqs);;
+
+let scrub_c t = 
+  let th = REWRITE_CONV [Sphere.h0;
+        GSYM Nonlinear_lemma.sol0_over_pi_EQ_const1;
+	ASSUME `hminus = #1.2317544220903216`;
+        ASSUME `pi = #3.1415926535897932385`;
+        ASSUME `sol0 = #0.55128559843253080794`] t in
+    rhs(concl th);;
+
+let get_constants_xy s = 
+  let (s,tags,case) = Optimize.idq_fields (getprep s) in
+  let (x,y,_) = dest_nonlin case in
+    (map scrub_c x,map scrub_c y);;
+
+let get_constants s = 
+  let (x,y) = get_constants_xy s in x @ y;;
+
+let get_float_domain s = 
+  let m = map (eval_float o Parse_ineq.ocaml_string_of_term) in
+  let (x,y) = get_constants_xy s in
+    (m x,m y);;
+
+
+
+(* they all check out on 2013/7/31
+find (fun s -> not(can get_float_domain s)) (snd (chop_list 650 idvlist));;
+*)
+
+let get_disj_function s = 
+  let (s,tags,case) = Optimize.idq_fields (getprep s) in
+  let (_,_,iis) = dest_nonlin case in
+    map mk_neg_fn iis;;
+
+(*
+let (s,tags,case) = Optimize.idq_fields (getprep "6601228004");;
+let (xx,zz,iis) = dest_nonlin case;;
+map Parse_ineq.ocaml_string_of_term iis;;
+*)
+
+(* corner data *)
+let (left,right) = (false,true);;
+
+let bool_cases = 
+  let bool = [left;right] in
+  let b1 = ((cart bool) o (cart bool) o (cart bool) o (cart bool))  (cart bool bool) in
+    map (fun (a,(b,(c,(d,(e,f))))) -> [a;b;c;d;e;f]) b1;;
+
+let one_corner x z b =
+  let f j = (if (nth b j) then (nth z j) else (nth x j)) in
+    map f (0--5);;
+
+let corners x z = map (one_corner x z) bool_cases;;
+
+let maxeval flist y = 
+  let fx = map (fun f -> f y) flist in
+    maxlist fx;;
+
+let maxevall flist ylist = map (maxeval flist) ylist;;
+  
+(* facet data *)
+
+let faceteval mxvl = 
+  let _ = List.length bool_cases = List.length mxvl or failwith "facet length mismatch" in
+  let z = zip mxvl bool_cases in
+    fun (i,side)  ->
+      let fil (_,c) = nth c i = side in
+      let mxvlf = map (fun (r,_) -> r) (List.filter fil z) in
+      let _ = 2 * List.length mxvlf = List.length bool_cases or failwith "facet size" in
+	minlist mxvlf;;
+
+let allfacetl = cart (0--5) [left;right];;
+
+let facet_opp (i,side)= (i,not side);;
+
+(* Avoid narrow subdivision: pick facet among those that are at least a quarter the largest *)
+
+let quarter_facetl x z = 
+  let w = map (fun (xi,zi) -> zi -. xi) (zip x z) in
+  let wm = maxlist w in
+  let rg = filter (fun i -> nth z i -. nth x i > 0.25 *. wm) (0--(List.length x - 1)) in
+    cart rg [left;right];;
+
+let cur6 f xl = f (nth xl 0) (nth xl 1) (nth xl 2) (nth xl 3) (nth xl 4) (nth xl 5);;
+
+let pick_facet facetl mxvl = 
+  let facetvl = map (faceteval mxvl) (facetl) in
+  let m = maxlist facetvl in
+  let j = index (m) facetvl in
+    nth facetl j;;
+
+let mk_pf flist (x, z) =  
+  let facetl = quarter_facetl x z in
+  let max_eval_corners = maxevall flist (corners x z) in
+    pick_facet facetl max_eval_corners;;
+
+
+(*
+let pick_facet_c facetl flist x z = 
+  let ylist = corners x z in
+  let mxvl = maxevall flist ylist in
+    pick_facet facetl mxvl;;
+
+let pick_facet_s s = 
+  let flist = get_disj_function s in
+  let (x,z) = get_float_domain s in
+  let facetl = quarter_facetl x z in
+    pick_facet_c facetl (map cur6 flist) x z;;
+*)
+
+(* interpolate along edge *)
+
+let invert_side (_,side) (x,z) = 
+  if side then (z,x) else (x,z);;
+
+let invert_interpolate (i,side) frac (x,z) =
+  let _ = (0.0 <= frac && frac <= 1.0) or failwith "invert_interpolate: frac out of range " in
+  let _ = List.length x = List.length z or failwith "invert_interpolate: length mismatch" in
+  let n = List.length x in
+  let rg = (0--(n-1)) in
+  let (x,z) = invert_side (i,side) (x,z) in
+  let c = nth x i *. (1.0-. frac) +. nth z i *. frac in
+  let modi (xi,j) = if (i=j) then c else xi in
+  let xm = map modi (zip x rg) in
+  let zm = map modi (zip z rg) in
+    (* partition will be x--zm,  xm--z *)
+    invert_side(i,side) (xm,zm);;
+
+(* test 
+let least_squares_approx xlist ylist = 
+  let sum = (end_itlist (+.)) in
+  let n = float_of_int (List.length xlist) in
+  let xm = (sum xlist)/. n in
+  let ym = (sum ylist)/. n in
+  let xy = map (fun (x,y) -> (x -. xm) *. (y -. ym)) (zip xlist ylist) in
+  let x2 = map (fun x -> (x -. xm) *. (x -. xm)) xlist in
+  let beta1 = (sum xy) /. (sum x2) in
+  let beta0 = ym -. beta1 *. xm in
+    (beta0,beta1);;
+
+let least_squares_logarithmic xlist ylist =  (* fit to curve: y = a*x^b *)
+  let xlist' = map Pervasives.log xlist in
+  let ylist' = map Pervasives.log ylist in
+  let (beta0,beta1) = least_squares_approx xlist' ylist' in
+  let (a,b) = (Pervasives.exp beta0,beta1) in
+    (a,b);;
+
+let quadratic_fit c xlist ylist = (* fit to curve y = a x^2 + b x + c , c fixed. *)
+  let sum = (end_itlist (+.)) in
+  let ylist = map (fun y -> y -. c) ylist in
+  let sx k = sum (map (fun x -> x ** k) xlist) in
+  let sxy k = sum (map (fun (x,y) -> y *. (x ** k)) (zip xlist ylist)) in
+  let sx2 = sx 2.0 in
+  let sx3 = sx 3.0 in
+  let sx4 = sx 4.0 in
+  let sx1y = sxy 1.0 in
+  let sx2y = sxy 2.0 in
+  let det = sx4 *. sx2 -. (sx3 *. sx3) in
+  let a = (sx2 *. sx2y -. sx3 *. sx1y) /. det in
+  let b = (sx4 *. sx1y -. sx3 *. sx2y) /. det in
+    (a,b,c);;
+
+let solve_quadratic (a,b,c) y = 
+  let d = b *. b -. 4.0 *. a *. (c -. y) in
+  let _ = (d > 0.0) or failwith "no real roots" in
+  let s = sqrt(d) in
+  let r1 = ((-. b) +. s) /. (2.0 *. a) in
+  let r2 = ((-. b) -. s) /. (2.0 *. a) in
+   if (0.0 <= r1 && r1 <= 1.0) then r1
+   else if (0.0 <= r2 && r2 <= 1.0) then r2
+   else failwith "roots are out of range";;
+
+let ddd = map (fun (_,u,_) -> u) [
+ ((0, false), (0.196275666601799431, 73.), 9993);
+   ((0, false), (0.764104911515560925, 502.), 9993);
+   ((0, false), (0.893064817501108332, 1905.), 9993);
+   ((0, false), (0.276304827921429463, 73.), 9993);
+   ((0, false), (0.605433991781587633, 123.), 9993);
+   ((0, false), (0.736670582471465663, 333.), 9993);
+   ((0, false), (0.515415385467421716, 110.), 9993);
+   ((0, false), (0.339550336482261572, 74.), 9993);
+   ((0, false), (0.100070049034324024, 74.), 9993)];;
+
+let (a,b,c) = 
+  let ddd' = fst (chop_list 3 ddd) in
+let (xl,yl) = unzip ddd' in
+  quadratic_fit 75.0 xl yl;;
+
+solve_quadratic (a,b,c) (float_of_int MSEC_INC);;
+
+let fitx x = a *. (x *. x) +. b *. x +. c;;
+
+fitx 0.80;;
+
+let guess_frac data (i,side) msec_remaining upper = 
+  let d1 = filter (fun ((i',side'),_,_) -> (i'=i && side' = side)) data in
+  let d2 = filter (fun (_,_,msec_remaining') -> (msec_remaining' = msec_remaining)) d1 in
+  let d3 = if (List.length d2 > 2) then d2 else fst_safe_chop 3 d1 in
+    if List.length d3 < 2 
+    then (float_of_int MSEC_INC) /. (float_of_int msec_remaining) 
+    else 
+      let (xlist,ylist) = unzip (map (fun (_,u,_) -> u) d3) in
+      let (a,b,c) = quadratic_fit 75.0 xlist ylist in
+      let xf = solve_quadratic(a,b,c) (float_of_int MSEC_INC) in
+	if (xf > upper) then upper else xf;;
+
+(*
+let rec put_frac_in_range (x1,z1) data (i,side) msec_remaining frac upper_frac = 
+  let (xm,zm) = invert_interpolate (i,side) frac (x1,z1) in
+  let msec = if (side=left) then rerun_timer x1 zm (2 * MSEC_INC) else rerun_timer xm z1 (2 * MSEC_INC) in
+    if msec < 2 * MSEC_INC then
+      (msec,frac,upper_frac,(xm,zm))
+    else 
+      let t = Random.float upper_frac in
+	put_frac_in_range (x1,z1) data (i,side) msec_remaining t (min frac upper_frac);;
+
+let rec fit_msec (data, (i,side), (x1,z1) ,msec_remaining,upper_frac) = 
+  let frac0 = guess_frac data (i,side) msec_remaining upper_frac in
+  let (msec,frac,upper_frac,(xm,zm)) = put_frac_in_range (x1,z1) data (i,side) msec_remaining frac0 upper_frac in
+  let _ = report ("frac,msec: "^string_of_float frac^" "^string_of_int msec) in
+  let residual= if (side=left) then (xm,z1) else (x1,zm) in
+  let data' = ((i,side),(frac,(float_of_int msec)),msec_remaining)::data in
+  let error_factor = float_of_int msec /. float_of_int MSEC_INC in
+    if (error_factor > 1.25 or error_factor < 0.75)
+    then fit_msec (data',(i,side),(x1,z1),msec_remaining,upper_frac)
+    else (frac,data',mk_pf residual,residual,msec_remaining - msec);;
+*)
+
+*)
+
+let interpolate_frac (f1,t1) (f2,t2) = 
+  let _ = (0.0 <= f1 && f1 < f2 && f2 <= 1.0 && t1 <= msec_inc && msec_inc <= t2) 
+    or failwith "interpolate: out of range" in
+    (msec_inc -. t1) *. (f2 -. f1) /. (t2 -. t1) +. f1;;
+
+let run_frac_report frac facet (x1,z1) (f1,t1) (f2,t2) timeout = 
+  let (xm,zm) = invert_interpolate facet frac (x1,z1) in
+  let m3 = if (snd facet =left) then rerun_timer x1 zm timeout else rerun_timer xm z1 timeout in
+  let _ = report (Printf.sprintf "guessed: frac,msec = %f,%d from %f,%f %f,%f" frac m3 f1 t1 f2 t2) in 
+    ((xm,zm),m3);;
+
+let run_frac frac facet (x1,z1) timeout = 
+  let (xm,zm) = invert_interpolate facet frac (x1,z1) in
+  let m3 = if (snd facet =left) then rerun_timer x1 zm timeout else rerun_timer xm z1 timeout in
+    ((xm,zm),m3);;
+
+let rec recursive_find_frac facet x1 z1 error_tolerance (f1,t1) (f2,t2) = 
+  (* last case in a batch may have a small t2, so dont use abs_float in the following line *)
+  if (t2/. msec_inc -. 1.0) < error_tolerance then (f2,int_of_float t2)
+  else if abs_float(t1/. msec_inc -. 1.0) < error_tolerance then (f1,int_of_float t1)
+  else 
+  let f3 = interpolate_frac (f1,t1) (f2,t2) in
+  let f3 = if (Random.int 4 = 0 && t2 > 1.9*. msec_inc) then 
+    (f1+.f2)/. 2.0 +. Random.float (f2 -. f1) /. 2.0 else f3 in
+  let f3 = if (Random.int 3 = 0 && t1 < 0.5*. msec_inc) then
+    f1 +. Random.float (f2 -. f1)/. 2.0 else f3 in
+  let _ = (f1 <= f3 && f3 <= f2) or failwith "recursive_find_frac: out of range" in
+  let ((xm,zm),m3) = run_frac_report f3 facet (x1,z1) (f1,t1) (f2,t2) (2 * MSEC_INC) in
+  let t3 = float_of_int m3 in
+    if abs_float(t3/. msec_inc -. 1.0) < error_tolerance then (f3,m3)
+    else 
+      let ((f1',t1'),(f2',t2')) = if (t3 <= msec_inc) then ((f3,t3),(f2,t2)) else ((f1,t1),(f3,t3)) in
+	recursive_find_frac facet x1 z1 error_tolerance (f1',t1') (f2',t2');;
+
+let mk_pf2 _ (x, z) =  
+  let facetl = quarter_facetl x z in
+  let probe_facet facet = run_frac_report 0.00001 facet (x1,z1) (0.0,0.0) (0.0,0.0) 300 in
+  let msecl = map (fun (_,m) -> m) (map probe_facet facetl) in
+  let m = minlist msecl in
+  let i = index m msecl in
+    nth facetl i;;
+
+
+(* initialize *)
+
+let initial_msec = 
+  let ft_sec = Scripts.finalize Scripts.finished_times in
+  let ft_msec = Scripts.finalize Scripts.finished_times_msecs in
+    fun s ->
+      try assoc s ft_msec 
+      with _ -> 1000 * (assoc s ft_sec );;
+
+let s = ();;
+
+let initialize s = 
+  let s1 = s in
+  let (x1,z1)=get_float_domain s1 in
+  let curlist1 = map cur6 flist1 in
+  let stc = Optimize.idq_fields (getprep s1) in
+  let (compile,_,_) = process_and_prep_args false stc in
+  let msec = initial_msec s1 in
+  let _ = compile x1 z1 in
+  let msec0 = rerun_timer x1 x1 (2 * MSEC_INC) in
+    (x1,z1,mk_pf2 curlist1 (x1,z1),curlist1,msec,msec0,stc);;
+
+
+(*
+  let facetvl = map (faceteval mxvl) (facetl) in
+  let m = maxlist facetvl in
+  let j = index (m) facetvl in
+    nth facetl j;;
+let qfx = quarter_facetl x1 z1;;
+map (faceteval mxvlx) qfx;;
+let mxvlx = maxevall curlist1 (corners x1 z1);;
+pick_facet qfx mxvlx;;
+*)
+
+let one_pass (facet,(x,z)) = 
+  let msec = rerun_timer x z (2 * MSEC_INC) in
+  let (f2,m2) = recursive_find_frac facet x z 0.3 (0.0,0.0) (1.0,float_of_int msec) in
+  let (xm,zm) = invert_interpolate facet f2 (x,z) in
+  let residual= if (snd facet=left) then (xm,z) else (x,zm) in
+    (f2,m2,residual);;
+
+let rec all_pass (flist,(x,z)) counter = 
+  let facet = mk_pf2 flist (x,z) in
+  let (f2,m2,residual) = one_pass (facet,(x,z)) in
+  let _ =   report (Printf.sprintf "FOUND: facet(%d,%s) frac(%f) msec(%d) count(%d)" 
+		      (fst facet) (if snd facet then "RIGHT" else "LEFT") f2 m2 counter) in
+  let r1 k = List.nth (fst residual) k in
+  let r2 k = List.nth (snd residual) k in
+  let s = Printf.sprintf "x,z=[%f;%f;%f;%f;%f;%f],[%f;%f;%f;%f;%f;%f]" 
+    (r1 0) (r1 1) (r1 2) (r1 3) (r1 4) (r1 5) 
+    (r2 0) (r2 1) (r2 2) (r2 3) (r2 4) (r2 5) in
+  let _ = report s in
+    if (f2 < 0.999999999) then all_pass(flist,residual) (counter+1) else
+      ();;
+
+let do_all s1 = 
+  let (x1,z1,pf1,curlist1,msec1,msec0,_) = initialize s1 in
+    all_pass(curlist1,(x1,z1)) 0;;
+
+
+let pass_revised (direction,(x,z),msec) =
+  let fi = float_of_int in
+  let timeout = 2 * MSEC_INC in
+  let (s0,s1,s2) = (0,1,2) in
+  let facet = (direction,left) in
+  let sz m = 
+    let t = fi m /. fi MSEC_INC in
+      if t < 0.7 then s0 else if t < 1.999 then s1 else s2 in
+    if msec < timeout  then 
+      ([(x,z),msec],[]) (* finished,unfinished *)
+    else 
+      let (_,m3A) = run_frac 0.5 facet (x,z) timeout in
+      let (_,m3B) = run_frac 0.5 (facet_opp facet) (x,z) timeout in
+      let (m3A,m3B,facet) = if m3A<=m3B then (m3A,m3B,facet) else (m3B,m3A,facet_opp facet) in
+      let sA = sz m3A in
+	if (sA=s2) then 
+	  let (xm,zm) = invert_interpolate facet 0.5 (x,z) in
+	  let partA,partB = if (snd facet=left) then  ((x,zm),(xm,z)) else ((xm,z),(x,zm)) in
+	    ([],[(partA,m3A);(partB,m3B)])
+	else if (sA=s0) then
+	  let (fracA,m4A) = recursive_find_frac facet x z 0.3 (0.5,fi m3A) (1.0,fi msec) in
+	  let (xm,zm) = invert_interpolate facet fracA (x,z) in
+	  let (_,m4B) = run_frac (1.0-. fracA) (facet_opp facet) (x,z) timeout in
+	  let partA,partB = if (snd facet=left) then  ((x,zm),(xm,z)) else ((xm,z),(x,zm)) in
+	  let (b1,b2) = if sz m4B = s2 then ([],[partB,m4B]) else ([partB,m4B],[]) in
+	    ([partA,m4A] @ b1,b2)
+	else (* sA=s1 *) ([],[]);;
+
+	
+run_frac;;  
+
+(* one pass *)
+let s1 = "6601228004";;
+let (x1,z1,pf1,curlist1,msec1,msec0,_) = initialize s1;;
+pf1;;
+let (_,_,(x',z')) = one_pass(pf1,(x1,z1));;
+let pf' = mk_pf2 curlist1 (x',z');;
+let (_,_,(x',z')) = one_pass(pf',(x',z'));;
+all_pass(curlist1,(x1,z1)) 0;;
+
+let s1 = "1085358243";;
+let (x1,z1,pf1,curlist1,msec1,msec0,_) = initialize s1;;
+one_pass( pf1,(x1,z1));;
+map (fun facet -> run_frac_report 0.01 facet (x1,z1) (0.0,0.0) (0.0,0.0) 2000) allfacetl;;
+probe_facet pf1 ;;
+all_pass(curlist1,(x1,z1)) 0;;
+
+let s1 = "OXLZLEZ 6346351218 1 23";;
+let (x1,z1,pf1,curlist1,msec1,msec0,_) = initialize s1;;
+all_pass(curlist1,(x1,z1)) 0;;
+
+let s1 =  "QITNPEAv2 4003532128 split(0/2)";;
+let (x1,z1,pf1,curlist1,msec1,msec0,_) = initialize s1;;
+all_pass(curlist1,(x1,z1)) 0;;
+pf1;;
+allfacetl;;
+let probe_facet facet = run_frac_report 0.00001 facet (x1,z1) (0.0,0.0) (0.0,0.0) 300;;
+map probe_facet (quarter_facetl x1 z1);;
+run_facet 0;;
+run_facet 1;;
+run_facet 2;;
+run_facet 3;;
+run_facet 4;;
+let ftimes = map probe_facet (0..
+run_frac_report 0.001 pf1 (x1,z1) (0.0,0.0) (1.0,0.0);;
+
+do_all "OXLZLEZ 6346351218 1 23";;
+
+
+do_all s1;;
+
+
+recursive_find_frac pf1 x1 z1 0.3 (0.0,0.0) (1.0,5.0 *. msec_inc);;
+let one_pass (pf1,(x1,z1));;
+
+let (f2,m2) = recursive_find_frac pf1 x1 z1 0.3 (0.0,float_of_int msec0) (1.0,float_of_int msec1);;
+let (xm,zm) = invert_interpolate pf1 f2 (x1,z1);;
+  let msec = if (snd pf1 =left) then rerun_timer x1 zm (2 * MSEC_INC) else rerun_timer xm z1 (2 * MSEC_INC);;
+
+    
+(*
+
+let mxvl1 = maxevall curlist1 (corners x1 z1);;
+let qfl = quarter_facetl x1 z1;;
+let fvl1 = map (faceteval mxvl1) qfl;;
+let pf = pick_facet qfl mxvl1;;
+let msec = rerun_timer x1 z1 2000;;
+let (xm,zm) = invert_interpolate pf 0.85 (x1,z1);;
+(* side=left, so run x1 zm first *)
+let msec = rerun x1 zm;;
+*)
+
+(* rerun xm z1;; *)
+
+
+msec1;;  
+let (frac1,data2,pf2,(x2,z2),msec2) = fit_msec (data1,pf1,(x1,z1),msec1,1.0);;
+let (frac2,data3,pf3,(x3,z3),msec3) = fit_msec (data2,pf2,(x2,z2),msec2,1.0);;
+
+
+let pf2 = mk_pf2 x2 z2;;
+
+let (data3,_,(x3,z3),msec3) = fit_msec(data2,pf2,(x2,z2),msec_remaining2,1.0);;
+
+(* second round *)
+let (x2,z2) = (xm,z1);;
+let mxvl1 = maxevall curlist1 (corners x2 z2);;
+let qfl = quarter_facetl x2 z2;;
+let fvl1 = map (faceteval mxvl1) (qfl);;
+let pf = pick_facet qfl mxvl1;;
+let (xm,zm) = invert_interpolate pf 0.65 (x2,z2);;
+(* side=right, so run xm z2 first *)
+rerun xm z2;;
+(* thir round *)
+let (x3,z3)=(x2,zm);;
+let mxvl1 = maxevall curlist1 (corners x3 z3);;
+let qfl = quarter_facetl x3 z3;;
+let fvl1 = map (faceteval mxvl1) (qfl);;
+let pf = pick_facet qfl mxvl1;;
+let (xm,zm) = invert_interpolate pf 0.65 (x3,z3);;
+rerun xm z3;;
+(* fourth round *)
+let (x4,z4)=(x3,zm);;
+let mxvl1 = maxevall curlist1 (corners x4 z4);;
+let qfl = quarter_facetl x4 z4;;
+let fvl1 = map (faceteval mxvl1) (qfl);;
+let pf = pick_facet qfl mxvl1;;
+let (xm,zm) = invert_interpolate pf 0.2 (x4,z4);;
+rerun_timer xm z4 2000.0;;
+rerun x4 zm;;
+
+Some 3;; 
+None;;
+
+
+let one_pass (x,y) = 1;;
+
+
+
+1;;
+
+
+
+let s1 = List.nth idvlist 0;;
+
 let getprep s = hd(filter (fun t -> t.idv = s) (!Prep.prep_ineqs));;
 
 Ineq.getexact "6601228004";;
-let stc = Optimize.idq_fields (hd(Ineq.getexact "6601228004"));;
 
-let (exec1,f1,f2) = process_and_prep_args true stc;;
+
+
 let c1 = map (eval_float o Parse_ineq.ocaml_string_of_term) f1;;
 let c2 = map (eval_float o Parse_ineq.ocaml_string_of_term) f2;;
 let c1 = map (fun x -> x -. 1.0e-12) c1;;
@@ -118,39 +680,6 @@ c1;;
 c2;;
 c12;;
 
-eval_command "3 * 4";;
-
-(* eval constants *)
-
-
-
-
-(* test constants *)
-
-let idvlist = map (fun t -> t.idv) (!Prep.prep_ineqs);;
-
-let scrub_c t = 
-  let th = REWRITE_CONV [Sphere.h0;
-        GSYM Nonlinear_lemma.sol0_over_pi_EQ_const1;
-	ASSUME `hminus = #1.2317544220903216`;
-        ASSUME `pi = #3.1415926535897932385`;
-        ASSUME `sol0 = #0.55128559843253080794`] t in
-    rhs(concl th);;
-
-let get_constants s = 
-  let (s,tags,case) = Optimize.idq_fields (getprep s) in
-  let (x,y,_) = dest_nonlin case in
-  let z = x @ y in
-    map scrub_c z;;
-
-let check_constants s = map (eval_float o Parse_ineq.ocaml_string_of_term) (get_constants s);;
-
-let s1 = List.nth idvlist 0;;
-
-(* they all check out on 2013/7/31
-find (fun s -> not(can check_constants s)) (snd (chop_list 650 idvlist));;
-*)
-
 let seconds_target = 3;;
 
 assoc "6601228004" Scripts.times;;
@@ -158,36 +687,10 @@ let (s,tags,case) = Optimize.idq_fields (getprep "6601228004");;
 let (xx,zz,iis) = dest_nonlin case;;
 map Parse_ineq.ocaml_string_of_term iis;;
 
-let iis_eval iisk xlist = 
-  let x = List.nth xlist in
-  let iis = Parse_ineq.ocaml_string_of_term iisk in
-  eval_float (Printf.sprintf 
-"let x1 = %f in
- let x2 = %f in
- let x3 = %f in
- let x4 = %f in
- let x5 = %f in
- let x6 = %f in
- let e =     ( -. ( %s ) ) in
-   if (compare e nan = 0) then - 1.0 else e" 
-(x 0) (x 1) (x 2) (x 3) (x 4) (x 5) iis);;
-
-open Sphere2;;
-
 iis;;
 iis_eval (List.nth iis 0) c1;;
 iis_eval (`delta_x x1 x2 x3 x4 x5 x6`) c1;;
 
 let vv = map (eval_float o Parse_ineq.ocaml_string_of_term)  (get_constants s);;
 
-
-Auto_lib.sphere2_ml;;
-Sphere2.ups_x 2.;;
-
-(fun () -> (let x1 = 4.000000 in
-   let x2 = 4.000000 in
-   let x3 = 4.000000 in
-   let x4 = 9.060100 in
-   let x5 = 4.000000 in
-   let x6 = 4.000000 in
-      ( -- (  taud_D2_num_x (x1) (x2) (x3) (x4) (x5) (x6)  ) )));;;;
+mk_neg_fn `delta_x x1 x2 x3 x4 x5 x6` 2. 2. 2. 2. 2. 2.;;

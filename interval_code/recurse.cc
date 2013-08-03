@@ -465,6 +465,7 @@ int prove::recursiveVerifier(int depth,
       x[j]=xD.getValue(j); z[j]=zD.getValue(j);
       x0[j]=x0D.getValue(j); z0[j]=z0D.getValue(j);
     }
+  error::halt_overtime();
   timeout = options.timeout;
   stats(0); 
 #ifdef A206

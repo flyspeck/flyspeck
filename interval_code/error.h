@@ -29,6 +29,13 @@ OVERVIEW TEXT
 class error 
 {
 public:
+
+  static void set_overtime(double millisec); // set time out parameter in milliseconds.
+
+  static void halt_overtime(); // time out after process runs longer then overtime param.
+
+  static double cpu_millisecs(); // cpu process time in millisecs converted to double.
+
 		//////////
 		// print out the current time to standard output
 		//

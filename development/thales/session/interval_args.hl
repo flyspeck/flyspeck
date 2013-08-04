@@ -11,18 +11,36 @@ open Sphere2;;
 (* PRELIMINARIES *)
 
 let ( MSEC_INC ) = 1000;; (* global parameter for msec target size *)
-
 let ERROR_TOLERANCE = 0.3;;  (* try for times within MSEC * (1 +/- ERROR_TOLERANCE ) *)
+let verbose = true;;
 
 type ('a) iargs = Iarg_facet of ((int * bool) * float * 'a * ('a) iargs)
-	     | Iarg_null
+	     | Iarg_leaf of 'a
 	     | Iarg_bisect of (int * ('a) iargs * ('a) iargs);;
+
+let rec string_of_iargs = function 
+  | Iarg_leaf msec -> Printf.sprintf "\n Iarg_leaf %d" msec
+  | Iarg_facet ((i,b),frac,msec,a) -> Printf.sprintf "\n Iarg_facet ((%d,%s),%3.4f,%d,%s)"
+      i (string_of_bool b) frac msec (string_of_iargs a)
+  | Iarg_bisect(idx,a,b) -> Printf.sprintf "\n Iarg_bisect (%d,%s,%s)" 
+      idx (string_of_iargs a) (string_of_iargs b);;
+
+let output_case s iargs = 
+  let sfull = Printf.sprintf "\nadd_case (\"%s\",%s);;\n" s (string_of_iargs iargs) in
+  let oc = open_out_gen [Open_append;Open_text] 436 (fullpath "nonlinear/break_case_log.hl") in
+  (Pervasives.output_string oc (sfull); close_out oc);;
+
+let sprintf = Printf.sprintf;;
 
 Random.init 0;;
 
 let getprep s = hd(filter (fun t -> t.idv = s) (!Prep.prep_ineqs));;
 
-let idvlist = map (fun t -> t.idv) (!Prep.prep_ineqs);;
+(* omit the quad cases for now: *)
+
+let idvlist = 
+  let nonquad = filter (fun t -> not(Optimize.is_quad_cluster t.tags))  (!Prep.prep_ineqs) in
+    map (fun t -> t.idv) nonquad;;
 
 
 let nth = List.nth;;
@@ -60,7 +78,7 @@ let eval_float s =
 
 (* C++ CODE GENERATION. *)
 
-let cpp_template_arg = Printf.sprintf "
+let cpp_template_arg = sprintf "
  const char svn[] = %s;
  const char ineq_id[] = %s;
 
@@ -89,7 +107,7 @@ let mk_cpp_arg_proc t s tags =
   let checkderiv = if  mem Onlycheckderiv1negative tags then 1 else 0 in
   let ifd b s = if b then s else "" in
   let (b,f) = Optimize.widthCut tags in
-  let sWidth = ifd b (Printf.sprintf "\topt.widthCutoff = %8.16f;\n" f) in 
+  let sWidth = ifd b (sprintf "\topt.widthCutoff = %8.16f;\n" f) in 
   let c = map Optimize.cpp_string_of_term in
   let f (x,y,z) = (c x,c y,c z) in
   let (aas,bbs,iis) = f (Optimize.dest_nonlin t) in
@@ -109,7 +127,7 @@ let mkfile_arg =
 let execute_args ex tags s testineq xlist zlist =  
    let x = List.nth xlist in
    let z = List.nth zlist in
-   let args = Printf.sprintf " %f %f %f %f %f %f   %f %f %f %f %f %f"
+   let args = sprintf " %f %f %f %f %f %f   %f %f %f %f %f %f"
       (x 0) (x 1) (x 2) (x 3) (x 4) (x 5)     (z 0) (z 1) (z 2) (z 3) (z 4) (z 5) in
   let interval_dir = flyspeck_dir^"/../interval_code" in
   let _ = mkfile_arg testineq s tags in
@@ -128,7 +146,7 @@ let rerun_timer =
     fun xlist zlist timer ->
       let x = List.nth xlist in
       let z = List.nth zlist in
-      let args = Printf.sprintf " %f %f %f %f %f %f   %f %f %f %f %f %f %f"
+      let args = sprintf " %f %f %f %f %f %f   %f %f %f %f %f %f %f"
 	(x 0) (x 1) (x 2) (x 3) (x 4) (x 5)     (z 0) (z 1) (z 2) (z 3) (z 4) (z 5) (float_of_int timer) in
       let interval_dir = flyspeck_dir^"/../interval_code" in
       let _ = (0=  Sys.command(interval_dir^"/test_auto"^args^" | tee "^run_out)) or 
@@ -205,19 +223,52 @@ let rec recursive_find_frac facet x1 z1  (f1,t1) (f2,t2) =
   (* last case in a batch may have a small t2, so dont use abs_float in the following line *)
   if (t2/. msec_inc -. 1.0) < ERROR_TOLERANCE then (f2,int_of_float t2)
   else if abs_float(t1/. msec_inc -. 1.0) < ERROR_TOLERANCE then (f1,int_of_float t1)
-  else 
-  let f3 = interpolate_frac (f1,t1) (f2,t2) in
-  let f3 = if (Random.int 4 = 0 && t2 > 1.9*. msec_inc) then 
-    (f1+.f2)/. 2.0 +. Random.float (f2 -. f1) /. 2.0 else f3 in
-  let f3 = if (Random.int 3 = 0 && t1 < 0.5*. msec_inc) then
-    f1 +. Random.float (f2 -. f1)/. 2.0 else f3 in
-  let _ = (f1 <= f3 && f3 <= f2) or failwith "recursive_find_frac: out of range" in
-  let ((xm,zm),m3) = run_frac f3 facet (x1,z1) (2 * MSEC_INC) in
-  let t3 = float_of_int m3 in
-    if abs_float(t3/. msec_inc -. 1.0) < ERROR_TOLERANCE then (f3,m3)
-    else 
-      let ((f1',t1'),(f2',t2')) = if (t3 <= msec_inc) then ((f3,t3),(f2,t2)) else ((f1,t1),(f3,t3)) in
-	recursive_find_frac facet x1 z1 (f1',t1') (f2',t2');;
+  else       
+
+    let minwidth = 0.001 in
+      if (f2 <= f1 +. minwidth && t2 < 1.99 *. msec_inc) then (f2,int_of_float t2)
+      else if (f2 <= f1 +. minwidth && t1 > 0.25 *. msec_inc) then (f1,int_of_float t1)
+      else 
+	let _ = f1+. minwidth <= f2 or failwith "find_frac width underflow" in
+
+	let f3 = interpolate_frac (f1,t1) (f2,t2) in
+	let f3 = if (Random.int 4 = 0 && t2 > 1.9*. msec_inc) then 
+	  (f1+.f2)/. 2.0 +. Random.float (f2 -. f1) /. 2.0 else f3 in
+	let f3 = if (Random.int 3 = 0 && t1 < 0.5*. msec_inc) then
+	  f1 +. Random.float (f2 -. f1)/. 2.0 else f3 in
+	let _ = (f1 <= f3 && f3 <= f2) or failwith "recursive_find_frac: out of range" in
+	let ((xm,zm),m3) = run_frac f3 facet (x1,z1) (2 * MSEC_INC) in
+	let _ = if verbose then report (sprintf "recursing fracs %3.3f,%3.3f,%3.3f msecs %d,%d,%d" f1 f3 f2 (int_of_float t1) m3 (int_of_float t2)) in
+
+	let t3 = float_of_int m3 in
+	  if abs_float(t3/. msec_inc -. 1.0) < ERROR_TOLERANCE then (f3,m3)
+	  else 
+	    let ((f1',t1'),(f2',t2')) = if (t3 <= msec_inc) then ((f3,t3),(f2,t2)) else ((f1,t1),(f3,t3)) in
+	      recursive_find_frac facet x1 z1 (f1',t1') (f2',t2');;
+
+let rec pass_time = function
+    Iarg_bisect (_,a,b) -> pass_time a + pass_time b
+  | Iarg_leaf msec -> msec
+  | Iarg_facet (_,_,msec,c) -> msec + pass_time c;;
+
+let rec recheck_pass  timeout domain iarg = match iarg with
+  | Iarg_leaf msec -> 
+      let (x,z) = domain in
+      let msec' = rerun_timer x z timeout in
+	Iarg_leaf (msec,msec')
+  | Iarg_facet(facet,frac,msec,b) ->
+      let (x,z) = domain in
+      let (xm,zm) = invert_interpolate facet frac domain in
+      let residual = if (not(snd facet)) then (xm,z) else (x,zm) in
+      let (_,msec') = run_frac frac facet domain timeout in
+	Iarg_facet(facet,frac,(msec,msec'),  recheck_pass timeout residual b)
+  | Iarg_bisect(idx,a,b) ->
+      let (x,z) = domain in 
+      let facet = (idx,false) in
+      let (xm,zm) = invert_interpolate facet 0.5 domain in
+      let partA,partB = ((x,zm),(xm,z)) in 
+	Iarg_bisect(idx,recheck_pass timeout partA a,recheck_pass timeout partB b);;
+
 
 (* MAIN PROCEDURES *)
 
@@ -236,6 +287,8 @@ let initialize s =
   let _ = compile x1 z1 in
     (x1,z1,msec);;
 
+
+
 let rec pass_revised ((x,z),msec) =
   let left = false in
   let idx = index_max_width (x,z) in
@@ -247,7 +300,8 @@ let rec pass_revised ((x,z),msec) =
     let t = fi m /. fi MSEC_INC in
       if t < 1.0 -. ERROR_TOLERANCE then s0 else if t < 1.999 then s1 else s2 in
     if msec < timeout  then 
-      (Iarg_facet ((idx,left),1.0,msec,Iarg_null)) 
+      let _ = if verbose then report "FOUND leaf..." in
+      (Iarg_leaf msec)
     else 
       let (_,m3A) = run_frac 0.5 facet (x,z) timeout in
       let (_,m3B) = run_frac 0.5 (facet_opp facet) (x,z) timeout in
@@ -256,51 +310,82 @@ let rec pass_revised ((x,z),msec) =
 	if (smin=s2) then 
 	  let (xm,zm) = invert_interpolate (idx,left) 0.5 (x,z) in
 	  let partA,partB = ((x,zm),(xm,z)) in
+	  let _ = if verbose then report "FOUND bisection..." in
 	    Iarg_bisect (idx,pass_revised (partA,m3A),pass_revised (partB,m3B))
 	else if (smin = s1) then 
 	  let (xm,zm) = invert_interpolate facet 0.5 (x,z) in
 	  let residual= if (snd facet=left) then (xm,z) else (x,zm) in
 	  let m3max = if swap then m3A else m3B in
+	  let _ = if verbose then report "FOUND 0.5 facet..." in
 	    Iarg_facet(facet,0.5,m3min,pass_revised(residual,m3max))
 	else (* smin=s0 *) 
 	  let (fracC,mC) = recursive_find_frac facet x z (0.5,fi m3min) (1.0,fi msec) in
 	  let (xm,zm) = invert_interpolate facet fracC (x,z) in
 	  let residual= if (snd facet=left) then (xm,z) else (x,zm) in
 	  let mD = rerun_timer (fst residual) (snd residual) timeout in
+	  let _ = if verbose then report (sprintf "FOUND %3.3f,%d facet..." fracC mC) in
 	    Iarg_facet (facet,fracC,mC,pass_revised(residual,mD));;
 
-let rec pass_time = function
-    Iarg_bisect (_,a,b) -> pass_time a + pass_time b
-  | Iarg_null -> 0
-  | Iarg_facet (_,_,msec,c) -> msec + pass_time c;;
 
-let rec recheck_pass  timeout domain iarg = match iarg with
-  | Iarg_null -> Iarg_null
-  | Iarg_facet(facet,frac,msec,b) ->
-      let (x,z) = domain in
-      let (xm,zm) = invert_interpolate facet frac domain in
-      let residual = if (not(snd facet)) then (xm,z) else (x,zm) in
-      let (_,msec') = run_frac frac facet domain timeout in
-	Iarg_facet(facet,frac,(msec,msec'),  recheck_pass timeout residual b)
-  | Iarg_bisect(idx,a,b) ->
-      let (x,z) = domain in 
-      let facet = (idx,false) in
-      let (xm,zm) = invert_interpolate facet 0.5 domain in
-      let partA,partB = ((x,zm),(xm,z)) in 
-	Iarg_bisect(idx,recheck_pass timeout partA a,recheck_pass timeout partB b);;
-
-let run_one s = 
+let run_one save s = 
   let (x1,z1,msec1) = initialize s in
-    (s,pass_revised((x1,z1),msec1));;
+  let iarg = (pass_revised((x1,z1),msec1)) in
+  let _  = if (save) then output_case s iarg in
+    iarg;;
+
+
+(* run everything *)
+
+let fails = [
+      "TEWNSCJ split(1/2)"; (* jumps from 90msec to > 2000 msec in frace < 0.001 *)
+     ];; 
+subtract [0;1;2]  [1];;
+let preptimes = map (fun s -> try s,initial_msec s with _ -> failwith s) (subtract idvlist fails);;
+let over2sec =  (sort (fun (_,s) (_,t) -> s < t) (filter (fun (s,t) -> t > 2000) preptimes));;
+let over2 = map fst over2sec;;
+List.length over2;;
+let rest2 = snd(chop_list 275 over2);;
+List.length rest2;;
+let alldata = map (fun s -> try s,run_one true s with _ -> failwith s) rest2;;
+
+(* first failure *)
+index "QITNPEAv2 4003532128 split(1/2)" over2;; (* 275 *)
+List.nth over2sec 275;;
+
+
+let s1 = "QITNPEAv2 4003532128 split(1/2)";;
+let (x1,z1,msec1)= initialize s1;;
+let iarg = run_one true s1;;
+
+let s1 = "TSKAJXY-RIBCYXU sym";;
+let (x1,z1,msec1)= initialize s1;;
+let iarg = run_one true s1;;
+
+
+let s1 = "6601228004";;
+let (x1,z1,msec1) = initialize s1;;
+
+
+let iarg = run_one true  "6601228004";;
+recheck_pass (2 * MSEC_INC) (x1,z1) iarg;;
+
+1;;
+(*
 
 (* one pass *)
-let s1 = "6601228004";;
+
+pass_revised((x1,z1),msec1);;
+recheck_pass (2 * MSEC_INC) (x1,z1) it;;
+recheck_pass it;;
+
+let s1 = "3862621143 revised";;
 let (x1,z1,msec1) = initialize s1;;
 pass_revised((x1,z1),msec1);;
 recheck_pass (2 * MSEC_INC) (x1,z1) it;;
 recheck_pass it;;
 
-let (s1,iarg1)=run_one s1;;
+
+let (iarg1)=run_one false s1;;
 msec1;;
 pass_time iarg660;;
 recheck_pass (2 * MSEC_INC) (x1,z1) iarg660;;
@@ -334,3 +419,4 @@ pass_time iarg1;;
 recheck_pass (2 * MSEC_INC) (x1,z1) iarg1;;
 
 
+*)

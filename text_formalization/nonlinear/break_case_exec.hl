@@ -2,17 +2,50 @@
 flyspeck_needs "nonlinear/prep.hl";;
 flyspeck_needs "nonlinear/scripts.hl";;
 
-module Interval_args = struct
-end;;
+module Break_case_exec = struct
 
-open Sphere2;;
+(* open Sphere2;; *)
 
 
 (* PRELIMINARIES *)
 
 let ( MSEC_INC ) = 1000;; (* global parameter for msec target size *)
-let ERROR_TOLERANCE = 0.3;;  (* try for times within MSEC * (1 +/- ERROR_TOLERANCE ) *)
+let ERROR_TOLERANCE = 0.3;;  (* try for times within MSEC_INC * (1 +/- ERROR_TOLERANCE ). *)
 let verbose = true;;
+
+(*
+
+The type iargs is used to record a partition of a nonlinear inequality domain into pieces.
+The code in this file is used to make the pieces all take approximately MSEC_INC milliseconds
+to run.  The field 'a records the interval arithmetic C++ runtime in milliseconds.
+
+The partition is determined from the data and the original domain determined by (x,z), where
+x and z are lists of real numbers giving the lower left and upper right hand corners of the domain.
+
+Iarg_leaf represents a domain with no subpartition.  The domain is all of (x,z).
+
+Iarg_bisect (i,left,right) is a cut exactly in the middle along the ith variable.
+The fields left and right give the further partition of the left and right sides.
+For example if i=1 and (x,z) = [1.0;1.0;1.0],[3.0;3.0;3.0] then the partition goes
+into (xleft,zleft) = [1.0;1.0;1.0],[3.0;2.0;3.0] and (xright,zright)=[1.0;2.0;1.0],[3.0;3.0;3.0].
+
+Iarg_facet ((i,side),frac,msec,residual) breaks the domain in two unequal parts along the ith coordinate 
+specified by a fraction 0.0 <= frac <= 1.0.
+The fraction is measured from the left if side=false, and from the right otherwise.
+
+For example, if i,side=1,false frac=0.25 and (x,z)= [x0;x1;x2],[z0;z1;z2], then
+(xleft,rleft)= x,[z0;0.75 * x1+0.25 *z1;z2] and (xright,zright)=[x0;0.75*x1+0.25*z1,z].
+The number msec is the C++ runtime for (xleft,rleft), and residual is the recursively defined
+partition on (xright,zright).
+
+For example, if we change side=true and keep the rest of the data the same, then
+(xleft,rleft)= x,[z0;0.25 * x1+0.75 *z1;z2] and (xright,zright)=[x0;0.25*x1+0.75*z1,z].
+The number msec is now the C++ runtime for (xright,right), and residual is the recursively defined
+partition on (xleft,zleft). So changing the side exchanges right and left all the way along.
+
+
+*)
+
 
 type ('a) iargs = Iarg_facet of ((int * bool) * float * 'a * ('a) iargs)
 	     | Iarg_leaf of 'a
@@ -27,7 +60,7 @@ let rec string_of_iargs = function
 
 let output_case s iargs = 
   let sfull = Printf.sprintf "\nadd_case (\"%s\",%s);;\n" s (string_of_iargs iargs) in
-  let oc = open_out_gen [Open_append;Open_text] 436 (fullpath "nonlinear/break_case_log.hl") in
+  let oc = open_out_gen [Open_append;Open_text] 436 (fullpath "nonlinear/break_case_log_more.hl") in
   (Pervasives.output_string oc (sfull); close_out oc);;
 
 let sprintf = Printf.sprintf;;
@@ -42,7 +75,6 @@ let idvlist =
   let nonquad = filter (fun t -> not(Optimize.is_quad_cluster t.tags))  (!Prep.prep_ineqs) in
     map (fun t -> t.idv) nonquad;;
 
-
 let nth = List.nth;;
 
 let rec cart a b = 
@@ -51,10 +83,6 @@ let rec cart a b =
     | a::rest -> (map (fun x -> (a,x)) b) @ cart rest b;;
 
 let maxlist xs = List.fold_right max xs (nth xs 0);;
-
-let minlist xs = List.fold_right min xs (nth xs 0);;
-
-let fst_safe_chop n ls = if List.length ls < n then ls else fst(chop_list n ls);;
 
 let rec trim s = 
   let white c = mem c [' '; '\012'; '\n'; '\r'; '\t'] in
@@ -74,7 +102,6 @@ let eval_float s =
     let _ = b or (print_string (r^"\n"^s^"\n"); failwith "bad input string") in
     let t= (!float_cache)() in
       t;;
-
 
 (* C++ CODE GENERATION. *)
 
@@ -186,10 +213,12 @@ find (fun s -> not(can get_float_domain s)) (snd (chop_list 650 idvlist));;
 
 (* interpolate along edge *)
 
-let index_max_width (x ,z) = 
+let index_max_width (x ,z) avoid = 
   let w = map (fun (xi,zi) -> zi -. xi) (zip x z) in
-  let wm = maxlist w in
-    index wm w;;
+  let avoid_filter = map (fun i -> (mem i avoid)) (0--(List.length x - 1)) in
+  let w' = map (fun (t,b) -> if b then 0.0 else t) (zip w avoid_filter) in
+  let wm = maxlist w' in
+    index wm w';;
 
 let facet_opp (i,side)= (i,not side);;
 
@@ -246,6 +275,8 @@ let rec recursive_find_frac facet x1 z1  (f1,t1) (f2,t2) =
 	    let ((f1',t1'),(f2',t2')) = if (t3 <= msec_inc) then ((f3,t3),(f2,t2)) else ((f1,t1),(f3,t3)) in
 	      recursive_find_frac facet x1 z1 (f1',t1') (f2',t2');;
 
+(* DEBUG *)
+
 let rec pass_time = function
     Iarg_bisect (_,a,b) -> pass_time a + pass_time b
   | Iarg_leaf msec -> msec
@@ -287,11 +318,9 @@ let initialize s =
   let _ = compile x1 z1 in
     (x1,z1,msec);;
 
-
-
-let rec pass_revised ((x,z),msec) =
+let rec pass_revised avoid ((x,z),msec) =
   let left = false in
-  let idx = index_max_width (x,z) in
+  let idx = index_max_width (x,z) avoid in
   let fi = float_of_int in
   let timeout = 2 * MSEC_INC in
   let (s0,s1,s2) = (0,1,2) in
@@ -311,112 +340,38 @@ let rec pass_revised ((x,z),msec) =
 	  let (xm,zm) = invert_interpolate (idx,left) 0.5 (x,z) in
 	  let partA,partB = ((x,zm),(xm,z)) in
 	  let _ = if verbose then report "FOUND bisection..." in
-	    Iarg_bisect (idx,pass_revised (partA,m3A),pass_revised (partB,m3B))
+	    Iarg_bisect (idx,pass_revised [] (partA,m3A),pass_revised [] (partB,m3B))
 	else if (smin = s1) then 
 	  let (xm,zm) = invert_interpolate facet 0.5 (x,z) in
 	  let residual= if (snd facet=left) then (xm,z) else (x,zm) in
 	  let m3max = if swap then m3A else m3B in
 	  let _ = if verbose then report "FOUND 0.5 facet..." in
-	    Iarg_facet(facet,0.5,m3min,pass_revised(residual,m3max))
+	    Iarg_facet(facet,0.5,m3min,pass_revised [] (residual,m3max))
 	else (* smin=s0 *) 
-	  let (fracC,mC) = recursive_find_frac facet x z (0.5,fi m3min) (1.0,fi msec) in
-	  let (xm,zm) = invert_interpolate facet fracC (x,z) in
-	  let residual= if (snd facet=left) then (xm,z) else (x,zm) in
-	  let mD = rerun_timer (fst residual) (snd residual) timeout in
-	  let _ = if verbose then report (sprintf "FOUND %3.3f,%d facet..." fracC mC) in
-	    Iarg_facet (facet,fracC,mC,pass_revised(residual,mD));;
-
+	  try (
+	    let (fracC,mC) = recursive_find_frac facet x z (0.5,fi m3min) (1.0,fi msec) in
+	    let (xm,zm) = invert_interpolate facet fracC (x,z) in
+	    let residual= if (snd facet=left) then (xm,z) else (x,zm) in
+	    let mD = rerun_timer (fst residual) (snd residual) timeout in
+	    let _ = if verbose then report (sprintf "FOUND %3.3f,%d facet..." fracC mC) in
+	      Iarg_facet (facet,fracC,mC,pass_revised [] (residual,mD)))
+          with Failure fail ->
+	    let _ = report ("failure "^fail) in
+	      pass_revised (idx::avoid) ((x,z),msec);;
 
 let run_one save s = 
   let (x1,z1,msec1) = initialize s in
-  let iarg = (pass_revised((x1,z1),msec1)) in
+  let iarg = (pass_revised [] ((x1,z1),msec1)) in
   let _  = if (save) then output_case s iarg in
     iarg;;
 
-
-(* run everything *)
-
-let fails = [
-      "TEWNSCJ split(1/2)"; (* jumps from 90msec to > 2000 msec in frace < 0.001 *)
-     ];; 
-subtract [0;1;2]  [1];;
-let preptimes = map (fun s -> try s,initial_msec s with _ -> failwith s) (subtract idvlist fails);;
-let over2sec =  (sort (fun (_,s) (_,t) -> s < t) (filter (fun (s,t) -> t > 2000) preptimes));;
-let over2 = map fst over2sec;;
-List.length over2;;
-let rest2 = snd(chop_list 275 over2);;
-List.length rest2;;
-let alldata = map (fun s -> try s,run_one true s with _ -> failwith s) rest2;;
-
-(* first failure *)
-index "QITNPEAv2 4003532128 split(1/2)" over2;; (* 275 *)
-List.nth over2sec 275;;
+let run_all_over2sec save = 
+  let preptimes = map (fun s -> try s,initial_msec s with _ -> failwith s) (idvlist) in
+  let over2sec =  (sort (fun (_,s) (_,t) -> s < t) (filter (fun (s,t) -> t > 2000) preptimes)) in
+  let over2 = map fst over2sec in
+  let alldata = map (fun s -> try s,run_one save s with Failure msg -> report s; failwith msg) over2 in
+    alldata;;
 
 
-let s1 = "QITNPEAv2 4003532128 split(1/2)";;
-let (x1,z1,msec1)= initialize s1;;
-let iarg = run_one true s1;;
 
-let s1 = "TSKAJXY-RIBCYXU sym";;
-let (x1,z1,msec1)= initialize s1;;
-let iarg = run_one true s1;;
-
-
-let s1 = "6601228004";;
-let (x1,z1,msec1) = initialize s1;;
-
-
-let iarg = run_one true  "6601228004";;
-recheck_pass (2 * MSEC_INC) (x1,z1) iarg;;
-
-1;;
-(*
-
-(* one pass *)
-
-pass_revised((x1,z1),msec1);;
-recheck_pass (2 * MSEC_INC) (x1,z1) it;;
-recheck_pass it;;
-
-let s1 = "3862621143 revised";;
-let (x1,z1,msec1) = initialize s1;;
-pass_revised((x1,z1),msec1);;
-recheck_pass (2 * MSEC_INC) (x1,z1) it;;
-recheck_pass it;;
-
-
-let (iarg1)=run_one false s1;;
-msec1;;
-pass_time iarg660;;
-recheck_pass (2 * MSEC_INC) (x1,z1) iarg660;;
-
-let s1 = "1085358243";;
-let (x1,z1,msec1) = initialize s1;;
-let iarg1 = pass_revised ((x1,z1),msec1);;
-msec1;;
-pass_time iarg1;;
-recheck_pass (2 * MSEC_INC) (x1,z1) iarg1;;
-
-let s1 = "OXLZLEZ 6346351218 1 23";;
-let (x1,z1,msec1) = initialize s1;;
-let iarg1 = pass_revised ((x1,z1),msec1);;
-msec1;;
-pass_time iarg1;;
-recheck_pass (2 * MSEC_INC) (x1,z1) iarg1;;
-
-let s1 =  "QITNPEAv2 4003532128 split(0/2)";;
-let (x1,z1,msec1) = initialize s1;;
-let iarg1 = pass_revised ((x1,z1),msec1);;
-msec1;;
-pass_time iarg1;;
-recheck_pass (2 * MSEC_INC) (x1,z1) iarg1;;
-
-let s1 = "7550003505 1 2 4";;
-let (x1,z1,msec1) = initialize s1;;
-let iarg1 = pass_revised ((x1,z1),msec1);;
-msec1;;
-pass_time iarg1;;
-recheck_pass (2 * MSEC_INC) (x1,z1) iarg1;;
-
-
-*)
+end;;

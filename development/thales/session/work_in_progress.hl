@@ -128,7 +128,6 @@ let INV_ARCLENGTH = prove_by_refinement(
    &0 < z /\ z < pi /\ &0 < y1 /\ &0 < y3 ==>
     &0 < y1 pow 2 + y3 pow 2 - &2 * y1  *y3 * cos z /\
     z = arclength y1 y3 (sqrt (y1 pow 2 + y3 pow 2 - &2 * y1 *y3 * cos z))`,
-    `,
   (* {{{ proof *)
   [
   REPEAT WEAKER_STRIP_TAC;
@@ -143,36 +142,83 @@ let INV_ARCLENGTH = prove_by_refinement(
   DISCH_TAC;
   TYPED_ABBREV_TAC `c = sqrt (y1 pow 2 + y3 pow 2 - &2 * y1 * y3 * cos z)`;
   GMATCH_SIMP_TAC Trigonometry1.ACS_ARCLENGTH;
-  SUBCONJ_TAC;
-    ASM_REWRITE_TAC[];
-    CONJ_TAC;
-      EXPAND_TAC "c";
-      GMATCH_SIMP_TAC SQRT_POS_LE;
+  TYPIFY `c*c = y1 pow 2 + y3 pow 2 - &2 * y1 * y3 * cos z` (C SUBGOAL_THEN ASSUME_TAC);
+    EXPAND_TAC "c";
+    GMATCH_SIMP_TAC Merge_ineq.sqrtpow2;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  TYPED_ABBREV_TAC `r = (y1 * y1 + y3 * y3 - c * c) / (&2 * y1 * y3)`;
+  CONJ2_TAC;
+    TYPIFY `r = cos z` ENOUGH_TO_SHOW_TAC;
+      DISCH_THEN SUBST1_TAC;
+      GMATCH_SIMP_TAC ACS_COS;
       BY(ASM_TAC THEN REAL_ARITH_TAC);
-    CONJ_TAC;
-      EXPAND_TAC "c";
-      TYPIFY `y1 + y3 = sqrt( (y1 + y3) pow 2)` ENOUGH_TO_SHOW_TAC;
-        DISCH_THEN SUBST1_TAC;
-        GMATCH_SIMP_TAC SQRT_MONO_LE_EQ;
-        CONJ_TAC;
-          REWRITE_TAC[ REAL_LE_POW_2];
-          BY(ASM_TAC THEN REAL_ARITH_TAC);
-        BY(REWRITE_TAC[arith `(y1 + y3) pow 2 = y1 pow 2 + y3 pow 2 + &2 * y1 * y3`])
-
-xxd
-
-mmp (arith `&0 <= &2 * y1 * y3 * (&1 - cos z) ==> a + b - &2 * y1 * y3 * cos z <= a + b + &2 * y1 * y3`)
-
-art[]
-fyn2
-gm Merge_ineq.sqrtpow2
-asimp[arith `&0 < x ==> &0 <= x`]
-
-typ `
-
-art[]
-
-  rt[
+    EXPAND_TAC "r";
+    FIRST_X_ASSUM_ST `c * c = s` (SUBST1_TAC);
+    Calc_derivative.CALC_ID_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  SUBCONJ_TAC;
+    EXPAND_TAC "c";
+    GMATCH_SIMP_TAC SQRT_POS_LE;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  DISCH_TAC;
+  TYPIFY `c pow 2 <= (y1 + y3) pow 2 /\ (abs(y1 - y3)) pow 2 <= c pow 2` ENOUGH_TO_SHOW_TAC;
+    GMATCH_SIMP_TAC (GSYM Trigonometry2.POW2_COND);
+    GMATCH_SIMP_TAC (GSYM Trigonometry2.POW2_COND);
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  REWRITE_TAC[REAL_POW2_ABS];
+  ASM_REWRITE_TAC[arith `c pow 2  = c * c`];
+  TYPIFY `-- &2 * y1 * y3 * cos z <= &2 * y1 * y3 /\ -- &2 * y1 * y3 <= -- &2 * y1 * y3 * cos z` ENOUGH_TO_SHOW_TAC;
+    BY(REAL_ARITH_TAC);
+  REWRITE_TAC[arith ` -- &2 * y1 * y3 * cos z <= &2 * y1 *y3 <=> &0 <= &2 * y1 * y3 * (&1 + cos z)`;arith `-- &2 * y1 * y3 <= -- &2 * y1 * y3 * cos z <=> &0 <= &2 * y1 * y3 * (&1 - cos z)`];
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  REPEAT (GMATCH_SIMP_TAC REAL_LE_MUL);
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
   ]);;
   (* }}} *)
 
+let derived_form_taum_x = prove_by_refinement(
+  `Q ==> derived_form `,
+  (* {{{ proof *)
+  [
+  #
+  ]);;
+  (* }}} *)
+
+
+let taum_attains_inf = prove_by_refinement(
+  `!y1 y2 y3 y4 y5 y6. &2 <= y1 /\ y1 <= &2 * h0 /\
+	&2 <= y2 /\ y2 <= &2 * h0 /\
+	&2 <= y2 /\ y3 <= &2 * h0 /\
+	&2 <= y3 /\ y4 <= &2 * h0 /\
+	&2 <= y4 /\ y5 <= &2 * h0 /\
+	&2 <= y5 /\ y6 <= &2 * h0 
+	==>
+	(?y4'. &2 <= y4' /\ y4' <= &2 * h0 /\ (!y4. &2 <= y4 /\ y4 <= &2 * h0 ==>
+	   taum y1 y2 y3 y4' y5 y6 <= taum y1 y2 y3 y4 y5 y6))`,
+  (* {{{ proof *)
+  [
+  st/r
+intro REAL_CONTINUOUS_ATTAINS_INF [`\q. taum y1 y2 y3 q y5 y6`;`real_interval [&2, &2 * h0]`]
+  ]);;
+  (* }}} *)
+
+
+let LFL_LEMMA1 = prove_by_refinement(
+  `main_nonlinear_terminal_v11 ==> (!y1 y2 y3 y4 y5 y6.
+	&2 <= y1 /\ y1 <= &2 * h0 /\
+	&2 <= y1 /\ y1 <= &2 * h0 /\
+	&2 <= y1 /\ y1 <= &2 * h0 /\
+	&2 <= y1 /\ y1 <= &2 * h0 /\
+	&2 <= y1 /\ y1 <= &2 * h0 /\
+	&2 <= y1 /\ y1 <= &2 * h0 
+	==>
+	(?y4'. (y4' = &2 \/ y4' = &2 * h0) /\
+	   taum y1 y2 y3 y4' y5 y6 <= taum y1 y2 y3 y4 y5 y6)
+				  )`,
+  (* {{{ proof *)
+  [
+  st/r
+
+  ]);;
+  (* }}} *)

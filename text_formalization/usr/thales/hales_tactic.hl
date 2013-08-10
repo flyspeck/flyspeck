@@ -5,31 +5,64 @@
 (* ========================================================================== *)
 
 
-(* Tactics used by Hales.  Warning: These are subject to change.   *)
+(* Tactics.   *)
 
 module Hales_tactic = struct
 
 
+
+let unlist tac t = tac [t];;
+
+let kill th = ALL_TAC;;
+
+let dest_goal gl = gl;;
+
+let goal_asms = fst;;
+
+let goal_concl = snd;;
+
+let mk_goal(asl,w) = (asl,w);;
+
 let LET_THM = CONJ LET_DEF LET_END_DEF;;
 
+let COMBINE_TAC ttac1 ttac2 = (fun t -> ttac1 t THEN ttac2 t);;
+
 let ASM_TAC=REPEAT(POP_ASSUM MP_TAC);;
+
 let RED_TAC=ASM_REWRITE_TAC[] THEN DISCH_TAC;;
+
 let RES_TAC=ASM_REWRITE_TAC[] THEN STRIP_TAC;;
+
 let REDA_TAC=ASM_REWRITE_TAC[] THEN DISCH_TAC THEN ASM_REWRITE_TAC[];;
+
 let RESA_TAC=ASM_REWRITE_TAC[] THEN STRIP_TAC THEN ASM_REWRITE_TAC[];;
+
 let REDAL_TAC (th: thm list) =ASM_REWRITE_TAC th THEN DISCH_TAC THEN ASM_REWRITE_TAC th;;
+
 let RESAL_TAC (th: thm list) = ASM_REWRITE_TAC th THEN STRIP_TAC THEN ASM_REWRITE_TAC th;;
+
+(*
 let REMOVE_ASSUM_TAC=POP_ASSUM(fun th-> REWRITE_TAC[]);;
 let SYM_ASSUM_TAC=POP_ASSUM(fun th-> REWRITE_TAC[SYM(th)]);;
-let SYM_ASSUM1_TAC=POP_ASSUM(fun th-> REWRITE_TAC[SYM(th)]THEN ASSUME_TAC(th));;
-let RESP_TAC=ASM_REWRITE_TAC[] THEN STRIP_TAC THEN POP_ASSUM(fun th->REWRITE_TAC[th]);;
-let RESPL_TAC (th: thm list) =ASM_REWRITE_TAC th THEN STRIP_TAC THEN POP_ASSUM(fun th->REWRITE_TAC [th]);;
+*)
+
+let REMOVE_ASSUM_TAC=POP_ASSUM(unlist REWRITE_TAC);;
+
+let SYM_ASSUM_TAC=POP_ASSUM((unlist REWRITE_TAC) o SYM);;
+
+let SYM_ASSUM1_TAC=POP_ASSUM(COMBINE_TAC ((unlist REWRITE_TAC) o SYM ) ASSUME_TAC);;
+
+let RESP_TAC=ASM_REWRITE_TAC[] THEN STRIP_TAC THEN POP_ASSUM(unlist REWRITE_TAC);;
+
+let RESPL_TAC (th: thm list) =ASM_REWRITE_TAC th THEN STRIP_TAC THEN POP_ASSUM(unlist REWRITE_TAC);;
+
 let REDUCE_ARITH_TAC=REWRITE_TAC[REAL_ARITH`&0 * a= &0`; REAL_ARITH`a * &0 = &0`; REAL_ARITH`a + &0 = a`; 
 REAL_ARITH`a- &0 =a`;REAL_ARITH`&0 +a =a`;REAL_ARITH`&1 * a =a`;REAL_ARITH`a * &1 =a`;REAL_ARITH`(A+B)-B=A`];;
-let REDUCE_VECTOR_TAC=REWRITE_TAC[VECTOR_ARITH`&0 % a= vec 0`; VECTOR_ARITH`a % vec 0= vec 0`;VECTOR_ARITH`a + vec 0 = a`; 
-VECTOR_ARITH`vec 0 +a =a`; VECTOR_ARITH`a- vec 0 =a`;VECTOR_ARITH`&1 % a =a`;VECTOR_ARITH`a- b =vec 0<=> a=b`];;
+
+let REDUCE_VECTOR_TAC=REWRITE_TAC[VECTOR_ARITH`&0 % a= vec 0`; VECTOR_ARITH`a % vec 0= vec 0`;VECTOR_ARITH`a + vec 0 = a`; VECTOR_ARITH`vec 0 +a =a`; VECTOR_ARITH`a- vec 0 =a`;VECTOR_ARITH`&1 % a =a`;VECTOR_ARITH`a- b =vec 0<=> a=b`];;
 
 let MRESA_TAC th1 (th: term list) = MP_TAC(ISPECL th th1) THEN RESA_TAC;;
+
 let MRESA1_TAC th1 th = MP_TAC(ISPEC th th1) THEN RESA_TAC;;
 
 let MRESAL_TAC th1 (th: term list) (th2: thm list) =MP_TAC(ISPECL th th1) THEN ASM_REWRITE_TAC th2 THEN STRIP_TAC THEN ASM_REWRITE_TAC th2;;
@@ -107,14 +140,11 @@ let gtyp (ttac:term->tactic) tm (asl,w) = ttac (env (asl,w) tm) (asl,w);;
 let gtypl (ttacl:term list -> tactic) tml (asl,w) =   
    ttacl (map (env (asl,w)) tml) (asl,w);;
 
-
 let GEXISTS_TAC = gtyp EXISTS_TAC;;
 
 let GSUBGOAL_THEN t ttac (asl,w) = SUBGOAL_THEN (env (asl,w) t) ttac (asl,w);;
 
 let argthen ttac tac t = (ttac t) THEN tac;;
-
-let unlist tac t = tac [t];;
 
 let CONJ2_TAC = let t = (TAUT `a /\ b ==> b /\ a`) in MATCH_MP_TAC t THEN CONJ_TAC;;
 
@@ -432,7 +462,7 @@ let COMMENT _ = ALL_TAC;;
 let INTRO_TAC th1 tml = 
    GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w tml) th1)));;
 
-  let kill th = ALL_TAC;;
+
 
   let COPY_TAC = DISCH_THEN (fun t -> MP_TAC t THEN ASSUME_TAC t);;
 
@@ -445,6 +475,6 @@ let INTRO_TAC th1 tml =
     let t' =   mk_eq(mk_var(a',type_of b'),b')
     in ABBREV_TAC t' (asl,w);;
 
-  let COMBINE_TAC ttac1 ttac2 = (fun t -> ttac1 t THEN ttac2 t);;
+
 
 end;;

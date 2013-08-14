@@ -632,10 +632,10 @@ static lineInterval lineY1(const domain& x)
 
 lineInterval linearization::rhazim(const domain& x)
 	{
-	  static const lineInterval one(interval::interval ("1"));
-	  static const lineInterval two(interval::interval ("2"));
-	  static const lineInterval const1(interval::interval("0.17547965609182181051"));
-	  static const lineInterval _052(interval::interval("0.52"));
+	  static const lineInterval one(interval ("1"));
+	  static const lineInterval two(interval ("2"));
+	  static const lineInterval const1(interval("0.17547965609182181051"));
+	  static const lineInterval _052(interval("0.52"));
 	lineInterval d = linearization::dih(x);
 	// `!y. rho y = &1 + const1 *(y - &2) / (#0.52)`
 	lineInterval rho = one + const1 * (lineY1(x) - two) / _052;

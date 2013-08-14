@@ -515,7 +515,7 @@ void Lib::selfTest()
     */
     // value computed in Mathematica with gamma2Ldivalpha[Sqrt[6.36]/2] function.
     /* test1 */ {
-    univariate f1 =  Lib::i_gamma2_x_div_azim_v2(interval::interval("0.0"));
+    univariate f1 =  Lib::i_gamma2_x_div_azim_v2(interval("0.0"));
   Function f = Lib::promote1_to_6(f1);
   epsValue("gamma2_x_div_azim_v2",f,0.0326792785715012028653739253059);
   Function g = (Lib::uni(f1 , (Lib::x1)));

@@ -10,3 +10,89 @@ end;;
 (* WORK IN PROGRESS *)
 (* *************************************************************************** *)
 
+(* hypermap liason *)
+
+(* the list bn_Archive is the concatenation of bn_Tri, bn_Quad, bn_Pent, and bn_Hex.
+    These definitions need to be loaded from the Arch theory (which converts
+    them from .ML files)  *)
+
+
+flyspeck_needs "../tame_archive/tame_archive.hl";;
+
+
+
+open Tame_archive;;  (* must open because of reflected references *)
+open Hypermap;;
+open Tame_classification;;
+
+time Tame_archive.arc3 ();;  (* 0.18 secs *)
+List.length !Tame_archive.ref3;;  (* 9 *)
+arc3();; (* build data *)
+
+let archive3a = new_definition (mk_eq (`archive3a:((num list)list)list`, hol_of_list3 !ref3));;
+
+let isabelle_graph_class_axiom3 = new_definition
+  `isabelle_graph_class_axiom3 = (!g. bn_PlaneGraphs g /\ bn_tame g /\ 
+  (!f. bn_Faces g f ==> LENGTH (FST f) = 3) ==>
+  bn_iso_in (bn_fgraph g) (set_of_list archive3a))`;;
+
+let isabelle_graph_class_axiom = (* new_definition *)
+  `tame_graph_classification_theorem = 
+  (!g. bn_PlaneGraphs g /\ bn_tame g ==> bn_iso_in (bn_fgraph g) (set_of_list tame_archive))`;;
+
+let tame_bn_tame = `!H. tame_hypermap (H:(A)hypermap) 
+  ==> (?g. bn_PlaneGraphs g /\ bn_tame g /\
+	 iso H (hypermap_of_list (bn_fgraph g)))`;;
+
+let tame_not_contravening = `isabelle_graph_classification_theorem 
+  ==> (!V. tame_hypermap (hypermap_of_fan (V,ESTD V)) ==> ~contravening V)`;;
+
+let bn_cong_iso_refl = prove_by_refinement(
+  `!(g:((A)list)list). bn_cong_iso g g`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[bn_cong_iso];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `I:A->A` EXISTS_TAC;
+  REWRITE_TAC[bn_is_iso;bn_is_Iso;bn_is_pr_Iso;bn_is_Hom;bn_inj_on;I_THM;MAP_I;IMAGE_I];
+  DISJ1_TAC;
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let rot_bn_rotate = prove_by_refinement(
+  `!n s. rot n s = bn_rotate n s`,
+  (* {{{ proof *)
+  [
+  rt[Seq.rot;bn_rotate;bn_rotate1]
+    INDUCT_TAC
+    rt[POWER_0]
+  rt[Seq.drop0;Seq.take;I_THM;Seq.cats0]
+g
+rt[POWER;o_THM;bn_rotate1]
+  ]);;
+  (* }}} *)
+
+
+let perm_eq_bn_cong_iso = prove_by_refinement(
+  `!g1 g2. good_list g1 /\ bn_cong_iso g1 g2 ==> perm_eq g1 g2`,
+  (* {{{ proof *)
+  [
+  rt[Seq.perm_eq;bn_cong_iso]
+  ]);;
+  (* }}} *)
+
+
+let bn_cong_iso = prove_by_refinement(
+  `!g1 g2. good_list g1 /\ bn_cong_iso g1 g2 ==> iso (hypermap_of_list g1) (hypermap_of_list g2)`,
+  (* {{{ proof *)
+  [
+g/r
+      rt[bn_cong_iso;bn_is_iso;bn_is_Iso;bn_is_pr_Iso;bn_is_Hom;bn_inj_on]
+	rt[bn_congs;iso]
+st/r
+  ]);;
+  (* }}} *)
+
+
+bn_congs;;

@@ -6,7 +6,7 @@
 /* Date: 1997, 2010-09-04                                                     */
 /* ========================================================================== */
  
-//  copyright (c) 1997, Thomas C. Hales, all rights reserved.
+//  copyright (c) 1997, Thomas C. Hales, MIT license
 
 /*
 
@@ -423,9 +423,10 @@ void stats(int force) {
   static int linefeed=0;
   if (force) { cout << "[cellcount:" << statcounter << "]" << endl << flush; }
   if (time(0) - starting_time > timeout) {
-    char msg[100];
-    sprintf(msg, "time allocation exceeded %luK secs. Bailing out.", (timeout / 1000));
-    error::fatal(msg);
+    error::fatal("time allocation exceeded. Bailing out.");
+    //char msg[100];
+    //sprintf(msg, "time allocation exceeded %luK secs. Bailing out.", (timeout / 1000));
+    //error::fatal(msg);
   }
   else if (count(statcounter++,10000)) 
     {

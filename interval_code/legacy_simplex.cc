@@ -2632,7 +2632,7 @@ void legacy_simplex::selfTest()
     domain x(4.1,4.2,4.3,4.4,4.5,4.6);
     double mValue= 1.0965338178368775;
     double mathValueD[6]={-0.07084353197306854,0,0,0,0,0};
-    taylorData at = legacy_simplex::arclength_x1(interval::interval("2.08"),interval::interval("2.14")).evalf(x,x); 
+    taylorData at = legacy_simplex::arclength_x1(interval("2.08"),interval("2.14")).evalf(x,x); 
     if (!epsilonCloseDoubles(at.upperBound(),mValue,1.0e-8))
       cout << "arclength_x1  fails " << endl;
     for (int i=0;i<6;i++) {

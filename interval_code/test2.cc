@@ -141,11 +141,11 @@ static const Function proj_y5 = (rotate5((Lib::y1)));
 
 static const Function proj_y6 = (rotate6((Lib::y1)));
 
-static const Function zero6 = (Lib::constant6(interval::interval ("0.")));
+static const Function zero6 = (Lib::constant6(interval("0.")));
 
-static const Function four6 = (Lib::constant6(interval::interval ("4.")));
+static const Function four6 = (Lib::constant6(interval("4.")));
 
-static const Function dummy6 = (Lib::constant6(interval::interval ("0.")));
+static const Function dummy6 = (Lib::constant6(interval("0.")));
 
 static const Function x1cube = ((Lib::x1) * ((Lib::x1) * (Lib::x1)));
 
@@ -155,7 +155,7 @@ static const Function x1_delta_x = ((Lib::x1) * (Lib::delta_x));
 
 static const Function delta4_squared_x = (Lib::uni((univariate::i_pow2) , (Lib::delta_x4)));
 
-static const Function vol_x = ((Lib::uni((univariate::i_sqrt) , (Lib::delta_x))) * (interval::interval ("1.") / interval::interval ("12.")));
+static const Function vol_x = ((Lib::uni((univariate::i_sqrt) , (Lib::delta_x))) * (interval("1.") / interval("12.")));
 
 static const Function dih2_x = (rotate2((Lib::dih_x)));
 
@@ -169,7 +169,7 @@ static const Function dih6_x = (rotate6((Lib::dih_x)));
 
 static const Function lfun_y1 = ((((Lib::unit) * (h0)) - (Lib::x1)) * (rh0));
 
-static const Function ldih_x = (((((Lib::unit) * (h0)) - ((Lib::y1) * interval::interval ("0.5"))) * (rh0)) * (Lib::dih_x));
+static const Function ldih_x = (((((Lib::unit) * (h0)) - ((Lib::y1) * interval("0.5"))) * (rh0)) * (Lib::dih_x));
 
 static const Function ldih2_x = (rotate2((ldih_x)));
 
@@ -177,7 +177,7 @@ static const Function ldih3_x = (rotate3((ldih_x)));
 
 static const Function ldih6_x = (rotate6((ldih_x)));
 
-static const Function eulerA_x = (((Lib::y1) * ((proj_y2) * (proj_y3))) + ((((Lib::y1) * ((Lib::x2) + ((Lib::x3) - (Lib::x4)))) * interval::interval ("0.5")) + ((((proj_y2) * ((Lib::x1) + ((Lib::x3) - (Lib::x5)))) * interval::interval ("0.5")) + (((proj_y3) * ((Lib::x1) + ((Lib::x2) - (Lib::x6)))) * interval::interval ("0.5")))));
+static const Function eulerA_x = (((Lib::y1) * ((proj_y2) * (proj_y3))) + ((((Lib::y1) * ((Lib::x2) + ((Lib::x3) - (Lib::x4)))) * interval("0.5")) + ((((proj_y2) * ((Lib::x1) + ((Lib::x3) - (Lib::x5)))) * interval("0.5")) + (((proj_y3) * ((Lib::x1) + ((Lib::x2) - (Lib::x6)))) * interval("0.5")))));
 
 static const Function gchi1_x = ((Lib::uni((Lib::i_gchi) , (Lib::y1))) * (Lib::dih_x));
 
@@ -199,25 +199,25 @@ static const Function eta2_456 = (rotate4((eta2_135)));
 
 static const Function vol3_x_sqrt = (mk_126((vol_x)));
 
-static const Function vol3f_x_lfun = (((Lib::constant6((interval::interval ("2.") * ((mm1) / (pi))))) * (((Lib::two6) * (mk_126((Lib::dih_x)))) + (((Lib::two6) * (mk_126((dih2_x)))) + (((Lib::two6) * (mk_126((dih6_x)))) + ((mk_126((dih3_x))) + ((mk_126((dih4_x))) + ((mk_126((dih5_x))) - (Lib::constant6((interval::interval ("3.") * (pi))))))))))) - ((Lib::constant6((interval::interval ("8.") * ((mm2) / (pi))))) * ((mk_126((ldih_x))) + ((mk_126((ldih2_x))) + (mk_126((ldih6_x)))))));
+static const Function vol3f_x_lfun = (((Lib::constant6((interval("2.") * ((mm1) / (pi))))) * (((Lib::two6) * (mk_126((Lib::dih_x)))) + (((Lib::two6) * (mk_126((dih2_x)))) + (((Lib::two6) * (mk_126((dih6_x)))) + ((mk_126((dih3_x))) + ((mk_126((dih4_x))) + ((mk_126((dih5_x))) - (Lib::constant6((interval("3.") * (pi))))))))))) - ((Lib::constant6((interval("8.") * ((mm2) / (pi))))) * ((mk_126((ldih_x))) + ((mk_126((ldih2_x))) + (mk_126((ldih6_x)))))));
 
-static const Function vol3f_x_sqrt2_lmplus = (((Lib::constant6((interval::interval ("2.") * ((mm1) / (pi))))) * (((Lib::two6) * (mk_126((Lib::dih_x)))) + (((Lib::two6) * (mk_126((dih2_x)))) + (((Lib::two6) * (mk_126((dih6_x)))) + ((mk_126((dih3_x))) + ((mk_126((dih4_x))) + ((mk_126((dih5_x))) - (Lib::constant6((interval::interval ("3.") * (pi))))))))))) - ((Lib::constant6((interval::interval ("8.") * ((mm2) / (pi))))) * ((mk_126((ldih2_x))) + (mk_126((ldih6_x))))));
+static const Function vol3f_x_sqrt2_lmplus = (((Lib::constant6((interval("2.") * ((mm1) / (pi))))) * (((Lib::two6) * (mk_126((Lib::dih_x)))) + (((Lib::two6) * (mk_126((dih2_x)))) + (((Lib::two6) * (mk_126((dih6_x)))) + ((mk_126((dih3_x))) + ((mk_126((dih4_x))) + ((mk_126((dih5_x))) - (Lib::constant6((interval("3.") * (pi))))))))))) - ((Lib::constant6((interval("8.") * ((mm2) / (pi))))) * ((mk_126((ldih2_x))) + (mk_126((ldih6_x))))));
 
 static const Function asn797k = ((Lib::x1) * (Lib::uni((univariate::i_asin) , ((Lib::constant6((cos797))) * (Lib::uni((univariate::i_sin) , ((Lib::constant6((pi))) / (Lib::x1))))))));
 
-static const Function asnFnhk = ((Lib::x2) * (Lib::uni((univariate::i_asin) , ((((Lib::x1) * (Lib::constant6(((sqrt3) / interval::interval ("4."))))) + ((Lib::uni((univariate::i_sqrt) , ((Lib::unit) - (Lib::uni((univariate::i_pow2) , ((Lib::x1) * (Lib::constant6(interval::interval ("0.5"))))))))) * (Lib::constant6(interval::interval ("0.5"))))) * (Lib::uni((univariate::i_sin) , ((Lib::constant6((pi))) / (Lib::x2))))))));
+static const Function asnFnhk = ((Lib::x2) * (Lib::uni((univariate::i_asin) , ((((Lib::x1) * (Lib::constant6(((sqrt3) / interval("4."))))) + ((Lib::uni((univariate::i_sqrt) , ((Lib::unit) - (Lib::uni((univariate::i_pow2) , ((Lib::x1) * (Lib::constant6(interval("0.5"))))))))) * (Lib::constant6(interval("0.5"))))) * (Lib::uni((univariate::i_sin) , ((Lib::constant6((pi))) / (Lib::x2))))))));
 
-static const Function acs_sqrt_x1_d4 = (Lib::uni((univariate::i_acos) , ((Lib::y1) * interval::interval ("0.25"))));
+static const Function acs_sqrt_x1_d4 = (Lib::uni((univariate::i_acos) , ((Lib::y1) * interval("0.25"))));
 
-static const Function acs_sqrt_x2_d4 = (Lib::uni((univariate::i_acos) , ((proj_y2) * interval::interval ("0.25"))));
+static const Function acs_sqrt_x2_d4 = (Lib::uni((univariate::i_acos) , ((proj_y2) * interval("0.25"))));
 
-static const Function arclength_x_123 = (Lib::uni((univariate::i_acos) , (((Lib::x1) + ((Lib::x2) - (Lib::x3))) / (Lib::uni((univariate::i_sqrt) , (((Lib::x1) * (Lib::x2)) * interval::interval ("4.")))))));
+static const Function arclength_x_123 = (Lib::uni((univariate::i_acos) , (((Lib::x1) + ((Lib::x2) - (Lib::x3))) / (Lib::uni((univariate::i_sqrt) , (((Lib::x1) * (Lib::x2)) * interval("4.")))))));
 
 static const Function arclength_x_234 = (rotate234((arclength_x_123)));
 
 static const Function arclength_x_126 = (rotate126((arclength_x_123)));
 
-static const Function sol_euler_x_div_sqrtdelta = ((Lib::uni((univariate::i_matan) , ((Lib::delta_x) / (((eulerA_x) * (eulerA_x)) * interval::interval ("4."))))) / (eulerA_x));
+static const Function sol_euler_x_div_sqrtdelta = ((Lib::uni((univariate::i_matan) , ((Lib::delta_x) / (((eulerA_x) * (eulerA_x)) * interval("4."))))) / (eulerA_x));
 
 static const Function sol_euler246_x_div_sqrtdelta = (rotate4((sol_euler_x_div_sqrtdelta)));
 
@@ -225,7 +225,7 @@ static const Function sol_euler345_x_div_sqrtdelta = (rotate5((sol_euler_x_div_s
 
 static const Function sol_euler156_x_div_sqrtdelta = (rotate6((sol_euler_x_div_sqrtdelta)));
 
-static const Function dih_x_div_sqrtdelta_posbranch = ((((Lib::y1) * interval::interval ("2.")) / (Lib::delta_x4)) * (Lib::uni((univariate::i_matan) , ((((Lib::x1) * (Lib::delta_x)) * interval::interval ("4.")) / (Lib::uni((univariate::i_pow2) , (Lib::delta_x4)))))));
+static const Function dih_x_div_sqrtdelta_posbranch = ((((Lib::y1) * interval("2.")) / (Lib::delta_x4)) * (Lib::uni((univariate::i_matan) , ((((Lib::x1) * (Lib::delta_x)) * interval("4.")) / (Lib::uni((univariate::i_pow2) , (Lib::delta_x4)))))));
 
 static const Function dih3_x_div_sqrtdelta_posbranch = (rotate3((dih_x_div_sqrtdelta_posbranch)));
 
@@ -281,7 +281,7 @@ static const Function rhazim2_x = (rotate2((rhazim_x)));
 
 static const Function rhazim3_x = (rotate3((rhazim_x)));
 
-static const Function taum_x = ((rhazim_x) + ((rhazim2_x) + ((rhazim3_x) - (Lib::constant6(((interval::interval ("1.") + (const1)) * (pi)))))));
+static const Function taum_x = ((rhazim_x) + ((rhazim2_x) + ((rhazim3_x) - (Lib::constant6(((interval("1.") + (const1)) * (pi)))))));
 
 static const Function taum_3flat_x = ((Function::compose((taum_x),(Lib::x1),(Lib::x2),(Lib::x3),(Function::compose((Lib::edge_flat2_x),(Lib::x4),(Lib::x2),(Lib::x3),(zero6),(four6),(four6))),(Function::compose((Lib::edge_flat2_x),(Lib::x5),(Lib::x1),(Lib::x3),(zero6),(four6),(four6))),(Function::compose((Lib::edge_flat2_x),(Lib::x6),(Lib::x1),(Lib::x2),(zero6),(four6),(four6))))) + ((Lib::uni((Lib::i_flat_term_x) , (Lib::x4))) + ((Lib::uni((Lib::i_flat_term_x) , (Lib::x5))) + (Lib::uni((Lib::i_flat_term_x) , (Lib::x6))))));
 
@@ -293,11 +293,11 @@ static const Function delta_x_126_s2 = (mk_126((Lib::delta_x)));
 
 static const Function delta_x_135_s2 = (mk_135((Lib::delta_x)));
 
-static const Function delta_pent_x = (Function::compose((Lib::delta_x),(Lib::x1),(Lib::x2),(Lib::x6),(four6),(four6),(Lib::constant6(interval::interval ("10.4976")))));
+static const Function delta_pent_x = (Function::compose((Lib::delta_x),(Lib::x1),(Lib::x2),(Lib::x6),(four6),(four6),(Lib::constant6(interval("10.4976")))));
 
 static const Function vol3_x_135_s2 = (mk_135((vol_x)));
 
-static const Function ldih_x_div_sqrtdelta_posbranch = ((((Lib::constant6((h0))) - ((Lib::y1) * interval::interval ("0.5"))) * (rh0)) * (dih_x_div_sqrtdelta_posbranch));
+static const Function ldih_x_div_sqrtdelta_posbranch = ((((Lib::constant6((h0))) - ((Lib::y1) * interval("0.5"))) * (rh0)) * (dih_x_div_sqrtdelta_posbranch));
 
 static const Function ldih2_x_div_sqrtdelta_posbranch = (rotate2((ldih_x_div_sqrtdelta_posbranch)));
 
@@ -329,17 +329,17 @@ static const Function rhazim3_x_div_sqrtdelta_posbranch = (rotate3((rhazim_x_div
 
 static const Function tau_residual_x = ((rhazim_x_div_sqrtdelta_posbranch) + ((rhazim2_x_div_sqrtdelta_posbranch) + (rhazim3_x_div_sqrtdelta_posbranch)));
 
-static const Function dnum1 = ((((Lib::constant6(interval::interval ("16."))) - ((Lib::constant6(interval::interval ("2."))) * (Lib::x4))) * (Lib::x1)) + ((((Lib::x5) - (Lib::constant6(interval::interval ("8.")))) * (Lib::x2)) + (((Lib::x6) - (Lib::constant6(interval::interval ("8.")))) * (Lib::x3))));
+static const Function dnum1 = ((((Lib::constant6(interval("16."))) - ((Lib::constant6(interval("2."))) * (Lib::x4))) * (Lib::x1)) + ((((Lib::x5) - (Lib::constant6(interval("8.")))) * (Lib::x2)) + (((Lib::x6) - (Lib::constant6(interval("8.")))) * (Lib::x3))));
 
 static const Function delta_x1 = (rotate4((Lib::delta_x4)));
 
-static const Function mu6_x = ((Lib::constant6(interval::interval ("0.012"))) + (((Lib::constant6(interval::interval ("0.07"))) * ((Lib::constant6(interval::interval ("2.52"))) - (Lib::y1))) + ((Lib::constant6(interval::interval ("0.01"))) * (((Lib::constant6((interval::interval ("2.52") * interval::interval ("2.")))) - (proj_y2)) - (proj_y3)))));
+static const Function mu6_x = ((Lib::constant6(interval("0.012"))) + (((Lib::constant6(interval("0.07"))) * ((Lib::constant6(interval("2.52"))) - (Lib::y1))) + ((Lib::constant6(interval("0.01"))) * (((Lib::constant6((interval("2.52") * interval("2.")))) - (proj_y2)) - (proj_y3)))));
 
 static const Function taud_x = ((Lib::promote1_to_6((Lib::i_flat_term_x))) + ((Lib::uni((univariate::i_sqrt) , (Lib::delta_x))) * (mu6_x)));
 
-static const Function taud_D2_num_x = ((((Lib::constant6((-interval::interval ("0.07")))) * ((Lib::delta_x) * ((delta_x1) * ((Lib::constant6(interval::interval ("2."))) * (Lib::y1))))) - ((Lib::constant6((interval::interval ("1.") / interval::interval ("4.")))) * ((mu6_x) * (((delta_x1) * ((Lib::constant6(interval::interval ("2."))) * (Lib::y1))) * ((delta_x1) * ((Lib::constant6(interval::interval ("2."))) * (Lib::y1))))))) + ((Lib::constant6((interval::interval ("1.") / interval::interval ("2.")))) * ((mu6_x) * ((Lib::delta_x) * (((Lib::constant6((-interval::interval ("8.")))) * ((Lib::x1) * (Lib::x4))) + ((delta_x1) * (Lib::constant6(interval::interval ("2.")))))))));
+static const Function taud_D2_num_x = ((((Lib::constant6((-interval("0.07")))) * ((Lib::delta_x) * ((delta_x1) * ((Lib::constant6(interval("2."))) * (Lib::y1))))) - ((Lib::constant6((interval("1.") / interval("4.")))) * ((mu6_x) * (((delta_x1) * ((Lib::constant6(interval("2."))) * (Lib::y1))) * ((delta_x1) * ((Lib::constant6(interval("2."))) * (Lib::y1))))))) + ((Lib::constant6((interval("1.") / interval("2.")))) * ((mu6_x) * ((Lib::delta_x) * (((Lib::constant6((-interval("8.")))) * ((Lib::x1) * (Lib::x4))) + ((delta_x1) * (Lib::constant6(interval("2.")))))))));
 
-static const Function taud_D1_num_x = (((Lib::constant6((-interval::interval ("0.07")))) * (Lib::delta_x)) + (((Lib::constant6((interval::interval ("1.") / interval::interval ("2.")))) * ((mu6_x) * ((delta_x1) * ((Lib::constant6(interval::interval ("2."))) * (Lib::y1))))) + ((Lib::constant6(((sol0) / interval::interval ("0.52")))) * (Lib::uni((univariate::i_sqrt) , (Lib::delta_x))))));
+static const Function taud_D1_num_x = (((Lib::constant6((-interval("0.07")))) * (Lib::delta_x)) + (((Lib::constant6((interval("1.") / interval("2.")))) * ((mu6_x) * ((delta_x1) * ((Lib::constant6(interval("2."))) * (Lib::y1))))) + ((Lib::constant6(((sol0) / interval("0.52")))) * (Lib::uni((univariate::i_sqrt) , (Lib::delta_x))))));
 static const Function taum_x1(const interval& a,const interval& b) { return ((Function::compose((taum_x),(four6),(four6),(four6),(Lib::constant6((a * a))),(Lib::constant6((b * b))),(Lib::x1)))); }
 
 static const Function taum_x2(const interval& a,const interval& b) { return ((Function::compose((taum_x),(four6),(four6),(four6),(Lib::constant6((a * a))),(Lib::constant6((b * b))),(Lib::x2)))); }
@@ -366,15 +366,15 @@ static const Function taum_sub345_x(const interval& a,const interval& b,const in
 
 static const Function gamma2_x1_div_a_v2(const interval& m) { return ((Lib::promote1_to_6((Lib::i_gamma2_x_div_azim_v2(m))))); }
 
-static const Function gamma3f_x_div_sqrtdelta(const interval& m4,const interval& m5,const interval& m6) { return (((Lib::constant6((interval::interval ("1.") / interval::interval ("12.")))) - ((((mk_456((rotate5((sol_euler_x_div_sqrtdelta))))) + ((mk_456((rotate6((sol_euler_x_div_sqrtdelta))))) + (mk_456((rotate4((sol_euler_x_div_sqrtdelta))))))) * (interval::interval ("2.") * ((mm1) / (pi)))) - ((((Lib::uni((Lib::i_lfun) , ((proj_y4) * interval::interval ("0.5")))) * ((mk_456((rotate4((dih_x_div_sqrtdelta_posbranch))))) * m4)) + (((Lib::uni((Lib::i_lfun) , ((proj_y5) * interval::interval ("0.5")))) * ((mk_456((rotate5((dih_x_div_sqrtdelta_posbranch))))) * m5)) + ((Lib::uni((Lib::i_lfun) , ((proj_y6) * interval::interval ("0.5")))) * ((mk_456((rotate6((dih_x_div_sqrtdelta_posbranch))))) * m6)))) * (interval::interval ("8.") * ((mm2) / (pi))))))); }
+static const Function gamma3f_x_div_sqrtdelta(const interval& m4,const interval& m5,const interval& m6) { return (((Lib::constant6((interval("1.") / interval("12.")))) - ((((mk_456((rotate5((sol_euler_x_div_sqrtdelta))))) + ((mk_456((rotate6((sol_euler_x_div_sqrtdelta))))) + (mk_456((rotate4((sol_euler_x_div_sqrtdelta))))))) * (interval("2.") * ((mm1) / (pi)))) - ((((Lib::uni((Lib::i_lfun) , ((proj_y4) * interval("0.5")))) * ((mk_456((rotate4((dih_x_div_sqrtdelta_posbranch))))) * m4)) + (((Lib::uni((Lib::i_lfun) , ((proj_y5) * interval("0.5")))) * ((mk_456((rotate5((dih_x_div_sqrtdelta_posbranch))))) * m5)) + ((Lib::uni((Lib::i_lfun) , ((proj_y6) * interval("0.5")))) * ((mk_456((rotate6((dih_x_div_sqrtdelta_posbranch))))) * m6)))) * (interval("8.") * ((mm2) / (pi))))))); }
 
-static const Function vol3f_456(const interval& m4) { return (((((mk_456((rotate5((Lib::sol_x))))) + ((mk_456((rotate6((Lib::sol_x))))) + (mk_456((rotate4((Lib::sol_x))))))) * (interval::interval ("2.") * ((mm1) / (pi)))) - (((((Lib::uni((Lib::i_lfun) , ((proj_y4) * interval::interval ("0.5")))) * m4) * (mk_456((rotate4((Lib::dih_x)))))) + (((Lib::uni((Lib::i_lfun) , ((proj_y5) * interval::interval ("0.5")))) * (mk_456((rotate5((Lib::dih_x)))))) + ((Lib::uni((Lib::i_lfun) , ((proj_y6) * interval::interval ("0.5")))) * (mk_456((rotate6((Lib::dih_x)))))))) * (interval::interval ("8.") * ((mm2) / (pi)))))); }
+static const Function vol3f_456(const interval& m4) { return (((((mk_456((rotate5((Lib::sol_x))))) + ((mk_456((rotate6((Lib::sol_x))))) + (mk_456((rotate4((Lib::sol_x))))))) * (interval("2.") * ((mm1) / (pi)))) - (((((Lib::uni((Lib::i_lfun) , ((proj_y4) * interval("0.5")))) * m4) * (mk_456((rotate4((Lib::dih_x)))))) + (((Lib::uni((Lib::i_lfun) , ((proj_y5) * interval("0.5")))) * (mk_456((rotate5((Lib::dih_x)))))) + ((Lib::uni((Lib::i_lfun) , ((proj_y6) * interval("0.5")))) * (mk_456((rotate6((Lib::dih_x)))))))) * (interval("8.") * ((mm2) / (pi)))))); }
 
 static const Function gamma3_x(const interval& m4) { return (((mk_456((vol_x))) - (vol3f_456(m4)))); }
 
-static const Function gamma23_full8_x(const interval& m1) { return (((Function::compose((gamma3_x(m1)),(dummy6),(dummy6),(dummy6),(Lib::x1),(Lib::x2),(Lib::x6))) + ((Function::compose((gamma3_x(m1)),(dummy6),(dummy6),(dummy6),(Lib::x1),(Lib::x3),(Lib::x5))) + (((Lib::dih_x) - ((mk_126((Lib::dih_x))) + (mk_135((Lib::dih_x))))) * interval::interval ("0.008"))))); }
+static const Function gamma23_full8_x(const interval& m1) { return (((Function::compose((gamma3_x(m1)),(dummy6),(dummy6),(dummy6),(Lib::x1),(Lib::x2),(Lib::x6))) + ((Function::compose((gamma3_x(m1)),(dummy6),(dummy6),(dummy6),(Lib::x1),(Lib::x3),(Lib::x5))) + (((Lib::dih_x) - ((mk_126((Lib::dih_x))) + (mk_135((Lib::dih_x))))) * interval("0.008"))))); }
 
-static const Function gamma23_keep135_x(const interval& m1) { return (((Function::compose((gamma3_x(m1)),(dummy6),(dummy6),(dummy6),(Lib::x1),(Lib::x3),(Lib::x5))) + (((Lib::dih_x) - (mk_135((Lib::dih_x)))) * interval::interval ("0.008")))); }
+static const Function gamma23_keep135_x(const interval& m1) { return (((Function::compose((gamma3_x(m1)),(dummy6),(dummy6),(dummy6),(Lib::x1),(Lib::x3),(Lib::x5))) + (((Lib::dih_x) - (mk_135((Lib::dih_x)))) * interval("0.008")))); }
 
 static const Function mud_135_x_v1(const interval& y2,const interval& y4,const interval& y6) { return (((Function::compose((mu6_x),(Lib::constant6((y2 * y2))),(Lib::x1),(Lib::x3),(dummy6),(dummy6),(dummy6))) * (Lib::uni((univariate::i_sqrt) , (delta_135_x((y2 * y2),(y4 * y4),(y6 * y6))))))); }
 
@@ -382,13 +382,13 @@ static const Function mud_126_x_v1(const interval& y3,const interval& y4,const i
 
 static const Function mud_234_x_v1(const interval& y1,const interval& y5,const interval& y6) { return (((Function::compose((mu6_x),(Lib::constant6((y1 * y1))),(Lib::x2),(Lib::x3),(dummy6),(dummy6),(dummy6))) * (Lib::uni((univariate::i_sqrt) , (delta_234_x((y1 * y1),(y5 * y5),(y6 * y6))))))); }
 
-static const Function mudLs_234_x(const interval& d1s,const interval& d2s,const interval& y1,const interval& y5,const interval& y6) { return (((Function::compose((mu6_x),(Lib::constant6((y1 * y1))),(Lib::x2),(Lib::x3),(dummy6),(dummy6),(dummy6))) * (((Lib::constant6((interval::interval ("1.") / (d1s + d2s)))) * ((delta_234_x((y1 * y1),(y5 * y5),(y6 * y6))) - (Lib::constant6((d1s * d1s))))) + (Lib::constant6(d1s))))); }
+static const Function mudLs_234_x(const interval& d1s,const interval& d2s,const interval& y1,const interval& y5,const interval& y6) { return (((Function::compose((mu6_x),(Lib::constant6((y1 * y1))),(Lib::x2),(Lib::x3),(dummy6),(dummy6),(dummy6))) * (((Lib::constant6((interval("1.") / (d1s + d2s)))) * ((delta_234_x((y1 * y1),(y5 * y5),(y6 * y6))) - (Lib::constant6((d1s * d1s))))) + (Lib::constant6(d1s))))); }
 
-static const Function mudLs_126_x(const interval& d1s,const interval& d2s,const interval& y3,const interval& y4,const interval& y5) { return (((Function::compose((mu6_x),(Lib::constant6((y3 * y3))),(Lib::x1),(Lib::x2),(dummy6),(dummy6),(dummy6))) * (((Lib::constant6((interval::interval ("1.") / (d1s + d2s)))) * ((delta_126_x((y3 * y3),(y4 * y4),(y5 * y5))) - (Lib::constant6((d1s * d1s))))) + (Lib::constant6(d1s))))); }
+static const Function mudLs_126_x(const interval& d1s,const interval& d2s,const interval& y3,const interval& y4,const interval& y5) { return (((Function::compose((mu6_x),(Lib::constant6((y3 * y3))),(Lib::x1),(Lib::x2),(dummy6),(dummy6),(dummy6))) * (((Lib::constant6((interval("1.") / (d1s + d2s)))) * ((delta_126_x((y3 * y3),(y4 * y4),(y5 * y5))) - (Lib::constant6((d1s * d1s))))) + (Lib::constant6(d1s))))); }
 
-static const Function mudLs_135_x(const interval& d1s,const interval& d2s,const interval& y2,const interval& y4,const interval& y6) { return (((Function::compose((mu6_x),(Lib::constant6((y2 * y2))),(Lib::x1),(Lib::x3),(dummy6),(dummy6),(dummy6))) * (((Lib::constant6((interval::interval ("1.") / (d1s + d2s)))) * ((delta_135_x((y2 * y2),(y4 * y4),(y6 * y6))) - (Lib::constant6((d1s * d1s))))) + (Lib::constant6(d1s))))); }
+static const Function mudLs_135_x(const interval& d1s,const interval& d2s,const interval& y2,const interval& y4,const interval& y6) { return (((Function::compose((mu6_x),(Lib::constant6((y2 * y2))),(Lib::x1),(Lib::x3),(dummy6),(dummy6),(dummy6))) * (((Lib::constant6((interval("1.") / (d1s + d2s)))) * ((delta_135_x((y2 * y2),(y4 * y4),(y6 * y6))) - (Lib::constant6((d1s * d1s))))) + (Lib::constant6(d1s))))); }
 
-static const Function edge2_126_x(const interval& d,const interval& x4,const interval& x5) { return ((((Lib::uni((univariate::i_sqrt) , (((Function::compose((Lib::ups_126),(Lib::constant6(x4)),(Lib::constant6(x5)),(dummy6),(dummy6),(dummy6),(Lib::x6))) * (Lib::ups_126)) + ((Lib::constant6(((-interval::interval ("4.")) * d))) * (Lib::x6))))) - ((Lib::constant6((-interval::interval ("1.")))) * (Function::compose((delta_x1),(zero6),(Lib::x2),(Lib::x1),(Lib::x6),(Lib::constant6(x5)),(Lib::constant6(x4)))))) / ((Lib::constant6(interval::interval ("2."))) * (Lib::x6)))); }
+static const Function edge2_126_x(const interval& d,const interval& x4,const interval& x5) { return ((((Lib::uni((univariate::i_sqrt) , (((Function::compose((Lib::ups_126),(Lib::constant6(x4)),(Lib::constant6(x5)),(dummy6),(dummy6),(dummy6),(Lib::x6))) * (Lib::ups_126)) + ((Lib::constant6(((-interval("4.")) * d))) * (Lib::x6))))) - ((Lib::constant6((-interval("1.")))) * (Function::compose((delta_x1),(zero6),(Lib::x2),(Lib::x1),(Lib::x6),(Lib::constant6(x5)),(Lib::constant6(x4)))))) / ((Lib::constant6(interval("2."))) * (Lib::x6)))); }
 
 static const Function edge2_135_x(const interval& d,const interval& x4,const interval& x6) { return ((Function::compose((edge2_126_x(d,x4,x6)),(Lib::x1),(Lib::x3),(dummy6),(dummy6),(dummy6),(Lib::x5)))); }
 
@@ -551,18 +551,18 @@ void selfTest() {
 
  int testRun() // autogenerated code
 	{
-	interval tx[6]={interval::interval ("4."),interval::interval ("4."),interval::interval ("4."),(interval::interval ("3.01") * interval::interval ("3.01")),(interval::interval ("3.01") * interval::interval ("3.01")),(interval::interval ("3.01") * interval::interval ("3.01"))};
-	interval tz[6]={interval::interval ("6.3504"),interval::interval ("6.3504"),interval::interval ("6.3504"),(interval::interval ("3.915") * interval::interval ("3.915")),(interval::interval ("3.915") * interval::interval ("3.915")),(interval::interval ("3.915") * interval::interval ("3.915"))};
+	interval tx[6]={interval("4."),interval("4."),interval("4."),(interval("3.01") * interval("3.01")),(interval("3.01") * interval("3.01")),(interval("3.01") * interval("3.01"))};
+	interval tz[6]={interval("6.3504"),interval("6.3504"),interval("6.3504"),(interval("3.915") * interval("3.915")),(interval("3.915") * interval("3.915")),(interval("3.915") * interval("3.915"))};
 	domain x = domain::lowerD(tx);
 	domain z = domain::upperD(tz);
         domain x0=x;
         domain z0=z;
-               Function F1 = (((Lib::unit ) * interval::interval ("0.712")) + (((rhazim_x ) * (-interval::interval ("1"))) + (((rhazim2_x ) * (-interval::interval ("1"))) + (((rhazim3_x ) * (-interval::interval ("1"))) + (((Lib::unit ) * (pi)) + (((Lib::unit ) * ((const1) * (pi))) + (((flat_term2_234_x ((interval::interval ("0")),(interval::interval ("4")),(interval::interval ("4")))) * (-interval::interval ("1"))) + (((mudLs_135_x ((interval::interval ("4")),(interval::interval ("10")),(interval::interval ("2.")),(interval::interval ("2.")),(interval::interval ("2.")))) * (-interval::interval ("1"))) + ((Lib::unit ) * ((pi) * (const1)))))))))));
+               Function F1 = (((Lib::unit ) * interval("0.712")) + (((rhazim_x ) * (-interval("1"))) + (((rhazim2_x ) * (-interval("1"))) + (((rhazim3_x ) * (-interval("1"))) + (((Lib::unit ) * (pi)) + (((Lib::unit ) * ((const1) * (pi))) + (((flat_term2_234_x ((interval("0")),(interval("4")),(interval("4")))) * (-interval("1"))) + (((mudLs_135_x ((interval("4")),(interval("10")),(interval("2.")),(interval("2.")),(interval("2.")))) * (-interval("1"))) + ((Lib::unit ) * ((pi) * (const1)))))))))));
        Function F2 = (eulerA_x );
-       Function F3 = (delta_234_x ((interval::interval ("4")),(interval::interval ("4")),(interval::interval ("4"))));
-       Function F4 = ((delta_234_x ((interval::interval ("6.3504")),(interval::interval ("4")),(interval::interval ("4")))) * (-interval::interval ("1")));
-       Function F5 = ((delta_135_x ((interval::interval ("4")),(interval::interval ("4")),(interval::interval ("4")))) + ((Lib::unit ) * (-interval::interval ("16"))));
-       Function F6 = (((Lib::unit ) * interval::interval ("100.")) + ((delta_135_x ((interval::interval ("4")),(interval::interval ("4")),(interval::interval ("4")))) * (-interval::interval ("1"))));
+       Function F3 = (delta_234_x ((interval("4")),(interval("4")),(interval("4"))));
+       Function F4 = ((delta_234_x ((interval("6.3504")),(interval("4")),(interval("4")))) * (-interval("1")));
+       Function F5 = ((delta_135_x ((interval("4")),(interval("4")),(interval("4")))) + ((Lib::unit ) * (-interval("16"))));
+       Function F6 = (((Lib::unit ) * interval("100.")) + ((delta_135_x ((interval("4")),(interval("4")),(interval("4")))) * (-interval("1"))));
         const Function* I[6] = {&F1,&F2,&F3,&F4,&F5,&F6}; // len ...
         cellOption opt;
         opt.allowSharp = 0; // sharp

@@ -64,6 +64,15 @@ test_auto: test_auto.cc error.h error.o interval.h interval.o lineInterval.h \
 	 test_auto.cc \
 	-o  test_auto -lm $(L)
 
+test2: test2.cc error.h error.o interval.h interval.o lineInterval.h \
+	lineInterval.o secondDerive.h secondDerive.o taylorData.o \
+	recurse.h recurse.o univariate.h univariate.o wide.h wide.o \
+	Lib.o Lib.h
+	$(CC) $(CCOPTS1)  error.o interval.o lineInterval.o \
+	secondDerive.o univariate.o wide.o taylorData.o recurse.o Lib.o \
+	 test2.cc \
+	-o  test2 -lm $(L)
+
 
 jan4_test: jan4_test.cc error.h error.o interval.h interval.o lineInterval.h \
 	lineInterval.o secondDerive.h secondDerive.o taylorData.o \

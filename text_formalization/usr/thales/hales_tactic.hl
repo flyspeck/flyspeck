@@ -15,6 +15,7 @@ let unlist tac t = tac [t];;
 
 let kill th = ALL_TAC;;
 
+(* moved to strictbuild.hl.
 let dest_goal gl = gl;;
 
 let goal_asms = fst;;
@@ -22,6 +23,9 @@ let goal_asms = fst;;
 let goal_concl = snd;;
 
 let mk_goal(asl,w) = (asl,w);;
+
+
+*)
 
 let LET_THM = CONJ LET_DEF LET_END_DEF;;
 
@@ -79,12 +83,12 @@ let ASM_SET_TAC l =
 
 let GSYM_EXISTS_PAIRED_THM = GSYM EXISTS_PAIRED_THM;;
 
-
 let has_stv t =
   let typ = (type_vars_in_term t) in
   can (find (fun ty -> (is_vartype ty) && ((dest_vartype ty).[0] = '?'))) typ;;
 
-let frees_of_goal (asl,w) = 
+let frees_of_goal gl = 
+  let (asl,w) = dest_goal gl in
   let tms = w::(map (concl o snd) asl)  in
   let varl = List.flatten (map frees tms) in
     map (fun t -> (fst (dest_var t), t)) varl;;
@@ -113,23 +117,12 @@ let retype gls tm =
   let _ = map (fun x -> mem x glt or failwith ("not found: "^ fst (dest_var x))) (setify (frees tm')) in
     tm';;
 
-let env (asl,w) tm = 
-  let gls = frees_of_goal (asl,w) in
+let env gl tm = 
+  let gls = frees_of_goal gl in
     retype gls tm;;
 
-(*
-let env (asl,w) tm = 
-  let gls = frees_of_goal (asl,w) in
-  let varl = filter has_stv (setify(frees tm)) in
-  let svarl = map (fun t-> (fst(dest_var t),t)) varl in
-  let fn = fun buff (s,t) -> try (let (_,_,m)= term_match [] t (assoc s gls) in m @ buff)
-  with _ -> failwith ("not found: "^s) in
-  let tyassoc = List.fold_left fn [] svarl in
-     (instantiate ([],[],tyassoc)) tm ;;
-*)
-
-let envl (asl,w) tml = 
-  let gls = frees_of_goal (asl,w) in
+let envl gl tml = 
+  let gls = frees_of_goal gl in
   let varl = filter has_stv (setify (List.flatten(map frees tml))) in
   let svarl = setify(map (fun t-> (fst(dest_var t),t)) varl) in
   let fn = fun buff (s,t) -> try (let (_,_,m)= term_match [] t (assoc s gls) in m @ buff)
@@ -137,14 +130,14 @@ let envl (asl,w) tml =
   let tyassoc = List.fold_left fn [] svarl in
      map (instantiate ([],[],tyassoc)) tml ;;
 
-let gtyp (ttac:term->tactic) tm (asl,w) = ttac (env (asl,w) tm) (asl,w);;
+let gtyp (ttac:term->tactic) tm gl = ttac (env gl tm) gl;;
 
-let gtypl (ttacl:term list -> tactic) tml (asl,w) =   
-   ttacl (map (env (asl,w)) tml) (asl,w);;
+let gtypl (ttacl:term list -> tactic) tml gl =   
+   ttacl (map (env gl) tml) gl;;
 
 let GEXISTS_TAC = gtyp EXISTS_TAC;;
 
-let GSUBGOAL_THEN t ttac (asl,w) = SUBGOAL_THEN (env (asl,w) t) ttac (asl,w);;
+let GSUBGOAL_THEN t ttac gl = SUBGOAL_THEN (env gl t) ttac gl;;
 
 let argthen ttac tac t = (ttac t) THEN tac;;
 
@@ -221,19 +214,15 @@ let FIRST_ASSUM_ST t x =
   FIRST_ASSUM (fun u -> 
     let _ = find_term (can(term_match[] t)) (concl u) in x u);;
 
-let BURY_TAC t (asl,w) = 
-  let n = List.length asl in
+let BURY_TAC t gl  = 
+  let n = List.length (goal_asms gl) in
     (REPEAT (FIRST_X_ASSUM MP_TAC) THEN ASSUME_TAC t THEN 
-      REPLICATE_TAC n DISCH_TAC)(asl,w);;
+      REPLICATE_TAC n DISCH_TAC) gl;;
 
-let BURY_MP_TAC (asl,w) = 
+let BURY_MP_TAC gl = 
      (POP_ASSUM_LIST(K ALL_TAC) THEN DISCH_TAC THEN
                        MAP_EVERY (fun (s,th) -> LABEL_TAC s (th))
-                                 (rev asl)) (asl,w);;
-
-(* out of load sequence. Moved to Calc_derivative module.
-let CALC_ID_TAC (asl,t) =  (MATCH_MP_TAC (Calc_derivative.rational_identity t) (asl,t));;
-*)
+                                 (rev (goal_asms gl))) gl;;
 
 let GOAL_TERM ttac g = (ttac g) g;;
 
@@ -248,7 +237,8 @@ let TYPIFY_GOAL_THEN t u = TYPIFY t (C SUBGOAL_THEN u);;
    Doesn't do matching on bound variables.
   *)
 
-let GMATCH_SIMP_TAC thm (asl,w) = 
+let GMATCH_SIMP_TAC thm gl = 
+  let w = goal_concl gl in
   let lift_eq_thm = MESON[]   `! a b c. (a ==> ((b:B) = c)) ==> (!P. a /\ P c ==> P b)` in
   let lift_eq t = GEN_ALL (MATCH_MP lift_eq_thm (SPEC_ALL t)) in
   let thm' = hd (mk_rewrites true thm []) in
@@ -264,7 +254,7 @@ let GMATCH_SIMP_TAC thm (asl,w) =
   let bthm = (ISPECL [mk_abs(vv,rhs (concl athm));w'] BETA_THM) in
   let betx = SYM(TRANS bthm (BETA_CONV (rhs (concl bthm)))) in
    (ONCE_REWRITE_TAC[betx] THEN MATCH_MP_TAC (lift_eq thm') THEN 
-      BETA_TAC THEN REWRITE_TAC[]) (asl,w);;
+      BETA_TAC THEN REWRITE_TAC[]) gl;;
 
 
 (*
@@ -279,8 +269,8 @@ let MP_LIST t = EVERY (map MP_TAC t);;
 
 (* Gonthier's script organizational tactics. *)
 
-let BY (t:tactic) (asl,w) = 
-  let (a,b,c)  = t (asl,w) in
+let BY (t:tactic) gl = 
+  let (a,b,c)  = t gl in
   let _ = (b = []) or failwith "by failed to finish goal" in
     (a,b,c);;
 
@@ -298,20 +288,22 @@ let SUBCONJ_TAC =
 let SUBCONJ2_TAC =
   MATCH_MP_TAC (TAUT `B /\ (B ==>A) ==> (A /\ B)`) THEN CONJ_TAC;;
 
-let nCONJ_TAC n (asl,w) = 
+let nCONJ_TAC n gl = 
+  let w = goal_concl gl in
   let w' = rhs(concl(PURE_REWRITE_CONV[GSYM CONJ_ASSOC] w)) in
   let wn = List.nth (conjuncts w') n in
-      (SUBGOAL_THEN wn ASSUME_TAC) (asl,w);;
+      (SUBGOAL_THEN wn ASSUME_TAC) gl;;
 
 let PROOF_BY_CONTR_TAC =
   MATCH_MP_TAC (TAUT `(~A ==> F) ==> A`) THEN DISCH_TAC;;
 
 let (UNDISCH_FIND_TAC: term -> tactic) =
- fun tm (asl,w) ->
+ fun tm gl ->
+   let asl = goal_asms gl in
    let p = can (term_match[] tm)  in
    try let sthm,_ = remove
      (fun (_,asm) -> can (find_term p) (concl ( asm))) asl in
-     UNDISCH_TAC (concl (snd sthm)) (asl,w)
+     UNDISCH_TAC (concl (snd sthm)) gl
    with Failure _ -> failwith "UNDISCH_FIND_TAC";;
 
 let rec type_set: (string*term) list  -> (term list*term) -> (term list*term)=
@@ -331,20 +323,22 @@ let has_stv t =
 
 
 let TYPE_THEN: term  -> (term -> tactic) -> tactic =
-  fun t (tac:term->tactic) (asl,w) ->
-  let avoids = itlist (union o frees o concl o snd) asl
-                               (frees w) in
-  let strip  = fun t-> (match t with
-       |Var(s,_) -> (s,t) | _ -> failwith "TYPE_THEN" ) in
-  let typinfo = map strip avoids in
-  let t' = (snd (type_set typinfo ((frees t),t))) in
-    (warn ((has_stv t')) "TYPE_THEN: unresolved type variables");
-    tac t' (asl,w);;
+  fun t (tac:term->tactic) gl ->
+    let (asl,w) = dest_goal gl in
+    let avoids = itlist (union o frees o concl o snd) asl
+      (frees w) in
+    let strip  = fun t-> (match t with
+			    |Var(s,_) -> (s,t) | _ -> failwith "TYPE_THEN" ) in
+    let typinfo = map strip avoids in
+    let t' = (snd (type_set typinfo ((frees t),t))) in
+      (warn ((has_stv t')) "TYPE_THEN: unresolved type variables");
+      tac t' gl;;
 
 (* this version must take variables *)
 
 let TYPEL_THEN: term list -> (term list -> tactic) -> tactic =
-  fun t (tac:term list->tactic) (asl,w) ->
+  fun t (tac:term list->tactic) gl ->
+    let (asl,w) = dest_goal gl in
   let avoids = itlist (union o frees o concl o snd) asl
                                (frees w) in
   let strip  = fun t-> (match t with
@@ -352,25 +346,25 @@ let TYPEL_THEN: term list -> (term list -> tactic) -> tactic =
   let typinfo = map strip avoids in
   let t' = map (fun u -> snd (type_set typinfo ((frees u),u))) t in
     (warn ((can (find has_stv) t')) "TYPEL_THEN: unresolved type vars");
-     tac t' (asl,w);;
+     tac t' gl;;
 
 let (EXISTSv_TAC :string -> tactic) = 
-   fun s (asl,g) ->
-     let (v,_) = dest_binder "?" g in 
+   fun s gl ->
+     let (v,_) = dest_binder "?" (goal_concl gl) in 
      let (_,ty) = dest_var v in
-       EXISTS_TAC (mk_var(s,ty)) (asl,g);;
+       EXISTS_TAC (mk_var(s,ty)) gl;;
 
 let (X_GENv_TAC:string ->tactic) = 
-   fun s (asl,g) ->
-     let (v,_) = dest_binder "!" g in 
+   fun s gl  ->
+     let (v,_) = dest_binder "!" (goal_concl gl) in 
      let (_,ty) = dest_var v in
-       X_GEN_TAC (mk_var(s,ty)) (asl,g);;
+       X_GEN_TAC (mk_var(s,ty)) gl;;
 
 (* weak version doesn't do conj *)
 
 let (WEAK_STRIP_TAC: tactic) =
-  fun g ->
-    try (fun ttac -> FIRST [GEN_TAC; DISCH_THEN ttac]) STRIP_ASSUME_TAC g
+  fun gl ->
+    try (fun ttac -> FIRST [GEN_TAC; DISCH_THEN ttac]) STRIP_ASSUME_TAC gl
     with Failure _ -> failwith "STRIP_TAC";;
 
 let WEAK_STRIP_THM_THEN =
@@ -379,16 +373,16 @@ let WEAK_STRIP_THM_THEN =
 let WEAK_STRIP_ASSUME_TAC =
   let DISCARD_TAC th =
     let tm = concl th in
-    fun (asl,w as g) ->
-       if exists (fun a -> aconv tm (concl(snd a))) asl then ALL_TAC g
+    fun gl -> 
+       if exists (fun a -> aconv tm (concl(snd a))) (goal_asms gl) then ALL_TAC gl
        else failwith "DISCARD_TAC: not already present" in
   (REPEAT_TCL WEAK_STRIP_THM_THEN)
   (fun gth -> FIRST [CONTR_TAC gth; ACCEPT_TAC gth;
                      DISCARD_TAC gth; ASSUME_TAC gth]);;
 
 let (WEAKER_STRIP_TAC: tactic) =
-  fun g ->
-    try (fun ttac -> FIRST [GEN_TAC; DISCH_THEN ttac]) WEAK_STRIP_ASSUME_TAC g
+  fun gl ->
+    try (fun ttac -> FIRST [GEN_TAC; DISCH_THEN ttac]) WEAK_STRIP_ASSUME_TAC gl
     with Failure _ -> failwith "STRIP_TAC";;
 
 let hold_def = new_definition `(hold:A->A) = I`;;
@@ -435,21 +429,7 @@ let REBIND_RULE ts th1 = EQ_MP (REBIND_CONV ts (concl th1)) th1;;
 
 REBIND_RULE (`x:real`,"y") (ASSUME (`pi + (\ x . x + pi) pi = &1`));;
 
-let REBIND_TAC ts (asl,g) = (SUBST1_TAC (REBIND_CONV ts g)) (asl,g);;
-
-
-
-(* UNDISCHARGE BY SEARCH. Deprecated, creates toplevel error when in modules. *)
-
-(*
-let FIRST_SEARCH pat (asl,w) = 
-  let asl' = map (concl o snd) (search_thml (term_match[]) pat asl) in
-    FIRST (map UNDISCH_TAC asl') (asl,w);;
-
-let ALL_SEARCH pat (asl,w) = 
-  let asl' = map (concl o snd) (search_thml (term_match[]) pat asl) in
-    EVERY (map UNDISCH_TAC asl') (asl,w);;
-*)
+let REBIND_TAC ts gl = (SUBST1_TAC (REBIND_CONV ts (goal_concl gl))) gl;;
 
 (* MISCELL. *)
 
@@ -464,18 +444,14 @@ let COMMENT _ = ALL_TAC;;
 let INTRO_TAC th1 tml = 
    GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w tml) th1)));;
 
-
-
   let COPY_TAC = DISCH_THEN (fun t -> MP_TAC t THEN ASSUME_TAC t);;
 
-(* Corrected/ 2013-06-23  *)
-
-  let TYPED_ABBREV_TAC t (asl,w) = 
+  let TYPED_ABBREV_TAC t gl = 
     let (a,b) = dest_eq t in
-    let b' = env (asl,w) b in
+    let b' = env gl b in
     let (a',_) = dest_var a in
     let t' =   mk_eq(mk_var(a',type_of b'),b')
-    in ABBREV_TAC t' (asl,w);;
+    in ABBREV_TAC t' gl;;
 
 
 

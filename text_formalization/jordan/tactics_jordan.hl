@@ -45,7 +45,8 @@ let DISCH_ALL_TAC = REP_GEN_TAC THEN
 (* ------------------------------------------------------------------ *)
 
 let (UNDISCH_EL_TAC:int -> tactic) =
- fun i (asl,w) ->
+ fun i gl ->
+   let (asl,w) = dest_goal gl in
    try let sthm,asl' = (el i asl),(drop i asl) in
         let tm = concl (snd (el i asl)) in
        let thm = snd sthm in
@@ -76,11 +77,12 @@ type goalthm = goal -> thm;;
 
 let (HYP_INT:int->goalthm) =
      fun i->
-     fun ((asl,_):goal) ->
-     snd (el i asl);;
+     fun gl ->
+     snd (el i (goal_asms gl));;
 
 let (HYP:string->goalthm) =
-  fun s (asl,w) ->
+  fun s gl  ->
+    let asl = goal_asms gl in
     try assoc s asl
       with Failure _ -> try assoc ("Z-"^s) asl 
      with Failure _ -> failwith ("HYP not found: "^ s);;
@@ -93,10 +95,11 @@ let (THM:thm->goalthm) =
 
 let (H_RULER: (thm list->thm->thm)->(goalthm list)-> goalthm -> tactic) =
      fun rule gthl gthm ->
-     fun ((asl,w) as g:goal) ->
-     let thl =  map (fun x-> (x g)) gthl in
-     let th = rule thl  (gthm g) in
-     ASSUME_TAC th g;;
+     fun gl -> 
+       let (asl,w) = dest_goal gl in
+     let thl =  map (fun x-> (x gl)) gthl in
+     let th = rule thl  (gthm gl) in
+     ASSUME_TAC th gl;;
 
 (* The next few term rules into goal_rules *)
 (* H_type (x:type) should return an object
@@ -219,19 +222,21 @@ let CLEAN_THEN th ttac =
 
 (* looks for a hypothesis by matching a subterm *)
 let (UNDISCH_FIND_TAC: term -> tactic) =
- fun tm (asl,w) ->
+ fun tm gl ->
+   let (asl,w) = dest_goal gl in
    let p = can (term_match[] tm)  in
    try let sthm,_ = remove
      (fun (_,asm) -> can (find_term p) (concl ( asm))) asl in
-     UNDISCH_TAC (concl (snd sthm)) (asl,w)
+     UNDISCH_TAC (concl (snd sthm)) gl
    with Failure _ -> failwith "UNDISCH_FIND_TAC";;
 
 let (UNDISCH_FIND_THEN: term -> thm_tactic -> tactic) =
- fun tm ttac (asl,w) ->
+ fun tm ttac gl -> 
+   let (asl,w) = dest_goal gl in
    let p = can (term_match[] tm)  in
    try let sthm,_ = remove
      (fun (_,asm) -> can (find_term p) (concl ( asm))) asl in
-     UNDISCH_THEN (concl (snd sthm)) ttac (asl,w)
+     UNDISCH_THEN (concl (snd sthm)) ttac gl
    with Failure _ -> failwith "UNDISCH_FIND_TAC";;
 
 (* ------------------------------------------------------------------ *)
@@ -277,8 +282,8 @@ let rec get_abs tm acc = match tm with
 (* for purposes such as sorting, it helps if ALL ALPHA-equiv
    abstractions are replaced by equal abstractions *)
 let (alpha_tac:tactic) =
-  fun  (asl,w' ) ->
-  EVERY (map unify_alpha_tac (get_abs w' [])) (asl,w');;
+  fun  gl ->
+  EVERY (map unify_alpha_tac (get_abs (goal_concl gl) [])) gl;;
 
 (* ------------------------------------------------------------------ *)
 (* SELECT ELIMINATION.
@@ -381,7 +386,8 @@ let has_stv t =
 
 
 let TYPE_THEN: term  -> (term -> tactic) -> tactic =
-  fun t (tac:term->tactic) (asl,w) ->
+  fun t (tac:term->tactic) gl ->
+    let (asl,w) = dest_goal gl in
   let avoids = itlist (union o frees o concl o snd) asl
                                (frees w) in
   let strip  = fun t-> (match t with
@@ -389,11 +395,12 @@ let TYPE_THEN: term  -> (term -> tactic) -> tactic =
   let typinfo = map strip avoids in
   let t' = (snd (type_set typinfo ((frees t),t))) in
     (warn ((has_stv t')) "TYPE_THEN: unresolved type variables");
-    tac t' (asl,w);;
+    tac t' gl;;
 
 (* this version must take variables *)
 let TYPEL_THEN: term list -> (term list -> tactic) -> tactic =
-  fun t (tac:term list->tactic) (asl,w) ->
+  fun t (tac:term list->tactic) gl ->
+    let (asl,w) = dest_goal gl in
   let avoids = itlist (union o frees o concl o snd) asl
                                (frees w) in
   let strip  = fun t-> (match t with
@@ -401,7 +408,7 @@ let TYPEL_THEN: term list -> (term list -> tactic) -> tactic =
   let typinfo = map strip avoids in
   let t' = map (fun u -> snd (type_set typinfo ((frees u),u))) t in
     (warn ((can (find has_stv) t')) "TYPEL_THEN: unresolved type vars");
-     tac t' (asl,w);;
+     tac t' gl;;
 
 (* trivial example *)
 
@@ -1151,7 +1158,8 @@ let (%) i = HYP (string_of_int i);;
 let WITH i rule = (H_VAL (rule) (HYP (string_of_int i))) ;;
 
 let (UND:int -> tactic) =
- fun i (asl,w) ->
+ fun i gl ->
+   let (asl,w) = dest_goal gl in
    let name = "Z-"^(string_of_int i) in
    try let thm= assoc name asl in
         let tm = concl (thm) in
@@ -1406,8 +1414,8 @@ let rec range i n =
 (* in elimination *)
 
 let (IN_OUT_TAC: tactic) =
-   fun (asl,g) -> (REWRITE_TAC [IN] THEN
-   (EVERY (map (IN_ELIM) (range 0 (length asl))))) (asl,g);;
+   fun gl -> (REWRITE_TAC [IN] THEN
+   (EVERY (map (IN_ELIM) (range 0 (length (goal_asms gl)))))) gl;;
 
 let (IWRITE_TAC : thm list -> tactic) =
    fun thlist -> REWRITE_TAC (map INR thlist);;
@@ -1519,7 +1527,7 @@ let (UNIFY_EXISTS_TAC:tactic) =
     itlist (run_one wc) asl (varl,sofar) in
   let run_all varl sofar wcl asl =
     itlist (run_onel asl) wcl (varl,sofar) in
-  let full_unify (asl,w) =
+  let full_unify asl w =
     let (varl,ws) = strip_exists w in
     let vargl = map genvar (map type_of varl) in
     let wg = instantiate ([],zip vargl varl,[]) ws in
@@ -1528,12 +1536,13 @@ let (UNIFY_EXISTS_TAC:tactic) =
       if (vargl' = []) then
         map (C rev_assoc sofar) (map (C rev_assoc (zip vargl varl)) varl)
       else failwith "full_unify: unification not found " in
-  fun (asl,w) ->
+  fun gl ->
+    let (asl,w) = dest_goal gl in
     try(
       let asl' = map (concl o snd) asl in
       let asl'' = flat (map (conjuncts ) asl') in
-      let varsub = full_unify (asl'',w) in
-        EXISTSL_TAC varsub (asl,w)
+      let varsub = full_unify asl'' w in
+        EXISTSL_TAC varsub gl
     ) with failure -> failwith "UNIFY_EXIST_TAC: unification not found.";;
 
 (* partial example *)
@@ -1623,9 +1632,9 @@ let DROP_ANT_TAC pq  =
       DISCH_THEN (fun pqthm -> ASSUME_TAC (MATCH_MP pqthm pthm )));;
 
 let (DROP_ALL_ANT_TAC:tactic) =
-  fun (asl,w) ->
-    let imps = filter (is_imp) (map (concl o snd) asl) in
-    MAP_EVERY (TRY o DROP_ANT_TAC) imps (asl,w);;
+  fun gl ->
+    let imps = filter (is_imp) (map (concl o snd) (goal_asms gl)) in
+    MAP_EVERY (TRY o DROP_ANT_TAC) imps gl;;
 
 let drop_ant_tac_example = prove_by_refinement(
   `!A B C D E. (A /\ (A ==> B) /\ (C ==>D) /\ C) ==> (E \/ C \/ B)`,
@@ -1641,9 +1650,9 @@ let drop_ant_tac_example = prove_by_refinement(
 
 (* ASSUME tm, then prove it later. almost the same as asm-cases-tac *)
 let (BACK_TAC : term -> tactic) =
-  fun tm (asl,w) ->
-    let ng = mk_imp (tm,w) in
-    (SUBGOAL_MP_TAC ng THENL [ALL_TAC;DISCH_THEN  IMATCH_MP_TAC ]) (asl,w);;
+  fun tm gl ->
+    let ng = mk_imp (tm,goal_concl gl) in
+    (SUBGOAL_MP_TAC ng THENL [ALL_TAC;DISCH_THEN  IMATCH_MP_TAC ]) gl;;
 
 (* working with hashed assumptions *)
 
@@ -1664,53 +1673,33 @@ let HASH_CHOOSE_TAC h = HASH_UNDISCH_TAC h THEN (DISCH_THEN CHOOSE_TAC);;
 
 let HASH_X_CHOOSE_TAC h t = HASH_UNDISCH_TAC h THEN (DISCH_THEN (X_CHOOSE_TAC t));;
    
-let HASH_ASM_REWRITE_TAC h (asl,w)  = 
-  let (asl2) = filter (fun t -> not(hash_of_term (concl (snd t)) = h)) asl in
+let HASH_ASM_REWRITE_TAC h gl   = 
+  let (asl2) = filter (fun t -> not(hash_of_term (concl (snd t)) = h)) (goal_asms gl) in
     (HASH_UNDISCH_TAC h THEN 
-       DISCH_THEN (fun t-> ASSUME_TAC(REWRITE_RULE (map snd asl2) t))) (asl,w);;
+       DISCH_THEN (fun t-> ASSUME_TAC(REWRITE_RULE (map snd asl2) t))) gl;;
 
 (* working with numbered assumptions, 
     Follow HOL Light's reverse numbering convention on assumptions. *)
 
-let el_hash  i  (asl,w)   = 
-   hash_of_term (el i (map (concl o snd) (List.rev asl)));;
+let el_hash  i  gl   = 
+   hash_of_term (el i (map (concl o snd) (List.rev (goal_asms gl))));;
 
-let use_el i ttac (asl,w) = 
-  let h = el_hash i (asl,w) in
-    (HASH_UNDISCH_TAC h THEN (DISCH_THEN ttac)) (asl,w);;
-
-(*
-
-let hashify0 i f  (asl,w) = f (el_hash i (asl,w)) (asl,w);;
-
-let hashify1 i f r  (asl,w) = f (el_hash i (asl,w)) r (asl,w);;
-
-let EL_UNDISCH_TAC i = hashify0 i HASH_UNDISCH_TAC;;
-
-let EL_RULE_TAC i r =hashify1 i r HASH_RULE_TAC;;
-
-let EL_KILL_TAC i = hashify0 i HASH_KILL_TAC;;
-
-let EL_CHOOSE_TAC i =  hashify0 i HASH_CHOOSE_TAC;;
-
-let EL_X_CHOOSE_TAC i t = hashify1 i t HASH_X_CHOOSE_TAC;;
-
-let EL_ASM_REWRITE_TAC i = hashify0 i HASH_ASM_REWRITE_TAC;;
-
-*)
+let use_el i ttac gl = 
+  let h = el_hash i gl  in
+    (HASH_UNDISCH_TAC h THEN (DISCH_THEN ttac)) gl;;
 
 
 (* --- *)
 (* Using hash numbers for tactics *)
 (* --- *)
 
-let label_of_hash ((asl,g):goal) (h:int) =
+let label_of_hash gl (h:int) =
   let one_label h (s,tm) =
     if  (h = hash_of_term (concl tm)) then
       let s1 = String.sub s 2 (String.length s - 2) in
       int_of_string s1
       else failwith "label_of_hash" in
-  tryfind (one_label h) asl;;
+  tryfind (one_label h) (goal_asms gl);;
 
 let HASHIFY m h w = m (label_of_hash w h) w;;
 let UNDH = HASHIFY UND;;

@@ -29,6 +29,8 @@ module Clean_deriv = struct
 open Sphere;;
 open Calc_derivative;;
 
+let goal_concl = Hales_tactic.goal_concl;;
+
 (* Begin various useful identities about derived_form *)
 
 let derived_form_equivalence = prove_by_refinement(`!t1 t2 f1 f2 f1' f2' x s. (t1 = t2) /\ (f1' = f2') /\ (f1 = f2) ==> (derived_form t1 f1 f1' x s ==> derived_form t2 f2 f2' x s)`,
@@ -126,14 +128,14 @@ let full_rewrite  (f:term) =  rhs (concl (REPEATC let_CONV (rhs (concl (REWRITE_
 
 (* Reduces the goal set by the next 2 methods to a series of three statements of equivalence, that of the assumptions, function and derivative each of which can then be solved using ARITH methods and other identities needed for simplifying the output of differentiate. *)
 
-let DIFF_TAC (asl,goal) =
- let (_,[t;f;f';x;s]) = strip_comb goal in
+let DIFF_TAC gl  =
+ let (_,[t;f;f';x;s]) = strip_comb (goal_concl gl) in
  let fr = full_rewrite f in
    (MATCH_MP_TAC retrieve_assum THEN
       REPEAT STRIP_TAC THEN
       MP_TAC (Calc_derivative.differentiate fr x s) THEN
       MATCH_MP_TAC derived_form_equivalence THEN
-      REWRITE_TAC fn_defs) (asl,goal);; 
+      REWRITE_TAC fn_defs) gl;; 
 
 (* Produces a goal for the interactive goal stack *)
 
@@ -226,13 +228,13 @@ let nonstack_goal2 tm =
 
 (* A tactic to reduce the above goals to a set of equivalence statements about the assumptions, f and f'. Has been reworked to use HAS_REAL_DERIVATIVE_TRANFORM_WITHIN. A method still needs to be written that will produce the assumption "xi IN s" for each i and add it to the assumption list in order to apply that sequence of reasoning. See the proof of atn2 for more detail. Each method will need an "openness lemma" as well.*)
 
-let DIFF_TAC2 (asl,goal) =
- let (_,[t;f;f';x;s]) = strip_comb goal in
+let DIFF_TAC2 gl  =
+ let (_,[t;f;f';x;s]) = strip_comb (goal_concl gl) in
  let (_,rw) = case_handle f in
    (REWRITE_TAC[derived_form] THEN
       REPEAT STRIP_TAC THEN
       MP_TAC (Calc_derivative.differentiate rw x s) THEN
-      REWRITE_TAC[derived_form]) (asl,goal);;
+      REWRITE_TAC[derived_form]) gl;;
 
 (* The below sequence will not work yet because the assumptions "xi IN s" are not in the assumption list. list_mk_comb did not work when applied to IN, but is_comb returns true on the term `x IN s`. *)
 
@@ -341,13 +343,13 @@ let mk_xy_deriv_goal y tm =
 
 (* A similar reduction tactic. Should work better in the second derivative case, since the equivalence of the lambda-abstracted function is immediate. Since has_real_derivative handles nth derivatives in a curried fashion, we don't need to worry about directly associating any function name (such as eta2_126) directly with its second derivative, as long as its first derivative is associated with its second derivative. *)
 
-let SECOND_DIFF_TAC (asl,goal) =
- let (_,[t;f;f';x;s]) = strip_comb goal in
+let SECOND_DIFF_TAC gl  =
+ let (_,[t;f;f';x;s]) = strip_comb (goal_concl gl) in
     (MATCH_MP_TAC retrieve_assum THEN
       REPEAT STRIP_TAC THEN
       MP_TAC (Calc_derivative.differentiate f x s) THEN
       MATCH_MP_TAC extra_assum_derived_form THEN 
-      ASM_REWRITE_TAC[]) (asl,goal);;
+      ASM_REWRITE_TAC[]) gl;;
 
    
 

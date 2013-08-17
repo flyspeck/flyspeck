@@ -28,26 +28,85 @@ needs "Library/rstc.ml";; (* for RTC reflexive transitive closure *)
 (* flyspeck_needs "../../tame_archive/tame_archive.hl";; *)
 
 module Tame_classification = struct
+end;;
 
-(* HOL Light definition from hypermap *)
+(*
+types: num, (A) list, (A ==> B), (A) Option, A#B, bool.
+*)
+
+let translate a = ();;
+
+translate ("#",`CONS`);;
+translate ("@",`APPEND`);;
+translate ("!",`EL`);;
+translate ("length",`LENGTH`);;
+translate ("rev",`REVERSE`);;
+translate ("?",`ITER`);;
+
+(* List operations in Isabelle-Main:
+   op @, concat, filter, length, map, op !, remove1, rev, 
+   rotate, rotate1, upto, upt, zip.
+
+   Other things in main:
+   the,
+   See http://www.cl.cam.ac.uk/research/hvg/Isabelle/dist/Isabelle2013/doc/main.pdf
+*)
+
+(*
+(* HOL Light definition from hypermap. Use ITER instead. *)
 
 parse_as_infix("POWER",(24,"right"));;
 
 let POWER = new_recursive_definition num_RECURSION 
   `(!(f:A->A). f POWER 0  = I) /\  
    (!(f:A->A) (n:num). f POWER (SUC n) = (f POWER n) o f)`;;
+*)
+
 
 (* import of 1.1 HOL *)
 
-let bn_the = new_definition `bn_the s = @(x:A). (s = SOME x)`;;
+translate ("the",`the`);;
 
-let bn_enum  = new_definition `bn_enum (n: num) = { m | m < n } `;;
+let the = new_definition `the s = @(x:A). (s = SOME x)`;;
+
+let the_some = prove_by_refinement(
+  `!(x:A). the (SOME x) = x`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[the];
+  GEN_TAC;
+  SELECT_TAC;
+    INTRO_TAC option_RECURSION [`x`;`I:A->A`];
+    REWRITE_TAC[I_THM];
+    REPEAT WEAKER_STRIP_TAC;
+    BY(ASM_MESON_TAC[]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+
+(* definition enum :: "nat \<Rightarrow> nat set" where
+  [code del]: "enum n = {..<n}" *)
+
+(* let bn_enum  = new_definition `bn_enum (n: num) = { m | m < n } `;; *)
+
+translate ("filter",`filter`);;
 
 (* 1.2 length xs, 1.2.2 filter P xs, 1.2.3 concat,  *)
 
+let filter_liz = prove_by_refinement(
+  `filter (f:A->bool) [] = [] /\
+    filter f (x:: xs) = if (f x) then (x :: (filter f xs)) else filter f xs`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Seq.filter])
+  ]);;
+  (* }}} *)
+
+(*
 let bn_filter = new_recursive_definition list_RECURSION
   `bn_filter (f:A->bool) [] = [] /\
-    bn_filter f (CONS x xs) = if (f x) then (CONS x (bn_filter f xs)) else bn_filter f xs`;;
+    bn_filter f ( x:: xs) = if (f x) then (x :: (bn_filter f xs)) else bn_filter f xs`;;
 
 let bn_filter_FILTER = prove_by_refinement (`bn_filter = FILTER`,
   [
@@ -56,85 +115,230 @@ let bn_filter_FILTER = prove_by_refinement (`bn_filter = FILTER`,
   ONCE_REWRITE_TAC[FUN_EQ_THM];
   LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[FILTER;bn_filter];
   ]);;
+*)
 
-let bn_concat = new_recursive_definition list_RECURSION
-  `bn_concat ([]:(A list)list) = [] /\
-    bn_concat (CONS (x:A list) xs) = APPEND x (bn_concat xs)`;;
 
-(* notation: disjoint_sum { x in xs } f  = bn_concat (MAP (\x. f) xs) *)
+let filter_FILTER = prove_by_refinement(
+  `filter = FILTER`,
+  (* {{{ proof *)
+  [
+  ONCE_REWRITE_TAC[FUN_EQ_THM];
+  GEN_TAC;
+  ONCE_REWRITE_TAC[FUN_EQ_THM];
+  BY(LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[Seq.filter;FILTER])
+  ]);;
+  (* }}} *)
+
+translate ("concat",`concat`);;
+
+
+let concat = new_recursive_definition list_RECURSION
+  `concat ([]:(A list)list) = [] /\
+    concat ( (x:A list) :: xs) = APPEND x (concat xs)`;;
+
+(* notation: disjoint_sum { x in xs } f  = concat (MAP (\x. f) xs) *)
 
 (* list_update *)
 
 (* 1.2.3 listProd1, listProd *)
 
-let bn_listProd1 = new_definition `bn_listProd1 (a:A) (b:B list) = 
+translate ("map",`MAP`);;
+translate ("listProd1",`list_prod1`);;
+translate ("listProd",`list_prod`);;
+translate ("bn_minimal",`bn_minimal`);;
+
+Seq.map_MAP;; (`map = MAP`);;
+
+let list_prod1 = new_definition `list_prod1 (a:A) (b:B list) = 
    MAP(\x. (a,x)) b`;;
 
-let bn_listProd = new_definition `bn_listProd (a:A list) (b:B list) =
-   bn_concat (MAP (\x. bn_listProd1 x b) a)`;;
+let list_prod = new_definition `list_prod (a:A list) (b:B list) =
+   concat (MAP (\x. list_prod1 x b) a)`;;
 
 (* 1.2.5 *)
 
 let bn_minimal = new_recursive_definition list_RECURSION
-  `(bn_minimal (f:A->num)  [] = CHOICE (UNIV:A->bool)) /\
-    (bn_minimal (f:A->num) (CONS (x:A)  xs) = if (xs= []) then (x:A) else
+  `(bn_minimal (f:A->num)  [] = CHOICE (UNIV:A->bool)) /\ 
+    (bn_minimal (f:A->num) ( (x:A) :: xs) = if (xs= []) then (x:A) else
         (let m = bn_minimal f xs in (if(f x <= f m) then x else m)))`;;
 
 (* benign redefinition from Misc_defs_and_lemmas module *)
 
+translate ("min_list",`min_list`);;
+
 let min_num = new_definition `min_num X = (@m. (m:num) IN X /\ (!n. n IN X ==> m <= n))`;;
 
-let bn_min_list = new_definition `bn_min_list (xs:num list) = min_num (set_of_list xs)`;;
+let min_list = new_definition `min_list (xs:num list) = min_num (set_of_list xs)`;;
 
+let min_num_single = prove_by_refinement(
+  `!x. min_num {x} = x`,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  TYPIFY `x IN {x} ==> min_num {x} IN {x}` (C SUBGOAL_THEN MP_TAC);
+    REWRITE_TAC[IN];
+    BY(MESON_TAC[Misc_defs_and_lemmas.min_least ]);
+  BY(REWRITE_TAC[IN_SING])
+  ]);;
+  (* }}} *)
+
+let min_num_in = prove_by_refinement(
+  `!X. ~(X = {}) ==> min_num X IN X`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[EXTENSION;NOT_IN_EMPTY;NOT_FORALL_THM];
+  REWRITE_TAC[IN];
+  BY(MESON_TAC[Misc_defs_and_lemmas.min_least ])
+  ]);;
+  (* }}} *)
+
+let min_num_le = prove_by_refinement(
+  `!X c. c IN X ==> min_num X <= c`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[IN];
+  BY(MESON_TAC[Misc_defs_and_lemmas.min_least ])
+  ]);;
+  (* }}} *)
+
+let min_num_unique = prove_by_refinement(
+  `!X c. c IN X /\ (!c'. c' IN X ==> c <= c') ==> min_num X = c`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC (arith `x <= (c:num) /\ c <= x ==> x = c`);
+  CONJ_TAC;
+    MATCH_MP_TAC min_num_le;
+    BY(ASM_REWRITE_TAC[]);
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  MATCH_MP_TAC min_num_in;
+  BY(FIRST_X_ASSUM MP_TAC THEN SET_TAC[])
+  ]);;
+  (* }}} *)
+
+let min_num_insert = prove_by_refinement(
+  `!x X. ~(X = {}) ==> min_num (x INSERT X) = MIN x (min_num X)`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  TYPIFY `x IN x INSERT X` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(SET_TAC[]);
+  DISCH_TAC;
+  MATCH_MP_TAC min_num_unique;
+  CONJ_TAC;
+    REWRITE_TAC[MIN];
+    COND_CASES_TAC;
+      BY(SET_TAC[]);
+    TYPIFY `min_num X IN X` ENOUGH_TO_SHOW_TAC;
+      BY(SET_TAC[]);
+    MATCH_MP_TAC min_num_in;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[IN_INSERT];
+  REPEAT STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    BY(REWRITE_TAC[MIN] THEN ARITH_TAC);
+  MATCH_MP_TAC (arith `m <= min_num X /\ min_num X <= c' ==> m <= c'`);
+  CONJ_TAC;
+    BY(REWRITE_TAC[MIN] THEN ARITH_TAC);
+  MATCH_MP_TAC min_num_le;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let minn_MIN = prove_by_refinement(
+  `minn = MIN`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[FUN_EQ_THM];
+  REWRITE_TAC[MIN;Ssrnat.minn];
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let min_list_liz = prove_by_refinement(
+  `!x xs. min_list (x :: xs) = if (xs = []) then x else MIN x (min_list xs)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[min_list;set_of_list];
+  REPEAT GEN_TAC;
+  COND_CASES_TAC;
+    BY(ASM_REWRITE_TAC[set_of_list;min_num_single]);
+  MATCH_MP_TAC min_num_insert;
+  BY(ASM_REWRITE_TAC[SET_OF_LIST_EQ_EMPTY])
+  ]);;
+  (* }}} *)
+
+(*
 let max_num = new_definition `max_num (x:num->bool) = (@m. x m /\ (!n. x n ==> n <= m))`;;
 
 let bn_max_list = new_definition `bn_max_list (xs:num list) = max_num (set_of_list xs)`;;
+*)
 
 (* 1.2.6 replace *)
 
-let bn_replace = new_recursive_definition list_RECURSION 
-   `(bn_replace x ys [] = []) /\
-     bn_replace x ys (CONS (z:A) zs) = 
-            if (z = x) then APPEND ys zs else CONS  z (bn_replace x ys zs)`;;
+translate ("replace",`replace`);;
+
+let replace = new_recursive_definition list_RECURSION 
+   `(replace x ys [] = []) /\
+     replace x ys ( (z:A) :: zs) = 
+            if (z = x) then APPEND ys zs else z:: (replace x ys zs)`;;
 
 (*
 let sub_list = new_recursive_definition list_RECURSION
    `sub_list r n xs [] = REVERSE xs /\
-     sub_list r n xs (CONS (y:A) ys) = if (n=0) then (APPEND (REVERSE xs) (CONS r ys)) 
-         else (sub_list r (n-1) (CONS y xs) ys)`;;
+     sub_list r n xs ( (y:A) :: ys) = if (n=0) then (APPEND (REVERSE xs) ( r :: ys)) 
+         else (sub_list r (n-1) ( y :: xs) ys)`;;
 *)
+
+translate ("mapAt",`bn_mapAt`);;
+
+(* clean this up later.  Isabelle has special notation for (mapAt1 f n [] xs) *)
 
 let mapAt1 = new_recursive_definition list_RECURSION
    `mapAt1 (f:A->A) n xs [] = REVERSE xs /\
-     mapAt1 (f:A->A) n xs (CONS (y:A) ys) = if (n=0) then (APPEND (REVERSE xs) (CONS (f y) ys)) 
-         else (mapAt1 f (n-1) (CONS y xs) ys)`;;
+     mapAt1 (f:A->A) n xs ((y:A) :: ys) = if (n=0) then (APPEND (REVERSE xs) ( (f y) :: ys)) 
+         else (mapAt1 f (n-1) (y :: xs) ys)`;;
 
 let bn_mapAt = new_recursive_definition list_RECURSION 
   `(bn_mapAt [] (f:A->A) (xs:A list) = xs) /\
-    (bn_mapAt (CONS (n:num) ns) (f:A->A) (xs:A list) = if (n < LENGTH xs) 
+    (bn_mapAt ((n:num) :: ns) (f:A->A) (xs:A list) = if (n < LENGTH xs) 
        then bn_mapAt ns f (mapAt1 f n [] xs) else bn_mapAt ns f xs)`;;
 
-let bn_rotate1 = new_recursive_definition list_RECURSION
-   `bn_rotate1 ([]:A list) = [] /\
-     bn_rotate1 (CONS (x:A) xs) = APPEND xs [x]`;;
+(* 1.2.9 rotate *)
 
-let bn_rotate = new_definition `bn_rotate (n:num) (xs:A list) = (bn_rotate1 POWER n) xs`;;
+translate ("rotate1",`rotate1`);;
+translate ("rotate",`rotate`);;
+
+(* `rot` is different because rot changes only up to the length of the list *)
+
+let rotate1 = new_recursive_definition list_RECURSION
+   `rotate1 ([]:A list) = [] /\
+     rotate1 ((x:A) :: xs) = APPEND xs [x]`;;
+
+let rotate = new_definition `rotate (n:num) (xs:A list) = (ITER n rotate1) xs`;;
 
 (* 1.3 splitAt *)
 
-let bn_splitAtRec = new_recursive_definition list_RECURSION 
- `bn_splitAtRec (c:A) bs [] = (bs,[]) /\
-   bn_splitAtRec c bs (CONS (a:A) xs) = if (a = c) then (bs,xs) else bn_splitAtRec c (APPEND bs [a]) xs`;;
+translate ("splitAtRec",`splitAtRec`);;
+translate ("splitAt",`splitAt`);;
 
-let bn_splitAt = new_definition `bn_splitAt (c:A) xs = bn_splitAtRec c [] xs`;;
+let splitAtRec = new_recursive_definition list_RECURSION 
+ `splitAtRec (c:A) bs [] = (bs,[]) /\
+   splitAtRec c bs ((a:A) :: xs) = if (a = c) then (bs,xs) else splitAtRec c (APPEND bs [a]) xs`;;
+
+let splitAt = new_definition `splitAt (c:A) xs = splitAtRec c [] xs`;;
 
 (* 1.4 between *)
 
-let bn_between = new_definition `bn_between (vs:A list) (ram1:A) (ram2:A) = 
-    (let (pre1,post1) = bn_splitAt ram1 vs in
-       if (set_of_list post1 ram2) then
-	 (let (pre2,post2) = bn_splitAt ram2 post1 in pre2)
-       else (let (pre2,post2) = bn_splitAt ram2 pre1 in APPEND post1 pre2))`;;
+translate ("set",`set_of_list`);;
+translate ("?",`IN`);;
+translate ("between",`between'`);;  (* between is already used in HOL-Light *)
+
+let between' = new_definition `between' (vs:A list) (ram1:A) (ram2:A) = 
+    (let (pre1,post1) = splitAt ram1 vs in
+       if (ram2 IN set_of_list post1) then
+	 (let (pre2,post2) = splitAt ram2 post1 in pre2)
+       else (let (pre2,post2) = splitAt ram2 pre1 in APPEND post1 pre2))`;;
 
 (* 1.5 Tables *)
 
@@ -148,7 +352,7 @@ let bn_removeKey = new_definition `bn_removeKey a (ps:(A#B) list) =
 
 let bn_removeKeyList = new_recursive_definition list_RECURSION
   `bn_removeKeyList [] ps = ps /\
-    bn_removeKeyList (CONS w ws) (ps:(A#B) list) = bn_removeKey w (bn_removeKeyList ws ps)`;;
+    bn_removeKeyList (w :: ws) (ps:(A#B) list) = bn_removeKey w (bn_removeKeyList ws ps)`;;
 
 (*  infixes: =~ (congs) is congruence modulo rotation on lists,  -~ unused on lists.
                   =~ is pr_isomorphism on graphs, -~ isomorphic of graphs.
@@ -159,7 +363,7 @@ let bn_removeKeyList = new_recursive_definition list_RECURSION
             a fgraph a list list
 *)
 
-let bn_congs = new_definition `bn_congs (f1:A list) f2 = ?n. f2 = bn_rotate n f1`;;
+let bn_congs = new_definition `bn_congs (f1:A list) f2 = ?n. f2 = rotate n f1`;;
 
 (* 2.2 homomorphism and isomorphism *)
 
@@ -236,11 +440,11 @@ let bn_iso_subseteq = new_definition
 
 (* 3.0 More rotation *)
 
-let bn_rotate_to = new_definition `bn_rotate_to (vs:A list) v = 
-    CONS v (APPEND (SND (bn_splitAt v vs))  (FST (bn_splitAt v vs)))`;;
+let rotate_to = new_definition `rotate_to (vs:A list) v = 
+    v :: (APPEND (SND (splitAt v vs))  (FST (splitAt v vs)))`;;
 
-let bn_rotate_min = new_definition `bn_rotate_min (vs:num list) = 
-  bn_rotate_to vs (bn_min_list vs)`;;  
+let rotate_min = new_definition `rotate_min (vs:num list) = 
+  rotate_to vs (min_list vs)`;;  
 
 (* 4.0 Graph
 
@@ -292,7 +496,7 @@ let bn_setFinal = new_definition `bn_setFinal (vs:A,f:bool) = (vs,T)`;;
 
 let bn_nextElem = new_recursive_definition list_RECURSION 
   `bn_nextElem [] (b:A) x = b /\
-    bn_nextElem (CONS a aas) b x = 
+    bn_nextElem (a :: aas) b x = 
      if (x=a) then (if (LENGTH aas = 0) then b else HD aas) else bn_nextElem aas b x`;;
 
 let bn_nextVertex = new_definition `bn_nextVertex (vs:A list,f:bool) =
@@ -302,7 +506,7 @@ let bn_edges = new_definition `bn_edges (fs:A list # bool)  =
    IMAGE (\a. (a, bn_nextVertex fs a)) (bn_vertices_set fs)`;;
 
 let bn_nextVertices = new_definition `bn_nextVertices (vs:A list,f:bool) (n:num) v = 
-    (bn_nextVertex (vs,f) POWER n) v`;;
+    (ITER n (bn_nextVertex (vs,f))) v`;;
 
 (* op = REVERSE,  op_graph = Graph.op, op_graph *)
 
@@ -415,7 +619,7 @@ let bn_neighbors = new_definition
 (* nextFace *)
 
 let bn_directedLength = new_definition `bn_directedLength f (a:A) b =
-  if (a=b) then 0 else LENGTH(bn_between(bn_vertices_face f) a b) + 1`;;
+  if (a=b) then 0 else LENGTH(between'(bn_vertices_face f) a b) + 1`;;
 
 (* 4.6 Code generator setup *)
 
@@ -456,7 +660,7 @@ let bn_enumBase = new_definition
 
 let bn_enumAppend = new_definition
    `bn_enumAppend nmax iss = 
-   bn_concat (MAP (\is.   MAP (\n. APPEND is [n]) (UPT (LAST is) (SUC nmax))) iss)`;;
+   concat (MAP (\is.   MAP (\n. APPEND is [n]) (UPT (LAST is) (SUC nmax))) iss)`;;
 
 let bn_enumerator = new_definition
    `bn_enumerator inner outer = 
@@ -476,13 +680,13 @@ let bn_enumt = new_definition `bn_enumt inner outer =
 
 let bn_hideDupsRec = new_recursive_definition list_RECURSION 
   `bn_hideDupsRec (a:A) [] = []  /\
-    bn_hideDupsRec a (CONS b bs) = 
-      if (a = b) then CONS NONE (bn_hideDupsRec b bs) 
-      else CONS (SOME b) (bn_hideDupsRec b bs)`;;
+    bn_hideDupsRec a (b :: bs) = 
+      if (a = b) then NONE :: (bn_hideDupsRec b bs) 
+      else  (SOME b) :: (bn_hideDupsRec b bs)`;;
 
 let bn_hideDups = new_recursive_definition list_RECURSION
   `bn_hideDups ([]:A list) = [] /\
-    bn_hideDups (CONS (b:A) bs) = CONS(SOME b) (bn_hideDupsRec b bs)`;;
+    bn_hideDups ((b:A) :: bs) = (SOME b) :: (bn_hideDupsRec b bs)`;;
 
 let bn_indexToVertexList = new_definition `bn_indexToVertexList f v is = 
   bn_hideDups (MAP (\k. bn_nextVertices f k (v:A)) is)`;;
@@ -492,15 +696,15 @@ let bn_indexToVertexList = new_definition `bn_indexToVertexList f v is =
 let bn_split_face = new_definition 
    `bn_split_face f (ram1:A) ram2 newVs = 
       (let vs = bn_vertices_face f in
-       let f1 = APPEND [ram1] (APPEND (bn_between vs ram1 ram2) [ram2]) in
-       let f2 = APPEND [ram2] (APPEND (bn_between vs ram2 ram1) [ram1]) in
+       let f1 = APPEND [ram1] (APPEND (between' vs ram1 ram2) [ram2]) in
+       let f2 = APPEND [ram2] (APPEND (between' vs ram2 ram1) [ram1]) in
 	 ((APPEND (REVERSE newVs) f1,F), ((APPEND f2 newVs), F)))`;;
 
 let bn_replacefacesAt = new_definition
-  `bn_replacefacesAt ns f fs Fs = bn_mapAt ns (bn_replace f fs) Fs`;;
+  `bn_replacefacesAt ns f fs Fs = bn_mapAt ns (replace f fs) Fs`;;
 
 let bn_makeFaceFinalFaceList = new_definition
-  `bn_makeFaceFinalFaceList f fs = bn_replace f [bn_setFinal f] fs`;;
+  `bn_makeFaceFinalFaceList f fs = replace f [bn_setFinal f] fs`;;
 
 let bn_makeFaceFinal = new_definition
   `bn_makeFaceFinal f g = 
@@ -522,25 +726,25 @@ let bn_splitFace = new_definition
       let Fs = bn_faceListAt g in
       let h = bn_heights g in
       let lVs = LENGTH(newVs) in
-      let vs1 = bn_between (bn_vertices_face oldF) ram1 ram2 in
-      let vs2  = bn_between (bn_vertices_face oldF) ram2 ram1 in
+      let vs1 = between' (bn_vertices_face oldF) ram1 ram2 in
+      let vs2  = between' (bn_vertices_face oldF) ram2 ram1 in
       let (f1,f2) = bn_split_face oldF ram1 ram2 newVs in
       let Fs = bn_replacefacesAt vs1 oldF [f1] Fs in
       let Fs = bn_replacefacesAt vs2 oldF [f2] Fs in
       let Fs = bn_replacefacesAt [ram1] oldF [f2;f1] Fs in
       let Fs = bn_replacefacesAt [ram2] oldF [f1;f2] Fs in
       let Fs = APPEND Fs (REPLICATE lVs [f1;f2]) in
-	  (f1,f2, mk_bn_graph ((APPEND(bn_replace oldF [f2] fs ) [f1]), (n + lVs),
+	  (f1,f2, mk_bn_graph ((APPEND(replace oldF [f2] fs ) [f1]), (n + lVs),
 				 Fs,(APPEND h (bn_heightsNewVertices (EL ram1 h) (EL ram2 h) lVs)))
 	))`;;
 
-(* XX replaced @ with bn_the vo *)
+(* XX replaced @ with 'the' vo *)
 
 let bn_subdivFace0 = new_recursive_definition list_RECURSION
   `bn_subdivFace0 g f u n [] = bn_makeFaceFinal f g /\
-    bn_subdivFace0 g f u n (CONS vo vos) = 
+    bn_subdivFace0 g f u n (vo :: vos) = 
       if (vo = NONE) then bn_subdivFace0 g f u (SUC n) vos else
-	(let v = bn_the vo in
+	(let v = the vo in
 	   if (bn_nextVertex f u = v /\ n = 0) then bn_subdivFace0 g f v 0 vos
 	   else 
 	     (let ws = UPT (bn_countVertices g) (bn_countVertices g + n) in
@@ -548,7 +752,7 @@ let bn_subdivFace0 = new_recursive_definition list_RECURSION
 		bn_subdivFace0 g' f2 v 0 vos))`;;
 
 let bn_subdivFace = new_definition 
-  `bn_subdivFace g f vos = bn_subdivFace0 g f (bn_the(HD vos)) 0 (TL vos)`;;
+  `bn_subdivFace g f vos = bn_subdivFace0 g f (the(HD vos)) 0 (TL vos)`;;
 
 
 (* 8. Transitive closure *)
@@ -574,7 +778,7 @@ let bn_duplicateEdge = new_definition `bn_duplicateEdge g f a b =
 
 let bn_containsUnacceptableEdgeSnd = new_recursive_definition list_RECURSION
   `bn_containsUnacceptableEdgeSnd N (v:num) [] = F /\
-    bn_containsUnacceptableEdgeSnd N v (CONS w ws) = 
+    bn_containsUnacceptableEdgeSnd N v (w :: ws) = 
   if (LENGTH ws = 0) then F else
     (let w' = HD ws in
      let ws' = TL ws in
@@ -583,7 +787,7 @@ let bn_containsUnacceptableEdgeSnd = new_recursive_definition list_RECURSION
   
 let bn_containsUnacceptableEdge = new_recursive_definition list_RECURSION
   `bn_containsUnacceptableEdge N [] = F /\
-  bn_containsUnacceptableEdge N (CONS v vs) = 
+  bn_containsUnacceptableEdge N (v :: vs) = 
   if (LENGTH vs = 0) then F else
     (let w = HD vs in
      let ws = TL vs in
@@ -619,7 +823,7 @@ let bn_generatePolygon = new_definition
 
 (* concatenated union *)
 
-let c_union = new_definition `c_union xs r = bn_concat (MAP r xs)`;;
+let c_union = new_definition `c_union xs r = concat (MAP r xs)`;;
 
 let bn_Seed = new_definition
   `bn_Seed p = bn_graph (bn_maxGon p)`;;
@@ -798,7 +1002,7 @@ let tame_graph_classification_theorem = (* new_definition *)
   (!g. bn_PlaneGraphs g /\ bn_tame g ==> bn_iso_in (bn_fgraph g)   bn_tame_archive)`;;
 
 *)
-end;;
+
 
 
 

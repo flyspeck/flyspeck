@@ -4,6 +4,7 @@ flyspeck_needs "../glpk/minorlp/tame_table.ml";;
 let process_exec = Preprocess.exec();;
 flyspeck_needs "nonlinear/prep.hl";;
 flyspeck_needs "nonlinear/prep.hl";;
+flyspeck_needs "computational_build.hl";;
 Preprocess.prep_file;;
 
 
@@ -28,7 +29,7 @@ rflyspeck_needs "jordan/parse_ext_override_interface.hl";;
 rflyspeck_needs "jordan/real_ext.hl";;
 rflyspeck_needs "jordan/taylor_atn.hl";;
 rflyspeck_needs "jordan/parse_ext_override_interface.hl";;
-
+flyspeck_needs "general/print_types.hl";;
 
 flyspeck_needs "local/RRCWNSJ.hl";;
 flyspeck_needs "local/JCYFMRP.hl";;
@@ -97,6 +98,9 @@ rflyspeck_needs "nonlinear/optimize.hl";;
 rflyspeck_needs "general/flyspeck_lib.hl";;
 rflyspeck_needs   "nonlinear/function_list.hl";;
 rflyspeck_needs "nonlinear/auto_lib.hl";;
+rflyspeck_needs "nonlinear/scripts.hl";;
+Scripts.execute_interval_all false;;
+
 List.length !Ineq.ineqs;;
 
 let idvs = Flyspeck_lib.nub (sort (<) (map (fun t -> t.idv) (!Ineq.ineqs)));;
@@ -105,9 +109,35 @@ List.length idvs;;
 flyspeck_needs "nonlinear/calc_derivative.hl";;
 flyspeck_needs "nonlinear/merge_ineq.hl";;
 rflyspeck_needs "nonlinear/scripts.hl";;
+(* Scripts.execute_interval_all true;; (* takes several hours *) *)
 Scripts.unfinished_cases();;
+let reruns = ["6843920790"; (* "9563139965D" ; *) "6944699408 a reduced"; "6944699408 a";
+   "7043724150 a reduced v2"; "7043724150 a"; "8055810915"; "1965189142 34";
+   "TSKAJXY-eulerA"];;
+map (Auto_lib.testsplit true) (reruns);;
+
 Scripts.times;;
 Scripts.hour (Scripts.total Scripts.times);;
+Scripts.case_splits_execute;;
+
+let redo (s,cs,t) = 
+  let rg = 0--(t-1) in
+  let cs' = subtract rg cs in
+    map (fun c -> (s,c,t)) cs';;
+
+let redos = List.flatten (map redo incompletes);;
+
+
+(!Prep.prep_ineqs);;
+
+
+map (test_prep_case_split true) redos;;
+
+  
+test_prep_case true 1 2 "GRKIBMP A V2";;
+
+Auto_lib.testsplit true "GRKIBMP A V2";;
+
 let some_cases = filter (fun (_,t) -> t > 300) Scripts.times;;
 let some_cases = filter (fun (_,t) -> t > 120) times;;
 total some_cases;;
@@ -412,6 +442,8 @@ List.nth !loaded_files 69;; Reload 1--69
 mk_thm;;
 flyspeck_needs "general/lib.hl";;
 flyspeck_needs "nonlin/kelvin_lattice.hl";;
+flyspeck_needs "usr/thales/searching.hl";;
+open Searching;;
 rflyspeck_needs "usr/thales/init_search.hl";;
 reneeds "packing/counting_spheres.hl";;
 flyspeck_needs "packing/QZKSYKG.hl";;
@@ -2599,7 +2631,53 @@ filter (fun (_,s) -> (s = 0)) t1;;
 map Scripts.one_cfsqp smt_timeouts;;
 
   'ID[4322269127]'
-   'ID[5556646409]'
+   'ID[5556646409]';;
+
+(* Analysis of constants for Clarke, Gao, etc. *)
+(* moved to function_list.hl *)
+
+
+ let tm1 = `domain6 (\x1 x2 x3 x4 x5 x6.
+   &0 <= x1 /\ &0 <= x2 /\ &0 <= x3 /\
+       &0 <= x4 /\ &0 <= x5 /\ &0 <= x6)
+	      dih5_x  (rotate5 dih_x)`;;
+ let thm1 = UNDISCH (MATCH_MP domain6_assum (ASSUME tm1));;
+
+
+!help_path;;
+help_path := ["/Users/thomashales/Desktop/googlecode/hol-light/Help"; "$/Help"];;
+help "SPEC_ALL";;
+
+
+
+
+
+  let cons2 = (map (const_types o test) (0--30));;
+  let cons2 = (map (const_types o test) (0--100));;
+
+const_types (test 740);;
+
+
+
+Flyspeck_lib.nub cons;;
+List.length i1;;
+
+let has_matan = 
+  let z1 = zip p1 cons in
+  map fst (filter (fun (_,c) -> mem "matan" c) z1);;
+let hss = map (fun t -> t.idv) has_matan;;
+
+let testcase = "5202826650 a";;
+
+let testcase = "7796879304";;
+let testcases = subtract hss ["7796879304"];;
+map (Auto_lib.testsplit true) testcases;;
+
+  let i2 = map (fun t -> t.ineq) (!Ineq.ineqs);;
+  let ct2 = setify (List.flatten (map cxx i2));;
+
+  let ct3 = setify (ct2 @ ct1);;
+
 
   let p1 = !Prep.prep_ineqs;;
   let i1 = map (fun t -> t.ineq) p1;;
@@ -2682,16 +2760,6 @@ Sphere.dih_x;;
 
 Sphere.atn2;;
 
-  let cxx i = setify (map fst (Print_types.get_const_types i));;
-
-  let p1 = !Prep.prep_ineqs;;
-  let i1 = map (fun t -> t.ineq) p1;;
-  let ct1 = setify (List.flatten (map cxx i1));;
-
-  let i2 = map (fun t -> t.ineq) (!Ineq.ineqs);;
-  let ct2 = setify (List.flatten (map cxx i2));;
-
-  let ct3 = setify (ct2 @ ct1);;
 
 ct1;;
 List.length ct1;;
@@ -3707,3 +3775,114 @@ hd(fst result);;
 type_of `['0;'1;'2]`;;
 
 run2f (hd(Ineq.getexact "7550003505 0 1 3"));;
+
+Print_types.get_const_types;;
+
+  let reduced_function_list =  [
+Sphere.ineq;
+    Sphere.gchi;
+   Functional_equation.uni;
+Functional_equation.functional_vol_x;
+Functional_equation.functional_dih2_x;
+Functional_equation.functional_dih3_x;
+Functional_equation.functional_dih4_x;
+Functional_equation.functional_dih5_x;
+Functional_equation.functional_dih6_x;
+Functional_equation.functional_gchi1_x;
+Functional_equation.functional_gchi2_x;
+Functional_equation.functional_gchi3_x;
+Functional_equation.functional_gchi4_x;
+Functional_equation.functional_gchi5_x;
+Functional_equation.functional_gchi6_x;
+Functional_equation.functional_ldih2_x;
+Functional_equation.functional_ldih3_x;
+Functional_equation.functional_eulerA_x;
+Functional_equation.functional_sol156_euler_x_div_sqrtdelta;
+Functional_equation.functional_sol246_euler_x_div_sqrtdelta;
+Functional_equation.functional_sol345_euler_x_div_sqrtdelta;
+   Functional_equation.add6;
+   Functional_equation.sub6;
+   Functional_equation.mul6;
+   Functional_equation.div6;
+   Functional_equation.mk_126;
+   Functional_equation.mk_135;
+   Functional_equation.mk_456;
+   Nonlinear_lemma.proj_x1;
+   Nonlinear_lemma.proj_x2;
+   Nonlinear_lemma.proj_x3;
+   Nonlinear_lemma.proj_x4;
+   Nonlinear_lemma.proj_x5;
+   Nonlinear_lemma.proj_x6;
+   Functional_equation.compose6;
+   Functional_equation.functional_rotate2;
+   Functional_equation.functional_rotate3;
+   Functional_equation.functional_rotate4;
+   Functional_equation.functional_rotate5;
+   Functional_equation.functional_rotate6;
+   Functional_equation.proj_y1;
+   Functional_equation.functional_proj_y2;
+   Functional_equation.functional_proj_y3;
+   Functional_equation.functional_proj_y4;
+   Functional_equation.functional_proj_y5;
+   Functional_equation.functional_proj_y6;
+Functional_equation.functional_delta_126_x;
+Functional_equation.functional_delta_234_x;
+Functional_equation.functional_delta_135_x;
+Nonlin_def.flat_term2_135_x;Nonlin_def.flat_term2_234_x;
+Functional_equation.functional_mud_135_x;Functional_equation.functional_mud_126_x;
+Functional_equation.functional_mud_234_x;
+Functional_equation.functional_ldih2_x_div_sqrtdelta_posbranch; 
+Functional_equation.functional_ldih3_x_div_sqrtdelta_posbranch; 
+Functional_equation.functional_ldih5_x_div_sqrtdelta_posbranch; 
+Functional_equation.functional_ldih6_x_div_sqrtdelta_posbranch; 
+   Sphere.delta_x;
+Functional_equation.functional_ldih_x_div_sqrtdelta_posbranch;
+Functional_equation.functional_sol_euler_x_divsqrtdelta;
+Functional_equation.functional_dih_x_div_sqrtdelta_posbranch;
+Functional_equation.functional_rhazim_x;
+Functional_equation.functional_rhazim2_x;
+Functional_equation.functional_rhazim3_x;
+    Functional_equation.rh0;
+Functional_equation.functional_delta4_squared_x;
+Functional_equation.functional_x1_delta_x;
+Functional_equation.functional_tau_residual;
+Nonlin_def.mu6_x;Functional_equation.taud_x_ALT;
+Nonlin_def.taud_D2_num_x;Nonlin_def.taud_D1_num_x;
+Functional_equation.functional_edge2_126_x;Functional_equation.functional_edge2_135_x;
+Functional_equation.functional_edge2_234_x;
+Nonlin_def.flat_term2_126_x;Nonlin_def.flat_term2_135_x;Nonlin_def.flat_term2_234_x;
+Functional_equation.functional_delta_x1;
+    REWRITE_RULE[Sphere.flat_term] Sphere.flat_term_x;
+Functional_equation.functional_rhazim_x_div_sqrt_delta_posbranch;
+Functional_equation.functional_rhazim2_x_div_sqrt_delta_posbranch;
+Functional_equation.functional_rhazim3_x_div_sqrt_delta_posbranch;
+Nonlin_def.mudLs_234_x;Nonlin_def.mudLs_126_x;
+Nonlin_def.mudLs_135_x;
+Functional_equation.functional_taum_x;
+Functional_equation.functional_dnum1;
+Nonlinear_lemma.halfbump_x;
+Functional_equation.functional_halfbump_x1;
+Functional_equation.functional_halfbump_x4;
+Functional_equation.functional_asn797k;
+Functional_equation.functional_asnFnhk;
+Functional_equation.functional_acs_sqrt_x1_d4;
+   Sphere.arc_hhn;
+Functional_equation.functional_arclength_x1;
+REWRITE_RULE[LET_DEF;LET_END_DEF] Functional_equation.functional_arclength_x_123;
+Functional_equation.vol3f_456;
+Functional_equation.functional_vol3_x_sqrt;
+Functional_equation.functional_vol3f_x_sqrt2_lmplus;
+Functional_equation.functional_vol3f_x_lfun;
+Functional_equation.functional_eta2_135;
+Functional_equation.functional_eta2_456;
+Functional_equation.gamma3_x;
+Functional_equation.gamma23_full8_x;
+Functional_equation.gamma23_keep135_x;
+Functional_equation.gamma3f_x_div_sqrtdelta_alt;
+Functional_equation.functional_dih4_x_div_sqrtdelta_posbranch;
+Functional_equation.functional_ldih6_x;
+Functional_equation.functional_ldih_x;
+   Functional_equation.functional_norm2hh_x;
+    ];;
+
+subtract !Function_list.function_list reduced_function_list;;

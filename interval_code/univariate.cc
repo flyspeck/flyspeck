@@ -370,8 +370,9 @@ static interval umatan(const interval& x) {
   // switch to the power series and error term if x is small.
   // radius of convergence is 1.
   if (x.lo < 1.0e-16) {
-    if (x.lo < -0.9) { throw unstable::x; }
-    if (x.hi >  0.9) { throw unstable::x; }
+  //if (x.lo < 0.1) {  // experiment 2013-08-17. Try a larger constant. Didn't help and gave unit test errors.
+    if (x.lo < -0.9) { throw unstable::x; } // this works better than 0.1.
+    if (x.hi >  0.9) { throw unstable::x; } 
     static const interval one("1");
     static const interval three("3");
     static const interval five("5");

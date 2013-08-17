@@ -152,14 +152,18 @@ static lineInterval truncate_sqrt(lineInterval a)  // truncate at 0.14.
 	}
 
 
-static lineInterval atan(lineInterval a,lineInterval b) // atan(a/b);
+// renamed and swapped order of arguments 2013-08/16 to be consistent with
+// HOL-light atn2 function on the domain b > 0.
+static lineInterval atn2(lineInterval x,lineInterval y) // atan(y/x) when 0 < x.
 	{
 	static const interval one("1");
 	lineInterval temp;
-	temp.f = interMath::atan(a.f/b.f);
-	interval rden = one/(a.f*a.f+b.f*b.f);
+	// 2013-08 test for positivity.
+	if ( x.f.lo < 1.0e-3 ) { throw unstable::x; };
+	temp.f = interMath::atan(y.f/x.f);
+	interval rden = one/(y.f*y.f+x.f*x.f);
 	int i;
-	for (i=0;i<6;i++) temp.Df[i]= rden*(a.Df[i]*b.f-b.Df[i]*a.f);
+	for (i=0;i<6;i++) temp.Df[i]= rden*(y.Df[i]*x.f-x.Df[i]*y.f);
 	return temp;
 	}
 
@@ -522,7 +526,7 @@ lineInterval linearization::dih(const domain& x)
 	lineInterval b2 = linearization::delta(x)*t;
 	lineInterval b = sqrt(b2);
 	if (! interMath::boundedFromZero(b.f)) { throw unstable::x; };
-	return p + atan(ax,b);
+	return p + atn2(b,ax);
 	}
 
 lineInterval linearization::truncate_dih(const domain& x)
@@ -540,7 +544,7 @@ lineInterval linearization::truncate_dih(const domain& x)
 	lineInterval b2 = linearization::delta(x)*t;
 	lineInterval b = truncate_sqrt(b2);
 	if (! interMath::boundedFromZero(b.f)) { throw unstable::x; };
-	return p + atan(ax,b);
+	return p + atn2(b,ax);
 	}
 
 
@@ -707,6 +711,9 @@ lineInterval linearization::rhazim6(const domain& x)
 	return t;
 	}
 
+// Merge_ineq.sol_x_sol_euler_x gives the preconditions for this to really equal Sphere.sol_x.
+// 0 < ups126, 0 < ups234, 0 < ups135, 0 < x1, 0 < a, 0 < delta.
+// Perhaps these should be added explicitly in nonlinear inequalities.
 lineInterval linearization::solid(const domain& x)
 	{
 	static const interval two("2");
@@ -715,7 +722,7 @@ lineInterval linearization::solid(const domain& x)
 	x4 = x.getValue(3); x5 = x.getValue(4); x6 = x.getValue(5);
 	lineInterval ax = a(x1,x2,x3,x4,x5,x6)*two;
 	lineInterval s = sqrt(delta(x));
-	return atan(s,ax)*two;
+	return atn2(ax,s)*two;
 	}
 
 /*

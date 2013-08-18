@@ -16,16 +16,6 @@ class wide
 
 public:
 
-	//////////
-	// The calculation of D[taumar,y1] * Sqrt[delta] 
-	//
-  static interval mdtau_y(const domain&,const domain&);
-
-	//////////
-	// The calculation of D[taumar,{y1,2}]
-	//
-  static interval mdtau2uf_y(const domain&,const domain&);
-
 
 	//////////
 	// The calculation of delta_y as a locally constant function.

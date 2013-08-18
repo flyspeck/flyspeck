@@ -3844,3 +3844,59 @@ void legacy_simplex::selfTest()
 	cout << " -- done loading legacy_simplex" << endl << flush;
   
 }
+
+/*implement truncate_dih_x*/
+/*
+static int setAbsTruncateDihedral(const domain& x,const domain& z,double DD[6][6])
+{
+  double X[6],Z[6];
+  int i;
+  for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
+  int r = secondDerive::setAbsTruncateDihedral(X,Z,DD);
+  if (r) { testAbs(DD,"setAbsDihedral"); }
+  return r;
+}
+const Function truncate_dih_x_014= Function::mk_raw(linearization::truncate_dih,setAbsTruncateDihedral);
+
+ const Function Lib::truncate_dih_x(const interval& c) {
+   static const interval c14("0.14");
+   if (c.hi > c.lo + 1.0e-8 || c.lo < c14.lo - 1.0e-8 || c.hi > c14.hi + 1.0e-8) {
+     error::message("truncate_dih_x 0.14 out of range");
+   }
+   return truncate_dih_x_014;
+ }
+*/
+
+/*implement truncate_vol_x */ 
+ /*
+static interval one("1");
+static interval twelve("12");
+static interval f12 =  (one/ twelve);
+const Function truncate_vol_x_014 = 
+  Lib::uni(univariate::i_truncate_sqrt,Lib::delta_x) *f12;
+
+ const Function Lib::truncate_vol_x(const interval& c) {
+   static const interval c14("0.14");
+   if (c.hi > c.lo + 1.0e-8 || c.lo < c14.lo - 1.0e-8 || c.hi > c14.hi + 1.0e-8) {
+     error::message("truncate_dih_x 0.14 out of range");
+   }
+   return truncate_vol_x_014;
+ }
+ */
+
+  /* truncate_dih_x  {
+    Function f = Lib::truncate_dih_x(interval::interval("0.14"));
+    Function g = Lib::dih_x;
+    domain d(6.36,4.2,4.3,4.4,4.5,4.6);
+    double x = g.evalf(d,d).upperBound();
+    epsValue("truncate_dih_x",Lib::truncate_dih_x(interval::interval("0.14")),x);
+    } */
+
+  /* truncate vol_x  {
+    Function f = uni(L::i_sqrt,Lib::delta_x) * (one/twelve);
+    Function g = Lib::truncate_vol_x(interval::interval("0.14"));
+    domain d(6.36,4.2,4.3,4.4,4.5,4.6);
+    double x = f.evalf(d,d).upperBound();
+    epsValue("truncate_vol_x",g,x);
+  }
+  */

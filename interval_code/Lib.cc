@@ -229,13 +229,8 @@ const Function Lib::num1 =
     Lib::x3 * Lib::x6 * L::mone * t32 +  Lib::x3 * Lib::x4 * Lib::x6 * L::four;
 
 /*implement deltaLC */
-const Function Lib::delta_y_LC = Function::mk_LC(wide::delta_y);
+//const Function Lib::delta_y_LC = Function::mk_LC(wide::delta_y);
 
-/*implement mdtau_y_LC */
-const Function Lib::mdtau_y_LC= Function::mk_LC(wide::mdtau_y);
-
-/*implement mdtau2uf_y_LC */
-const Function Lib::mdtau2uf_y_LC= Function::mk_LC(wide::mdtau2uf_y);
 
 /*implement delta */
 static int setAbsDelta(const domain& x,const domain& z,double DD[6][6])
@@ -329,44 +324,6 @@ static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
 }
 const Function Lib::dih_x = Function::mk_raw(linearization::dih,setAbsDihedral);
 
-/*implement truncate_dih_x*/
-/*
-static int setAbsTruncateDihedral(const domain& x,const domain& z,double DD[6][6])
-{
-  double X[6],Z[6];
-  int i;
-  for (i=0;i<6;i++) { X[i]=x.getValue(i); Z[i]=z.getValue(i); }
-  int r = secondDerive::setAbsTruncateDihedral(X,Z,DD);
-  if (r) { testAbs(DD,"setAbsDihedral"); }
-  return r;
-}
-const Function truncate_dih_x_014= Function::mk_raw(linearization::truncate_dih,setAbsTruncateDihedral);
-
- const Function Lib::truncate_dih_x(const interval& c) {
-   static const interval c14("0.14");
-   if (c.hi > c.lo + 1.0e-8 || c.lo < c14.lo - 1.0e-8 || c.hi > c14.hi + 1.0e-8) {
-     error::message("truncate_dih_x 0.14 out of range");
-   }
-   return truncate_dih_x_014;
- }
-*/
-
-/*implement truncate_vol_x */ 
- /*
-static interval one("1");
-static interval twelve("12");
-static interval f12 =  (one/ twelve);
-const Function truncate_vol_x_014 = 
-  Lib::uni(univariate::i_truncate_sqrt,Lib::delta_x) *f12;
-
- const Function Lib::truncate_vol_x(const interval& c) {
-   static const interval c14("0.14");
-   if (c.hi > c.lo + 1.0e-8 || c.lo < c14.lo - 1.0e-8 || c.hi > c14.hi + 1.0e-8) {
-     error::message("truncate_dih_x 0.14 out of range");
-   }
-   return truncate_vol_x_014;
- }
- */
 
 /*implement sol_x */
 static int setSol(const domain& x,const domain& z,double DD[6][6])
@@ -392,70 +349,6 @@ static const Function operator*(int j,const Function& t) {
   return t * interval(j * 1.0, j * 1.0);
 }
 
-const Function Lib::num2 = 
-  (-2048)*Function::mk_monomial(0,0,1,0,0,3) + 6144*Function::mk_monomial(0,0,1,0,1,2) - 6144*Function::mk_monomial(0,0,1,0,2,1) + 
-   2048*Function::mk_monomial(0,0,1,0,3,0) + 10240*Function::mk_monomial(0,0,1,1,0,2) + 128*Function::mk_monomial(0,0,1,1,0,3) - 
-   4096*Function::mk_monomial(0,0,1,1,1,1) - 1664*Function::mk_monomial(0,0,1,1,1,2) - 6144*Function::mk_monomial(0,0,1,1,2,0) + 
-   1920*Function::mk_monomial(0,0,1,1,2,1) - 384*Function::mk_monomial(0,0,1,1,3,0) - 6144*Function::mk_monomial(0,0,1,2,0,1) - 
-   896*Function::mk_monomial(0,0,1,2,0,2) - 16*Function::mk_monomial(0,0,1,2,0,3) + 6144*Function::mk_monomial(0,0,1,2,1,0) - 
-   256*Function::mk_monomial(0,0,1,2,1,1) + 160*Function::mk_monomial(0,0,1,2,1,2) + 1152*Function::mk_monomial(0,0,1,2,2,0) - 
-   144*Function::mk_monomial(0,0,1,2,2,1) - 2048*Function::mk_monomial(0,0,1,3,0,0) + 384*Function::mk_monomial(0,0,1,3,0,1) + 
-   64*Function::mk_monomial(0,0,1,3,0,2) - 1152*Function::mk_monomial(0,0,1,3,1,0) + 128*Function::mk_monomial(0,0,1,3,1,1) - 
-   8*Function::mk_monomial(0,0,1,3,1,2) + 384*Function::mk_monomial(0,0,1,4,0,0) - 48*Function::mk_monomial(0,0,1,4,0,1) + 
-   2048*Function::mk_monomial(0,1,0,0,0,3) - 6144*Function::mk_monomial(0,1,0,0,1,2) + 6144*Function::mk_monomial(0,1,0,0,2,1) - 
-   2048*Function::mk_monomial(0,1,0,0,3,0) - 6144*Function::mk_monomial(0,1,0,1,0,2) - 384*Function::mk_monomial(0,1,0,1,0,3) - 
-   4096*Function::mk_monomial(0,1,0,1,1,1) + 1920*Function::mk_monomial(0,1,0,1,1,2) + 10240*Function::mk_monomial(0,1,0,1,2,0) - 
-   1664*Function::mk_monomial(0,1,0,1,2,1) + 128*Function::mk_monomial(0,1,0,1,3,0) + 6144*Function::mk_monomial(0,1,0,2,0,1) + 
-   1152*Function::mk_monomial(0,1,0,2,0,2) - 6144*Function::mk_monomial(0,1,0,2,1,0) - 256*Function::mk_monomial(0,1,0,2,1,1) - 
-   144*Function::mk_monomial(0,1,0,2,1,2) - 896*Function::mk_monomial(0,1,0,2,2,0) + 160*Function::mk_monomial(0,1,0,2,2,1) - 
-   16*Function::mk_monomial(0,1,0,2,3,0) - 2048*Function::mk_monomial(0,1,0,3,0,0) - 1152*Function::mk_monomial(0,1,0,3,0,1) + 
-   384*Function::mk_monomial(0,1,0,3,1,0) + 128*Function::mk_monomial(0,1,0,3,1,1) + 64*Function::mk_monomial(0,1,0,3,2,0) - 
-   8*Function::mk_monomial(0,1,0,3,2,1) + 384*Function::mk_monomial(0,1,0,4,0,0) - 48*Function::mk_monomial(0,1,0,4,1,0) - 
-   4096*Function::mk_monomial(1,0,0,1,0,2) + 8192*Function::mk_monomial(1,0,0,1,1,1) - 4096*Function::mk_monomial(1,0,0,1,2,0) + 
-   512*Function::mk_monomial(1,0,0,2,0,2) - 1024*Function::mk_monomial(1,0,0,2,1,1) + 512*Function::mk_monomial(1,0,0,2,2,0) + 
-   4096*Function::mk_monomial(1,0,0,3,0,0) - 16*Function::mk_monomial(1,0,0,3,0,2) + 32*Function::mk_monomial(1,0,0,3,1,1) - 
-16*Function::mk_monomial(1,0,0,3,2,0) - 512*Function::mk_monomial(1,0,0,4,0,0) + 16*Function::mk_monomial(1,0,0,5,0,0);
-
-static const interval t25("25");
-const Function Lib::num_combo1 = 
-(512*Function::mk_monomial(0,0,1,0,0,3) - 1536*Function::mk_monomial(0,0,1,0,1,2) + 1536*Function::mk_monomial(0,0,1,0,2,1) - 
-   512*Function::mk_monomial(0,0,1,0,3,0) - 2560*Function::mk_monomial(0,0,1,1,0,2) - 32*Function::mk_monomial(0,0,1,1,0,3) + 
-   1024*Function::mk_monomial(0,0,1,1,1,1) + 416*Function::mk_monomial(0,0,1,1,1,2) + 1536*Function::mk_monomial(0,0,1,1,2,0) - 
-   480*Function::mk_monomial(0,0,1,1,2,1) + 96*Function::mk_monomial(0,0,1,1,3,0) + 1536*Function::mk_monomial(0,0,1,2,0,1) + 
-   224*Function::mk_monomial(0,0,1,2,0,2) + 4*Function::mk_monomial(0,0,1,2,0,3) - 1536*Function::mk_monomial(0,0,1,2,1,0) + 
-   64*Function::mk_monomial(0,0,1,2,1,1) - 40*Function::mk_monomial(0,0,1,2,1,2) - 288*Function::mk_monomial(0,0,1,2,2,0) + 
-   36*Function::mk_monomial(0,0,1,2,2,1) + 512*Function::mk_monomial(0,0,1,3,0,0) - 96*Function::mk_monomial(0,0,1,3,0,1) - 
-   16*Function::mk_monomial(0,0,1,3,0,2) + 288*Function::mk_monomial(0,0,1,3,1,0) - 32*Function::mk_monomial(0,0,1,3,1,1) + 
-   2*Function::mk_monomial(0,0,1,3,1,2) - 96*Function::mk_monomial(0,0,1,4,0,0) + 12*Function::mk_monomial(0,0,1,4,0,1) + 
-   25600*Function::mk_monomial(0,0,2,0,0,2) - 51200*Function::mk_monomial(0,0,2,0,1,1) + 25600*Function::mk_monomial(0,0,2,0,2,0) + 
-   51200*Function::mk_monomial(0,0,2,1,0,1) - 6400*Function::mk_monomial(0,0,2,1,0,2) - 51200*Function::mk_monomial(0,0,2,1,1,0) + 
-   6400*Function::mk_monomial(0,0,2,1,1,1) + 25600*Function::mk_monomial(0,0,2,2,0,0) - 6400*Function::mk_monomial(0,0,2,2,0,1) + 
-   400*Function::mk_monomial(0,0,2,2,0,2) - 512*Function::mk_monomial(0,1,0,0,0,3) + 1536*Function::mk_monomial(0,1,0,0,1,2) - 
-   1536*Function::mk_monomial(0,1,0,0,2,1) + 512*Function::mk_monomial(0,1,0,0,3,0) + 1536*Function::mk_monomial(0,1,0,1,0,2) + 
-   96*Function::mk_monomial(0,1,0,1,0,3) + 1024*Function::mk_monomial(0,1,0,1,1,1) - 480*Function::mk_monomial(0,1,0,1,1,2) - 
-   2560*Function::mk_monomial(0,1,0,1,2,0) + 416*Function::mk_monomial(0,1,0,1,2,1) - 32*Function::mk_monomial(0,1,0,1,3,0) - 
-   1536*Function::mk_monomial(0,1,0,2,0,1) - 288*Function::mk_monomial(0,1,0,2,0,2) + 1536*Function::mk_monomial(0,1,0,2,1,0) + 
-   64*Function::mk_monomial(0,1,0,2,1,1) + 36*Function::mk_monomial(0,1,0,2,1,2) + 224*Function::mk_monomial(0,1,0,2,2,0) - 
-   40*Function::mk_monomial(0,1,0,2,2,1) + 4*Function::mk_monomial(0,1,0,2,3,0) + 512*Function::mk_monomial(0,1,0,3,0,0) + 
-   288*Function::mk_monomial(0,1,0,3,0,1) - 96*Function::mk_monomial(0,1,0,3,1,0) - 32*Function::mk_monomial(0,1,0,3,1,1) - 
-   16*Function::mk_monomial(0,1,0,3,2,0) + 2*Function::mk_monomial(0,1,0,3,2,1) - 96*Function::mk_monomial(0,1,0,4,0,0) + 
-   12*Function::mk_monomial(0,1,0,4,1,0) - 51200*Function::mk_monomial(0,1,1,0,0,2) + 102400*Function::mk_monomial(0,1,1,0,1,1) - 
-   51200*Function::mk_monomial(0,1,1,0,2,0) + 6400*Function::mk_monomial(0,1,1,1,0,2) - 12800*Function::mk_monomial(0,1,1,1,1,1) + 
-   6400*Function::mk_monomial(0,1,1,1,2,0) + 51200*Function::mk_monomial(0,1,1,2,0,0) - 6400*Function::mk_monomial(0,1,1,2,0,1) - 
-   6400*Function::mk_monomial(0,1,1,2,1,0) + 800*Function::mk_monomial(0,1,1,2,1,1) + 25600*Function::mk_monomial(0,2,0,0,0,2) - 
-   51200*Function::mk_monomial(0,2,0,0,1,1) + 25600*Function::mk_monomial(0,2,0,0,2,0) - 51200*Function::mk_monomial(0,2,0,1,0,1) + 
-   51200*Function::mk_monomial(0,2,0,1,1,0) + 6400*Function::mk_monomial(0,2,0,1,1,1) - 6400*Function::mk_monomial(0,2,0,1,2,0) + 
-   25600*Function::mk_monomial(0,2,0,2,0,0) - 6400*Function::mk_monomial(0,2,0,2,1,0) + 400*Function::mk_monomial(0,2,0,2,2,0) + 
-   1024*Function::mk_monomial(1,0,0,1,0,2) - 2048*Function::mk_monomial(1,0,0,1,1,1) + 1024*Function::mk_monomial(1,0,0,1,2,0) - 
-   128*Function::mk_monomial(1,0,0,2,0,2) + 256*Function::mk_monomial(1,0,0,2,1,1) - 128*Function::mk_monomial(1,0,0,2,2,0) - 
-   1024*Function::mk_monomial(1,0,0,3,0,0) + 4*Function::mk_monomial(1,0,0,3,0,2) - 8*Function::mk_monomial(1,0,0,3,1,1) + 
-   4*Function::mk_monomial(1,0,0,3,2,0) + 128*Function::mk_monomial(1,0,0,4,0,0) - 4*Function::mk_monomial(1,0,0,5,0,0) - 
-   102400*Function::mk_monomial(1,0,1,1,0,1) + 102400*Function::mk_monomial(1,0,1,1,1,0) - 
-   102400*Function::mk_monomial(1,0,1,2,0,0) + 19200*Function::mk_monomial(1,0,1,2,0,1) - 6400*Function::mk_monomial(1,0,1,2,1,0) + 
-   6400*Function::mk_monomial(1,0,1,3,0,0) - 800*Function::mk_monomial(1,0,1,3,0,1) + 102400*Function::mk_monomial(1,1,0,1,0,1) - 
-   102400*Function::mk_monomial(1,1,0,1,1,0) - 102400*Function::mk_monomial(1,1,0,2,0,0) - 6400*Function::mk_monomial(1,1,0,2,0,1) + 
-   19200*Function::mk_monomial(1,1,0,2,1,0) + 6400*Function::mk_monomial(1,1,0,3,0,0) - 800*Function::mk_monomial(1,1,0,3,1,0) + 
- 102400*Function::mk_monomial(2,0,0,2,0,0) - 12800*Function::mk_monomial(2,0,0,3,0,0) + 400*Function::mk_monomial(2,0,0,4,0,0))*(L::one/t25);
 
 
 /* ========================================================================== */
@@ -525,22 +418,6 @@ void Lib::selfTest()
 
   }
 
-  /* truncate_dih_x  {
-    Function f = Lib::truncate_dih_x(interval::interval("0.14"));
-    Function g = Lib::dih_x;
-    domain d(6.36,4.2,4.3,4.4,4.5,4.6);
-    double x = g.evalf(d,d).upperBound();
-    epsValue("truncate_dih_x",Lib::truncate_dih_x(interval::interval("0.14")),x);
-    } */
-
-  /* truncate vol_x  {
-    Function f = uni(L::i_sqrt,Lib::delta_x) * (one/twelve);
-    Function g = Lib::truncate_vol_x(interval::interval("0.14"));
-    domain d(6.36,4.2,4.3,4.4,4.5,4.6);
-    double x = f.evalf(d,d).upperBound();
-    epsValue("truncate_vol_x",g,x);
-  }
-  */
 
   cout << " -- done loading LibA" << endl << flush;
 

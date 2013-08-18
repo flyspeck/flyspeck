@@ -60,11 +60,7 @@ class Lib
 
   static const Function unit,two6,edge_flat2_x,halfbump_x1,eta2_126,ups_126,
     delta_x,delta_x4,dih_x,sol_x,rad2_x,
-    num1,num2,num_combo1,delta_y_LC,mdtau_y_LC,mdtau2uf_y_LC;
-
-  //truncated functions have been deprecated.
-  //static const Function truncate_dih_x(const interval&);
-  //static const Function truncate_vol_x(const interval&);
+    num1;
 
    static void selfTest();
 

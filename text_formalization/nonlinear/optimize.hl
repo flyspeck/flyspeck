@@ -49,6 +49,7 @@ let strip_let_tm = Nonlinear_lemma.strip_let_tm;;
 let output_filestring = Flyspeck_lib.output_filestring;;
 
 let BY = Hales_tactic.BY;;
+let unlist = Hales_tactic.unlist;;
 
 (* from glpk_link.ml *)
 
@@ -625,8 +626,9 @@ let compile_cpp =
 (*    MEGA PREP    TACTICS                                                    *)
 (* ========================================================================== *)
 
-
-(* apply at the beginning *)
+(* *************************************************************************** *)
+(* PRELIM *)
+(* *************************************************************************** *)
 
 let macro_expand = (
    [
@@ -645,6 +647,9 @@ let PRELIM_REWRITE_TAC = EVERY[
   (REWRITE_TAC(macro_expand)) ;
 ];;
 
+(* *************************************************************************** *)
+(* BRANCH *)
+(* *************************************************************************** *)
 
 (* take care of branching *)
 
@@ -677,22 +682,32 @@ let BRANCH_TAC = EVERY[
   EVERY (map SPEC_TAC [(`y6:real`,`y6:real`);(`y5:real`,`y5:real`);(`y4:real`,`y4:real`);(`y3:real`,`y3:real`);(`y2:real`,`y2:real`);(`y1:real`,`y1:real`)]);
   POP_ASSUM MP_TAC;
   REWRITE_TAC[Sphere.pathL;Sphere.pathR]; (*  moved May 24, 2011 *)
-]
-;;
+];;
 
-let SERIES3Q1H_5D_TAC = 
-  let instjx = INST_TYPE [(`:real`,`:A`);(`:real`,`:B`);(`:real`,`:C`);
-			  (`:real`,`:D`);(`:real`,`:E`);(`:real`,`:F`)] in
-  let PROJX = map instjx [ proj_x1;proj_x2;proj_x3;proj_x4;proj_x5;proj_x6] in
-  let projx = list_mk_conj (map (concl o GSYM) PROJX ) in
- (REPEAT STRIP_TAC   THEN MATCH_MP_TAC ineq6_of_ineq5) THEN
- (REWRITE_TAC[Sphere.pathL;Sphere.pathR;Sphere.hplus;Sphere.h0]) THEN
- (REWRITE_TAC[ineq_expand6]) THEN
- (REPEAT GEN_TAC THEN REPEAT DISCH_TAC) THEN
- (SUBGOAL_THEN projx (fun t -> PURE_ONCE_REWRITE_TAC[t])) THENL
- [(REWRITE_TAC PROJX);ALL_TAC] THEN
- (REPEAT (POP_ASSUM MP_TAC)) THEN
- (REWRITE_TAC[GSYM ineq_expand6]);;
+(* *************************************************************************** *)
+(* *************************************************************************** *)
+
+(*
+  let SQRT_SQRT_TAC = 
+EVERY[
+  REPEAT DISCH_TAC;
+  SUBGOAL_THEN `sqrt x1 * sqrt x1 = x1 /\ sqrt x2 * sqrt x2 = x2 /\ sqrt x3 * sqrt x3 = x3 /\ sqrt x4 * sqrt x4 = x4 /\ sqrt x5 * sqrt x5 = x5 /\ sqrt x6 * sqrt x6 = x6` (unlist REWRITE_TAC) THENL[ ASM_MESON_TAC[sq_pow2];ALL_TAC] THEN
+  REPEAT (POP_ASSUM MP_TAC);
+  DISCH_TAC;
+];;
+*)
+
+  let SQRT_SQRT_TAC = EVERY[
+  REPEAT DISCH_TAC;
+  SUBGOAL_THEN `sqrt x1 * sqrt x1 = x1 /\ sqrt x2 * sqrt x2 = x2 /\ sqrt x3 * sqrt x3 = x3 /\ 
+      sqrt x4 * sqrt x4 = x4 /\ sqrt x5 * sqrt x5 = x5 /\ sqrt x6 * sqrt x6 = x6` 
+      (unlist REWRITE_TAC) 
+  THENL [ REPEAT (FIRST_X_ASSUM (MP_TAC o (MATCH_MP sq_pow2))) THEN 
+	    REPEAT DISCH_TAC THEN BY(ASM_REWRITE_TAC[]);ALL_TAC] THEN
+  REPEAT (POP_ASSUM MP_TAC);
+  DISCH_TAC;];;
+
+
 
 let X_SQRT_COMPOUND_ORDER = 
 [`norm2hh (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
@@ -730,14 +745,19 @@ let X_SQRT_COMPOUND_ORDER =
    vol3f_x_sqrt2_lmplus x1 x2 x3 x4 x5 x6`;
  ];;
 
-  let SQRT_SQRT_TAC = 
-EVERY[
-  REPEAT DISCH_TAC;
-  SUBGOAL_THEN `sqrt x1 * sqrt x1 = x1 /\ sqrt x2 * sqrt x2 = x2 /\ sqrt x3 * sqrt x3 = x3 /\ sqrt x4 * sqrt x4 = x4 /\ sqrt x5 * sqrt x5 = x5 /\ sqrt x6 * sqrt x6 = x6` (fun t-> REWRITE_TAC[t]) THENL[ ASM_MESON_TAC[sq_pow2];ALL_TAC] THEN
-  REPEAT (POP_ASSUM MP_TAC);
-  DISCH_TAC;
-];;
 
+  let rec get_consts tm = 
+    match tm with       
+        Var(s,t) -> []
+      | Const(s,t) -> [tm ]
+      | Comb (t1,t2) -> get_consts t1 @ get_consts t2 
+      | Abs (t1,t2) -> get_consts t1 @ get_consts t2 ;;
+
+  let get_goal_const gl = 
+    let w = goal_concl gl in
+      get_consts w;;
+
+(*
   let X_SQRT_COMPOUND_ORDER_TAC:tactic =  
     fun gl ->
       let (asl,a) = dest_goal gl in
@@ -747,8 +767,22 @@ EVERY[
     let X_SQRT_COMPOUND_ORDER_FIL = list_mk_conj vos in
   (SUBGOAL_THEN  X_SQRT_COMPOUND_ORDER_FIL  (fun t-> REWRITE_TAC[t;(GSYM Sphere.rhazim_x); (GSYM Sphere.rhazim2_x);xspec (GSYM Sphere.rhazim3_x)]) THENL[ (GEN_MESON_TAC 0 200 1[Sphere.norm2hh_x;rad2_x_y;delta_x4_delta4_y;dih_x_y;dih2_x_y;delta_x_y;dih3_x_y;tauq_x_y;GSYM Sphere.dih4_x;GSYM Sphere.dih5_x;GSYM Sphere.dih6_x;vol_x_y;Sphere.eta2_126; Sphere.eta2_135;Sphere.eta2_456;GSYM vol3f_x_lfun;GSYM vol3_x_sqrt;GSYM vol3f_x_sqrt2_lmplus]);ALL_TAC]) gl
 ;;
+*)
 
-let X_FROZEN_COMPOUND =(map SPEC_ALL [vol3r_126_x;REAL_ARITH `&2 = #2.0`;
+  let X_SQRT_COMPOUND_ORDER_TAC:tactic =  
+    fun gl ->
+      let (asl,a) = dest_goal gl in
+      let fr = frees a in
+      let c = get_goal_const gl in
+      let vos = filter (fun t -> subset (frees (fst (dest_eq t))) fr ) X_SQRT_COMPOUND_ORDER  in
+      let vos' = filter (fun t -> mem (fst (strip_comb (fst(dest_eq t)))) c) vos in
+    let vconj = list_mk_conj vos' in
+  (SUBGOAL_THEN  vconj  (fun t-> REWRITE_TAC[t;(GSYM Sphere.rhazim_x); (GSYM Sphere.rhazim2_x);xspec (GSYM Sphere.rhazim3_x)]) THENL[ (GEN_MESON_TAC 0 200 1[Sphere.norm2hh_x;rad2_x_y;delta_x4_delta4_y;dih_x_y;dih2_x_y;delta_x_y;dih3_x_y;tauq_x_y;GSYM Sphere.dih4_x;GSYM Sphere.dih5_x;GSYM Sphere.dih6_x;vol_x_y;Sphere.eta2_126; Sphere.eta2_135;Sphere.eta2_456;GSYM vol3f_x_lfun;GSYM vol3_x_sqrt;GSYM vol3f_x_sqrt2_lmplus]);ALL_TAC]) gl
+;;
+
+
+let X_FROZEN_COMPOUND =(map SPEC_ALL [
+ vol3r_126_x;REAL_ARITH `&2 = #2.0`;
  GSYM arclength_x_234;
  GSYM arclength_x_126;
  GSYM Functional_equation.nonf_gamma2_x1_div_a_v2;
@@ -762,9 +796,7 @@ let X_COMPOUND_DEF =  [REAL_ARITH `&2 = #2.0`;
  GSYM Sphere.gchi1_x;GSYM Sphere.gchi2_x;
  GSYM Sphere.gchi3_x;GSYM Sphere.gchi4_x;
  GSYM Sphere.gchi5_x;GSYM Sphere.gchi6_x;
-
  GSYM Sphere.arclength_x1;GSYM Sphere.arclength_x2;
-
  GSYM Enclosed.quad_cross_diag2_x;
  tauq_x_y;] @ 
   map decimal [
@@ -775,10 +807,6 @@ let X_COMPOUND_DEF =  [REAL_ARITH `&2 = #2.0`;
 let X_OF_Y_TAC = 
   (
   (DISCH_TAC) THEN
-(* (* move to PREP_TAC *)
-  (REWRITE_TAC[GSYM Sphere.rad2_y]) THEN
-  (REWRITE_TAC(macro_expand)) THEN
-*)
   TRY (MATCH_MP_TAC ineq_square2) THEN TRY (MATCH_MP_TAC ineq_square2_9) THEN
   (REWRITE_TAC basic_constants_nn) THEN
   REWRITE_TAC[GSYM CONJ_ASSOC] THEN
@@ -787,7 +815,6 @@ let X_OF_Y_TAC =
   (REWRITE_TAC [sol_y_123;taum_123]) THEN
   (REWRITE_TAC[ineq]) THEN
   (SQRT_SQRT_TAC) THEN
-(*    SIMP_TAC[sq_pow2] THEN *)
     (REPEAT DISCH_TAC) THEN
     (* remove x variable compound *)
     X_SQRT_COMPOUND_ORDER_TAC THEN
@@ -847,6 +874,28 @@ let DEF_expand =
   tame_table_d_values;Sphere.vol2f;
   Sphere.lfun; (* added Oct 17, 2010 *)
  ];;
+
+(* *************************************************************************** *)
+(* SERIES3Q1H *)
+(* *************************************************************************** *)
+
+let SERIES3Q1H_5D_TAC = 
+  let instjx = INST_TYPE [(`:real`,`:A`);(`:real`,`:B`);(`:real`,`:C`);
+			  (`:real`,`:D`);(`:real`,`:E`);(`:real`,`:F`)] in
+  let PROJX = map instjx [ proj_x1;proj_x2;proj_x3;proj_x4;proj_x5;proj_x6] in
+  let projx = list_mk_conj (map (concl o GSYM) PROJX ) in
+ (REPEAT STRIP_TAC   THEN MATCH_MP_TAC ineq6_of_ineq5) THEN
+ (REWRITE_TAC[Sphere.pathL;Sphere.pathR;Sphere.hplus;Sphere.h0]) THEN
+ (REWRITE_TAC[ineq_expand6]) THEN
+ (REPEAT GEN_TAC THEN REPEAT DISCH_TAC) THEN
+ (SUBGOAL_THEN projx (fun t -> PURE_ONCE_REWRITE_TAC[t])) THENL
+ [(REWRITE_TAC PROJX);ALL_TAC] THEN
+ (REPEAT (POP_ASSUM MP_TAC)) THEN
+ (REWRITE_TAC[GSYM ineq_expand6]);;
+
+(* *************************************************************************** *)
+(* STYLIZE and WRAPUP *)
+(* *************************************************************************** *)
 
 let STYLIZE_TAC = 
   let real_arith_lt = 
@@ -912,43 +961,6 @@ let WRAPUP_TAC =
   (REWRITE_TAC[REAL_ARITH `(x * y) * (z:real) = x * y * z`]) THEN
   (REWRITE_TAC[REAL_ARITH `inv y = (&1/y)`]);;
 
-(* SHARP CASES *)
-
-(*
-let gamma4f_delta0 = prove_by_refinement(
-  mk_imp (`NONLIN:bool`,Sphere.all_forall `ineq [(sqrt8,y1,sqrt8);
-		    (&2,y2,&2);
-		    (&2,y3,&2);
-		    (sqrt8,y4,sqrt8);
-		    (&2,y5,&2);
-		    (&2,y6,&2)]
- 		    (gamma4f y1 y2 y3 y4 y5 y6 lmfun = &0)`),
-  (* {{{ proof *)
-  [
-  BRANCH_TAC;
-  X_OF_Y_TAC;
-  REWRITE_TAC[Sphere.ineq];
-  REPEAT STRIP_TAC;
-  SUBGOAL_THEN `x1 = &8 /\ x2 = &4 /\ x3 = &4 /\ x4 = &8 /\ x5 = &4 /\ x6 = &4` (fun t -> REWRITE_TAC[t]);
-  REPEAT (POP_ASSUM MP_TAC);
-  REAL_ARITH_TAC;
-  REPEAT (POP_ASSUM (fun t -> ALL_TAC));
-  REWRITE_TAC[Sphere.vol_x;Sphere.gchi2_x;Sphere.gchi3_x;Sphere.gchi5_x;
-    Sphere.gchi6_x;Sphere.dih_x;Sphere.dih2_x;Sphere.dih3_x;Sphere.dih4_x;
-    Sphere.dih4_y;Sphere.dih5_x;Sphere.dih5_y;Sphere.dih6_x;Sphere.dih6_y;
-    Sphere.dih_y];
-  REWRITE_TAC[LET_DEF;LET_END_DEF];
-  SUBGOAL_THEN `sqrt (&4) * sqrt(&4) = &4 /\ sqrt(&8) *sqrt (&8) = &8` 
-     (fun t-> REWRITE_TAC[t]);
-  CONJ_TAC THEN MATCH_MP_TAC sq_pow2 THEN EXISTS_TAC `&0` 
-   THEN REAL_ARITH_TAC;
-  REWRITE_TAC[delta_x_eq0;REAL_ARITH `x * &0 = &0 /\ -- -- x = x`;
-      SQRT_0;delta_x4_eq64;atn2_0y];
-  MP_TAC PI_POS;
-  CONV_TAC  REAL_FIELD;    
-  ]);;
-  (* }}} *)
-*)
 
 
 

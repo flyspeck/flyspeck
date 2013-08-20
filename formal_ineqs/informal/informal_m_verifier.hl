@@ -6,7 +6,7 @@
 
 (* Dependencies *)
 needs "informal/informal_m_taylor.hl";;
-needs "verifier/interval_m/recurse.ml";;
+needs "verifier/interval_m/recurse.hl";;
 needs "verifier_options.hl";;
 
 module Informal_verifier = struct
@@ -109,10 +109,20 @@ let restrict_domain j left_flag domain =
 
 
 (*****************************)
+(* aux list functions *)
+
+(* Merges lists of indices. Input lists must be sorted *)
+let merge_indices l1 l2 = uniq (merge (<) l1 l2);;
+
+(* Returns all elements at the given indices *)
+let take_all l inds = map (List.nth l) inds;;
+
+
+(*****************************)
 (* m_verify_raw *)
 
 (* Constructs a p_result_tree from the given result_tree *)
-let m_verify_raw (report_start, total_size) p_split p_min p_max fs certificate domain0 ref_list =
+let m_verify_raw (report_start, total_size) p_split p_min p_max fs_list certificate domain0 ref_list =
   let r_size = result_size certificate in
   let r_size2 = float_of_int (if total_size > 0 then total_size else (if r_size > 0 then r_size else 1)) in
   let k = ref 0 in
@@ -131,38 +141,41 @@ let m_verify_raw (report_start, total_size) p_split p_min p_max fs certificate d
 	    else find_p p_fun ps in
 
   (* pass_test *)
-  let pass_test domain f0_flag pp =
-    if f0_flag then
-      m_taylor_cell_pass0 (fs.f pp domain.lo domain.hi)
-    else
-      m_taylor_cell_pass pp (fs.taylor pp pp domain) in
+  let pass_test domain (j,f0_flag) pp =
+    let fs = List.nth fs_list j in
+      if f0_flag then
+	m_taylor_cell_pass0 (fs.f pp domain.lo domain.hi)
+      else
+	m_taylor_cell_pass pp (fs.taylor pp pp domain) in
 
   (* glue_test *)
-  let glue_test domain i convex_flag pp =
-    if convex_flag then
-      m_convex_pass (fs.ddf (i + 1) (i + 1) pp domain.lo domain.hi)
-    else
-      true in
+  let glue_test domain i convex_flag inds pp =
+    let fss = take_all fs_list inds in
+      if convex_flag then
+	forall (fun fs -> m_convex_pass (fs.ddf (i + 1) (i + 1) pp domain.lo domain.hi)) fss
+      else
+	true in
 
   (* mono_test *)
-  let mono_test mono domain domains pp =
+  let mono_test mono domain domains inds pp =
+    let fss = take_all fs_list inds in
     let xx, zz = domain.lo, domain.hi in
-    let taylor = fs.taylor pp pp domain in
+    let taylors = map (fun fs -> fs.taylor pp pp domain) fss in
     let gen_mono m =
       if m.df0_flag then
 	if m.decr_flag then
-	  (snd o dest_interval) (fs.df m.variable pp xx zz)
+	  map (fun fs -> (snd o dest_interval) (fs.df m.variable pp xx zz)) fss
 	else
-	  (fst o dest_interval) (fs.df m.variable pp xx zz)
+	  map (fun fs -> (fst o dest_interval) (fs.df m.variable pp xx zz)) fss
       else
 	if m.decr_flag then
-	  eval_m_taylor_partial_upper pp m.variable taylor
+	  map (eval_m_taylor_partial_upper pp m.variable) taylors
 	else
-	  eval_m_taylor_partial_lower pp m.variable taylor in
+	  map (eval_m_taylor_partial_lower pp m.variable) taylors in
     let monos = map gen_mono mono in
-      rev_itlist (fun (m, bound) pass -> 
+      rev_itlist (fun (m, bounds) pass -> 
 		    let flag = m.decr_flag in
-		      m_mono_pass_gen flag bound && pass) (rev (zip mono monos)) true in
+		      forall (m_mono_pass_gen flag) bounds && pass) (rev (zip mono monos)) true in
 
   (* mk_domains *)
   let rec mk_domains mono dom0 acc =
@@ -185,13 +198,13 @@ let m_verify_raw (report_start, total_size) p_split p_min p_max fs certificate d
 		report (sprintf "Mono: [%s]" (String.concat ";" mono_strs))
 	    else () in
 	  let domains = mk_domains mono domain [] in
-	  let tree1 = rec_verify (last domains) r1 in
+	  let tree1, inds = rec_verify (last domains) r1 in
 	    (try
-	       let pp = find_p (mono_test mono domain domains) ps in
-		 P_result_mono ({pp = pp}, mono, tree1)
+	       let pp = find_p (mono_test mono domain domains inds) ps in
+		 P_result_mono ({pp = pp}, mono, tree1), inds
 	     with Failure _ -> failwith "mono: failed")
 
-      | Result_pass (f0_flag, _, _) -> 
+      | Result_pass (j, f0_flag) -> 
 	  let _ = k := !k + 1; kk := !kk + 1 in
 	  let _ = 
 	    if !info_print_level >= 2 then
@@ -202,8 +215,8 @@ let m_verify_raw (report_start, total_size) p_split p_min p_max fs certificate d
 			let _ = if r <> !last_report then (last_report := r; report0 (sprintf "%d " r)) else () in true) in
 
 	    (try
-	       let pp = find_p (pass_test domain f0_flag) ps in
-		 P_result_pass ({pp = pp}, f0_flag)
+	       let pp = find_p (pass_test domain (j, f0_flag)) ps in
+		 P_result_pass ({pp = pp}, j, f0_flag), [j]
 	     with Failure _ -> failwith "pass: failed")
 
       | Result_glue (i, convex_flag, r1, r2) ->
@@ -214,26 +227,27 @@ let m_verify_raw (report_start, total_size) p_split p_min p_max fs certificate d
 		d1, d2
 	    else
 	      split_domain p_split (i + 1) domain in
-	  let tree1 = rec_verify domain1 r1 in
-	  let tree2 = rec_verify domain2 r2 in
+	  let tree1, inds1 = rec_verify domain1 r1 in
+	  let tree2, inds2 = rec_verify domain2 r2 in
+	  let inds = merge_indices inds1 inds2 in
 	    (try
-	       let pp = find_p (glue_test domain i convex_flag) ps in
-		 P_result_glue ({pp = pp}, i, convex_flag, tree1, tree2)
+	       let pp = find_p (glue_test domain i convex_flag inds) ps in
+		 P_result_glue ({pp = pp}, i, convex_flag, tree1, tree2), inds
 	     with Failure _ -> failwith "glue: failed")
 
       | Result_pass_ref i ->
 	  let _ = if !info_print_level >= 2 then report (sprintf "Ref: %d" i) else () in
-	  let pass_flag =
+	  let pass_flag, inds =
 	    if i > 0 then
-	      let _ = List.nth ref_list (i - 1) in
-		true
+	      let _, inds = List.nth ref_list (i - 1) in
+		true, inds
 	    else
-	      let pass_domain = List.nth ref_list (-i - 1) in
-		m_cell_pass_subdomain domain pass_domain in
+	      let pass_domain, inds = List.nth ref_list (-i - 1) in
+		m_cell_pass_subdomain domain pass_domain, inds in
 	    if not pass_flag then
 	      failwith "ref: failed"
 	    else
-	      P_result_ref i
+	      P_result_ref i, inds
 
       | _ -> failwith "False result" in
     
@@ -244,12 +258,12 @@ let m_verify_raw (report_start, total_size) p_split p_min p_max fs certificate d
 (*****************)
 
 (* m_verify_raw0 *)
-let m_verify_raw0 p_split p_min p_max fs certificate xx zz =
-  m_verify_raw (0, 0) p_split p_min p_max fs certificate (mk_m_center_domain p_split xx zz) [];;
+let m_verify_raw0 p_split p_min p_max fs_list certificate xx zz =
+  m_verify_raw (0, 0) p_split p_min p_max fs_list certificate (mk_m_center_domain p_split xx zz) [];;
 
 	    
 (* m_verify_list *)
-let m_verify_list p_split p_min p_max fs certificate_list xx zz =
+let m_verify_list p_split p_min p_max fs_list certificate_list xx zz =
   let domain_hash = Hashtbl.create (length certificate_list * 10) in
   let mem, find, add = Hashtbl.mem domain_hash, 
     Hashtbl.find domain_hash, Hashtbl.add domain_hash in
@@ -292,11 +306,12 @@ let m_verify_list p_split p_min p_max fs certificate_list xx zz =
 	  let _ = k := !k + 1 in
 	  let _ = !info_print_level < 2 or (report (sprintf "List: %d/%d" !k size); true) in
 	  let domain = get_m_cell_domain p_split domain0 path in
-	  let tree = m_verify_raw (!kk, total_size) p_split p_min p_max fs certificate domain dom_list in
+	  let tree, inds = m_verify_raw (!kk, total_size) p_split p_min p_max fs_list certificate domain dom_list in
 	  let _ = kk := !kk + result_size certificate in
-	    rec_verify cs (dom_list @ [domain]) ((path, tree) :: tree_list) in
+	    rec_verify cs (dom_list @ [domain, inds]) ((path, tree) :: tree_list) in
     rec_verify certificate_list [] [];;
 
 end;;
+
 
 

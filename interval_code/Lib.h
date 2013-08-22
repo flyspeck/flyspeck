@@ -51,7 +51,7 @@ class Lib
 	// x1,..,x6 are coordinate projections.
 	// y1,...y6 are sqrts of x1,..x6.
 	// dih_x dihedral angle along the first edge.
-	// sol_x is the solid angle.
+	// sol_euler_x is the solid angle.
         // rad2_x is the circumradius square of a simplex.
         // all of these are expressed in terms of the variables xi.
 	//
@@ -59,7 +59,7 @@ class Lib
     x1,x2,x3,x4,x5,x6,y1;
 
   static const Function unit,two6,edge_flat2_x,halfbump_x1,eta2_126,ups_126,
-    delta_x,delta_x4,dih_x,sol_x,rad2_x,
+    delta_x,delta_x4,dih_x,sol_euler_x,rad2_x,
     num1;
 
    static void selfTest();

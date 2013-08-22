@@ -1,9 +1,9 @@
 (* ========================================================================== *)
 (* FLYSPECK - BOOK FORMALIZATION                                              *)
 (*                                                                            *)
-(* Chapter: hypermap                                                             *)
+(* Chapter: Hypermap, Tame Hypermap                                           *)
 (* Author:  Thomas Hales     *)
-(* Date: 2011-04-29                                                    *)
+(* Date: 2011-04-29 -- 2013-08                                                *)
 (* ========================================================================== *)
 
 (* Port The Bauer-Nipkow completeness theorem from Isabelle,
@@ -23,25 +23,142 @@
 
 *)
 
+flyspeck_needs "../formal_lp/hypermap/ssreflect/list_hypermap_iso-compiled.hl";;
+flyspeck_needs "../formal_lp/hypermap/computations/list_conversions2.hl";;
+
 needs "Library/rstc.ml";; (* for RTC reflexive transitive closure *)
 
 (* flyspeck_needs "../../tame_archive/tame_archive.hl";; *)
 
 module Tame_classification = struct
+end;;
 
   open Hales_tactic;;
+  parse_as_infix ("::", (12, "right"));;
+  override_interface ("::", `CONS`);;
+
 (*
 types: num, (A) list, (A ==> B), (A) Option, A#B, bool.
+(* type (a,b) table is (a#b) list *)
 *)
 
-let translate a = ();;
 
-translate ("#",`CONS`);;
-translate ("@",`APPEND`);;
-translate ("!",`EL`);;
-translate ("length",`LENGTH`);;
-translate ("rev",`REVERSE`);;
-translate ("?",`ITER`);;
+
+  let HOLDIR = "/Applications/Isabelle2013.app/Isabelle/src/HOL";;
+  let TAMEDIR = "~/Desktop/IsabelleTame/Isabelle-Flyspeck-Tame";;
+
+  let get_isa_def file lines = 
+    process_to_string (Printf.sprintf "sed -n %d,%dp %s | sed 's/\"/\\\"/'" (fst lines) (snd lines) file) ;;
+
+  let tamefile  = Filename.concat TAMEDIR;;
+
+  let holfile = Filename.concat HOLDIR;;
+
+  let get_hol_def fil lines = 
+    let file = Filename.concat HOLDIR fil in
+      get_isa_def file lines;;
+
+  let get_tame_def fil lines = 
+    let file = Filename.concat TAMEDIR fil in
+      get_isa_def file lines;;
+
+  let report_def dir files name after = 
+    let searchdir = Filename.concat dir files in
+    let out = process_to_string(
+      Printf.sprintf "grep -A%d -n '\(primrec\|definition\|abbreviation\|defs .overloaded.\)[ \"]*%s' %s" after name searchdir) in
+      report(out);;
+
+  let report_tame_def = report_def TAMEDIR "*";;
+
+  let report_list_def = report_def HOLDIR "List.thy";;
+
+(*
+  type liz_record = {
+    liz_loc : (string*int*int) option;
+    liz_name : string;
+    liz_tm : term;
+    liz_thm : thm;
+  };;
+*)
+
+  let lizl = ref [];;
+
+  let liz_add recd = lizl := (recd:: !lizl);;
+
+(* Example: *)
+report_tame_def "replace" 4;;
+get_tame_def "ListAux.thy" (167,170);;
+
+  let infix_table =
+    [
+    (* List.thy *) ("#","#",'r',65,`CONS`);
+      ("append","@",'r',65);
+      ("nth","!",'l',100);
+      (* Nat.thy *)
+      ("funpow","^^",'r',80); 
+      (* PlaneGraphIso.thy *)
+      ("congs","\<cong>",'x',60); (* no direction 'l' 'r' assigned. Overloaded. *)
+    ];;
+
+  let basic_dictionary = 
+    [
+    ("[]",`[]`);
+    ("Suc",`SUC`);
+    ];;
+
+let translate a = ();;
+translate ("?",`IN`);;
+(*  infixes: =~ (congs) is congruence modulo rotation on lists,  -~ unused on lists.
+                  =~ is pr_isomorphism on graphs, -~ isomorphic of graphs.
+
+     {=~} is Isabelle notation for {(f1,f2). f1 =~ f2}.
+
+    type a Fgraph  a list -> bool
+            a fgraph a list list
+*)
+
+
+liz_add {
+liz_name = "append";
+liz_loc = Some (holfile "List.thy",51,53);
+liz_tm = `APPEND`;
+liz_thm = APPEND;
+};;
+
+
+let nth_EL = prove_by_refinement(
+  `!x xs n k.
+    ((n = 0) ==> (\l n. EL n l) (x::xs) n = x) /\ 
+     ((n = SUC k) ==> (\l n. EL n l) (x::xs) n = (\l n. EL n l) xs k)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[];
+  REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[EL;HD;TL]
+  ]);;
+  (* }}} *)
+
+liz_add {
+liz_name = "nth";
+liz_loc = Some (holfile "List.thy",106,107);
+liz_tm = `(\l n. EL n l)`;
+liz_thm = nth_EL;
+};;
+
+(* use a lemma to justify length. such as length_append in List.thy *)
+liz_add {
+liz_name = "length";
+liz_loc = Some (holfile "List.thy",189,190); (* see note on lines 185--187, size is overloaded for all datatypes. *)
+liz_tm = `LENGTH`;
+liz_thm = LENGTH;
+};;
+
+liz_add {
+liz_name = "rev";
+liz_loc = Some (holfile "List.thy",55,57); 
+liz_tm = `REVERSE`;
+liz_thm = REVERSE;
+};;
+
 
 (* List operations in Isabelle-Main:
    op @, concat, filter, length, map, op !, remove1, rev, 
@@ -51,6 +168,9 @@ translate ("?",`ITER`);;
    the,
    See http://www.cl.cam.ac.uk/research/hvg/Isabelle/dist/Isabelle2013/doc/main.pdf
 *)
+
+
+
 
 (*
 (* HOL Light definition from hypermap. Use ITER instead. *)
@@ -63,9 +183,20 @@ let POWER = new_recursive_definition num_RECURSION
 *)
 
 
+let APPEND_cat = prove_by_refinement(
+  `APPEND = cat`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[FUN_EQ_THM];
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[APPEND; Seq.cat0s]);
+  BY(ASM_REWRITE_TAC[APPEND;Seq.cat_cons])
+  ]);;
+  (* }}} *)
+
+
 (* import of 1.1 HOL *)
 
-translate ("the",`the`);;
 
 let the = new_definition `the s = @(x:A). (s = SOME x)`;;
 
@@ -84,25 +215,40 @@ let the_some = prove_by_refinement(
   ]);;
   (* }}} *)
 
+liz_add {
+liz_name = "the";
+liz_loc = Some (holfile "Option.thy",39,40); 
+liz_tm = `the`;
+liz_thm = the_some;
+};;
+
+Seq.size;; (* sizel = LENGTH *)
 
 (* definition enum :: "nat \<Rightarrow> nat set" where
   [code del]: "enum n = {..<n}" *)
 
 (* let bn_enum  = new_definition `bn_enum (n: num) = { m | m < n } `;; *)
 
-translate ("filter",`filter`);;
 
 (* 1.2 length xs, 1.2.2 filter P xs, 1.2.3 concat,  *)
 
-(*
 let filter_liz = prove_by_refinement(
   `filter (f:A->bool) [] = [] /\
-    filter f (x:: xs) = if (f x) then (x :: (filter f xs)) else filter f xs`,
+    filter f (x:: xs) = if (f x) then (x :: (filter f xs)) else (filter f xs)`,
   (* {{{ proof *)
   [
     BY(REWRITE_TAC[Seq.filter])
   ]);;
   (* }}} *)
+
+liz_add {
+liz_name = "filter";
+liz_loc = Some (holfile "List.thy",59,62); 
+liz_tm = `filter`;
+liz_thm = filter_liz;
+};;
+
+
 
 (*
 let bn_filter = new_recursive_definition list_RECURSION
@@ -130,31 +276,74 @@ let filter_FILTER = prove_by_refinement(
   ]);;
   (* }}} *)
 
-translate ("concat",`concat`);;
+let concat_flatten = prove_by_refinement(
+  `!x xs. flatten ([]:(A list)list) = [] /\
+    flatten ( (x:A list) :: xs) = APPEND x (flatten xs)`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Seq.flatten0;Seq.flatten_cons;APPEND_cat])
+  ]);;
+  (* }}} *)
+
+liz_add {
+liz_name = "concat";
+liz_loc = Some (holfile "List.thy",87,90); 
+liz_tm = `flatten`;
+liz_thm = concat_flatten;
+};;
 
 
+(*
 let concat = new_recursive_definition list_RECURSION
   `concat ([]:(A list)list) = [] /\
     concat ( (x:A list) :: xs) = APPEND x (concat xs)`;;
+*)
 
-(* notation: disjoint_sum { x in xs } f  = concat (MAP (\x. f) xs) *)
+(* notation: disjoint_sum { x in xs } f  = flatten (MAP (\x. f) xs) *)
 
 (* list_update *)
 
 (* 1.2.3 listProd1, listProd *)
 
-translate ("map",`MAP`);;
-translate ("listProd1",`list_prod1`);;
-translate ("listProd",`list_prod`);;
-translate ("bn_minimal",`bn_minimal`);;
+liz_add {
+liz_name = "map";
+liz_loc = Some (holfile "List.thy",47,50); 
+liz_tm = `MAP`;
+liz_thm = MAP;
+};;
+
 
 Seq.map_MAP;; (`map = MAP`);;
+
+(*
+definition listProd1 :: "'a \<Rightarrow> 'b list \<Rightarrow> ('a \<times> 'b) list" where
+ "listProd1 a bs \<equiv> [(a,b). b <- bs]"
+
+definition listProd :: "'a list \<Rightarrow> 'b list \<Rightarrow> ('a \<times> 'b) list" (infix "\<times>" 50) where
+ "as \<times> bs \<equiv> \<Squnion>\<^bsub>a \<in> as\<^esub> listProd1 a bs"
+*)
 
 let list_prod1 = new_definition `list_prod1 (a:A) (b:B list) = 
    MAP(\x. (a,x)) b`;;
 
 let list_prod = new_definition `list_prod (a:A list) (b:B list) =
-   concat (MAP (\x. list_prod1 x b) a)`;;
+   flatten (MAP (\x. list_prod1 x b) a)`;;
+
+liz_add {
+liz_name = "listProd1";
+liz_loc = Some (tamefile "ListAux.thy",127,129); 
+liz_tm = `list_prod1`;
+liz_thm = list_prod1;
+};;
+
+liz_add {
+liz_name = "listProd";
+liz_loc = Some (tamefile "ListAux.thy",130,132); 
+liz_tm = `list_prod`;
+liz_thm = list_prod;
+};;
+
+
 
 (* 1.2.5 *)
 
@@ -163,9 +352,18 @@ let bn_minimal = new_recursive_definition list_RECURSION
     (bn_minimal (f:A->num) ( (x:A) :: xs) = if (xs= []) then (x:A) else
         (let m = bn_minimal f xs in (if(f x <= f m) then x else m)))`;;
 
+liz_add {
+liz_name = "minimal";
+liz_loc = None; (* can't find it! *)
+liz_tm = `bn_minimal`;
+liz_thm = bn_minimal;
+};;
+
+
 (* benign redefinition from Misc_defs_and_lemmas module *)
 
-translate ("min_list",`min_list`);;
+
+
 
 let min_num = new_definition `min_num X = (@m. (m:num) IN X /\ (!n. n IN X ==> m <= n))`;;
 
@@ -269,45 +467,77 @@ let min_list_liz = prove_by_refinement(
   ]);;
   (* }}} *)
 
-(*
-let max_num = new_definition `max_num (x:num->bool) = (@m. x m /\ (!n. x n ==> n <= m))`;;
-
-let bn_max_list = new_definition `bn_max_list (xs:num list) = max_num (set_of_list xs)`;;
-*)
+liz_add {
+liz_name = "min_list";
+liz_loc = Some (tamefile "ListAux.thy",149,151); 
+liz_tm = `min_list`;
+liz_thm = min_list_liz;
+};;
 
 (* 1.2.6 replace *)
 
-translate ("replace",`replace`);;
+translate ("ListAux.thy:167","replace",`replace`);;
+"primrec replace :: \"'a \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow>  'a list\" where
+  \"replace x ys [] = []\"
+| \"replace x ys (z#zs) = 
+     (if z = x then ys @ zs else z # (replace x ys zs))";;
 
 let replace = new_recursive_definition list_RECURSION 
    `(replace x ys [] = []) /\
      replace x ys ( (z:A) :: zs) = 
             if (z = x) then APPEND ys zs else z:: (replace x ys zs)`;;
 
+liz_add {
+liz_name = "min_list";
+liz_loc = Some (tamefile "ListAux.thy",167,171); 
+liz_tm = `replace`;
+liz_thm = replace;
+};;
+
+
+(* clean this up later.  Isabelle has special notation for (list_update f n [] xs) *)
+
 (*
-let sub_list = new_recursive_definition list_RECURSION
-   `sub_list r n xs [] = REVERSE xs /\
-     sub_list r n xs ( (y:A) :: ys) = if (n=0) then (APPEND (REVERSE xs) ( r :: ys)) 
-         else (sub_list r (n-1) ( y :: xs) ys)`;;
+let map_at1 = new_recursive_definition list_RECURSION
+   `map_at1 (f:A->A) n xs [] = REVERSE xs /\
+     map_at1 (f:A->A) n xs ((y:A) :: ys) = if (n=0) then (APPEND (REVERSE xs) ( (f y) :: ys)) 
+         else (map_at1 f (n-1) (y :: xs) ys)`;;
 *)
 
-translate ("mapAt",`bn_mapAt`);;
+let list_update = new_recursive_definition list_RECURSION
+  `list_update [] i v = [] /\
+   list_update (x :: xs) i v = 
+      if (i=0) then (v :: xs) else (x :: list_update xs (i-1) v)`;;
 
-(* clean this up later.  Isabelle has special notation for (mapAt1 f n [] xs) *)
+liz_add {
+liz_name = "list_update";
+liz_loc = Some (holfile "List.thy",111,115); 
+liz_tm = `list_update`;
+liz_thm = list_update;
+};;
 
-let mapAt1 = new_recursive_definition list_RECURSION
-   `mapAt1 (f:A->A) n xs [] = REVERSE xs /\
-     mapAt1 (f:A->A) n xs ((y:A) :: ys) = if (n=0) then (APPEND (REVERSE xs) ( (f y) :: ys)) 
-         else (mapAt1 f (n-1) (y :: xs) ys)`;;
+(*
+let map_at = new_recursive_definition list_RECURSION 
+  `(map_at [] (f:A->A) (xs:A list) = xs) /\
+    (map_at ((n:num) :: ns) (f:A->A) (xs:A list) = if (n < LENGTH xs) 
+       then map_at ns f (map_at1 f n [] xs) else map_at ns f xs)`;;
+*)
 
-let bn_mapAt = new_recursive_definition list_RECURSION 
-  `(bn_mapAt [] (f:A->A) (xs:A list) = xs) /\
-    (bn_mapAt ((n:num) :: ns) (f:A->A) (xs:A list) = if (n < LENGTH xs) 
-       then bn_mapAt ns f (mapAt1 f n [] xs) else bn_mapAt ns f xs)`;;
+let mapAt = new_recursive_definition list_RECURSION 
+  `(mapAt [] (f:A->A) (xs:A list) = xs) /\
+    (mapAt ((n:num) :: ns) (f:A->A) (xs:A list) = if (n < LENGTH xs) 
+       then mapAt ns f (list_update xs n (f (EL n xs))) else mapAt ns f xs)`;;
+
+liz_add {
+liz_name = "mapAt";
+liz_loc = Some (tamefile "ListAux.thy",172,177); 
+liz_tm = `mapAt`;
+liz_thm = mapAt;
+};;
 
 (* 1.2.9 rotate *)
 
-translate ("rotate1",`rotate1`);;
+translate ("rotate1",`rotate1`);;  
 translate ("rotate",`rotate`);;
 
 (* `rot` is different because rot changes only up to the length of the list *)
@@ -318,68 +548,272 @@ let rotate1 = new_recursive_definition list_RECURSION
 
 let rotate = new_definition `rotate (n:num) (xs:A list) = (ITER n rotate1) xs`;;
 
+let ITER_o = prove_by_refinement(
+  `(!f n. ITER (SUC n) f = f o ITER n f /\ ITER 0 f = I)`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[FUN_EQ_THM;ITER;I_THM;o_THM])
+  ]);;
+  (* }}} *)
+
+
+liz_add {
+liz_name = "funpow";
+liz_loc = Some (holfile "Nat.thy",1246,1249); 
+liz_tm = `ITER`;
+liz_thm = ITER_o;
+};;
+
+liz_add {
+liz_name = "rotate1";
+liz_loc = Some (holfile "List.thy",192,195); 
+liz_tm = `rotate1`;
+liz_thm = rotate1;
+};;
+
+liz_add {
+liz_name = "rotate";
+liz_loc = Some (holfile "List.thy",196,198); 
+liz_tm = `rotate`;
+liz_thm = rotate;
+};;
+
+let rotate_rotate1 = prove_by_refinement(
+  `rotate 1 = rotate1`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[FUN_EQ_THM];
+  REWRITE_TAC[rotate];
+  BY(REWRITE_TAC[rotate;ITER_1])
+  ]);;
+  (* }}} *)
+
+let rotate1_rot1 = prove_by_refinement(
+  `rotate1 = rot 1`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[FUN_EQ_THM];
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[rotate1;Seq2.rot_nil]);
+  REWRITE_TAC[rotate1;Seq.rot1_cons];
+  BY(REWRITE_TAC[rotate1;Seq.rot1_cons;GSYM Seq.cats1;APPEND_cat])
+  ]);;
+  (* }}} *)
+
+let rotate_rot = prove_by_refinement(
+  `!n x. n <= LENGTH x ==> rotate n x = rot n x`,
+  (* {{{ proof *)
+  [
+  INDUCT_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    BY(REWRITE_TAC[Seq.rot0;rotate;ITER]);
+  REWRITE_TAC[arith `SUC n = n + 1`];
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC Seq.rot_addn;
+  REWRITE_TAC[rotate;GSYM ITER_ADD;ITER_1];
+  ASM_REWRITE_TAC[GSYM rotate;Seq.size;rotate1_rot1];
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  POP_ASSUM MP_TAC;
+  REWRITE_TAC[GSYM Seq.size;Seq.size_rot];
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let rotate_nil = prove_by_refinement(
+  `!n. rotate n [] = []`,
+  (* {{{ proof *)
+  [
+  INDUCT_TAC;
+    BY(REWRITE_TAC[rotate;ITER]);
+  BY(ASM_REWRITE_TAC[arith `SUC n = n + 1`;rotate_add;rotate_rotate1;rotate1])
+  ]);;
+  (* }}} *)
+
+let rotate_add = prove_by_refinement(
+  `!n m x. rotate (n+m) x = rotate n (rotate m x)`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[rotate;ITER_ADD])
+  ]);;
+  (* }}} *)
+
+let rotate_periodic = prove_by_refinement(
+  `!n x. rotate (n + LENGTH x) x = rotate n x`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[rotate_add];
+  REPEAT WEAKER_STRIP_TAC;
+  AP_TERM_TAC;
+  GMATCH_SIMP_TAC rotate_rot;
+  REWRITE_TAC[arith `x <= (x:num)`];
+  BY(REWRITE_TAC[GSYM Seq.size;Seq.rot_size])
+  ]);;
+  (* }}} *)
+
+let rotate_mod = prove_by_refinement(
+  `!(x:(A)list) n. rotate n x = rotate (n MOD LENGTH x) x`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[rotate_nil]);
+  INTRO_TAC Oxl_2012.periodic_mod1 [`\n. rotate n (h::t)`];
+  REWRITE_TAC[];
+  DISCH_THEN MATCH_MP_TAC;
+  CONJ2_TAC;
+    REWRITE_TAC[LENGTH];
+    BY(ARITH_TAC);
+  REWRITE_TAC[ Oxl_def.periodic];
+  BY(REWRITE_TAC[rotate_periodic])
+  ]);;
+  (* }}} *)
+
 (* 1.3 splitAt *)
 
-translate ("splitAtRec",`splitAtRec`);;
-translate ("splitAt",`splitAt`);;
 
-let splitAtRec = new_recursive_definition list_RECURSION 
- `splitAtRec (c:A) bs [] = (bs,[]) /\
-   splitAtRec c bs ((a:A) :: xs) = if (a = c) then (bs,xs) else splitAtRec c (APPEND bs [a]) xs`;;
+let split_at_rec = new_recursive_definition list_RECURSION 
+ `split_at_rec (c:A) bs [] = (bs,[]) /\
+   split_at_rec c bs ((a:A) :: xs) = if (a = c) then (bs,xs) else split_at_rec c (APPEND bs [a]) xs`;;
 
-let splitAt = new_definition `splitAt (c:A) xs = splitAtRec c [] xs`;;
+let split_at = new_definition `split_at (c:A) xs = split_at_rec c [] xs`;;
+
+liz_add {
+liz_name = "splitAtRec";
+liz_loc = Some (tamefile "ListAux.thy",547,551); 
+liz_tm = `split_at_rec`;
+liz_thm = split_at_rec;
+};;
+
+liz_add {
+liz_name = "splitAt";
+liz_loc = Some (tamefile "ListAux.thy",552,554); 
+liz_tm = `split_at`;
+liz_thm = split_at;
+};;
+
 
 (* 1.4 between *)
 
-translate ("set",`set_of_list`);;
-translate ("?",`IN`);;
-translate ("between",`between'`);;  (* between is already used in HOL-Light *)
+let INSERT_liz = prove_by_refinement(
+  `(INSERT) a B = {x | x = a \/ x IN B}`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[INSERT;EXTENSION;IN_ELIM_THM];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
 
-let between' = new_definition `between' (vs:A list) (ram1:A) (ram2:A) = 
-    (let (pre1,post1) = splitAt ram1 vs in
+liz_add {
+liz_name = "insert";
+liz_loc = Some (holfile "List.thy",137,139); 
+liz_tm = `(INSERT)`;
+liz_thm = INSERT_liz;
+};;
+
+liz_add {
+liz_name = "set";
+liz_loc = Some (holfile "List.thy",40,43); 
+liz_tm = `set_of_list`;
+liz_thm = set_of_list;
+};;
+
+let betwn = new_definition `betwn (vs:A list) (ram1:A) (ram2:A) = 
+    (let (pre1,post1) = split_at ram1 vs in
        if (ram2 IN set_of_list post1) then
-	 (let (pre2,post2) = splitAt ram2 post1 in pre2)
-       else (let (pre2,post2) = splitAt ram2 pre1 in APPEND post1 pre2))`;;
+	 (let (pre2,post2) = split_at ram2 post1 in pre2)
+       else (let (pre2,post2) = split_at ram2 pre1 in APPEND post1 pre2))`;;
+
+liz_add {
+liz_name = "between";
+liz_loc = Some (tamefile "ListAux.thy",985,991); 
+liz_tm = `betwn`;
+liz_thm = betwn;
+};;
 
 (* 1.5 Tables *)
 
-(* type (a,b) table is (a#b) list *)
 
-let bn_isTable = new_definition `bn_isTable (f:A->B) vs t =
+
+(*
+let is_table = new_definition `is_table (f:A->B) vs t =
     !p. (set_of_list t p ==> ((SND p = f (FST p)) /\ set_of_list vs (FST p)))`;;
-
-let bn_removeKey = new_definition `bn_removeKey a (ps:(A#B) list) = 
-    FILTER (\p. ~(a = FST p)) ps`;;
-
-let bn_removeKeyList = new_recursive_definition list_RECURSION
-  `bn_removeKeyList [] ps = ps /\
-    bn_removeKeyList (w :: ws) (ps:(A#B) list) = bn_removeKey w (bn_removeKeyList ws ps)`;;
-
-(*  infixes: =~ (congs) is congruence modulo rotation on lists,  -~ unused on lists.
-                  =~ is pr_isomorphism on graphs, -~ isomorphic of graphs.
-
-     {=~} is Isabelle notation for {(f1,f2). f1 =~ f2}.
-
-    type a Fgraph  a list -> bool
-            a fgraph a list list
 *)
 
-let bn_congs = new_definition `bn_congs (f1:A list) f2 = ?n. f2 = rotate n f1`;;
+(*
+let remove_key = new_definition `remove_key a (ps:(A#B) list) = 
+    FILTER (\p. ~(a = FST p)) ps`;;
+
+let remove_key_list = new_recursive_definition list_RECURSION
+  `remove_key_list [] ps = ps /\
+    remove_key_list (w :: ws) (ps:(A#B) list) = remove_key w (remove_key_list ws ps)`;;
+*)
+
+
+let congs = new_definition `congs (f1:A list) f2 <=> ?n. f2 = rotate n f1`;;
+
+liz_add {
+liz_name = "congs";
+liz_loc = Some (tamefile "PlaneGraphIso.thy",50,52); 
+liz_tm = `congs`;
+liz_thm = congs;
+};;
+
+
+let congs_rot = prove_by_refinement(
+  `!f1 f2. congs f1 f2 <=> (?n. n <= LENGTH f1 /\ f2 = rot n f1)`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC;
+    REWRITE_TAC[congs;rotate_nil;Seq2.rot_nil;LENGTH];
+    BY(MESON_TAC[arith `0 <= 0`]);
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  REWRITE_TAC[congs];
+  CONJ2_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `n` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC rotate_rot;
+    BY(ASM_TAC THEN ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `n MOD (LENGTH (h::t))` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC (GSYM rotate_rot);
+  REWRITE_TAC[GSYM rotate_mod];
+  INTRO_TAC DIVISION [`n`;`LENGTH(h::t)`];
+  ANTS_TAC;
+    BY(REWRITE_TAC[LENGTH] THEN ARITH_TAC);
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
 
 (* 2.2 homomorphism and isomorphism *)
 
-let bn_is_Hom = new_definition`bn_is_Hom (phi:A->B) Fs1 Fs2 = 
-  IMAGE bn_congs (IMAGE (MAP phi) Fs1)
-  = IMAGE bn_congs (Fs2)`;;
+let inj_on = new_definition 
+  `inj_on (f:A->B) s = ( !x y. (s x /\ s y /\ (f x = f y)) ==> (x = y))`;;
 
-let bn_inj_on = new_definition 
-  `bn_inj_on (f:A->B) s = ( !x y. (s x /\ s y /\ (f x = f y)) ==> (x = y))`;;
+let INJ_inj_on = prove_by_refinement(
+  `!f s. inj_on f s <=> INJ f s (:UNIV)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[inj_on;INJ;IN_UNIV];
+  BY(REWRITE_TAC[IN])
+  ]);;
+  (* }}} *)
 
-let bn_is_pr_Iso = new_definition `bn_is_pr_Iso (phi:A->B) Fs1 Fs2 = 
-   (bn_is_Hom phi Fs1 Fs2 /\ bn_inj_on phi (UNIONS (IMAGE set_of_list Fs1)))`;;
+liz_add {
+liz_name = "inj_on";
+liz_loc = Some (holfile "Fun.thy",116,118); 
+liz_tm = `inj_on`;
+liz_thm = inj_on;
+};;
 
-let bn_is_hom = new_definition
-   `bn_is_hom (phi:A->B) fs1 fs2 = bn_is_Hom phi (set_of_list fs1) (set_of_list fs2)`;;
+
+
+(* not used
+let is_homl = new_definition
+   `is_homl (phi:A->B) fs1 fs2 = is_hom phi (set_of_list fs1) (set_of_list fs2)`;;
+*)
 
 let bn_is_pr_iso = new_definition
  `bn_is_pr_iso (phi:A->B) fs1 fs2  = bn_is_pr_Iso phi (set_of_list fs1) (set_of_list fs2)`;;
@@ -402,21 +836,49 @@ I don't think I'll need these:
    bn_pr_iso_test,
 *)
 
+(* 2.2. *)
 (* 2.3.2, improper isomorphisms *)
 
-let bn_is_Iso = new_definition `bn_is_Iso (phi:A->B) Fs1 Fs2 = 
-   (bn_is_pr_Iso phi Fs1 Fs2 \/ bn_is_pr_Iso phi Fs1 (IMAGE REVERSE Fs2))`;;
+XX come back here.
+let is_hom = new_definition`is_hom (phi:A->B) Fs1 Fs2 = 
+  IMAGE congs (IMAGE (MAP phi) Fs1)
+  = IMAGE congs (Fs2)`;;
 
-let bn_is_iso = new_definition `bn_is_iso (phi:A->B) fs1 fs2 = 
-   bn_is_Iso phi (set_of_list fs1) (set_of_list fs2)`;;
+let is_pr_Iso = new_definition `is_pr_Iso (phi:A->B) Fs1 Fs2 = 
+   (is_hom phi Fs1 Fs2 /\ inj_on phi (UNIONS (IMAGE set_of_list Fs1)))`;;
 
-let bn_cong_iso = new_definition 
-  `bn_cong_iso fs1 fs2 = ?(phi:A->B). bn_is_iso phi fs1 fs2`;;
+let is_Iso = new_definition `is_Iso (phi:A->B) Fs1 Fs2 = 
+   (is_pr_Iso phi Fs1 Fs2 \/ is_pr_Iso phi Fs1 (IMAGE REVERSE Fs2))`;;
 
-let bn_cong_pr_iso = new_definition 
-  `bn_cong_pr_iso fs1 fs2 = ?(phi:A->B). bn_is_pr_iso phi fs1 fs2`;;
+let is_iso = new_definition `is_iso (phi:A->B) fs1 fs2 = 
+   is_Iso phi (set_of_list fs1) (set_of_list fs2)`;;
 
-(* -~ abbrev for bn_cong_iso, =~ bn_cong_pr_iso *)
+let cong_iso = new_definition 
+  `cong_iso fs1 fs2 = ?(phi:A->B). is_iso phi fs1 fs2`;;
+
+let cong_pr_iso = new_definition 
+  `cong_pr_iso fs1 fs2 = ?(phi:A->B). is_pr_iso phi fs1 fs2`;;
+
+
+
+report_tame_def "iso_in" 4;;
+report_def HOLDIR "*" "inj_on" 5;;
+translate ("is_Hom",`is_hom`);;
+translate ("is-pr-Iso",`is_pr_Iso`);;
+translate ("is-pr-Iso",`is_pr_Iso`);;
+translate ("is-Iso",`is_Iso`);;
+translate ("is-iso",`is_iso`);;
+translate ("cong_iso",`cong_iso`);;
+translate ("cong_pr_iso",`cong_pr_iso`);;
+
+(* translate ("is_hom",`is_homl`);; *)
+(* translate ("isTable",`is_table`);; *)
+(* translate ("removeKey",`remove_key`);;
+translate ("removeKeyList",`remove_key_list`);; *)
+
+
+
+(* -~ abbrev for cong_iso, =~ cong_pr_iso *)
 
 (* bn_iso_test,
 *)
@@ -426,26 +888,43 @@ let bn_cong_pr_iso = new_definition
 (* XX drop primes *)
 
 let bn_pr_iso_in = new_definition
-  `bn_pr_iso_in (x:(A list) list) M = ?(y:(B list) list). (bn_cong_pr_iso x y /\ M y)`;;
+  `bn_pr_iso_in (x:(A list) list) M = ?(y:(B list) list). (cong_pr_iso x y /\ M y)`;;
 
 let bn_pr_iso_subseteq = new_definition
   `bn_pr_iso_subseteq (M:(A list) list -> bool) (N:(B list) list -> bool) 
      = !x. M x ==> bn_pr_iso_in x N`;;
 
-let bn_iso_in = new_definition
-  `bn_iso_in (x:(A list) list) M = ?(y:(B list) list). (bn_cong_iso x y /\ M y)`;;
+let iso_in = new_definition
+  `iso_in (x:(A list) list) M = ?(y:(B list) list). (cong_iso x y /\ M y)`;;
 
+(*
 let bn_iso_subseteq = new_definition
   `bn_iso_subseteq (M:(A list) list -> bool) (N:(B list) list -> bool) 
-     = !x. M x ==> bn_iso_in x N`;;
+     = !x. M x ==> iso_in x N`;;
+*)
 
 (* 3.0 More rotation *)
 
 let rotate_to = new_definition `rotate_to (vs:A list) v = 
-    v :: (APPEND (SND (splitAt v vs))  (FST (splitAt v vs)))`;;
+    v :: (APPEND (SND (split_at v vs))  (FST (split_at v vs)))`;;
 
 let rotate_min = new_definition `rotate_min (vs:num list) = 
   rotate_to vs (min_list vs)`;;  
+
+liz_add {
+liz_name = "rotate_to";
+liz_loc = Some (holfile "Rotation.thy",10,12); 
+liz_tm = `rotate_to`;
+liz_thm = rotate_to;
+};;
+
+liz_add {
+liz_name = "rotate_min";
+liz_loc = Some (holfile "Rotation.thy",13,15); 
+liz_tm = `rotate_min`;
+liz_thm = rotate_min;
+};;
+
 
 (* 4.0 Graph
 
@@ -473,17 +952,33 @@ abbrev vertices_set
     type_face = type:face->facetype
     vertices_face = vertices:face -> vertex list
 
+let final_face = new_definition `final_face (vs:A,f:bool) = f`;;
 
 *)
 
-let bn_final_face = new_definition `bn_final_face (vs:A,f:bool) = f`;;
+liz_add {
+liz_name = "finalFace";
+liz_loc = Some (holfile "Rotation.thy",13,15); 
+liz_tm = `SND`;
+liz_thm = SND;
+};;
 
-(* bn_type_face  = bn_final_face *)
+SND;;
+
+
+
+(* bn_type_face  = final_face *)
 
 let bn_vertices_face = new_definition `bn_vertices_face (vs:A,f:B) = vs`;;
 
 let bn_vertices_set = new_definition `bn_vertices_set (fs:A list#B) = 
   set_of_list (bn_vertices_face fs)`;;
+
+report_tame_def "final_face" 4;;
+report_def HOLDIR "*" "inj_on" 5;;
+
+
+
 
 (* =~ on faces means =~ on vertex list *)
 
@@ -576,10 +1071,10 @@ let bn_graph = new_definition  `bn_graph n =
 (* 4.4 Operations on graphs *)
 
 let bn_finals = new_definition `bn_finals g =
-   FILTER bn_final_face (bn_faces g)`;;
+   FILTER SND (bn_faces g)`;;
 
 let bn_nonFinals = new_definition `bn_nonFinals g = 
-   FILTER (\r. ~( bn_final_face r)) (bn_faces g)`;;
+   FILTER (\r. ~( SND r)) (bn_faces g)`;;
 
 let bn_countNonFinals = new_definition `bn_countNonFinals g =
    LENGTH (bn_nonFinals g)`;;
@@ -587,18 +1082,18 @@ let bn_countNonFinals = new_definition `bn_countNonFinals g =
 let bn_finalGraph = new_definition `bn_finalGraph g = (bn_countNonFinals g = 0)`;;
 
 let bn_finalVertex = new_definition `bn_finalVertex g v = 
-   (!f.  set_of_list(bn_facesAt g v) f ==> bn_final_face f)`;;
+   (!f.  set_of_list(bn_facesAt g v) f ==> SND f)`;;
 
 let bn_degree = new_definition `bn_degree g v = LENGTH(bn_facesAt g v)`;;
 
 let bn_tri = new_definition  `bn_tri g v =
-    LENGTH(FILTER (\f. bn_final_face f /\ LENGTH(bn_vertices_face f)=3) (bn_facesAt g v))`;;
+    LENGTH(FILTER (\f. SND f /\ LENGTH(bn_vertices_face f)=3) (bn_facesAt g v))`;;
 
 let bn_quad = new_definition  `bn_quad g v =
-    LENGTH(FILTER (\f. bn_final_face f /\ LENGTH(bn_vertices_face f)=4) (bn_facesAt g v))`;;
+    LENGTH(FILTER (\f. SND f /\ LENGTH(bn_vertices_face f)=4) (bn_facesAt g v))`;;
 
 let bn_except = new_definition  `bn_except g v =
-    LENGTH(FILTER (\f. bn_final_face f /\ 5 <= LENGTH(bn_vertices_face f)) (bn_facesAt g v))`;;
+    LENGTH(FILTER (\f. SND f /\ 5 <= LENGTH(bn_vertices_face f)) (bn_facesAt g v))`;;
 
 let bn_vertextype = new_definition `bn_vertextype g v = 
     (bn_tri g v, bn_quad g v, bn_except g v)`;;
@@ -620,7 +1115,7 @@ let bn_neighbors = new_definition
 (* nextFace *)
 
 let bn_directedLength = new_definition `bn_directedLength f (a:A) b =
-  if (a=b) then 0 else LENGTH(between'(bn_vertices_face f) a b) + 1`;;
+  if (a=b) then 0 else LENGTH(betwn(bn_vertices_face f) a b) + 1`;;
 
 (* 4.6 Code generator setup *)
 
@@ -661,7 +1156,7 @@ let bn_enumBase = new_definition
 
 let bn_enumAppend = new_definition
    `bn_enumAppend nmax iss = 
-   concat (MAP (\is.   MAP (\n. APPEND is [n]) (UPT (LAST is) (SUC nmax))) iss)`;;
+   flatten (MAP (\is.   MAP (\n. APPEND is [n]) (UPT (LAST is) (SUC nmax))) iss)`;;
 
 let bn_enumerator = new_definition
    `bn_enumerator inner outer = 
@@ -697,12 +1192,12 @@ let bn_indexToVertexList = new_definition `bn_indexToVertexList f v is =
 let bn_split_face = new_definition 
    `bn_split_face f (ram1:A) ram2 newVs = 
       (let vs = bn_vertices_face f in
-       let f1 = APPEND [ram1] (APPEND (between' vs ram1 ram2) [ram2]) in
-       let f2 = APPEND [ram2] (APPEND (between' vs ram2 ram1) [ram1]) in
+       let f1 = APPEND [ram1] (APPEND (betwn vs ram1 ram2) [ram2]) in
+       let f2 = APPEND [ram2] (APPEND (betwn vs ram2 ram1) [ram1]) in
 	 ((APPEND (REVERSE newVs) f1,F), ((APPEND f2 newVs), F)))`;;
 
 let bn_replacefacesAt = new_definition
-  `bn_replacefacesAt ns f fs Fs = bn_mapAt ns (replace f fs) Fs`;;
+  `bn_replacefacesAt ns f fs Fs = mapAt ns (replace f fs) Fs`;;
 
 let bn_makeFaceFinalFaceList = new_definition
   `bn_makeFaceFinalFaceList f fs = replace f [bn_setFinal f] fs`;;
@@ -727,8 +1222,8 @@ let bn_splitFace = new_definition
       let Fs = bn_faceListAt g in
       let h = bn_heights g in
       let lVs = LENGTH(newVs) in
-      let vs1 = between' (bn_vertices_face oldF) ram1 ram2 in
-      let vs2  = between' (bn_vertices_face oldF) ram2 ram1 in
+      let vs1 = betwn (bn_vertices_face oldF) ram1 ram2 in
+      let vs2  = betwn (bn_vertices_face oldF) ram2 ram1 in
       let (f1,f2) = bn_split_face oldF ram1 ram2 newVs in
       let Fs = bn_replacefacesAt vs1 oldF [f1] Fs in
       let Fs = bn_replacefacesAt vs2 oldF [f2] Fs in
@@ -824,7 +1319,7 @@ let bn_generatePolygon = new_definition
 
 (* concatenated union *)
 
-let c_union = new_definition `c_union xs r = concat (MAP r xs)`;;
+let c_union = new_definition `c_union xs r = flatten (MAP r xs)`;;
 
 let bn_Seed = new_definition
   `bn_Seed p = bn_graph (bn_maxGon p)`;;
@@ -1000,12 +1495,12 @@ let bn_fgraph = new_definition `bn_fgraph g = MAP bn_vertices_face (bn_faces g)`
 (*  (* bn_tame_archive is defined in ../../tame_archive/tame_archive.hl *)
 let tame_graph_classification_theorem = (* new_definition *)
   `tame_graph_classification_theorem = 
-  (!g. bn_PlaneGraphs g /\ bn_tame g ==> bn_iso_in (bn_fgraph g)   bn_tame_archive)`;;
+  (!g. bn_PlaneGraphs g /\ bn_tame g ==> iso_in (bn_fgraph g)   bn_tame_archive)`;;
 
 *)
 
 
-*)
+
 
 
 end;;

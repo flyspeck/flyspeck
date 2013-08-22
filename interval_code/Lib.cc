@@ -325,7 +325,7 @@ static int setAbsDihedral(const domain& x,const domain& z,double DD[6][6])
 const Function Lib::dih_x = Function::mk_raw(linearization::dih,setAbsDihedral);
 
 
-/*implement sol_x */
+/*implement sol_euler_x */
 static int setSol(const domain& x,const domain& z,double DD[6][6])
 {
   double X[6],Z[6];
@@ -339,7 +339,7 @@ static int setSol(const domain& x,const domain& z,double DD[6][6])
   for (i=0;i<6;i++) for (j=0;j<i;j++) DD[i][j]=DD[j][i];
   return 1;
 }
-const Function Lib::sol_x= Function::mk_raw(linearization::solid,setSol);
+const Function Lib::sol_euler_x= Function::mk_raw(linearization::solid,setSol);
 
 //static const Function operator*(const Function& t,int j) {
 //  return t * interval(j * 1.0, j * 1.0);

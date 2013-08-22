@@ -1,0 +1,166 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(* Chapter: Packing                                                           *)
+(* Author: Thomas Hales                                                       *)
+(* Date: 2013-08-19                                                           *)
+(* ========================================================================== *)
+
+(* A specification of the constants used in the statement of the Kepler conjecture *)
+
+module Kepler_spec = struct
+
+(* types `:bool` `:num` `:real` `:real^3` *)
+
+`(!V. packing V ==> (?c. !r. &1 <= r ==> &(CARD (V INTER (\v. norm v < r))) <=
+		       pi * r pow 3 / sqrt(&18) + c * r pow 2))`;;
+
+let FORALL_PAIR_THM = prove_by_refinement(
+  `!P. (!x. P x) <=> (!(a:A) (b:B). P (a,b)) `,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  ONCE_REWRITE_TAC[TAUT `(a <=> b) <=> (~a <=> ~b)`];
+  BY(REWRITE_TAC[NOT_FORALL_THM;EXISTS_PAIR_THM])
+  ]);;
+  (* }}} *)
+
+let BIJ_REAL3_TRIPLE = prove_by_refinement(
+  `triple_of_real3 o real3_of_triple = (I:real#real#real->real#real#real) /\ 
+    real3_of_triple o triple_of_real3 = (I:real^3 -> real^3)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[FUN_EQ_THM;I_DEF;o_THM];
+  REWRITE_TAC[FORALL_PAIR_THM;Collect_geom2.real3_of_triple;Collect_geom2.mk_vec3];
+  CONJ_TAC;
+    REWRITE_TAC[Collect_geom2.triple_of_real3];
+    BY(REWRITE_TAC[Collect_geom2.triple_of_real3;VECTOR_3]);
+  REWRITE_TAC[Collect_geom2.triple_of_real3;Collect_geom2.real3_of_triple;Collect_geom2.mk_vec3];
+  BY(MESON_TAC[VECTOR_EXPAND_3])
+  ]);;
+  (* }}} *)
+
+(*
+let FORALL_R3 = prove_by_refinement(
+  `!P. (!V. P V) <=> (!W. P (IMAGE real3_of_triple W))`,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  ONCE_REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  REPEAT STRIP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  POP_ASSUM (C INTRO_TAC [`IMAGE triple_of_real3 V` ]);
+  BY(REWRITE_TAC[GSYM IMAGE_o;BIJ_REAL3_TRIPLE;IMAGE_I])
+  ]);;
+  (* }}} *)
+*)
+
+let sqrt_spec = prove_by_refinement(
+  `!x. &0 <= x ==> (&0 <= sqrt x /\ sqrt x pow 2 = x)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC SQRT_POS_LE;
+  GMATCH_SIMP_TAC SQRT_POW_2;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let norm_spec = prove_by_refinement(
+  `!x y z. norm (real3_of_triple(x,y,z)) = sqrt(x pow 2 + y pow 2 + z pow 2)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Collect_geom2.real3_of_triple;Collect_geom2.mk_vec3];
+  REPEAT WEAKER_STRIP_TAC;
+  ONCE_REWRITE_TAC[EQ_SYM_EQ];
+  GMATCH_SIMP_TAC SQRT_UNIQUE;
+  TYPIFY `norm ((vector [x;y;z]):real^3)` EXISTS_TAC;
+  REWRITE_TAC[];
+  REWRITE_TAC[NORM_POS_LE];
+  REWRITE_TAC[GSYM DOT_SQUARE_NORM];
+  BY(VEC3_TAC)
+  ]);;
+  (* }}} *)
+
+let vec_sub_spec = prove_by_refinement(
+  `!x y z x' y' z'. real3_of_triple(x,y,z) - real3_of_triple(x',y',z') = real3_of_triple(x-x',y-y',z-z')`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Collect_geom2.real3_of_triple;Collect_geom2.mk_vec3];
+  BY(VEC3_TAC)
+  ]);;
+  (* }}} *)
+
+let packing_spec = prove_by_refinement(
+  `!V. packing V <=> (!u v. u IN V /\ v IN V /\ norm(u-v) < &2 ==> u = v)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Sphere.packing_lt];
+  BY(MESON_TAC[dist])
+  ]);;
+  (* }}} *)
+
+let abs_spec = prove_by_refinement(
+  `!x. (&0 <= x ==> abs x = x) /\ (x < &0 ==> abs x = -- x)`,
+  (* {{{ proof *)
+  [
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+real_pow;; (* power spec *)
+
+(*
+let sum_spec = prove_by_refinement(
+  `!f n. sum ((>) 0) f = &0 /\ sum ((>) (SUC n)) f = f n + sum ((>) n) f`,
+  (* {{{ proof *)
+  [
+    st/r
+  gtyp `!n. (>) n  = {i | n > (i:num)}` (unlist rt)
+      rt[EXTENSION;IN_ELIM_THM]
+      rt[IN]
+XX finish
+
+  ]);;
+  (* }}} *)
+*)
+
+let pi_spec = prove_by_refinement(
+  `!n.
+    (let x = &1 / (&1 + sqrt(&2)) in
+       abs (pi/ &8  - sum (0..n) (\j. -- &1 pow j * x pow (2 * j + 1) / &(2 * j + 1))) <=
+            abs x pow (2 * n + 3))`,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  LET_TAC;
+  INTRO_TAC Taylor_atn.real_taylor_atn [`n`;`x`];
+  TYPIFY `atn x = pi / &8` ENOUGH_TO_SHOW_TAC;
+    BY(DISCH_THEN SUBST1_TAC THEN REAL_ARITH_TAC);
+  MP_TAC ATN_1;
+  INTRO_TAC Taylor_atn.atn_half [`&1`];
+  TYPIFY `halfatn (&1) = x` ENOUGH_TO_SHOW_TAC;
+    BY(DISCH_THEN SUBST1_TAC THEN REAL_ARITH_TAC);
+  REWRITE_TAC[Taylor_atn.halfatn];
+  EXPAND_TAC "x";
+  AP_TERM_TAC;
+  MATCH_MP_TAC (arith `z = z' ==> z + &1 = &1 + z'`);
+  GMATCH_SIMP_TAC SQRT_UNIQUE;
+  TYPIFY `sqrt(&2)` EXISTS_TAC THEN REWRITE_TAC[];
+  GMATCH_SIMP_TAC SQRT_POS_LE;
+  GMATCH_SIMP_TAC SQRT_POW_2;
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+(* conjunction of pi,sum,pow,abs,packing,norm,sqrt, (also CARD,INTER,&,NUMSEG,let..in,IN) 
+let kepler_defs = prove_by_refinement(
+  ``,
+  (* {{{ proof *)
+  [
+  #
+  ]);;
+  (* }}} *)
+*)
+
+ end;;

@@ -567,17 +567,6 @@ let merge_m_cell_list_pass n pass_th =
   let th1 = merge_append th0 in
     rev_acc th1;;
 
-(*
-compare `\x:real^2. x$1` `\x:real^2. x$1 + x$2`;;
-
-let test_th = ASSUME `m_cell_list_pass (APPEND [\x:real^2. x$1; \x:real^2. x$1 + x$2] [\x:real^2. x$1 + x$2; \x:real^2. x$1 * x$2]) dom`;;
-merge_m_cell_list_pass 2 test_th;;
-
-
-(rand o rator o concl) test_th;;
-test 1000 (merge_m_cell_list_pass 2) test_th;;
-
-*)
 
 (***************************************)
 
@@ -829,6 +818,145 @@ let M_CELL_CONVEX_PASS_LEMMA = prove(`!j x z u v lo f.
      ASM_REAL_ARITH_TAC);;
 
 
+(*********************)
+
+let ITLIST_DISJ_EXISTS = prove(`!P l. ITLIST (\x r. P x \/ r) l F <=> ?x:A. MEM x l /\ P x`,
+			       GEN_TAC THEN LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[ITLIST; MEM] THEN EQ_TAC THENL [
+				 STRIP_TAC THENL [EXISTS_TAC `h:A`; EXISTS_TAC `x:A`] THEN ASM_REWRITE_TAC[];
+				 ALL_TAC;
+			       ] THEN
+				 DISCH_THEN (CHOOSE_THEN STRIP_ASSUME_TAC) THENL [
+				   POP_ASSUM MP_TAC THEN POP_ASSUM (fun th -> SIMP_TAC[SYM th]);
+				   DISJ2_TAC THEN EXISTS_TAC `x:A` THEN ASM_REWRITE_TAC[]
+				 ]);;
+
+let M_CELL_LIST_PASS_ALT = prove(`!fs domain. m_cell_list_pass fs domain <=> 
+				   (!y:real^N. y IN interval [domain] ==> ?f. MEM f fs /\ f y < &0)`,
+				 REWRITE_TAC[m_cell_list_pass; ITLIST_DISJ_EXISTS]);;
+
+let ONE_POINT_INTERVAL = prove(`!x:real^N. interval [x,x] = {x}`,
+			       GEN_TAC THEN REWRITE_TAC[EXTENSION; IN_SING; IN_INTERVAL] THEN X_GEN_TAC `y:real^N` THEN
+				 EQ_TAC THEN SIMP_TAC[REAL_LE_REFL] THEN
+				 DISCH_TAC THEN ONCE_REWRITE_TAC[GSYM LAMBDA_ETA] THEN
+				 REWRITE_TAC[GSYM LAMBDA_UNIQUE] THEN GEN_TAC THEN DISCH_TAC THEN
+				 ASM_SIMP_TAC[LAMBDA_BETA] THEN
+				 FIRST_X_ASSUM (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[] THEN
+				 ARITH_TAC);;
+
+
+let M_CELL_LIST_INCREASING_PASS_LEMMA = prove(`!j x z u domain fs. 
+						interval [x,z] SUBSET interval [domain] ==>
+						(!i. i IN 1..dimindex (:N) ==> ~(i = j) ==> u$i = x$i) ==>
+						u$j = z$j ==>
+						    ALL (\f. diff2c_domain domain f /\ 
+							   (!y. y IN interval [domain] ==> &0 <= partial j f y)) fs ==>
+						    m_cell_list_pass fs (u,z) ==>
+						    m_cell_list_pass fs (x,z:real^N)`,
+   REWRITE_TAC[SUBSET; M_CELL_LIST_PASS_ALT] THEN REPEAT STRIP_TAC THEN 
+     ABBREV_TAC `(xx:real^N) = lambda i. if i = j then (x:real^N)$i else (y:real^N)$i` THEN
+       ABBREV_TAC `(zz:real^N) = lambda i. if i = j then (z:real^N)$i else (y:real^N)$i` THEN
+	 
+	 SUBGOAL_THEN `interval [xx:real^N,zz] SUBSET interval [domain]` ASSUME_TAC THENL [
+	   MATCH_MP_TAC SUBSET_TRANS THEN EXISTS_TAC `interval [x:real^N,z]` THEN ASM_REWRITE_TAC[SUBSET] THEN
+	     REWRITE_TAC[IN_INTERVAL] THEN X_GEN_TAC `t:real^N` THEN DISCH_THEN (LABEL_TAC "in1") THEN
+	     GEN_TAC THEN DISCH_TAC THEN
+	     FIRST_X_ASSUM (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[] THEN
+	     EXPAND_TAC "xx" THEN EXPAND_TAC "zz" THEN ASM_SIMP_TAC[LAMBDA_BETA] THEN
+	     COND_CASES_TAC THEN ASM_REWRITE_TAC[] THEN
+	     UNDISCH_TAC `y IN interval[x:real^N,z]` THEN REWRITE_TAC[IN_INTERVAL] THEN
+	     DISCH_THEN (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[] THEN
+	     ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 
+	 SUBGOAL_THEN `y IN interval [xx:real^N,zz]` ASSUME_TAC THENL [
+	   REWRITE_TAC[IN_INTERVAL] THEN GEN_TAC THEN DISCH_TAC THEN
+	     EXPAND_TAC "xx" THEN EXPAND_TAC "zz" THEN ASM_SIMP_TAC[LAMBDA_BETA] THEN
+	     COND_CASES_TAC THEN ASM_REWRITE_TAC[REAL_LE_REFL] THEN
+	     UNDISCH_TAC `y IN interval[x:real^N,z]` THEN REWRITE_TAC[IN_INTERVAL] THEN
+	     DISCH_THEN (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 
+	 FIRST_X_ASSUM (MP_TAC o SPEC `zz:real^N`) THEN ANTS_TAC THENL [
+	   REWRITE_TAC[IN_INTERVAL] THEN GEN_TAC THEN DISCH_TAC THEN
+	     EXPAND_TAC "zz" THEN ASM_SIMP_TAC[LAMBDA_BETA] THEN
+	     COND_CASES_TAC THEN ASM_REWRITE_TAC[REAL_LE_REFL] THEN
+	     FIRST_X_ASSUM (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[IN_NUMSEG] THEN
+	     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	     UNDISCH_TAC `y IN interval[x:real^N,z]` THEN REWRITE_TAC[IN_INTERVAL] THEN
+	     DISCH_THEN (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+
+	 DISCH_THEN (CHOOSE_THEN ASSUME_TAC) THEN EXISTS_TAC (`f:real^N->real`) THEN ASM_REWRITE_TAC[] THEN
+	 FIRST_X_ASSUM (MP_TAC o (fun th -> if is_binary "ALL" (concl th) then th else failwith "")) THEN
+	 REWRITE_TAC[GSYM ALL_MEM] THEN DISCH_THEN (MP_TAC o SPEC `f:real^N->real`) THEN ASM_REWRITE_TAC[] THEN
+	 STRIP_TAC THEN
+	 MP_TAC (SPECL [`j:num`; `xx:real^N`; `zz:real^N`; `zz:real^N`; `domain:real^N#real^N`; `&0`; `f:real^N->real`] M_CELL_INCREASING_PASS_LEMMA) THEN
+	 ASM_REWRITE_TAC[REAL_LE_REFL; m_cell_pass] THEN ANTS_TAC THENL [
+	   REWRITE_TAC[IN_NUMSEG] THEN GEN_TAC THEN DISCH_TAC THEN
+	     EXPAND_TAC "xx" THEN EXPAND_TAC "zz" THEN ASM_SIMP_TAC[LAMBDA_BETA];
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[ONE_POINT_INTERVAL; IN_SING]);;
+
+
+
+let M_CELL_LIST_DECREASING_PASS_LEMMA = prove(`!j x z u domain fs. 
+						interval [x,z] SUBSET interval [domain] ==>
+						(!i. i IN 1..dimindex (:N) ==> ~(i = j) ==> u$i = z$i) ==>
+						u$j = x$j ==>
+						    ALL (\f. diff2c_domain domain f /\ 
+							   (!y. y IN interval [domain] ==> partial j f y <= &0)) fs ==>
+						    m_cell_list_pass fs (x,u) ==>
+						    m_cell_list_pass fs (x,z:real^N)`,
+   REWRITE_TAC[SUBSET; M_CELL_LIST_PASS_ALT] THEN REPEAT STRIP_TAC THEN 
+     ABBREV_TAC `(xx:real^N) = lambda i. if i = j then (x:real^N)$i else (y:real^N)$i` THEN
+       ABBREV_TAC `(zz:real^N) = lambda i. if i = j then (z:real^N)$i else (y:real^N)$i` THEN
+	 SUBGOAL_THEN `interval [xx:real^N,zz] SUBSET interval [domain]` ASSUME_TAC THENL [
+	   MATCH_MP_TAC SUBSET_TRANS THEN EXISTS_TAC `interval [x:real^N,z]` THEN ASM_REWRITE_TAC[SUBSET] THEN
+	     REWRITE_TAC[IN_INTERVAL] THEN X_GEN_TAC `t:real^N` THEN DISCH_THEN (LABEL_TAC "in1") THEN
+	     GEN_TAC THEN DISCH_TAC THEN
+	     FIRST_X_ASSUM (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[] THEN
+	     EXPAND_TAC "xx" THEN EXPAND_TAC "zz" THEN ASM_SIMP_TAC[LAMBDA_BETA] THEN
+	     COND_CASES_TAC THEN ASM_REWRITE_TAC[] THEN
+	     UNDISCH_TAC `y IN interval[x:real^N,z]` THEN REWRITE_TAC[IN_INTERVAL] THEN
+	     DISCH_THEN (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[] THEN
+	     ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 SUBGOAL_THEN `y IN interval [xx:real^N,zz]` ASSUME_TAC THENL [
+	   REWRITE_TAC[IN_INTERVAL] THEN GEN_TAC THEN DISCH_TAC THEN
+	     EXPAND_TAC "xx" THEN EXPAND_TAC "zz" THEN ASM_SIMP_TAC[LAMBDA_BETA] THEN
+	     COND_CASES_TAC THEN ASM_REWRITE_TAC[REAL_LE_REFL] THEN
+	     UNDISCH_TAC `y IN interval[x:real^N,z]` THEN REWRITE_TAC[IN_INTERVAL] THEN
+	     DISCH_THEN (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 FIRST_X_ASSUM (MP_TAC o SPEC `xx:real^N`) THEN ANTS_TAC THENL [
+	   REWRITE_TAC[IN_INTERVAL] THEN GEN_TAC THEN DISCH_TAC THEN
+	     EXPAND_TAC "xx" THEN ASM_SIMP_TAC[LAMBDA_BETA] THEN
+	     COND_CASES_TAC THEN ASM_REWRITE_TAC[REAL_LE_REFL] THEN
+	     FIRST_X_ASSUM (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[IN_NUMSEG] THEN
+	     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+	     UNDISCH_TAC `y IN interval[x:real^N,z]` THEN REWRITE_TAC[IN_INTERVAL] THEN
+	     DISCH_THEN (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 DISCH_THEN (CHOOSE_THEN ASSUME_TAC) THEN EXISTS_TAC (`f:real^N->real`) THEN ASM_REWRITE_TAC[] THEN
+	 FIRST_X_ASSUM (MP_TAC o (fun th -> if is_binary "ALL" (concl th) then th else failwith "")) THEN
+	 REWRITE_TAC[GSYM ALL_MEM] THEN DISCH_THEN (MP_TAC o SPEC `f:real^N->real`) THEN ASM_REWRITE_TAC[] THEN
+	 STRIP_TAC THEN
+	 MP_TAC (SPECL [`j:num`; `xx:real^N`; `zz:real^N`; `xx:real^N`; `domain:real^N#real^N`; `&0`; `f:real^N->real`] M_CELL_DECREASING_PASS_LEMMA) THEN
+	 ASM_REWRITE_TAC[REAL_LE_REFL; m_cell_pass] THEN ANTS_TAC THENL [
+	   REWRITE_TAC[IN_NUMSEG] THEN GEN_TAC THEN DISCH_TAC THEN
+	     EXPAND_TAC "xx" THEN EXPAND_TAC "zz" THEN ASM_SIMP_TAC[LAMBDA_BETA];
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[ONE_POINT_INTERVAL; IN_SING]);;
+
+	 
 
 (*********************)
 

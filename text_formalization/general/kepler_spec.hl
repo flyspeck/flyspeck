@@ -24,9 +24,11 @@ let FORALL_PAIR_THM = prove_by_refinement(
   ]);;
   (* }}} *)
 
+override_interface ("r3",`real3_of_triple`);;
+
 let BIJ_REAL3_TRIPLE = prove_by_refinement(
-  `triple_of_real3 o real3_of_triple = (I:real#real#real->real#real#real) /\ 
-    real3_of_triple o triple_of_real3 = (I:real^3 -> real^3)`,
+  `triple_of_real3 o r3 = (I:real#real#real->real#real#real) /\ 
+    r3 o triple_of_real3 = (I:real^3 -> real^3)`,
   (* {{{ proof *)
   [
   REWRITE_TAC[FUN_EQ_THM;I_DEF;o_THM];
@@ -41,7 +43,7 @@ let BIJ_REAL3_TRIPLE = prove_by_refinement(
 
 (*
 let FORALL_R3 = prove_by_refinement(
-  `!P. (!V. P V) <=> (!W. P (IMAGE real3_of_triple W))`,
+  `!P. (!V. P V) <=> (!W. P (IMAGE r3 W))`,
   (* {{{ proof *)
   [
   GEN_TAC;
@@ -66,7 +68,7 @@ let sqrt_spec = prove_by_refinement(
   (* }}} *)
 
 let norm_spec = prove_by_refinement(
-  `!x y z. norm (real3_of_triple(x,y,z)) = sqrt(x pow 2 + y pow 2 + z pow 2)`,
+  `!x y z. norm (r3(x,y,z)) = sqrt(x pow 2 + y pow 2 + z pow 2)`,
   (* {{{ proof *)
   [
   REWRITE_TAC[Collect_geom2.real3_of_triple;Collect_geom2.mk_vec3];
@@ -82,7 +84,7 @@ let norm_spec = prove_by_refinement(
   (* }}} *)
 
 let vec_sub_spec = prove_by_refinement(
-  `!x y z x' y' z'. real3_of_triple(x,y,z) - real3_of_triple(x',y',z') = real3_of_triple(x-x',y-y',z-z')`,
+  `!x y z x' y' z'. r3(x,y,z) - r3(x',y',z') = r3(x-x',y-y',z-z')`,
   (* {{{ proof *)
   [
   REWRITE_TAC[Collect_geom2.real3_of_triple;Collect_geom2.mk_vec3];
@@ -90,13 +92,38 @@ let vec_sub_spec = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let dist_spec = prove_by_refinement(
+  `!x y z x' y' z. dist(r3(x,y,z),r3(x',y',z')) = 
+      sqrt((x - x') pow 2 + (y - y') pow 2 + (z - z') pow 2)`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[dist;vec_sub_spec;norm_spec])
+  ]);;
+  (* }}} *)
+
+let ZERO_SPEC = prove_by_refinement(
+  `vec 0 = r3 (&0,&0,&0)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Collect_geom2.real3_of_triple;Collect_geom2.mk_vec3];
+  BY(VEC3_TAC)
+  ]);;
+  (* }}} *)
+
+let ball_spec = prove_by_refinement(
+  `!u r. u IN ball(vec 0,r) <=> dist(vec 0,u) < r`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[ball;IN_ELIM_THM])
+  ]);;
+  (* }}} *)
+
 let packing_spec = prove_by_refinement(
-  `!V. packing V <=> (!u v. u IN V /\ v IN V /\ norm(u-v) < &2 ==> u = v)`,
+  `!V. packing V <=> (!u v. u IN V /\ v IN V /\ dist(u,v) < &2 ==> u = v)`,
   (* {{{ proof *)
   [
   REPEAT WEAKER_STRIP_TAC;
   REWRITE_TAC[Sphere.packing_lt];
-  BY(MESON_TAC[dist])
   ]);;
   (* }}} *)
 
@@ -108,23 +135,15 @@ let abs_spec = prove_by_refinement(
   ]);;
   (* }}} *)
 
-real_pow;; (* power spec *)
-
-(*
 let sum_spec = prove_by_refinement(
-  `!f n. sum ((>) 0) f = &0 /\ sum ((>) (SUC n)) f = f n + sum ((>) n) f`,
+  `!f n. sum (0..0) f = f 0 /\ sum (0.. (SUC n))  f =  sum (0..n) f + f (SUC n) `,
   (* {{{ proof *)
   [
-    st/r
-  gtyp `!n. (>) n  = {i | n > (i:num)}` (unlist rt)
-      rt[EXTENSION;IN_ELIM_THM]
-      rt[IN]
-XX finish
-
+  BY(REWRITE_TAC[SUM_CLAUSES_NUMSEG;arith `0 <= SUC n`])
   ]);;
   (* }}} *)
-*)
 
+(*
 let pi_spec = prove_by_refinement(
   `!n.
     (let x = &1 / (&1 + sqrt(&2)) in
@@ -152,15 +171,210 @@ let pi_spec = prove_by_refinement(
   BY(REAL_ARITH_TAC)
   ]);;
   (* }}} *)
+*)
 
-(* conjunction of pi,sum,pow,abs,packing,norm,sqrt, (also CARD,INTER,&,NUMSEG,let..in,IN) 
-let kepler_defs = prove_by_refinement(
-  ``,
+let HAS_REAL_INTEGRAL_DOMINATED = prove_by_refinement(
+  `!f g a b i j.
+    (f has_real_integral i) (real_interval [a,b]) /\
+    (g has_real_integral j) (real_interval [a,b]) /\
+    (!x. x IN real_interval [a,b] ==> f x <= g x) ==>
+    (i <= j)`,
   (* {{{ proof *)
   [
-  #
+  REPEAT WEAKER_STRIP_TAC;
+  PROOF_BY_CONTR_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `has_real_integral` MP_TAC);
+  PURE_ONCE_REWRITE_TAC[TAUT `(a ==> b ==> c) <=> (b /\ a ==> c)`];
+  DISCH_THEN (MP_TAC o (MATCH_MP HAS_REAL_INTEGRAL_SUB));
+  DISCH_TAC;
+  INTRO_TAC HAS_REAL_INTEGRAL_POS [`(\x. g x - f x)`;`real_interval [a,b]`;`j - i`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC THEN (FIRST_X_ASSUM (C INTRO_TAC [`x`]));
+    BY(ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC);
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
   ]);;
   (* }}} *)
+
+let HAS_REAL_INTEGRAL_ABS_DOMINATED = prove_by_refinement(
+  `!f g a b i j.
+    (f has_real_integral i) (real_interval [a,b]) /\
+    (g has_real_integral j) (real_interval [a,b]) /\
+    (!x. x IN real_interval [a,b] ==> abs (f x) <= g x) ==>
+    (abs i <= j)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[arith `abs i <= j <=> i <= j /\ --j <= i`];
+  CONJ_TAC THEN MATCH_MP_TAC HAS_REAL_INTEGRAL_DOMINATED;
+    GEXISTL_TAC [`f`;`g`;`a`;`b`];
+    ASM_REWRITE_TAC[];
+    BY(REPEAT WEAKER_STRIP_TAC THEN (FIRST_X_ASSUM (C INTRO_TAC [`x`])) THEN ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC);
+  GEXISTL_TAC [`(\x. -- g x)`;`f`;`a`;`b`];
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    MATCH_MP_TAC HAS_REAL_INTEGRAL_NEG;
+    BY(ASM_REWRITE_TAC[]);
+  BY(REPEAT WEAKER_STRIP_TAC THEN (FIRST_X_ASSUM (C INTRO_TAC [`x`])) THEN ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let has_real_integral_simple_pow = prove_by_refinement(
+  `!c i. ((\x. c * x pow i) has_real_integral c / &(i + 1)) (real_interval [&0,&1])`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[arith `c / x = c * inv x`];
+  MATCH_MP_TAC HAS_REAL_INTEGRAL_LMUL;
+  INTRO_TAC REAL_FUNDAMENTAL_THEOREM_OF_CALCULUS_INTERIOR [`\x. x pow (i+1) / &(i+1)`;`\x. x pow i`;`&0`;`&1`];
+  REWRITE_TAC[REAL_POW_ZERO;REAL_POW_ONE;arith `~(i+1 = 0)`];
+  REWRITE_TAC[arith `x - &0 / y = x`;arith `&1 / x = inv x`];
+  DISCH_THEN MATCH_MP_TAC;
+  REWRITE_TAC[arith `&0 <= &1`];
+  CONJ_TAC;
+    REWRITE_TAC[arith `x / y = x * inv y`];
+    MATCH_MP_TAC REAL_CONTINUOUS_ON_RMUL;
+    MATCH_MP_TAC REAL_CONTINUOUS_ON_POW;
+    BY(REWRITE_TAC[REAL_CONTINUOUS_ON_ID]);
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[arith `x / y = x * inv y`];
+  TYPIFY `x pow i = (&(i+1) * x pow i) * inv (&(i+1))` (C SUBGOAL_THEN SUBST1_TAC);
+    Calc_derivative.CALC_ID_TAC;
+    REWRITE_TAC[REAL_OF_NUM_EQ];
+    BY(ARITH_TAC);
+  MATCH_MP_TAC HAS_REAL_DERIVATIVE_RMUL_ATREAL;
+  INTRO_TAC HAS_REAL_DERIVATIVE_POW_ATREAL [`(\x. (x:real))`;`&1`;`x`;`i+1`];
+  REWRITE_TAC[arith `(i+1)-1 = i`;arith `x * &1 = x`];
+  DISCH_THEN MATCH_MP_TAC;
+  BY(REWRITE_TAC[HAS_REAL_DERIVATIVE_ID])
+  ]);;
+  (* }}} *)
+
+let atn_1_series = prove_by_refinement(
+  `!n. abs (pi / &4 - sum (0..n) (\i. (-- &1) pow i / &(2 * i + 1))) <= &1 / &(2 * n+3) `,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  INTRO_TAC REAL_FUNDAMENTAL_THEOREM_OF_CALCULUS_INTERIOR [`atn`;`\x. inv (&1 + x pow 2)`;`&0`;`&1`];
+  REWRITE_TAC[arith `&0 <= &1`;ATN_0;ATN_1;arith `x - &0 = x`];
+  ANTS_TAC;
+    CONJ_TAC;
+      REWRITE_TAC[REAL_CONTINUOUS_ON_EQ_CONTINUOUS_WITHIN];
+      REPEAT WEAKER_STRIP_TAC;
+      MATCH_MP_TAC REAL_CONTINUOUS_ATREAL_WITHINREAL;
+      BY(REWRITE_TAC[REAL_CONTINUOUS_AT_ATN]);
+    REPEAT WEAKER_STRIP_TAC;
+    BY(REWRITE_TAC[HAS_REAL_DERIVATIVE_ATN]);
+  TYPIFY `(\x. inv (&1 + x pow 2)) = (\x. sum (0..n) (\i. (-- &1 * x pow 2) pow i) + (-- &1 * x pow 2) pow (SUC n) / (&1 + x pow 2))` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[FUN_EQ_THM];
+    GEN_TAC;
+    Calc_derivative.CALC_ID_TAC;
+    SUBCONJ_TAC;
+      MATCH_MP_TAC (arith `&0 < a /\ &0 <= b ==> ~(a + b = &0)`);
+      REWRITE_TAC[ REAL_LE_POW_2];
+      BY(REAL_ARITH_TAC);
+    INTRO_TAC SUM_GP_BASIC [`-- &1 * x pow 2`;`n`];
+    TYPED_ABBREV_TAC `a = sum (0..n) (\i. (-- &1 * x pow 2) pow i)`;
+    REWRITE_TAC[real_pow;arith `&1 - -- &1 * u = &1 + u`];
+    BY(CONV_TAC REAL_RING);
+  DISCH_TAC;
+  MATCH_MP_TAC HAS_REAL_INTEGRAL_ABS_DOMINATED;
+  GEXISTL_TAC [ `(\x. (-- &1 * x pow 2) pow SUC n / (&1 + x pow 2))`;`(\x. x pow (2 * SUC n))`;`&0`;`&1`];
+  nCONJ_TAC 2;
+    REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    REWRITE_TAC[REAL_ABS_DIV];
+    GMATCH_SIMP_TAC REAL_LE_LDIV_EQ;
+    SUBCONJ_TAC;
+      MATCH_MP_TAC (arith `&0 <= a ==> &0 < abs (&1 + a)`);
+      BY(REWRITE_TAC[ REAL_LE_POW_2]);
+    DISCH_TAC;
+    REWRITE_TAC[REAL_ABS_POW;arith `abs (-- &1 * t) = abs t`;arith `abs x pow 2 = x pow 2`;REAL_POW_POW];
+    REWRITE_TAC[arith `t <= t * u <=> &0 <= t * (u - &1)`];
+    GMATCH_SIMP_TAC REAL_LE_MUL;
+    REWRITE_TAC[arith `2 * SUC n = SUC n * 2`];
+    REWRITE_TAC[GSYM REAL_POW_POW];
+    REWRITE_TAC[ REAL_LE_POW_2];
+    MATCH_MP_TAC (arith `&0 <= t ==> &0 <= abs (&1 + t) - &1`);
+    BY(REWRITE_TAC[ REAL_LE_POW_2]);
+  POP_ASSUM (unlist REWRITE_TAC);
+  CONJ2_TAC;
+    REWRITE_TAC[arith `2 * n + 3 = 2 * SUC n + 1`];
+    INTRO_TAC has_real_integral_simple_pow [`&1`;`2 * SUC n`];
+    BY(REWRITE_TAC[arith `&1 * x = x`]);
+  TYPIFY `(\x. (-- &1 * x pow 2) pow SUC n / (&1 + x pow 2)) = (\x. inv (&1 + x pow 2) - ( sum (0..n) (\i. (-- &1 * x pow 2) pow i)))` (C SUBGOAL_THEN SUBST1_TAC);
+    FIRST_X_ASSUM_ST `sum` MP_TAC;
+    REWRITE_TAC[FUN_EQ_THM];
+    REPEAT WEAKER_STRIP_TAC;
+    BY(ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC);
+  MATCH_MP_TAC HAS_REAL_INTEGRAL_SUB;
+  CONJ_TAC;
+    INTRO_TAC REAL_FUNDAMENTAL_THEOREM_OF_CALCULUS_INTERIOR [`atn`;`\x. inv (&1 + x pow 2)`;`&0`;`&1`];
+    REWRITE_TAC[ATN_1;ATN_0;arith `x - &0 = x`];
+    DISCH_THEN MATCH_MP_TAC;
+    REWRITE_TAC[REAL_CONTINUOUS_ON_ATN];
+    BY(REWRITE_TAC[HAS_REAL_DERIVATIVE_ATN;arith `&0 <= &1`]);
+  INTRO_TAC (GEN_ALL HAS_REAL_INTEGRAL_SUM) [`\i. (-- &1 pow i) / &(2 * i + 1)`;`(\i x. (-- &1 * x pow 2) pow i)`;`real_interval [ &0, &1]`;`(0..n)`];
+  ANTS_TAC;
+    REWRITE_TAC[FINITE_NUMSEG];
+    REWRITE_TAC[IN_NUMSEG];
+    (REPEAT WEAKER_STRIP_TAC);
+    REWRITE_TAC[REAL_POW_MUL;REAL_POW_POW];
+    BY(REWRITE_TAC[has_real_integral_simple_pow]);
+  BY(REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let basic_definitions = prove_by_refinement(
+  `
+   (&0 <= x ==> abs x = x) /\ (x < &0 ==> abs x = -- x) /\   
+    x pow 0 = &1 /\ x pow SUC n = x * x pow n /\
+   (&0 <= x ==> &0 <= sqrt x /\ sqrt x pow 2 = x) /\ 
+   sum (0..0) f = f 0 /\ sum (0..SUC n) f =  sum (0..n) f + f (SUC n) /\ 
+   abs (pi / &4 - sum (0..n) (\i. (-- &1) pow i / &(2 * i + 1))) <= &1 / &(2 * n + 3) /\
+
+   (A HAS_SIZE n <=> FINITE A /\ CARD A = n) /\
+   {} HAS_SIZE 0 /\ {a} HAS_SIZE 1 /\ 
+   (A HAS_SIZE m /\ B HAS_SIZE n /\ (A INTER B) HAS_SIZE p ==> (A UNION B) HAS_SIZE (m+n - p)) /\
+
+   triple_of_real3 o r3 = (\w:real#real#real. w) /\
+   r3 o triple_of_real3 = (\v:real^3. v) /\ 
+   vec 0 = r3(&0,&0,&0) /\
+   dist(r3(x,y,z),r3(x',y',z')) = sqrt((x - x') pow 2 + (y - y') pow 2 + (z - z') pow 2) /\
+   (packing V <=> (!u v. u IN V /\ v IN V /\ dist(u,v) < &2 ==> u = v))
+`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[real_pow;BIJ_REAL3_TRIPLE;dist_spec;abs_spec;sqrt_spec;packing_spec;sum_spec;ZERO_SPEC];
+  REWRITE_TAC[atn_1_series;FUN_EQ_THM;I_THM;HAS_SIZE_0;HAS_SIZE_1_EXISTS;IN_SING];
+  CONJ_TAC;
+    BY(REWRITE_TAC[HAS_SIZE]);
+  CONJ_TAC;
+    BY(MESON_TAC[]);
+  TYPED_ABBREV_TAC `C = B DIFF (A INTER B)`;
+  TYPIFY `A UNION B = A UNION C` (C SUBGOAL_THEN SUBST1_TAC);
+    EXPAND_TAC "C";
+    BY(SET_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC HAS_SIZE_DIFF [`B`;`A INTER B`;`n`;`p`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    BY(SET_TAC[]);
+  DISCH_TAC;
+  MATCH_MP_TAC HAS_SIZE_UNION;
+  ASM_REWRITE_TAC[];
+  EXPAND_TAC "C";
+  BY(SET_TAC[])
+  ]);;
+  (* }}} *)
+
+(* this reduces it to basic logical /\ ==> ! ?, 
+   set-theoretic UNION INTER {}, {a} IN, 
+     functional o (composition),
+     and arithmetic constants (<) (<=) (+) (-) ( * ) (--), (SUC) 0, 1, 2, &, 
+   packing is the only definition that is not in the standard HOL Light library.
+
 *)
+
+reduce_interface ("r3",`real3_of_triple`);;
 
  end;;

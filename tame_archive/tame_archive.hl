@@ -74,19 +74,23 @@ let save_stringarray filename xs =
     close_out oc;;
 
 let convert_archive filename ext =  (* strip // comments, blank lines, quotation marks etc. *)
-  let (ic,oc) = Unix.open_process(sprintf "cat %s  | sed 's/,/;/g' | sed 's/val [a-zA-Z]*/ref%d/g' | sed 's/]]];/]]];;/g' | sed 's/=/:=/g' | tr 'A-Z' 'a-z' " filename ext) in
+  let package = "Tame_archive." in
+  let (ic,oc) = Unix.open_process(sprintf "cat %s | tr 'A-Z' 'a-z' | sed 's/,/;/g' | sed 's/val [a-zA-Z]*/%sref%d/g' | sed 's/]]];/]]];;/g' | sed 's/=/:=/g'  " filename package ext) in
   let s = load_and_close_channel false ic in
   let _ = Unix.close_process (ic,oc) in
     s;;
 
 let ocaml_of_ml (output_f,input_f,ext) = 
-save_stringarray output_f (convert_archive (Filename.concat archive_dir input_f) ext);;
+  save_stringarray output_f (convert_archive (Filename.concat archive_dir input_f) ext);;
 
+let numeral_case = (map (fun t -> (t,mk_small_numeral t))) (0--16);;
+
+let mk_s_numeral i = assoc i numeral_case;;
 
 let hol_of_smalllist  = 
   let ty = `:num` in 
     fun ls ->
-      let xs = map mk_small_numeral ls in
+      let xs = map mk_s_numeral ls in
 	mk_list (xs,ty);;
 
 let hol_of_list2 = 
@@ -122,10 +126,10 @@ let ref4 = ref [];;
 let ref5 = ref [];;
 let ref6 = ref [];;
 
-let tmref3 = ref `0`;;
-let tmref4 = ref `0`;;
-let tmref5 = ref `0`;;
-let tmref6 = ref `0`;;
+let tmref3 = ref `[]:((num list)list)list`;;
+let tmref4 = ref `[]:((num list)list)list`;;
+let tmref5 = ref `[]:((num list)list)list`;;
+let tmref6 = ref `[]:((num list)list)list`;;
 
 (* loading these files changes the references! *)
 
@@ -145,24 +149,15 @@ let arc6 _ =
   let _ = loadt tmp6 in
   let _ = (tmref6 :=  hol_of_list3 (!ref6)) in ();;
 
-
 (*
-let archive3 = mk_eq (`archive3:((num list)list)list`, hol_of_list3 !ref3);;
-
-let arc4 = mk_eq (`archive4:((num list)list)list`, hol_of_list3 !ref4);;
-
-let arc5 = mk_eq (`archive5:((num list)list)list`, hol_of_list3 !ref5);;
-
-let arc6 = mk_eq (`archive6:((num list)list)list`, hol_of_list3 !ref6);;
-
-
-let archive3 = new_definition arc3;; 
-let archive4 = new_definition arc4;; 
-let archive5 = new_definition arc5;; 
-let archive6 = new_definition arc6;; 
-
-let bn_tame_archive = new_definition `bn_tame_archive = 
-   APPEND arc3 (APPEND arc4 (APPEND arc5 arc6))`;;
+let tame_archive = 
+  let _ = Tame_archive.arc3() in (* do arc4...arc6() *)
+  let _ = new_definition (mk_eq (`archive3:((num list)list)list`, !Tame_archive.tmref3)) in
+  let _ = new_definition (mk_eq (`archive4:((num list)list)list`, !Tame_archive.tmref4)) in
+  let _ = new_definition (mk_eq (`archive5:((num list)list)list`, !Tame_archive.tmref5)) in
+  let _ = new_definition (mk_eq (`archive6:((num list)list)list`, !Tame_archive.tmref6)) in
+  new_definition `tame_archive_v1 = 
+   APPEND archive3 (APPEND archive4 (APPEND archive5 archive6))`;;
 *)
 
 end;;

@@ -26,9 +26,8 @@
 needs "Library/rstc.ml";; (* for RTC reflexive transitive closure *)
 flyspeck_needs "../formal_lp/hypermap/ssreflect/list_hypermap_iso-compiled.hl";;
 flyspeck_needs "../formal_lp/hypermap/computations/list_conversions2.hl";;
+flyspeck_needs "../tame_archive/tame_archive.hl";;
 
-
-(* flyspeck_needs "../../tame_archive/tame_archive.hl";; *)
 
 module Tame_classification = struct
 end;;
@@ -105,6 +104,25 @@ types: num, (A) list, (A ==> B), (A) Option, A#B, bool.
     liz_h = "list";
   };;
 
+(*
+type_synonym 'a Fgraph = "'a list set"
+type_synonym 'a fgraph = "'a list list"
+*)
+
+  liz_ty {
+    liz_ty_loc = (tamefile "PlaneGraphIso.thy",43,43);
+    liz_t = "(A) Fgraph";
+    liz_h = "(A) list -> bool";
+  };;
+
+  liz_ty {
+    liz_ty_loc = (tamefile "PlaneGraphIso.thy",44,44);
+    liz_t = "(A) fgraph";
+    liz_h = "((A) list) list";
+  };;
+
+
+
 
 (* ************************************************************************** *)
 (* TERMS *)
@@ -113,6 +131,7 @@ types: num, (A) list, (A ==> B), (A) Option, A#B, bool.
 
 
   let unsplit = Flyspeck_lib.unsplit;;
+
   let trim = Flyspeck_lib.trim;;
 
 (* expand syntactic sugar *)
@@ -154,8 +173,11 @@ types: num, (A) list, (A ==> B), (A) Option, A#B, bool.
     let expand_set = p "'s/{\([^.}]*\)\.\([^}]*\)}/{\1 | \2}/g'" in
     let expand_sum2 = p "'s/ __Sum *___bsub *\(%s\)  *__in  *\(%s\) *___esub *\(%s(%s)\)/listsum (map (\\\\ \1 . \3) (\2)) /g'" tok wordp words words in
     let expand_sum = p "'s/ __Sum *___bsub *\(%s\)  *__in  *\(%s\) *___esub *\(%s\)/listsum (map (\\\\ \1 . \3) (\2)) /g'" tok wordp words in
+    let expand_union = p "'s/ __Union *\(%s\)  *__in  *\(%s\) *\. *\(%s\)/UNIONS (IMAGE (\\\\ \1 . \3) (\2)) /g'" tok tok words in
     let expand_sub = p "'s/ ___bsub *\(%s\) *___esub/ \1 /g'" tok in
-
+    let expand_cong = p "'s!//{ *__cong *}! //// (__cong) !g'" in
+    let expand_pattern = p "'s!|! /\\\\ !g'" in
+(*     let expand_quote = p "'s/\"/ /g'" in *)
     let e = unsplit " -e " (fun x -> x) 
       [escape_quote;expand_angle1;expand_angle2;
        expand_let;expand_let;       expand_let;expand_let;       expand_let;expand_let;       
@@ -164,7 +186,8 @@ types: num, (A) list, (A ==> B), (A) Option, A#B, bool.
        expand_Squnion;expand_length2;expand_upt;expand_map;expand_map2;expand_filter;expand_update;
        expand_length;expand_length2;expand_isub;expand_forall_in;expand_nextV;
        expand_label1;expand_label2;case_num;case_facetype;case_list;case_vector;case_option;
-       expand_tab;expand_RT;expand_in_set;expand_set;expand_sum2;expand_sum;expand_sub;] in 
+       expand_tab;expand_RT;expand_in_set;expand_set;expand_sum2;expand_sum;
+       expand_union;expand_sub;expand_cong;expand_pattern] in 
 
       fun file lines expand ->
 	if (file="") then "" else
@@ -243,6 +266,21 @@ report (get_tame_def "ListAux.thy" (167,170));;
 	    let sy = Str.matched_group 1 s in
 	      sy;;
 
+  let get_name = 
+    let reg1 = Str.regexp "\([A-Za-z0-9_]*\) *::" in
+    let reg2 = Str.regexp "primrec *\([A-Za-z0-9_]*\) *where" in
+    let reg3 = Str.regexp "defs *([A-Za-z]) *\([A-Za-z0-9_]*\) *:" in
+    let get reg s = 
+      let _ = Str.search_forward reg s 0 in
+	    Str.matched_group 1 s in
+      fun s ->
+	try get reg1 s
+	with Not_found -> 
+	  try get reg2 s
+	  with Not_found ->
+	    try get reg3 s
+	    with Not_found -> "";;
+
   let basic_dictionary = 
     [
     ("[]","[]");
@@ -251,6 +289,7 @@ report (get_tame_def "ListAux.thy" (167,170));;
     ("@","#@#");
     ("#","::");
     ("!","#!#");
+    ("`","#?#");
     ];;
 
   let infixr (s, p) = 
@@ -280,6 +319,8 @@ report (get_tame_def "ListAux.thy" (167,170));;
     let ix = get_interface s in
     let _ = (ix="") or (override_interface(ix,recd.liz_holl); true) in
     let _ = print_liz recd in
+    let nm = get_name s in
+    let _ = nm = recd.liz_name or (report ("liz_add name mismatch "^nm); true) in
       recd.liz_thm;;
 
   let get_liz s = 
@@ -357,7 +398,7 @@ let bn_EL = prove_by_refinement(
 let not_equal = new_definition' `( ~= ) (x : A) y <=> ( ~(x = y))`;;
 
 liz_add {
-liz_name = "~=";
+liz_name = "not_equal";
 liz_loc =  (holfile "HOL.thy",86,90);
 liz_holl = `( ~= ):A->A -> bool`;
 liz_thm = not_equal;
@@ -980,13 +1021,15 @@ let remove_key_list = new_recursive_definition list_RECURSION
 
 (* XX overloaded and infix *)
 
-let congs = new_definition' `congs (f1:A list) f2 <=> ?n. f2 = rotate n f1`;;
+let cong = new_definition' `(__cong) (f1:A list) f2 <=> ?n. f2 = rotate n f1`;;
 
-liz_add {
+  parse_as_infix ("__cong", (60, "right"));;
+
+liz_add {  
 liz_name = "__cong";
 liz_loc =  (tamefile "PlaneGraphIso.thy",50,52); 
-liz_holl = `congs`;
-liz_thm = congs;
+liz_holl = `__cong`;
+liz_thm = cong;
 };;
 
 let congs_rot = prove_by_refinement(
@@ -1077,7 +1120,7 @@ I don't think I'll need these:
 (* 2.2. *)
 (* 2.3.2, improper isomorphisms *)
 
-(* XX return to these:
+(* redone below.
 let bn_is_pr_iso = new_definition'
  `bn_is_pr_iso (phi:A->B) fs1 fs2  = bn_is_pr_Iso phi (set_of_list fs1) (set_of_list fs2)`;;
 
@@ -1854,6 +1897,14 @@ let sub1_ALT = prove_by_refinement(
   (* }}} *)
    
 let sub = new_definition' `sub   (a:A list) n = sub1 (a,n)`;;
+
+let sub_nth = prove_by_refinement(
+  `sub a n = a #!# n`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[sub;sub1;nnnth])
+  ]);;
+  (* }}} *)
 
 liz_add {
 liz_name = "sub1";
@@ -2638,21 +2689,215 @@ liz_thm = tame;
     These definitions need to be loaded from the Arch theory (which converts
     them from .ML files)  *)
 
-(*  (* tame_archive is defined in ../../tame_archive/tame_archive.hl *)
-let tame_graph_classification_theorem = (* new_definition' *)
-  `tame_graph_classification_theorem = 
-  (!g. PlaneGraphs g /\ tame g ==> iso_in (fgraph g)   tame_archive)`;;
+(* tame_archive is defined in ../../tame_archive/tame_archive.hl *)
 
+let tame_archive = 
+  let _ = Tame_archive.arc3() in (* XX do arc4...arc6() *)
+  let _ = new_definition (mk_eq (`archive3:((num list)list)list`, !Tame_archive.tmref3)) in
+  let _ = new_definition (mk_eq (`archive4:((num list)list)list`, !Tame_archive.tmref4)) in
+  let _ = new_definition (mk_eq (`archive5:((num list)list)list`, !Tame_archive.tmref5)) in
+  let _ = new_definition (mk_eq (`archive6:((num list)list)list`, !Tame_archive.tmref6)) in
+  new_definition `tame_archive = 
+   APPEND archive3 (APPEND archive4 (APPEND archive5 archive6))`;;
+
+let archive3 = new_definition (mk_eq (`archive3:((num list)list)list`, !Tame_archive.tmref3));;
+
+let mem3 = prove_by_refinement(
+  `!x. MEM x archive3 ==> MEM x tame_archive`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[tame_archive;MEM_APPEND];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let mem4 = prove_by_refinement(
+  `!x. MEM x archive4 ==> MEM x tame_archive`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[tame_archive;MEM_APPEND];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let mem5 = prove_by_refinement(
+  `!x. MEM x archive5 ==> MEM x tame_archive`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[tame_archive;MEM_APPEND];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let mem6 = prove_by_refinement(
+  `!x. MEM x archive6 ==> MEM x tame_archive`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[tame_archive;MEM_APPEND];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+(* completeness *)
+
+let archive = new_definition' `archive = set_of_list tame_archive`;;
+
+let archive_ALT = prove_by_refinement(
+  `archive = set_of_list (archive3 #@# archive4 #@# archive5 #@# archive6)`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[archive;tame_archive])
+  ]);;
+  (* }}} *)
+
+liz_add {
+liz_name = "Archive";
+liz_loc =  (tamefile "Completeness.thy",9,11);   
+liz_holl = `archive`;
+liz_thm = archive_ALT;
+};;
+
+(* See PlaneGraphIso.thy 891++, and Quasi_order.thy for notation in Completeness.thy:completeness *)
+
+let EQ_CLASS = new_definition' ` ( //// ) A f = IMAGE (f:A->B) A`;;
+
+parse_as_infix ("////", (14, "right"));;
+
+let IMAGE_INFIX = new_definition' `(  #?# ) f X = IMAGE (f:A->B) X`;;
+
+parse_as_infix ("#?#",(16,"right"));;
+
+let is_pr_Hom = new_definition' `is_pr_Hom (phi:A->B) Fs1 Fs2 =
+  ((( (MAP phi) #?# Fs1) //// (__cong)) = (Fs2 //// (__cong)))`;;
+
+REWRITE_RULE[IMAGE_INFIX;EQ_CLASS] is_pr_Hom;;
+
+let is_pr_Iso = new_definition' `is_pr_Iso (phi:A->B) Fs1 Fs2 = 
+ (is_pr_Hom phi Fs1 Fs2 /\ inj_on phi (UNIONS (IMAGE (\ f. set_of_list f) Fs1  )))`;;
+
+let is_Iso = new_definition' `is_Iso (phi:A->B) Fs1 Fs2 = 
+ (is_pr_Iso phi Fs1 Fs2 \/ is_pr_Iso phi Fs1 (REVERSE #?# Fs2))`;;
+
+let is_iso = new_definition' `is_iso (phi:A->B) Fs1 Fs2 = 
+  is_Iso phi (set_of_list Fs1) (set_of_list Fs2)`;;
+
+let iso_fgraph = new_definition' `iso_fgraph g1 g2 = 
+  (? (phi:A->B). is_iso phi g1 g2)`;;
+
+liz_add {
+liz_name = "is_pr_Hom";
+liz_loc =  (tamefile "PlaneGraphIso.thy",148,150);   
+liz_holl = `is_pr_Hom`;
+liz_thm = is_pr_Hom;
+};;
+
+liz_add {
+liz_name = "is_pr_Iso";
+liz_loc =  (tamefile "PlaneGraphIso.thy",151,153);   
+liz_holl = `is_pr_Iso`;
+liz_thm = is_pr_Iso;
+};;
+
+liz_add {
+liz_name = "is_Iso";
+liz_loc =  (tamefile "PlaneGraphIso.thy",815,817);   
+liz_holl = `is_Iso`;
+liz_thm = is_Iso;
+};;
+
+liz_add {
+liz_name = "is_iso";
+liz_loc =  (tamefile "PlaneGraphIso.thy",818,820);   
+liz_holl = `is_iso`;
+liz_thm = is_iso;
+};;
+
+liz_add {
+liz_name = "iso_fgraph";
+liz_loc =  (tamefile "PlaneGraphIso.thy",821,823);   
+liz_holl = `iso_fgraph`;
+liz_thm = iso_fgraph;
+};;
+
+(* (tamefile "Completeness.thy",48,49) *)
+
+let imported_tame_graph_classification = new_definition' 
+  `imported_tame_graph_classification = 
+  (!g. PlaneGraphs g /\ tame g ==> (?y. y IN archive /\ (fgraph g) __simeq y))`;;
+
+
+(*
+report_tame_def "iso_fgraph" 4;;
+report_def HOLDIR "*" "list_sum" 5;;
 *)
 
-(* xxd to here *)
-report_tame_def "iso_in" 4;;
-report_def HOLDIR "*" "list_sum" 5;;
+let rotate_0 = prove_by_refinement(
+  `!x n. rotate 0 x = x`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[rotate;ITER])
+  ]);;
+  (* }}} *)
+
+let rotate_eq_nil = prove_by_refinement(
+  `!n (x:(A) list). rotate n x = [] <=> x = []`,
+  (* {{{ proof *)
+  [
+  INDUCT_TAC;
+    BY(REWRITE_TAC[rotate_0]);
+  ASM_REWRITE_TAC[rotate_add;arith `SUC n = n + 1`];
+  REWRITE_TAC[rotate;ITER_1];
+  BY(LIST_INDUCT_TAC THEN REWRITE_TAC[rotate1;NOT_CONS_NIL;APPEND_EQ_NIL])
+  ]);;
+  (* }}} *)
+
+let CONG_NIL = prove_by_refinement(
+  `!x. (__cong) x = {[]} <=> (x:(A)list) = [] `,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  REWRITE_TAC[EXTENSION;IN_SING];
+  REWRITE_TAC[IN;cong];
+  TYPIFY `x = []` ASM_CASES_TAC;
+    ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    BY(REWRITE_TAC[rotate_nil]);
+  ASM_REWRITE_TAC[NOT_FORALL_THM];
+  TYPIFY `[]:(A) list` EXISTS_TAC;
+  REWRITE_TAC[NOT_EXISTS_THM];
+  ONCE_REWRITE_TAC[EQ_SYM_EQ];
+  REWRITE_TAC[rotate_eq_nil];
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let good_iso_fgraph = prove_by_refinement(
+  `!x y. good_list x /\ iso_fgraph x y ==> good_list y`,
+  (* {{{ proof *)
+  [
+  rt[List_hypermap.good_list;iso_fgraph;is_iso;is_Iso;is_pr_Iso;is_pr_Hom;EQ_CLASS;IMAGE_INFIX;GSYM Seq2.ALL_all;GSYM ALL_MEM]
+    st/r
+    nconj 1
+st/r
+typ `{[]} IN IMAGEset_of_list y`
+  ]);;
+  (* }}} *)
+
+1;;
 
 
+let good_iso_fgraph_concl =  `!x y. good_list x /\ iso_fgraph x y ==> good_list y`;;
 
+let tame_good_concl = `!g. PlaneGraphs g /\ tame g ==> good_list (fgraph g)`;;
 
+let TAME_CORRESPONDENCE_0_concl = `!H g y. tame_hypermap H /\ PlaneGraphs g /\ tame g /\
+   iso H (hypermap_of_list (fgraph g)) /\ iso_fgraph g y ==>
+   (iso H (hypermap_of_list y) \/ iso (opposite_hypermap H) (hypermap_of_list y))`;;
 
+let TAME_CORRESPONDENCE_MAIN_concl = `!H. tame_hypermap H ==>
+  (?g. PlaneGraphs g /\ tame g /\ iso H (hypermap_of_list (fgraph g)))`;;
+
+let TAME_CORRESPONDENCE_2_concl = `!H. tame_hypermap H /\ imported_tame_graph_classification ==>
+  (?x. x IN archive /\ (iso H (hypermap_of_list x) \/ iso (opposite_hypermap H) (hypermap_of_list x)))`;;
 
 
 end;;

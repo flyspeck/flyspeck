@@ -30,6 +30,8 @@ rflyspeck_needs "jordan/real_ext.hl";;
 rflyspeck_needs "jordan/taylor_atn.hl";;
 rflyspeck_needs "jordan/parse_ext_override_interface.hl";;
 flyspeck_needs "general/print_types.hl";;
+flyspeck_needs "general/theorem_digest.hl";;
+flyspeck_needs "general/serialization.hl";;
 
 flyspeck_needs "local/RRCWNSJ.hl";;
 flyspeck_needs "local/JCYFMRP.hl";;
@@ -4007,3 +4009,72 @@ map (fun (t,_) -> t.idv) z2;;
    "PEMKWKU split(0/2)"; "QITNPEAv2 4003532128 split(1/2)";
    "QITNPEAv2 4003532128 split(0/2)"; "TXQTPVC split(1/2)";
    "TXQTPVC split(0/2)"; "IXPOTPA split(1/2)"; "IXPOTPA split(0/2)"];;
+
+Serialization.mk_thm (concl REAL_LE_TRANS);;
+
+loadt "general/serialization.hl";;
+let prove = Serialization.des_prove;;
+let prove_by_refinement = Serialization.des_prove_by_refinement;;
+needs "Multivariate/flyspeck.ml";;
+needs "strictbuild.hl";; 
+new_build_silent();;
+Str.regexp;;
+#load "unix.cma";;
+Str.regexp;;
+
+#load "str.cma";;
+needs "general/hol_pervasives.hl";;
+needs "general/theorem_digest.hl";;
+needs "general/prove_by_refinement.hl";;
+needs "general/serialization.hl";;
+let prove = Serialization.des_prove;;
+let prove_by_refinement = Serialization.des_prove_by_refinement;;
+needs "Multivariate/flyspeck.ml";;
+needs "strictbuild.hl";; 
+new_build_silent();;
+let prove (t,tac) = 
+  try Serialization.mk_thm t with Failure _ -> Hol_pervasives.prove(t,tac);;
+  
+let prove_by_refinement = Serialization.des_prove_by_refinement;;
+needs "Multivariate/flyspeck.ml";;
+loadt "Library/card.ml";;
+needs "strictbuild.hl";; 
+new_build_silent();;
+parse_as_infix("+_c",(16,"right"));;
+parse_as_infix("*_c",(20,"right"));;
+parse_as_infix("=_c",(12,"right"));;
+
+Serialization.mk_thm (concl CARD_SQUARE_INFINITE);;
+
+let thxx = CARD_SQUARE_INFINITE;;
+simple_digest_thm  CARD_SQUARE_INFINITE;;
+Serialization.get_history_thm1 thxx;;
+open Serialization;;
+  let ty_ignore = ["bool";"fun";"ind"] ;;
+  let tm_ignore = ["=";"fun";"@";deserial] ;;
+  let mk th = let c = canonize_thm th in (simple_digest_thm c),c ;;
+  let sort_uniq = uniq o (sort (fun a b -> fst a < fst b)) ;;
+  let axiom_reduced = filter (fun t -> not(is_deserial_axiom t)  ) (axioms()) ;;
+  let d_axiom = map mk (axiom_reduced) ;;
+  let ax_history = sort_uniq (List.flatten 
+				(map (get_history_thm_rec2 ty_ignore tm_ignore) d_axiom)) ;;
+       (get_history_thm_rec2 ty_ignore tm_ignore (mk thxx));;
+
+let rec get_history_thm_rec2 ty_ignore tm_ignore (d,th)  =
+  try Hashtbl.find hash2 d with Not_found ->
+    let _ = report ("not found "^d) in
+    let sort_uniq = uniq o (sort (fun a b -> fst a < fst b)) in
+    let ty = subtract (type_constants_in_thm th) ty_ignore in
+    let tm = subtract (get_term_constants_in_thm th) tm_ignore in
+    let t1 = map (fun t -> assocs t simple_table_typ) ty in
+    let t2 = map (fun t -> assocs t simple_table_term) tm in
+    let t3 = filter (fun t -> not (d = fst t)) (t1 @ t2) in
+    let ts = sort_uniq (t3) in
+    let f = List.flatten (map (get_history_thm_rec2 ty_ignore tm_ignore) ts) in
+    let f1 = (d,th) :: ts @ f in
+    let f' = uniq  (sort (fun a b -> fst a < fst b) f1) in
+    let _ = Hashtbl.add hash2 d f' in
+      f';;
+
+assocs "*_c" simple_table_term;;
+

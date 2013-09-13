@@ -15,6 +15,8 @@
 (setq hol-light-interactive-buffer-name "*aug18*")
 (setq hol-light-interactive-buffer-name "*aug19*")
 (setq hol-light-interactive-buffer-name "*aug28*")
+(setq hol-light-interactive-buffer-name "*sep11*")
+(setq hol-light-interactive-buffer-name "*sep12*")
 
 
 

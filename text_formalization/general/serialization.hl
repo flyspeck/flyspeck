@@ -18,6 +18,13 @@ module Serialization = struct
 
 (* state manager should reset new_type_abbrev and the_implicit_types. *)
 
+module  String_compare : Set.OrderedType with type t = string = struct
+  type t = string;;
+  let  compare (t1:string) (t2:string) = Pervasives.compare (t1) (t2);;
+end;;
+
+module St = Set.Make(String_compare);;
+
 let rec nub = function (* from lpproc.ml *)
   | [] -> []
   | x::xs -> x::filter ((<>) x) (nub xs);;
@@ -159,6 +166,7 @@ let table_stray_typ =
  ("nadd","mk_nadd","dest_nadd"), (nadd_abs,nadd_rep)
   ];;
 
+(*
 let table_inductive_typ = 
   let split = Str.split (Str.regexp " +") in
     map (fun (s,(u,v)) -> hd(split s), (CONJ u v)) !the_inductive_types;;
@@ -168,37 +176,62 @@ let canon_table_typ =
   let a1 = map (fun (a,_,_),(u,v) -> (a, (CONJ u v))) tl in
   let b1 = a1 @ table_inductive_typ in
     map (fun (s,t) -> (s,canonize_thm t)) b1;;
+*)
 
-(*
-let canon_table_typ =
-  let split = Str.split (Str.regexp " +") in
-  let len_inductive_types = ref 0 in
-  let len_type_definitions = ref 0 in 
-  let current_canon = ref [] in
-  let p_ind = (fun (s,(u,v)) -> hd(split s), (CONJ u v)) in
-  let p_def = (fun (a,_,_),(u,v) -> (a, (CONJ u v))) in 
-*)    
-
-
+(*  
 let table_inductive_term = 
   let rs = map (tl o (Str.split (Str.regexp "[ |=]+"))) (map fst !the_inductive_types) in
   let rs1 = map (fun t -> subtract t ["A";"B";"bool"]) rs in
   let zz = zip rs1 (map snd !the_inductive_types) in
   let zz2 = map (fun tl,(u,v) -> map (fun t -> (t, (CONJ u v))) tl) zz in
     List.flatten zz2;;
+*)
 
+(*
 let table_typed_term = 
   let tl = (!the_type_definitions) @ table_stray_typ in
   let a1 = map (fun (_,b,_),(u,v) -> (b,CONJ u v)) tl in
   let a2 = map (fun (_,_,c),(u,v) -> (c,CONJ u v)) tl in
     a1 @ a2 @ table_inductive_term;;
+*)
 
+let process_inductive_term = 
+  let reg = Str.split (Str.regexp "[ |=]+") in
+  let ignores = ["A";"B";"bool"] in
+    fun tint ->
+      let rs =  (tl o reg) (fst tint) in
+      let rs1 = subtract rs ignores  in
+      let (u,v) = snd tint in
+      let zz2 = map (fun t -> (t, (CONJ u v))) rs1 in
+    zz2;;
+
+let table_inductive_term = map process_inductive_term !the_inductive_types;;
+
+let process_table_typed_term tl =   
+  let a1 = (fun (_,b,_),(u,v) -> (b,CONJ u v)) tl in
+  let a2 = (fun (_,_,c),(u,v) -> (c,CONJ u v)) tl in
+    [a1 ;a2];;
+
+let table_typed_term = 
+  map process_inductive_term !the_inductive_types @
+    map process_table_typed_term !the_type_definitions @ 
+    map process_table_typed_term table_stray_typ;;
+
+let process_table_def_term = 
+  let name d = let 
+      (c,_) = dest_const (lhs (concl d)) in c in
+    fun d -> (name d,d);;
+
+(*
 let canon_table_term = 
   let dl = Hol.definitions() in
   let name d = let 
       (c,_) = dest_const (lhs (concl d)) in c in
   let a = table_typed_term @ (map (fun d -> (name d,d)) dl) in
     map (fun (s,th) -> (s,canonize_thm th)) a;;
+*)
+
+
 
 
 (* ********************************************************************** *)
@@ -301,12 +334,95 @@ let example1 =
 (* history of theorems *)
 (* ********************************************************************** *)
 
+let get_simple_table_typ =
+  let split = Str.split (Str.regexp " +") in
+  let len_inductive_types = ref 0 in
+  let len_type_definitions = ref 0 in 
+  let current_canon = Hashtbl.create 50 in
+  let _ = Hashtbl.clear current_canon in
+  let p_can (s,t) = let th = canonize_thm t in
+    (s,(simple_digest_thm th,th))  in
+  let p_ind = (fun (s,(u,v)) -> hd(split s), (CONJ u v)) in
+  let p_def = (fun (a,_,_),(u,v) -> (a, (CONJ u v))) in 
+  let add_ind () = 
+    let _ = 
+    funpow (List.length !the_inductive_types - !len_inductive_types)
+      (function [] -> [] | x::xs -> 
+	 let (ty,th) = (p_can o p_ind) x in
+	 let _ = Hashtbl.add current_canon ty th in
+	   xs) !the_inductive_types in
+    let _ = len_inductive_types:= List.length !the_inductive_types in
+      () in
+  let add_def () = 
+    let _ = funpow (List.length !the_type_definitions - !len_type_definitions)
+      (function [] -> [] | x::xs ->
+	 let (ty,th) = (p_can o p_def) x in
+	 let _ = Hashtbl.add current_canon ty th in
+	   xs) !the_type_definitions in
+    let _ = len_type_definitions:= List.length !the_type_definitions in
+      () in
+  let _ = 
+    let xs = map (p_can o p_def) table_stray_typ in
+      map (fun (ty,th) -> Hashtbl.add current_canon ty th) xs in
+    fun sty -> try Hashtbl.find current_canon sty with Not_found ->
+      let _ = add_ind(); add_def() in
+	try Hashtbl.find current_canon sty with Not_found -> failwith ("Missing type: "^sty);;
+
+let get_simple_table_term =
+  let len_inductive_types = ref 0 in
+  let len_type_definitions = ref 0 in 
+  let len_definitions = ref 0 in
+  let current_canon = Hashtbl.create 2000 in
+  let _ = Hashtbl.clear current_canon in
+  let add (ty,th) = Hashtbl.add current_canon ty th in
+  let p_can (s,t) = let th = canonize_thm t in
+    (s,(simple_digest_thm th,th))  in
+  let add_ind () = 
+    let _ = 
+    funpow (List.length !the_inductive_types - !len_inductive_types)
+      (function [] -> [] | x::xs -> 
+	 let _ = map (add o p_can) (process_inductive_term x) in
+	   xs) !the_inductive_types in
+    let _ = len_inductive_types:= List.length !the_inductive_types in
+      () in
+  let add_table_typed_term ls k = 
+    let _ = funpow k
+      (function [] -> [] | x::xs ->
+	 let _ = map (add o p_can) (process_table_typed_term x) in
+	   xs) ls in
+      () in
+  let add_typed_term () = 
+    let k = List.length !the_type_definitions - !len_type_definitions in
+    let _ = add_table_typed_term !the_type_definitions k in
+    let _ = if (k>0) then len_type_definitions:= List.length !the_type_definitions in
+      () in
+  let add_table_term () = 
+    let hd = Hol.definitions() in
+    let n = List.length hd in
+    let k = n - !len_definitions in
+    let _ = 
+      funpow k
+	(function [] -> [] | x::xs -> 
+	   let _ = (add o p_can o process_table_def_term) x in
+	   xs) hd in
+    let _ = len_definitions := n in 
+      () in
+  let _ = add_table_typed_term table_stray_typ (List.length table_stray_typ) in
+  let _ = add_table_term(); add_ind(); add_typed_term();  in
+    fun sty -> try Hashtbl.find current_canon sty with Not_found ->
+      let _ = add_table_term(); add_ind(); add_typed_term();  in
+	try Hashtbl.find current_canon sty with Not_found -> failwith ("Missing term: "^sty);;
+
+
 let assocs s xl = 
   try assoc s xl with Failure _ -> failwith s;;
 
+(*
 let simple_table_typ = map (fun (ty,th) -> (ty,(simple_digest_thm th,th))) canon_table_typ;;
-
 let simple_table_term = map (fun (t,th) -> (t,(simple_digest_thm th,th))) canon_table_term;;
+
+*)
+
 
 (*
 let hash = Hashtbl.create 500;;
@@ -335,15 +451,19 @@ let hash2 = Hashtbl.create 2000;;
 Hashtbl.clear hash2;;
 
 let rec get_history_thm_rec2 ty_ignore tm_ignore (d,th)  =
-  try Hashtbl.find hash2 d with Not_found ->
+  try Hashtbl.find hash2 d with  | Not_found ->
     let sort_uniq = uniq o (sort (fun a b -> fst a < fst b)) in
     let ty = subtract (type_constants_in_thm th) ty_ignore in
     let tm = subtract (get_term_constants_in_thm th) tm_ignore in
-    let t1 = map (fun t -> assocs t simple_table_typ) ty in
-    let t2 = map (fun t -> assocs t simple_table_term) tm in
+(*    let t1 = map (fun t -> assocs t simple_table_typ) ty in *)
+    let t1 = map get_simple_table_typ ty in
+    let t2 = try map get_simple_table_term tm with 
+	Failure s -> (report (string_of_thm th); failwith s ) in 
     let t3 = filter (fun t -> not (d = fst t)) (t1 @ t2) in
     let ts = sort_uniq (t3) in
-    let f = List.flatten (map (get_history_thm_rec2 ty_ignore tm_ignore) ts) in
+    let try_history t1 = try get_history_thm_rec2 ty_ignore tm_ignore t1 with 
+	Failure s -> (report (string_of_thm (snd t1)); failwith s) in
+    let f = List.flatten (map try_history ts) in
     let f1 = (d,th) :: ts @ f in
     let f' = uniq  (sort (fun a b -> fst a < fst b) f1) in
     let _ = Hashtbl.add hash2 d f' in
@@ -404,6 +524,7 @@ let hashes = map (fun (s,t) -> (s,simple_digest_thm (canonize_thm t))) (!theorem
 let hashes2 = map (fun t -> snd t,fst t) hashes;;
 *)
 
+
 (*
 time full_digest_thm Pack2.PACKING;; (* "ba442e7e51b8bd5ee6903a114aa5eb8d" *)
 time full_digest_thm Pack2.PACKING;; (* "ba442e7e51b8bd5ee6903a114aa5eb8d" *)
@@ -412,17 +533,28 @@ time (simple_digest_thm o  canonize_thm) Tskajxy_034.TSKAJXY_034;; (* "7313b1f9b
 time full_digest_thm ETA_AX;; (* "63e9b5b016229a78bb720593f38b0b3e" *)
 time full_digest_thm REAL_LE_TRANS;; (* 9e9bbb6556672ce154be3c9e28380e33 *)
 time full_digest_thm Merge_ineq.example1;; (* "6288c02e24ab8dc0fd49b4ee2c1fdc33" *)
+mem "6288c02e24ab8dc0fd49b4ee2c1fdc33" Theorem_digest.digest_list_extern;;
+full_digest_thm Qzyzmjc.QZYZMJC;; (* "ce0814956a89ca0159839762dfd44b7d" *)
+mem "ce0814956a89ca0159839762dfd44b7d" Theorem_digest.digest_list_extern;;
 *)
 
 let digest_thms some_thml = 
-  let digests =  (map 
+  let digests =  map 
 		  (fun t -> try full_digest_thm t;
-		   with Failure s -> report ("cannot digest: "^(string_of_thm t)); "")) some_thml in
+		   with 
+		     | Failure s -> (report ("cannot digest: "^(string_of_thm t)); "") 
+		     | Not_found -> (report ("cannot digest, not found: "^(string_of_thm t)); "")) 
+		  some_thml in
     filter (fun s -> not (s = "")) digests;;
   
 (*
-let digest_list = (update_database(); 
-  time digest_thms (map snd (!theorems)));; (* 729 secs, 293 secs. 215 secs. *)
+let digest_list = 
+  let _ = update_database() in
+    time digest_thms (map snd (!theorems));; (* 729 secs, 293 secs. 215 secs. 191 secs. *)
+
+subtract digest_list Theorem_digest.digest_list_extern;;
+subtract Theorem_digest.digest_list_extern digest_list ;;
+
 *)
 
 let save_stringarray filename xs head sep tail = 
@@ -456,12 +588,6 @@ let dd1 = subtract Theorem_digest.digest_list_extern digest_list;;
 map (fun t -> assoc t hashes2) dd1;;
 *)
 
-module  String_compare : Set.OrderedType with type t = string = struct
-  type t = string;;
-  let  compare (t1:string) (t2:string) = Pervasives.compare (t1) (t2);;
-end;;
-
-module St = Set.Make(String_compare);;
 
 let set_of_string sl = 
   let acc = St.empty in
@@ -487,7 +613,7 @@ let mk_deserialize_thm =
   let mk_dthm t = INST [(t,rvar)] deserial_thm in
     fun t -> 
       let th = mk_dthm t in 
-      let d = full_digest_thm th in
+      let d = try full_digest_thm th with Not_found -> failwith ("digest failed "^string_of_thm th) in
       let _ = St.mem d digest_set or failwith ("theorem digest not found "^d) in
 	th;;
 
@@ -497,16 +623,27 @@ let deserialization_axiom () =
   let found = filter (fun u -> t = concl u && hyp u = []) ax in
     if (not(found=[])) then hd found else Hol.new_axiom t;;
 
-let mk_thm = 
+let mk_ser_thm = 
   let d = deserialization_axiom() in
     fun t -> 
       PROVE_HYP d (mk_deserialize_thm t);;
 
+let report_not_found t = report ("(-:) "^string_of_term t);;
+
 let des_prove (t,tac) = 
-  try mk_thm t with Failure _ -> Hol_pervasives.prove(t,tac);;
+  try 
+    let th = mk_ser_thm t in
+    let _ = report "(!:)" in
+      th
+  with Failure s -> (report_not_found t ;Hol_pervasives.prove(t,tac));;
   
 let des_prove_by_refinement (t,tacs) = 
-  try mk_thm t with Failure _ -> Prove_by_refinement.prove_by_refinement(t,tacs);;
+    try 
+    let th = mk_ser_thm t in
+    let _ = report "(!:)" in
+      th
+  with Failure s -> (report_not_found t ;Prove_by_refinement.prove_by_refinement(t,tacs));;
+
 
 (*
 mk_deserialize_thm (concl REAL_LE_TRANS);;

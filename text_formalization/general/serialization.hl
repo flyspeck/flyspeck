@@ -101,20 +101,6 @@ let canonize_thm th =
   let th4 =   EQ_MP eq th3 in
     funpow n UNDISCH th4;;
 
-
-
-(*
-canonize_thm (canonize_varty_in_thm Prove_lp.VAR_ADD_THM);;
-
-let testxx = 
-  let u = map (fun ((_,(_,y))) -> y) (searcht 5000 [`x`]) in
-  let v = filter (fun t -> List.length (thm_frees t) = 0) u in
-    List.rev (map canonize_thm v);;
-
-let testyy = 
-  map canonize_thm (definitions());;
-*)
-
 (* ********************************************************************** *)
 (* finding type constants and term constants *)
 (* ********************************************************************** *)
@@ -166,35 +152,6 @@ let table_stray_typ =
  ("nadd","mk_nadd","dest_nadd"), (nadd_abs,nadd_rep)
   ];;
 
-(*
-let table_inductive_typ = 
-  let split = Str.split (Str.regexp " +") in
-    map (fun (s,(u,v)) -> hd(split s), (CONJ u v)) !the_inductive_types;;
-
-let canon_table_typ = 
-  let tl = (!the_type_definitions) @ table_stray_typ in
-  let a1 = map (fun (a,_,_),(u,v) -> (a, (CONJ u v))) tl in
-  let b1 = a1 @ table_inductive_typ in
-    map (fun (s,t) -> (s,canonize_thm t)) b1;;
-*)
-
-(*  
-let table_inductive_term = 
-  let rs = map (tl o (Str.split (Str.regexp "[ |=]+"))) (map fst !the_inductive_types) in
-  let rs1 = map (fun t -> subtract t ["A";"B";"bool"]) rs in
-  let zz = zip rs1 (map snd !the_inductive_types) in
-  let zz2 = map (fun tl,(u,v) -> map (fun t -> (t, (CONJ u v))) tl) zz in
-    List.flatten zz2;;
-*)
-
-(*
-let table_typed_term = 
-  let tl = (!the_type_definitions) @ table_stray_typ in
-  let a1 = map (fun (_,b,_),(u,v) -> (b,CONJ u v)) tl in
-  let a2 = map (fun (_,_,c),(u,v) -> (c,CONJ u v)) tl in
-    a1 @ a2 @ table_inductive_term;;
-*)
-
 let process_inductive_term = 
   let reg = Str.split (Str.regexp "[ |=]+") in
   let ignores = ["A";"B";"bool"] in
@@ -205,34 +162,26 @@ let process_inductive_term =
       let zz2 = map (fun t -> (t, (CONJ u v))) rs1 in
     zz2;;
 
+(*
 let table_inductive_term = map process_inductive_term !the_inductive_types;;
+*)
 
 let process_table_typed_term tl =   
   let a1 = (fun (_,b,_),(u,v) -> (b,CONJ u v)) tl in
   let a2 = (fun (_,_,c),(u,v) -> (c,CONJ u v)) tl in
     [a1 ;a2];;
 
+(*
 let table_typed_term = 
   map process_inductive_term !the_inductive_types @
     map process_table_typed_term !the_type_definitions @ 
     map process_table_typed_term table_stray_typ;;
+*)
 
 let process_table_def_term = 
   let name d = let 
       (c,_) = dest_const (lhs (concl d)) in c in
     fun d -> (name d,d);;
-
-(*
-let canon_table_term = 
-  let dl = Hol.definitions() in
-  let name d = let 
-      (c,_) = dest_const (lhs (concl d)) in c in
-  let a = table_typed_term @ (map (fun d -> (name d,d)) dl) in
-    map (fun (s,th) -> (s,canonize_thm th)) a;;
-*)
-
-
-
 
 (* ********************************************************************** *)
 (* marker for deserialized theorems *)
@@ -281,42 +230,6 @@ let serialize_thm th =
   let h' = filter (not o is_deserial) h in
   let _ = addb "["; addbs serialize_termb h'; addb "] |- "; serialize_termb t in
     Buffer.contents buf;;
-
-(*
-let rec serialize_type ty = 
-  match ty with
-    | Tyvar s -> Printf.sprintf "Tyvar \"%s\"" s 
-    | Tyapp (s,tyl) -> 
-	let tyl' = map serialize_type tyl in
-	let syl = join_semi tyl' in
-	  Printf.sprintf "Tyapp(\"%s\",[%s])" s syl;;
-
-let rec serialize_term tm = 
-  match tm with
-    | Var(s,ty) ->  "Var(\""^s^"\","^serialize_type ty^")" 
-    | Const(s,ty) -> Printf.sprintf "Const(\"%s\",%s)" s (serialize_type ty)
-    | Comb(u,v) -> Printf.sprintf "Comb(%s,%s)" (serialize_term u) (serialize_term v)
-    | Abs(x,y) -> Printf.sprintf "Abs(%s,%s)" (serialize_term x) (serialize_term y);;
-
-let serialize_thm_old th = 
-  let (h,t) = dest_thm th in
-  let h' = filter (not o is_deserial) h in
-  let sh = join_semi (map serialize_term h') in
-  let st = serialize_term t in
-    Printf.sprintf ("[%s] |- %s") sh st;;
-
-serialize_thm_old ETA_AX;;
-serialize_thm ETA_AX;;
-ETA_AX;;
-*)
-
-(*
-let p0 = serialize_thm ETA_AX;;
-let p1 = serialize_thm ETA_AX;;
-String.length p0;;
-p0 = p1;;
-String.compare p0 p1;;
-*)
 
 let simple_digest_thm th = 
   (* let _ = (canonize_thm th = th)  or (report (string_of_thm1 th); failwith "smple") in *)
@@ -417,35 +330,6 @@ let get_simple_table_term =
 let assocs s xl = 
   try assoc s xl with Failure _ -> failwith s;;
 
-(*
-let simple_table_typ = map (fun (ty,th) -> (ty,(simple_digest_thm th,th))) canon_table_typ;;
-let simple_table_term = map (fun (t,th) -> (t,(simple_digest_thm th,th))) canon_table_term;;
-
-*)
-
-
-(*
-let hash = Hashtbl.create 500;;
-Hashtbl.clear hash;;
-
-let rec get_history_thm_rec thl ty_ignore tm_ignore (sub,add,listify,acc) = 
-  match thl with
-    |  [] -> listify acc
-    | (d,th)::thls -> 
-	let key = d in
-	let at = 
-	  (try Hashtbl.find hash key with Not_found ->  
-	    (let ty = subtract (type_constants_in_thm th) ty_ignore in
-	    let tm = subtract (get_term_constants_in_thm th) tm_ignore in
-	    let t1 = map (fun t -> assocs t simple_table_typ) ty in
-	    let t2 = map (fun t -> assocs t simple_table_term) tm in
-	    let t = nub (t1 @ t2) in
-	    let _ = Hashtbl.add hash key t in 
-	      t)) in
-	let bt = sub at acc in
-	  get_history_thm_rec (union bt thls) ty_ignore tm_ignore (sub,add,listify,add (d,th) acc);;
-*)
-
 let hash2 = Hashtbl.create 2000;;
 
 Hashtbl.clear hash2;;
@@ -469,28 +353,6 @@ let rec get_history_thm_rec2 ty_ignore tm_ignore (d,th)  =
     let _ = Hashtbl.add hash2 d f' in
       f';;
 
-(*
-module  Thm_compare : Set.OrderedType with type t = (string*thm) = struct
-  type t = (string* thm);;
-  let  compare ((s1:string),(t1:thm)) ((s2:string),(t2:thm)) = Pervasives.compare (s1) (s2);;
-end;;
-
-module Sm = Set.Make(Thm_compare);;
-
-let get_history_thm thl = 
-  let ty_ignore = ["bool";"fun";"ind"] in
-  let tm_ignore = ["=";"fun";"@";deserial] in
-  let acc = Sm.empty in
-  let listify = Sm.elements in
-  let add = Sm.add in
-  let sub ts acc = filter (fun t -> not (Sm.mem t acc)) ts in
-  let thl2 = map canonize_thm (thl @ (axioms())) in
-  let ds = map (fun t -> simple_digest_thm t,t) thl2 in
-    get_history_thm_rec2 
-      (nub ds) ty_ignore tm_ignore  (sub,add,listify,acc) ;;
-*)
-
-
 let get_history_thm1 = 
   let ty_ignore = ["bool";"fun";"ind"] in
   let tm_ignore = ["=";"fun";"@";deserial] in
@@ -503,14 +365,6 @@ let get_history_thm1 =
     fun th ->
       sort_uniq (ax_history @ get_history_thm_rec2 ty_ignore tm_ignore (mk th));;
 
-(*
-let full_digest_thm th = 
-  let history = time (get_history_thm) [th] in
-  let h2 = time (map fst) history in
-  let h4 = time (join_space  o   nub o  (Lib.sort (<))) h2 in
-    Digest.to_hex (Digest.string h4);;
-*)
-
 let full_digest_thm th = 
   let history =  (get_history_thm1) th in
   let h2 =  (map fst) history in
@@ -519,11 +373,6 @@ let full_digest_thm th =
 
 full_digest_thm ETA_AX =  "63e9b5b016229a78bb720593f38b0b3e" 
       or failwith "full_digest_thm error";;
-(*
-let hashes = map (fun (s,t) -> (s,simple_digest_thm (canonize_thm t))) (!theorems);;
-let hashes2 = map (fun t -> snd t,fst t) hashes;;
-*)
-
 
 (*
 time full_digest_thm Pack2.PACKING;; (* "ba442e7e51b8bd5ee6903a114aa5eb8d" *)

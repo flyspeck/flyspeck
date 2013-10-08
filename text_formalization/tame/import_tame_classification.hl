@@ -49,13 +49,13 @@ types: num, (A) list, (A ==> B), (A) Option, A#B, bool.
 (* type (a,b) table is (a#b) list *)
 *)
 
-(*
+
   type liz_ty = {
     liz_ty_loc : (string*int*int);
     liz_t : string;
     liz_h : string;
   };;
-*)
+
 
   let new_definition' t = 
     if has_stv t then (Print_types.print_term_types t; failwith "has stv") 
@@ -210,14 +210,12 @@ type_synonym 'a fgraph = "'a list list"
 
   let report_list_def = report_def HOLDIR "List.thy";;
 
-(*
   type liz_record = {
     liz_loc : (string*int*int);
     liz_name : string;
     liz_holl : term;
     liz_thm : thm;
   };;
-*)
 
   let print_liz t = 
     let (loc,a,b) = t.liz_loc in
@@ -336,10 +334,6 @@ report (get_tame_def "ListAux.thy" (167,170));;
       ("congs","\<cong>",'x',60); (* no direction 'l' 'r' assigned. Overloaded. *)
     ];;
 
-*)
-
-(*
-let translate a = ();;
 *)
 
 (*  infixes: =~ (congs) is congruence modulo rotation on lists,  -~ unused on lists.
@@ -1005,15 +999,15 @@ liz_thm = cong;
 };;
 
 let congs_rot = prove_by_refinement(
-  `!f1 f2. congs f1 f2 <=> (?n. n <= LENGTH f1 /\ f2 = rot n f1)`,
+  `!f1 f2.  f1 __cong f2 <=> (?n. n <= LENGTH f1 /\ f2 = rot n f1)`,
   (* {{{ proof *)
   [
   LIST_INDUCT_TAC;
-    REWRITE_TAC[congs;rotate_nil;Seq2.rot_nil;LENGTH];
+    REWRITE_TAC[cong;rotate_nil;Seq2.rot_nil;LENGTH];
     BY(MESON_TAC[arith `0 <= 0`]);
   REPEAT WEAKER_STRIP_TAC;
   REWRITE_TAC[Geomdetail.EQ_EXPAND];
-  REWRITE_TAC[congs];
+  REWRITE_TAC[cong];
   CONJ2_TAC;
     REPEAT WEAKER_STRIP_TAC;
     TYPIFY `n` EXISTS_TAC;
@@ -2207,7 +2201,8 @@ let squanderFace = new_definition' `squanderFace n =
     if (n=4) then 2060 else
       if (n=5) then 4819 else
 	if (n=6) then 7120 else squanderTarget`;;
-(* XX XX XX tchales, changed n=6 case from 7578, 1/15/2012 to match
+
+(* XXX XX XX tchales, changed n=6 case from 7578, 1/15/2012 to match
     tame_defs.hl, main_estimate_ineq.hl and graph generator *)
 
 liz_add {
@@ -2499,7 +2494,7 @@ parse_as_infix ("#?#",(16,"right"));;
 let is_pr_Hom = new_definition' `is_pr_Hom (phi:A->B) Fs1 Fs2 =
   ((( (MAP phi) #?# Fs1) //// (__cong)) = (Fs2 //// (__cong)))`;;
 
-REWRITE_RULE[IMAGE_INFIX;EQ_CLASS] is_pr_Hom;;
+(* REWRITE_RULE[IMAGE_INFIX;EQ_CLASS] is_pr_Hom;; *)
 
 let is_pr_Iso = new_definition' `is_pr_Iso (phi:A->B) Fs1 Fs2 = 
  (is_pr_Hom phi Fs1 Fs2 /\ inj_on phi (UNIONS (IMAGE (\ f. set_of_list f) Fs1  )))`;;
@@ -2550,9 +2545,11 @@ liz_thm = iso_fgraph;
 
 (* (tamefile "Completeness.thy",48,49) *)
 
+(* ?? __simeq = iso_fgraph??. Replace 2013-10-6 *)
+
 let import_tame_classification = new_definition' 
   `import_tame_classification_FAKE = 
-  (!g. PlaneGraphs g /\ tame g ==> (?y. y IN archive /\ (fgraph g) __simeq y))`;;
+  (!g. PlaneGraphs g /\ tame g ==> (?y. y IN archive /\ iso_fgraph (fgraph g) y))`;;
 
 
 (*
@@ -2599,89 +2596,6 @@ let CONG_NIL = prove_by_refinement(
   ]);;
   (* }}} *)
 
-(* not true, don't have uniq(list_of_darts y) :
-let good_iso_fgraph = prove_by_refinement(
-  `!x y. good_list x /\ iso_fgraph x y ==> good_list y`,
-  (* {{{ proof *)
-  [
-  rt[List_hypermap.good_list;iso_fgraph;is_iso;is_Iso;is_pr_Iso;is_pr_Hom;EQ_CLASS;IMAGE_INFIX;GSYM Seq2.ALL_all;GSYM ALL_MEM]
- ...
-  ]);;
-  (* }}} *)
-*)
-
-(*
-let list_pairs_rotate = prove_by_refinement(
-  `!n x. rotate n (list_pairs x) = list_pairs (rotate n x)`,
-  (* {{{ proof *)
-  [
-  rt[List_hypermap.list_pairs]
-  ]);;
-  (* }}} *)
-
-let list_of_darts_cong = prove_by_refinement(
-  `!x y. set_of_list (MAP (__cong) x) = set_of_list (MAP (__cong) y) ==>
-    set_of_list (list_of_darts x) = set_of_list (list_of_darts y)`,
-  (* {{{ proof *)
-  [
-  rt[EXTENSION;IN_SET_OF_LIST]
-    st/r
-  rt[List_hypermap.list_of_darts]
-
-  ]);;
-  (* }}} *)
-
-let good_cong_eq = prove_by_refinement(
-  `!x y. good_list x /\ good_list y /\ 
-   IMAGE (__cong) (set_of_list x) = IMAGE (__cong) (set_of_list y) ==>
-    hypermap_of_list x = hypermap_of_list y`,
-  (* {{{ proof *)
-  [
-rt[GSYM SET_OF_LIST_MAP]
-  st/r
-  rt[List_hypermap.hypermap_of_list]
-apterm
-    rt[PAIR_EQ]
-rt[List_hypermap.darts_of_list;List_hypermap.e_list_ext]
-
-
-rt[List_hypermap.f_list_ext;List_hypermap.n_list_ext;List_hypermap.n_list;List_hypermap.f_list]
-typ `darts_of_list x = darts_of_list y /\ list_of_darts x = list_of_darts y` ets
-mt[]
-  ]);;
-  (* }}} *)
-*)
-
-(*
-let good_iso = prove_by_refinement(
-  `!x y. good_list x /\ good_list y /\ iso_fgraph x y ==>
-  (iso (hypermap_of_list (x)) (hypermap_of_list (y)) \/
-     iso (opposite_hypermap (hypermap_of_list (x))) (hypermap_of_list (y)))`,
-  (* {{{ proof *)
-  [
-rt[List_hypermap.good_list;iso_fgraph;is_iso;is_Iso;is_pr_Iso;is_pr_Hom;EQ_CLASS;IMAGE_INFIX;GSYM Seq2.ALL_all;GSYM ALL_MEM]
-st/r
-fxa disjcase thenl [disj1;disj2]
-mmp Hypermap_iso.hyp_iso_imp_iso
-  ]);;
-  (* }}} *)
-*)
-
-let tame_good_concl = `!g. PlaneGraphs g /\ tame g ==> good_list (fgraph g)`;;
-
-let archive_good_concl = `!y. y IN archive ==> good_list y`;;
-
-let good_iso = `!x y. good_list x /\ good_list y /\ iso_fgraph x y ==>
-  (iso (hypermap_of_list (x)) (hypermap_of_list (y)) \/
-     iso (opposite_hypermap (hypermap_of_list (x))) (hypermap_of_list (y)))`;;
-
-let TAME_CORRESPONDENCE_MAIN_concl = `!H. tame_hypermap H ==>
-  (?g. PlaneGraphs g /\ tame g /\ iso H (hypermap_of_list (fgraph g)))`;;
-
-(* easy corollary of tame_good, archive_good, good_iso, TAME_CORRESPONDENCE_MAIN *)
-
-let TAME_CORRESPONDENCE_2_concl = `!H. tame_hypermap H /\ import_tame_classification_FAKE ==>
-  (?x. x IN archive /\ (iso H (hypermap_of_list x) \/ iso (opposite_hypermap H) (hypermap_of_list x)))`;;
 
 
 

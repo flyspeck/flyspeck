@@ -8,18 +8,11 @@
 (hol-light-run-process-if-needed)
 
 (setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
-(setq hol-light-interactive-buffer-name "*aug9*")
-(setq hol-light-interactive-buffer-name "*aug12*")
-(setq hol-light-interactive-buffer-name "*aug13*")
-(setq hol-light-interactive-buffer-name "*aug15*")
-(setq hol-light-interactive-buffer-name "*aug18*")
-(setq hol-light-interactive-buffer-name "*aug19*")
-(setq hol-light-interactive-buffer-name "*aug28*")
 (setq hol-light-interactive-buffer-name "*sep1*")
 (setq hol-light-interactive-buffer-name "*sep11*")
 (setq hol-light-interactive-buffer-name "*sep12*")
-(setq hol-light-interactive-buffer-name "*sep1*")
 (setq hol-light-interactive-buffer-name "*oct5*")
+(setq hol-light-interactive-buffer-name "*oct6*")
 
 
 

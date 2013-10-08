@@ -10,6 +10,15 @@ end;;
 (* WORK IN PROGRESS *)
 (* *************************************************************************** *)
 
+needs "Library/rstc.ml";;
+flyspeck_needs "hypermap/hypermap.hl";;
+flyspeck_needs "tame/import_tame_classification.hl";;
+
+module Tame_classification = struct
+end;;
+
+open Hypermap;;
+open Import_tame_classification;;
 
 (* hypermaps *)
 
@@ -31,12 +40,190 @@ let AQIUNPP2_concl =
 let hyp_t_exists = 
   `!H:(A)hypermap NF:(A)loop->bool L:(A)loop x:A. 
   is_marked H NF L x /\ ~(L IN final_loops H NF) ==>
-  (?t NF' L'.  transform POWER t (H,NF,L,x) = (H,NF',L',x) /\
+  (?t. (!NF' L'.  transform POWER t (H,NF,L,x) = (H,NF',L',x) ==>
       L' IN final_loops H NF') /\
   (!i NF' L'. i < t /\ transform POWER i (H,NF,L,x) = (H,NF',L',x) ==>
-      ~(L' IN final_loops H NF'))`;;
+      ~(L' IN final_loops H NF')))`;;
 
 (* hyp't = new_specification... *)
+
+let transform_H_concl = 
+  `transform (H,NF,L,x) = (N',NF',L',x') ==> H' = H`;;
+
+let transform_x_concl = 
+  `transform (H,NF,L,x) = (H',NF',L',x') ==> x' = x`;;
+
+let transform_z_index = new_definition
+  `transform_z_index (H,NF,L,x) i = 
+     (let (H',NF',L',x') = transform POWER i (H,N,L,x) in
+        (index L x (hyp'z H' NF' L' x')))`;;
+
+let transform_p_index = new_definition
+  `transform_p_index (H,NF,L,x) i = 
+     (let (H',NF',L',x') = transform POWER i (H,N,L,x) in
+	hyp'p H' NF' L' x')`;;
+
+(* 
+let good_iso_fgraph = prove_by_refinement(
+  `!x y. good_list x /\ iso_fgraph x y /\ uniq(list_of_darts y) ==> good_list y`,
+  (* {{{ proof *)
+  [
+  rt[List_hypermap.good_list;iso_fgraph;is_iso;is_Iso;is_pr_Iso;is_pr_Hom;EQ_CLASS;IMAGE_INFIX;GSYM Seq2.ALL_all;GSYM ALL_MEM]
+ ...
+  ]);;
+  (* }}} *)
+*)
+
+(*
+let list_pairs_rotate = prove_by_refinement(
+  `!n x. rotate n (list_pairs x) = list_pairs (rotate n x)`,
+  (* {{{ proof *)
+  [
+  rt[List_hypermap.list_pairs]
+  ]);;
+  (* }}} *)
+
+let list_of_darts_cong = prove_by_refinement(
+  `!x y. set_of_list (MAP (__cong) x) = set_of_list (MAP (__cong) y) ==>
+    set_of_list (list_of_darts x) = set_of_list (list_of_darts y)`,
+  (* {{{ proof *)
+  [
+  rt[EXTENSION;IN_SET_OF_LIST]
+    st/r
+  rt[List_hypermap.list_of_darts]
+
+  ]);;
+  (* }}} *)
+
+let good_cong_eq = prove_by_refinement(
+  `!x y. good_list x /\ good_list y /\ 
+   IMAGE (__cong) (set_of_list x) = IMAGE (__cong) (set_of_list y) ==>
+    hypermap_of_list x = hypermap_of_list y`,
+  (* {{{ proof *)
+  [
+rt[GSYM SET_OF_LIST_MAP]
+  st/r
+  rt[List_hypermap.hypermap_of_list]
+apterm
+    rt[PAIR_EQ]
+rt[List_hypermap.darts_of_list;List_hypermap.e_list_ext]
+
+
+rt[List_hypermap.f_list_ext;List_hypermap.n_list_ext;List_hypermap.n_list;List_hypermap.f_list]
+typ `darts_of_list x = darts_of_list y /\ list_of_darts x = list_of_darts y` ets
+mt[]
+  ]);;
+  (* }}} *)
+*)
+
+(*
+let good_iso = prove_by_refinement(
+  `!x y. good_list x /\ good_list y /\ iso_fgraph x y ==>
+  (iso (hypermap_of_list (x)) (hypermap_of_list (y)) \/
+     iso (opposite_hypermap (hypermap_of_list (x))) (hypermap_of_list (y)))`,
+  (* {{{ proof *)
+  [
+rt[List_hypermap.good_list;iso_fgraph;is_iso;is_Iso;is_pr_Iso;is_pr_Hom;EQ_CLASS;IMAGE_INFIX;GSYM Seq2.ALL_all;GSYM ALL_MEM]
+st/r
+fxa disjcase thenl [disj1;disj2]
+mmp Hypermap_iso.hyp_iso_imp_iso
+  ]);;
+  (* }}} *)
+*)
+
+let tame_good_concl = `!g. PlaneGraphs g /\ tame g ==> good_list (fgraph g)`;;
+
+let archive_good_concl = `!y. y IN archive ==> good_list y`;;
+
+let good_iso = `!x y. good_list x /\ good_list y /\ iso_fgraph x y ==>
+  (iso (hypermap_of_list (x)) (hypermap_of_list (y)) \/
+     iso (opposite_hypermap (hypermap_of_list (x))) (hypermap_of_list (y)))`;;
+
+let tame9a_correspondence = `!H g. tame_hypermap H /\ PlaneGraphs g /\
+  iso H (hypermap_of_list (fgraph g)) ==>
+  tame9a g`;;
+
+let tame10_correspondence = `!H g. tame_hypermap H /\ PlaneGraphs g /\
+  iso H (hypermap_of_list (fgraph g)) ==>
+  tame10 g`;;
+
+let tame11a_correspondence = `!H g. tame_hypermap H /\ PlaneGraphs g /\
+  iso H (hypermap_of_list (fgraph g)) ==>
+  tame11a g`;;
+
+let tame12o_correspondence = `!H g. tame_hypermap H /\ PlaneGraphs g /\
+  iso H (hypermap_of_list (fgraph g)) ==>
+  tame12o g`;;
+
+let tame13a_correspondence = `!H g. tame_hypermap H /\ PlaneGraphs g /\
+  iso H (hypermap_of_list (fgraph g)) ==>
+  tame13a g`;;
+
+let tame_correspondence = `!H g. tame_hypermap H /\ PlaneGraphs g /\
+  iso H (hypermap_of_list (fgraph g)) ==>
+  tame g`;;
+
+let plane_step = `!g p fs f v n e vl. 
+  (Seed p, g) IN RTranCl (next_plane p) /\
+  fs = nonFinals g /\
+  ~(fs = []) /\
+  f = minimalFace fs /\
+  v = minimalVertex g f /\
+  3 <= n /\ n <= maxGon p /\
+  e IN enumerator n (LENGTH (vertices f)) /\
+  ~(containsDuplicateEdge g f v e) /\
+  vl = indexToVertexList f v e 
+ ==>
+  (Seed p, subdivFace g f vl) IN RTranCl (next_plane p)`;;  
+
+let plane_correspondence_seed = `!H p. dih2k H p ==>
+  iso H (hypermap_of_list (fgraph (Seed p)))`;;
+
+let iso_correspondence_finals = new_definition
+  `iso_corresponding_finals phi H NF g <=>
+    (hyp_iso phi ((quotient H NF) ,(hypermap_of_list (fgraph g))) /\
+       MAP (IMAGE phi) (final_quotient_faces H NF) = 
+	map (darts_of_list o vertices ) (filter SND (faces g)))`;;
+
+let enumerator_exists = 
+` `;;
+
+let plane_correspondence_step = `!H NF phi g p.
+  (Seed p, g) IN RTranCl (next_plane p) /\
+  iso_correspondence_finals phi H NF g /\
+  fs = nonFinals g /\
+  ~(fs = []) /\
+  f = minimalFace fs /\
+  v = minimalVertex g f /\
+  3 <= n /\ n <= maxGon p /\
+  e IN enumerator n (LENGTH (vertices f)) /\
+  IMAGE phi qf = map (darts_of_list o vertices ) f /\
+  ~(containsDuplicateEdge g f v e) /\
+  vl = indexToVertexList f v e  /\
+  IMAGE phi (dart_of_loop L) =  list_pairs f /\
+  x in_dart_of_loop L /\
+  FST (phi x) = v /\ 
+  // add matching p-q data with e.
+  (H,NF',L',x) = transform POWER (hyp't H NF L X)  (H,NF,L,x) 
+ ==>
+  (?phi'. iso_correspondence_finals phi' H NF' (subdivFace g f vl))`;;
+  
+
+
+
+let flag_correspondece = `!
+
+
+
+let TAME_CORRESPONDENCE_MAIN_concl = `!H. tame_hypermap H ==>
+  (?g. PlaneGraphs g /\ iso H (hypermap_of_list (fgraph g)))`;;
+
+(* easy corollary of tame_good, archive_good, good_iso, TAME_CORRESPONDENCE_MAIN *)
+
+let TAME_CORRESPONDENCE_2_concl = `!H. tame_hypermap H /\ import_tame_classification_FAKE ==>
+  (?x. x IN archive /\ (iso H (hypermap_of_list x) \/ iso (opposite_hypermap H) (hypermap_of_list x)))`;;
+
+
 
 let transform_index;;
 

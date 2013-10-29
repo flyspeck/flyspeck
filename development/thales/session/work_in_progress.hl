@@ -20,48 +20,57 @@ end;;
 open Hypermap;;
 open Import_tame_classification;;
 
+parse_as_infix("POWER",(24,"right"));;
+
+parse_as_infix("in_dart_of_loop",(11,"right"));;
+
+parse_as_infix("iso",(24,"right"));;
+
 (* hypermaps *)
 
 let QRDYXYJ = Hypermap.lemmaParameters;;
 
 let AQIUNPP1 = Hypermap.lemma_normal_family_transform;;
 
-let transform = new_definition `transform
-  (H:(A)hypermap,NF,L,x) = (H,family_transform H NF L x,loop1_transform H NF x,x)`;;
-
+let transform = new_definition `transform (H:(A)hypermap) x (NF,L) = 
+  (family_transform H NF L x,loop1_transform H NF L x)`;;
 
 let AQIUNPP2_concl = 
   `!H:(A)hypermap NF:(A)loop->bool L:(A)loop x:A. 
-  is_marked H NF L x /\ ~(L IN final_loops H NF) 
-   ==> is_marked (transform (H,NF,L,x))`;;
+  is_marked (H ,NF, L, x) /\ ~(L IN final_loops H NF) 
+   ==> (let (NF',L') =  (transform H x (NF,L)) in is_marked (H,NF',L',x))`;;
 
 (* hyp't. *)
 
+(*
 let hyp_t_exists = 
   `!H:(A)hypermap NF:(A)loop->bool L:(A)loop x:A. 
   is_marked H NF L x /\ ~(L IN final_loops H NF) ==>
-  (?t. (!NF' L'.  transform POWER t (H,NF,L,x) = (H,NF',L',x) ==>
+  (?t. (!NF' L'.  (transform H x) POWER t (NF,L) = (NF',L') ==>
       L' IN final_loops H NF') /\
-  (!i NF' L'. i < t /\ transform POWER i (H,NF,L,x) = (H,NF',L',x) ==>
+  (!i NF' L'. i < t /\ (transform H x) POWER i (NF,L) = (NF',L') ==>
       ~(L' IN final_loops H NF')))`;;
+*)
 
 (* hyp't = new_specification... *)
 
+(*
 let transform_H_concl = 
   `transform (H,NF,L,x) = (N',NF',L',x') ==> H' = H`;;
 
 let transform_x_concl = 
   `transform (H,NF,L,x) = (H',NF',L',x') ==> x' = x`;;
+*)
 
 let transform_z_index = new_definition
   `transform_z_index (H,NF,L,x) i = 
-     (let (H',NF',L',x') = transform POWER i (H,N,L,x) in
-        (index L x (hyp'z H' NF' L' x')))`;;
+     (let (NF',L') = (transform H x POWER i) (NF,L) in
+        (index L x (hyp'z H NF' L' x)))`;;
 
 let transform_p_index = new_definition
   `transform_p_index (H,NF,L,x) i = 
-     (let (H',NF',L',x') = transform POWER i (H,N,L,x) in
-	hyp'p H' NF' L' x')`;;
+     (let (NF',L') = (transform H x POWER i) (NF,L) in
+	hyp'p H NF' L' x)`;;
 
 (* 
 let good_iso_fgraph = prove_by_refinement(
@@ -163,6 +172,10 @@ let tame_correspondence = `!H g. tame_hypermap H /\ PlaneGraphs g /\
   iso H (hypermap_of_list (fgraph g)) ==>
   tame g`;;
 
+make_overloadable "vertices" `:B -> (num list)`;;
+
+overload_interface ("vertices",`FST:num list # bool -> num list`);;
+
 let plane_step = `!g p fs f v n e vl. 
   (Seed p, g) IN RTranCl (next_plane p) /\
   fs = nonFinals g /\
@@ -170,7 +183,7 @@ let plane_step = `!g p fs f v n e vl.
   f = minimalFace fs /\
   v = minimalVertex g f /\
   3 <= n /\ n <= maxGon p /\
-  e IN enumerator n (LENGTH (vertices f)) /\
+  MEM e (enumerator n (LENGTH (vertices f))) /\
   ~(containsDuplicateEdge g f v e) /\
   vl = indexToVertexList f v e 
  ==>
@@ -185,8 +198,45 @@ let iso_correspondence_finals = new_definition
        MAP (IMAGE phi) (final_quotient_faces H NF) = 
 	map (darts_of_list o vertices ) (filter SND (faces g)))`;;
 
-let enumerator_exists = 
-` `;;
+let subdivFace_step = new_recursive_definition list_RECURSION
+  `(subdivFace_step g f u n [] = (g,f,u,[])) /\
+    (subdivFace_step g f u n (vo :: vos) = 
+      if (vo = NONE) then subdivFace_step g f u (SUC n) vos else
+	(let v = the vo in
+	   if (nextVertex f u = v /\ n = 0) then subdivFace_step g f v 0 vos
+	   else 
+	     (let ws = upt (countVertices g) (countVertices g + n) in
+	      let (f1,f2,g') = splitFace g u v f ws in
+		(g',f2,v,vos))))`;;
+
+let subdivFace_instep = 
+  `subdivFace0 g f u 0 [] = makeFaceFinal f g /\
+   subdivFace0 g f u 0 vos = 
+    (let (g',f',v',vos') = subdivFace_step g f u 0 vos in subdivFace0 g' f' u' 0 vos')`;;
+
+let subdivFace_shorten = 
+  `~(vos = []) /\ (g',f',v',vos') = subdivFace_step g f u n vos ==>
+  LENGTH vos' < LENGTH vos`;;
+
+let face_index_on_loop = new_definition `face_index_on_loop L f x' d i = 
+  (let y = (f POWER i ) x' in
+     (if y in_dart_of_loop L 
+     then index L x' y
+     else d))`;;
+
+let hyp_enumeration = new_definition `hyp_enumeration L f x' n = 
+  REVERSE (foldr (\i bs. CONS (face_index_on_loop L f x' (HD bs) i) bs) [0] (iota 0 n))`;;
+
+let hyp't = new_definition `hyp't L f x' n = 
+  (let rs = hyp_enumeration L f x' n in
+     CARD { i | 0 < i /\ i < n /\ SUC (EL (i-1) rs) < EL i rs })`;;
+
+(* fix *)
+(*
+let hyp_enumeration_enumerates = 
+ `MEM (hyp_enumeration L f x' n) 
+   (FILTER (\is. ~(containsDuplicateEdge g f v is)) (enumerator n (LENGTH (vertices f))))`;;
+
 
 let plane_correspondence_step = `!H NF phi g p.
   (Seed p, g) IN RTranCl (next_plane p) /\
@@ -196,7 +246,7 @@ let plane_correspondence_step = `!H NF phi g p.
   f = minimalFace fs /\
   v = minimalVertex g f /\
   3 <= n /\ n <= maxGon p /\
-  e IN enumerator n (LENGTH (vertices f)) /\
+  MEM e (enumerator n (LENGTH (vertices f))) /\
   IMAGE phi qf = map (darts_of_list o vertices ) f /\
   ~(containsDuplicateEdge g f v e) /\
   vl = indexToVertexList f v e  /\
@@ -204,26 +254,648 @@ let plane_correspondence_step = `!H NF phi g p.
   x in_dart_of_loop L /\
   FST (phi x) = v /\ 
   // add matching p-q data with e.
-  (H,NF',L',x) = transform POWER (hyp't H NF L X)  (H,NF,L,x) 
+  (NF',L') = (transform H x) POWER (hyp't H NF L X)  (NF,L) 
  ==>
   (?phi'. iso_correspondence_finals phi' H NF' (subdivFace g f vl))`;;
   
-
-
-
-let flag_correspondece = `!
-
+let flag_correspondece = `! `;;
+*)
 
 
 let TAME_CORRESPONDENCE_MAIN_concl = `!H. tame_hypermap H ==>
-  (?g. PlaneGraphs g /\ iso H (hypermap_of_list (fgraph g)))`;;
+  (?g. PlaneGraphs g /\ H iso (hypermap_of_list (fgraph g)))`;;
 
 (* easy corollary of tame_good, archive_good, good_iso, TAME_CORRESPONDENCE_MAIN *)
 
-let TAME_CORRESPONDENCE_2_concl = `!H. tame_hypermap H /\ import_tame_classification_FAKE ==>
-  (?x. x IN archive /\ (iso H (hypermap_of_list x) \/ iso (opposite_hypermap H) (hypermap_of_list x)))`;;
+let TAME_CORRESPONDENCE_2_concl = 
+ `!H. tame_hypermap H /\ import_tame_classification_FAKE ==>
+  (?x. x IN archive /\ (H iso (hypermap_of_list x) \/  
+  (opposite_hypermap H) iso (hypermap_of_list x)))`;;
+
+
+(* START PROOFS HERE *)
+
+(*
+let AQIUNPP2 = prove_by_refinement(
+  `!H:(A)hypermap NF:(A)loop->bool L:(A)loop x:A. 
+  is_marked (H ,NF, L, x) /\ ~(L IN final_loops H NF) 
+   ==> (let (NF',L') =  (transform H x (NF,L)) in is_marked (H,NF',L',x))`,
+  (* {{{ proof *)
+  [
+g/r
+st
+intro Hypermap.lemma_normal_family_transform [`H`;`NF`;`L`;`x`]
+art[]
+repeat (pop mp)
+rt[LET_THM;transform;is_marked]
+st/r
+art[]
+comment "1st"
+conj
+rt[family_transform]
+set[]
+
+xxd
+comment "2nd"
+conj
+rt[in_dart_of_loop;loop1_transform]
+gm lemma_generate_loop
+rt[path1_transform;glue]
+  ]);;
+  (* }}} *)
+*)
+
+let tame9a_iso = prove_by_refinement(
+  `!H H' f. tame_9a H /\ hyp_iso f (H,H') ==> tame_9a H'`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.tame_9a];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Hypermap_iso.hyp_iso_card_components [`H`;`H'`;`f`];
+  ASM_REWRITE_TAC[];
+  TYPIFY_GOAL_THEN `?y. y IN dart H /\ f y = x` MP_TAC;
+    INTRO_TAC Hypermap_iso.iso_dart [`H'`;`f`;`H`];
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM MP_TAC;
+    BY(SET_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM (C INTRO_TAC [`y`]));
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let tame10_iso = prove_by_refinement(
+  `!H H' f. tame_10 H /\ hyp_iso f (H,H') ==> tame_10 H'`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.tame_10];
+  REPEAT WEAKER_STRIP_TAC;
+  BY(ASM_MESON_TAC[Hypermap_iso.iso_number_of_nodes])
+  ]);;
+  (* }}} *)
+
+let tame11a_iso = prove_by_refinement(
+  `!H H' f. tame_11a H /\ hyp_iso f (H,H') ==> tame_11a H'`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.tame_11a];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Hypermap_iso.hyp_iso_card_components [`H`;`H'`;`f`];
+  ASM_REWRITE_TAC[];
+  TYPIFY_GOAL_THEN `?y. y IN dart H /\ f y = x` MP_TAC;
+    INTRO_TAC Hypermap_iso.iso_dart [`H'`;`f`;`H`];
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM MP_TAC;
+    BY(SET_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM (C INTRO_TAC [`y`]));
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let tgt_squanderTarget = prove_by_refinement(
+  `tgt = &squanderTarget / &10000`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Import_tame_classification.squanderTarget;Tame_defs.tgt];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let d_tame_squanderFace = prove_by_refinement(
+  `!n.  (d_tame n) = & (squanderFace n)  / &10000`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.d_tame;Import_tame_classification.squanderFace;tgt_squanderTarget];
+  GEN_TAC;
+  ASM_CASES_TAC `n = 3`;
+    ASM_REWRITE_TAC[];
+    BY(REAL_ARITH_TAC);
+  ASM_CASES_TAC `n=4`;
+    BY(ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC);
+  ASM_CASES_TAC `n=5`;
+    BY(ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC);
+  ASM_CASES_TAC `n=6`;
+    BY(ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC);
+  BY(ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let b_tame_squanderVertex = prove_by_refinement(
+  `!p q. b_tame p q = &(squanderVertex p q) / &10000`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.b_tame;Import_tame_classification.squanderVertex;tgt_squanderTarget];
+  REPEAT GEN_TAC;
+  REWRITE_TAC[PAIR_EQ];
+  TYPIFY_GOAL_THEN `!b a a'. &(if b then a else a') / &10000 = if b then (&a / &10000) else (&a' / &10000)` (unlist REWRITE_TAC);
+    BY(REAL_ARITH_TAC);
+  TYPIFY_GOAL_THEN `!a. DECIMAL a 1000 = &(a * 10) / &10000 /\ DECIMAL a 100 = &(a * 100) / &10000 /\ DECIMAL a 10000 = &a / &10000` (unlist REWRITE_TAC);
+    REWRITE_TAC[DECIMAL;GSYM REAL_OF_NUM_MUL];
+    BY(REAL_ARITH_TAC);
+  BY(NUM_REDUCE_TAC)
+  ]);;
+  (* }}} *)
+
+let a_tame_excessTCount = prove_by_refinement(
+  `a_tame = &excessTCount/ &10000`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.a_tame;Import_tame_classification.excessTCount];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let BIJ_face_iso = prove_by_refinement(
+  `!f (H:(A)hypermap) (H':(B)hypermap) c x' x. 
+    f x = x' /\ hyp_iso f (H,H') /\ x IN dart H  /\ x' IN dart H' ==>
+     BIJ (IMAGE f) {face H y | y | y IN dart H /\ c (CARD (face H y)) /\ y IN node H x}
+      {face H' y' | y' | y' IN dart H' /\ c (CARD (face H' y')) /\ y' IN node H' x'}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[BIJ];
+  SUBCONJ_TAC;
+    REWRITE_TAC[INJ];
+    CONJ_TAC;
+      REWRITE_TAC[IN_ELIM_THM];
+      REPEAT WEAKER_STRIP_TAC;
+      TYPIFY `f y` EXISTS_TAC;
+      ASM_REWRITE_TAC[];
+      INTRO_TAC Hypermap_iso.hyp_iso_card_components [`H`;`H'`;`f`];
+      ASM_REWRITE_TAC[];
+      DISCH_TAC;
+      CONJ2_TAC;
+        BY(ASM_MESON_TAC[Lunar_deform.IMAGE_FACE_F]);
+      CONJ_TAC;
+        INTRO_TAC Hypermap_iso.iso_dart [`H'`;`f`;`H`];
+        ASM_REWRITE_TAC[];
+        DISCH_THEN (unlist REWRITE_TAC);
+        MATCH_MP_TAC FUN_IN_IMAGE;
+        BY(ASM_REWRITE_TAC[]);
+      CONJ_TAC;
+        BY(ASM_MESON_TAC[IN]);
+      INTRO_TAC Hypermap_iso.iso_components [`H'`;`f`;`H`];
+      ASM_REWRITE_TAC[];
+      DISCH_THEN (C INTRO_TAC [`x`]);
+      ANTS_TAC;
+        BY(ASM_REWRITE_TAC[IN]);
+      ASM_REWRITE_TAC[];
+      DISCH_THEN (unlist REWRITE_TAC);
+      MATCH_MP_TAC FUN_IN_IMAGE;
+      BY(ASM_REWRITE_TAC[IN]);
+    COMMENT "INJ";
+    REWRITE_TAC[IN_ELIM_THM];
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC Hypermap_iso.hyp_iso_INJ [`f`;`H`;`H'`];
+    ANTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    REWRITE_TAC[INJ];
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC Hypermap_iso.image_set_inj_gen [`dart H`;`f`];
+    ANTS_TAC;
+      BY(FIRST_X_ASSUM MP_TAC THEN MESON_TAC[]);
+    DISCH_THEN (C INTRO_TAC [`x''`;`y`]);
+    DISCH_THEN MATCH_MP_TAC;
+    FIRST_X_ASSUM_ST `IMAGE` (unlist REWRITE_TAC);
+    BY(ASM_MESON_TAC[Hypermap.lemma_face_subset]);
+  REWRITE_TAC[INJ];
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "surj";
+  REWRITE_TAC[SURJ];
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[IN_ELIM_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  REBIND_TAC (`y:A`,"z");
+  INTRO_TAC Hypermap_iso.iso_components [`H'`;`f`;`H`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_THEN (C INTRO_TAC [`x`]);
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[IN]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `?z. f z = y' /\ z IN node H x /\ z IN dart H` (C SUBGOAL_THEN MP_TAC);
+    FIRST_X_ASSUM_ST `node` MP_TAC;
+    REWRITE_TAC[IMAGE];
+    REWRITE_TAC[EXTENSION];
+    REWRITE_TAC[IN_ELIM_THM];
+    DISCH_THEN (C INTRO_TAC [`y'`]);
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `x'''` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN REPEAT (FIRST_X_ASSUM_ST `x IN dart H` MP_TAC);
+    BY(SET_TAC[Hypermap.lemma_node_subset;IN]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `face H z` EXISTS_TAC;
+  SUBCONJ2_TAC;
+    EXPAND_TAC "y'";
+    BY(ASM_MESON_TAC[Hypermap_iso.iso_components;IN]);
+  DISCH_TAC;
+  TYPIFY `z` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  TYPIFY `CARD (face H z) = CARD (face H' y')` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[]);
+  BY(ASM_MESON_TAC[Hypermap_iso.hyp_iso_card_components;IN])
+  ]);;
+  (* }}} *)
+
+Hypermap.lemma_face_representation;;
+
+let BIJ_face_set_iso = prove_by_refinement(
+  `!f (H:(A)hypermap) (H':(B)hypermap) . 
+    hyp_iso f (H,H')  ==>
+     BIJ (IMAGE f) (face_set H) (face_set H')`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[BIJ];
+  SUBCONJ2_TAC;
+    TYPIFY `IMAGE (IMAGE f) (face_set H) = (face_set H')` ENOUGH_TO_SHOW_TAC;
+      BY(ASM_MESON_TAC[Misc_defs_and_lemmas.IMAGE_SURJ]);
+    BY(ASM_MESON_TAC[Hypermap_iso.iso_face_set]);
+  REWRITE_TAC[SURJ;INJ];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  COMMENT "INJ";
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `?x1 x2. x1 IN dart H /\ x2 IN dart H /\ x = face H x1 /\ y = face H x2` (C SUBGOAL_THEN MP_TAC);
+    BY(ASM_MESON_TAC[Hypermap.lemma_face_representation]);
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  INTRO_TAC Hypermap_iso.hyp_iso_INJ [`f`;`H`;`H'`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[INJ];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Hypermap_iso.image_set_inj_gen [`dart H`;`f`];
+  ANTS_TAC;
+    BY(FIRST_X_ASSUM MP_TAC THEN MESON_TAC[]);
+  DISCH_THEN (C INTRO_TAC [`x`;`y`]);
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[Hypermap.lemma_face_subset]);
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let CARD_face_iso = prove_by_refinement(
+  `!f (H:(A)hypermap) (H':(B)hypermap) c x' x. 
+    f x = x' /\ hyp_iso f (H,H') /\ x IN dart H  /\ x' IN dart H' ==>
+     CARD {face H y | y | y IN dart H /\ c (CARD (face H y)) /\ y IN node H x} = 
+      CARD {face H' y' | y' | y' IN dart H' /\ c (CARD (face H' y')) /\ y' IN node H' x'}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC Misc_defs_and_lemmas.BIJ_CARD;
+  TYPIFY `IMAGE f` EXISTS_TAC;
+  CONJ_TAC;
+    MATCH_MP_TAC FINITE_SUBSET;
+    TYPIFY `IMAGE (face H) (dart H)` EXISTS_TAC;
+    CONJ_TAC;
+      MATCH_MP_TAC FINITE_IMAGE;
+      BY(REWRITE_TAC[Hypermap.node_map_and_darts]);
+    BY(SET_TAC[]);
+  MATCH_MP_TAC BIJ_face_iso;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let exceptional_face_dart = prove_by_refinement(
+  `!H x. exceptional_face H x ==> x IN dart H`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.exceptional_face];
+  REPEAT WEAKER_STRIP_TAC;
+  PROOF_BY_CONTR_TAC;
+  INTRO_TAC Hypermap.lemma_face_exception [`H`;`x`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  FIRST_X_ASSUM_ST `CARD` MP_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[CARD_SING];
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let exceptional_face_iso = prove_by_refinement(
+  `!H H' f x. exceptional_face H x /\ hyp_iso f (H,H') ==>
+   exceptional_face H' (f x)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC exceptional_face_dart [`H`;`x`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  FIRST_X_ASSUM_ST `exceptional_face` MP_TAC;
+  REWRITE_TAC[Tame_defs.exceptional_face];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `CARD (face H x) = CARD (face H' (f x))` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[]);
+  BY(ASM_MESON_TAC[Hypermap_iso.hyp_iso_card_components])
+  ]);;
+  (* }}} *)
+
+let exceptional_face_iso_inv = prove_by_refinement(
+  `!H H' (f:A->B) x. x IN dart H /\ exceptional_face H' (f x) /\ hyp_iso f (H,H') ==>
+   exceptional_face H x`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Hypermap_iso.hyp_iso_inv [`f`;`H'`;`H`];
+  ASM_REWRITE_TAC[];
+  TYPED_ABBREV_TAC `g = res_inv f (dart H)`;
+  INTRO_TAC exceptional_face_iso [`H'`;`H`;`g`;`f x`];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `g (f x) = x` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[]);
+  EXPAND_TAC "g";
+  MATCH_MP_TAC Hypermap_iso.inj_res_inv_left;
+  TYPIFY `dart H'` EXISTS_TAC;
+  CONJ_TAC;
+    MATCH_MP_TAC Hypermap_iso.hyp_iso_INJ;
+    BY(ASM_REWRITE_TAC[]);
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let node_exceptional_face_iso = prove_by_refinement(
+  `!H H' f x. x IN dart H /\ node_exceptional_face H x /\ hyp_iso f (H,H') ==>
+   node_exceptional_face H' (f x)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.node_exceptional_face];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC exceptional_face_iso_inv [`H`;`H'`;`f`;`x`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY `CARD (node H x) = CARD (node H' (f x))` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[]);
+  BY(ASM_MESON_TAC[Hypermap_iso.hyp_iso_card_components])
+  ]);;
+  (* }}} *)
+
+let node_type_exceptional_face_iso = prove_by_refinement(
+  `!H H' f x. x IN dart H /\ node_type_exceptional_face H x /\ hyp_iso f (H,H') ==>
+    node_type_exceptional_face H' (f x)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.node_type_exceptional_face];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC exceptional_face_iso_inv [`H`;`H'`;`f`;`x`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY `CARD (node H x) = CARD (node H' (f x)) /\ type_of_node H x = type_of_node H' (f x)` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[]);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[Hypermap_iso.hyp_iso_card_components]);
+  REWRITE_TAC[Tame_defs.node_exceptional_face;Tame_defs.exceptional_face;Tame_defs.type_of_node;Tame_defs.set_of_triangles_meeting_node;Tame_defs.set_of_quadrilaterals_meeting_node;Tame_defs.set_of_exceptional_meeting_node;PAIR_EQ];
+  TYPIFY `f x IN dart H'` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Hypermap_iso.hyp_iso_dart]);
+  BY(REPEAT CONJ_TAC THEN MATCH_MP_TAC CARD_face_iso THEN TYPIFY `f` EXISTS_TAC THEN ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let tame12o_iso = prove_by_refinement(
+  `!H H' f. tame_12o H /\ hyp_iso f (H,H') ==> tame_12o H'`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.tame_12o];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `x IN dart H'` ASM_CASES_TAC;
+    TYPIFY `?t. t IN dart H /\ x = f t` (C SUBGOAL_THEN MP_TAC);
+      INTRO_TAC Hypermap_iso.iso_dart [`H'`;`f`;`H`];
+      BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN SET_TAC[]);
+    REPEAT WEAKER_STRIP_TAC;
+    CONJ_TAC;
+      ASM_REWRITE_TAC[] THEN MATCH_MP_TAC node_type_exceptional_face_iso;
+      TYPIFY `H` EXISTS_TAC;
+      BY(ASM_REWRITE_TAC[]);
+    ASM_REWRITE_TAC[] THEN MATCH_MP_TAC node_exceptional_face_iso;
+    TYPIFY `H` EXISTS_TAC;
+    BY(ASM_MESON_TAC[]);
+  REWRITE_TAC[Tame_defs.node_type_exceptional_face;Tame_defs.node_exceptional_face];
+  BY(ASM_MESON_TAC[exceptional_face_dart])
+  ]);;
+  (* }}} *)
+
+let adm_1_iso = prove_by_refinement(
+  `!H H' (f:A->B) w. adm_1 H w /\ hyp_iso f (H,H') ==> adm_1 H' (w o (IMAGE ( res_inv f (dart H))))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.adm_1;o_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Hypermap_iso.hyp_iso_surj [`H'`;`H`;`f`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN (C INTRO_TAC [`x`]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `IMAGE (res_inv f (dart H)) (face H' x) = (face H x') /\ CARD (face H' x) = CARD (face H x')` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[]);
+  CONJ2_TAC;
+    BY(ASM_MESON_TAC[Hypermap_iso.hyp_iso_card_components]);
+  INTRO_TAC Hypermap_iso.hyp_iso_inv [`f`;`H'`;`H`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY `(res_inv f (dart H)) x = x'` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[Hypermap_iso.iso_components]);
+  EXPAND_TAC "x";
+  MATCH_MP_TAC Hypermap_iso.inj_res_inv_left;
+  TYPIFY `(dart H')` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[Hypermap_iso.hyp_iso_INJ])
+  ]);;
+  (* }}} *)
+
+let set_of_triangles_meeting_node_iso = prove_by_refinement(
+  `!H H' f x. x IN dart H /\ hyp_iso f (H,H') ==>
+    CARD (set_of_triangles_meeting_node H x) = CARD (set_of_triangles_meeting_node H' (f x))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.set_of_triangles_meeting_node];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `f x IN dart H'` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Hypermap_iso.hyp_iso_dart]);
+  BY(REPEAT CONJ_TAC THEN MATCH_MP_TAC CARD_face_iso THEN TYPIFY `f` EXISTS_TAC THEN ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let set_of_quadrilaterals_meeting_node_iso = prove_by_refinement(
+  `!H H' f x. x IN dart H /\ hyp_iso f (H,H') ==>
+    CARD (set_of_quadrilaterals_meeting_node H x) = CARD (set_of_quadrilaterals_meeting_node H' (f x))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.set_of_quadrilaterals_meeting_node];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `f x IN dart H'` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Hypermap_iso.hyp_iso_dart]);
+  BY(REPEAT CONJ_TAC THEN MATCH_MP_TAC CARD_face_iso THEN TYPIFY `f` EXISTS_TAC THEN ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let set_of_exceptional_meeting_node_iso = prove_by_refinement(
+  `!H H' f x. x IN dart H /\ hyp_iso f (H,H') ==>
+    CARD (set_of_exceptional_meeting_node H x) = CARD (set_of_exceptional_meeting_node H' (f x))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.set_of_exceptional_meeting_node];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `f x IN dart H'` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Hypermap_iso.hyp_iso_dart]);
+  BY(REPEAT CONJ_TAC THEN MATCH_MP_TAC CARD_face_iso THEN TYPIFY `f` EXISTS_TAC THEN ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let set_of_face_meeting_node_iso = prove_by_refinement(
+  `!H H' f x. x IN dart H /\ hyp_iso f (H,H') ==>
+    BIJ (IMAGE f) (set_of_face_meeting_node H x) (set_of_face_meeting_node H' (f x))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Tame_defs.set_of_face_meeting_node];
+  INTRO_TAC BIJ_face_iso [`f`;`H`;`H'`;`(\ (n:num). T)`;`f x`;`x`];
+  REWRITE_TAC[];
+  DISCH_THEN MATCH_MP_TAC;
+  ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[Hypermap_iso.hyp_iso_dart])
+  ]);;
+  (* }}} *)
+
+let set_of_triangles_meeting_node_iso = prove_by_refinement(
+  `!H H' f x. x IN dart H /\ hyp_iso f (H,H') ==>
+    BIJ (IMAGE f) (set_of_triangles_meeting_node H x) (set_of_triangles_meeting_node H' (f x))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Tame_defs.set_of_triangles_meeting_node];
+  MATCH_MP_TAC BIJ_face_iso;
+  BY(ASM_MESON_TAC[Hypermap_iso.hyp_iso_dart])
+  ]);;
+  (* }}} *)
+
+let type_of_node_iso = prove_by_refinement(
+  `!H H' f x. x IN dart H /\ hyp_iso f (H,H') ==>
+  type_of_node H x = type_of_node H' (f x)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Tame_defs.type_of_node;PAIR_EQ];
+  BY(ASM_MESON_TAC[ set_of_exceptional_meeting_node_iso; set_of_quadrilaterals_meeting_node_iso; set_of_triangles_meeting_node_iso])
+  ]);;
+  (* }}} *)
+
+let adm_2_iso = prove_by_refinement(
+  `!H H' (f:A->B) w. adm_2 H w /\ hyp_iso f (H,H') ==> adm_2 H' (w o (IMAGE ( res_inv f (dart H))))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.adm_2;o_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Hypermap_iso.hyp_iso_surj [`H'`;`H`;`f`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN (C INTRO_TAC [`x`]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `sum (set_of_face_meeting_node H' x) (w o IMAGE (res_inv f (dart H))) = sum (set_of_face_meeting_node H x') w` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[set_of_exceptional_meeting_node_iso;set_of_quadrilaterals_meeting_node_iso;set_of_triangles_meeting_node_iso]);
+  MATCH_MP_TAC Basics.BIJ_SUM;
+  ASM_REWRITE_TAC[];
+  INTRO_TAC set_of_face_meeting_node_iso [`H'`;`H`;`res_inv f (dart H)`;`x`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC Hypermap_iso.hyp_iso_inv;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `res_inv f (dart H) x = x'` ENOUGH_TO_SHOW_TAC;
+    BY(MESON_TAC[]);
+  EXPAND_TAC "x";
+  MATCH_MP_TAC Hypermap_iso.inj_res_inv_left;
+  TYPIFY `dart H'` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[Hypermap_iso.hyp_iso_INJ])
+  ]);;
+  (* }}} *)
+
+let adm_3_iso = prove_by_refinement(
+  `!H H' (f:A->B) w. adm_3 H w /\ hyp_iso f (H,H') ==> adm_3 H' (w o (IMAGE ( res_inv f (dart H))))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.adm_3];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Hypermap_iso.hyp_iso_surj [`H'`;`H`;`f`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN (C INTRO_TAC [`x`]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `sum (set_of_triangles_meeting_node H' x) (w o IMAGE (res_inv f (dart H))) = sum (set_of_triangles_meeting_node H x') w` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[type_of_node_iso]);
+  MATCH_MP_TAC Basics.BIJ_SUM;
+  INTRO_TAC set_of_triangles_meeting_node_iso [`H'`;`H`;`res_inv f (dart H)`;`x`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC Hypermap_iso.hyp_iso_inv;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `res_inv f (dart H) x = x'` ENOUGH_TO_SHOW_TAC;
+    BY(MESON_TAC[]);
+  EXPAND_TAC "x";
+  MATCH_MP_TAC Hypermap_iso.inj_res_inv_left;
+  TYPIFY `dart H'` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[Hypermap_iso.hyp_iso_INJ])
+  ]);;
+  (* }}} *)
+
+let tame13a_iso = prove_by_refinement(
+  `!H H' f. tame_13a H /\ hyp_iso f (H,H') ==> tame_13a H'`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.tame_13a;Tame_defs.admissible_weight;Tame_defs.total_weight];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `w o (IMAGE (res_inv f (dart H)))` EXISTS_TAC;
+  TYPIFY `sum (face_set H') (w o IMAGE (res_inv f (dart H)))  = sum (face_set H) w` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[adm_1_iso;adm_2_iso;adm_3_iso]);
+  MATCH_MP_TAC Basics.BIJ_SUM;
+  MATCH_MP_TAC BIJ_face_set_iso;
+  BY(ASM_MESON_TAC[Hypermap_iso.hyp_iso_inv])
+  ]);;
+  (* }}} *)
+
+let PlaneGraphs_induct = prove_by_refinement(
+  `!B. ((!p. B (Seed p) /\ (!g g' i. B g /\ 3 <= i /\ i <= maxGon p /\ 
+   (  (let fs = nonFinals g in
+     if (fs = []) then T else
+       (let f = minimalFace fs in
+	let v = minimalVertex g f in
+	  (MEM g' (generatePolygon i v f g) ==> B g')))))) ==>
+    (!g. PlaneGraphs g ==> B g))`,
+  (* {{{ proof *)
+  [
+  rt[PlaneGraphs;PlaneGraphsP]
+    st/r
+xxd to here.
+  ]);;
+  (* }}} *)
+
+
+let PlaneGraphs_good_list = prove_by_refinement(
+ `!g. PlaneGraphs g  ==> good_list (fgraph g)`,
+  (* {{{ proof *)
+  [
+rt[List_hypermap.good_list]
+  ]);;
+  (* }}} *)
+
+let tame_good_concl = `!g. PlaneGraphs g /\ tame g ==> good_list (fgraph g)`;;
+let tame9a_correspondence = prove_by_refinement(
+ `!g. tame_hypermap (hypermap_of_list (fgraph g)) /\ PlaneGraphs g 
+   ==>
+  tame9a g`,
+  (* {{{ proof *)
+  [
 
 
 
-let transform_index;;
+rt[Import_tame_classification.bn_Faces]
+rt[Import_tame_classification.faces;Import_tame_classification.fgraph]
+st/r
 
+  ]);;
+  (* }}} *)

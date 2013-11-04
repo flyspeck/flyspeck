@@ -1,278 +1,127 @@
-\title{Formalizing NIST cryptographic standards}
-<p>Thomas C. Hales</p>
-<p>University of Pittsburgh</p>
-<p>Nov 2, 2013</p>
+
+Thomas C. Hales
+University of Pittsburgh
 
 
 
-Based on Snowden documents, the New York Times reported that the NSA
-worked to subvert NIST cryptographic standards~\cite{NYT-backdoor}.
-This article discusses general weaknesses in the NIST standard 800-90A
-for pseudo-random number generation.  Among other defects, this NIST
-standard is deficient because of a pervasive sloppiness in the use of
-mathematics.  This, in turn, prevents serious mathematical analysis of
-the standard and promotes careless implementation in code.  We propose
-formal verification methods as a remedy.
+
+Based on Snowden documents, the <a href="http://www.nytimes.com/2013/09/06/us/nsa-foils-much-internet-encryption.html">New York Times reported</a> that the NSA worked to subvert NIST cryptographic standards.  This article discusses general weaknesses in the NIST standard 800-90A for pseudo-random number generation.  Among other defects, this NIST standard is deficient because of a pervasive sloppiness in the use of mathematics.  This, in turn, prevents serious mathematical analysis of the standard and promotes careless implementation in code.  We propose formal verification methods as a remedy.
 
 
 <h1>Levels of Mathematical Rigor</h1>
 
-We may categorize mathematical argument as informal, rigorous, or
-formal.
+We may categorize mathematical argument as informal, rigorous, or formal.
 
 
-Informal mathematics is the vulgar product of the popular press.
-Informally, a function is continuous if it can be sketched without
-lifting a pencil from a sheet of paper; chaos is the unpredictable
-effect of a butterfly flapping its wings in Brazil; and a
-pseudo-random number is one that is paradoxically deterministic yet
-effectively random.  Informal mathematics is not wrong so much as it
-is unsuitable for careful science and engineering.
+Informal mathematics is the vulgar product of the popular press.  Informally, a function is continuous if it can be sketched without lifting a pencil from a sheet of paper; chaos is the unpredictable effect of a butterfly flapping its wings in Brazil; and a pseudo-random number is one that is paradoxically deterministic yet effectively random.  Informal mathematics is not wrong so much as it is unsuitable for careful science and engineering.
 
- A more rigorous approach to mathematics became necessary in the final
-decades of the nineteenth century to resolve paradoxes in Cantor's set
-theory and other troubles.  For example, disputes about continuity
-were resolved by clarifying definitions, eventually refining a single
-intuitive notion of continuity into a family of related notions:
-continuity, uniform continuity, and so forth.  Most professional
-mathematical publications now adhere to widely accepted standards of
-mathematical rigor, enforced through the diligence of human referees.
+ A more rigorous approach to mathematics became necessary in the final decades of the nineteenth century to resolve paradoxes in Cantor's set theory and other troubles.  For example, disputes about continuity were resolved by clarifying definitions, eventually refining a single intuitive notion of continuity into a family of related notions: continuity, uniform continuity, and so forth.  Most professional mathematical publications now adhere to widely accepted standards of mathematical rigor, enforced through the diligence of human referees.
 
-Formal mathematics is yet a higher standard~\cite{Hales:2008:formal}.
-English and other natural languages are abandoned and replaced with
-languages designed for mathematical precision. The syntax and the
-semantics of language are precisely formulated.  The system specifies
-every admissible rule of logic and every mathematical axiom.  Quality
-is enforced by a computer, which exhaustively checks every logical
-step of a proof.
+ <a href="www.ams.org/notices/200811/tx081101370p.pdf">Formal mathematics</a> is yet a higher standard.  English and other natural languages are abandoned and replaced with languages whose syntax and semantics are designed with mathematical precision. The system specifies every admissible rule of logic and every mathematical axiom.  Quality is enforced by a computer, which exhaustively checks every logical step of a proof.
 
-Formal verification becomes appropriate in proofs whose complexity
-surpasses the capabilities of checking by hand.  (A wiki page
-catalogues numerous long mathematical theorems that might benefit from
-formalization~\cite{WikiLong}.)  Formal methods are well-suited for
-many computer-assisted mathematical proofs.  In fact, at the formal
-level the line is erased between algorithms implemented as computer
-code and mathematical reasoning.  A single software system handles the
-formal verification of both.
+Formal verification becomes appropriate in proofs whose complexity surpasses the capabilities of checking by hand.  (A <a href="http://en.wikipedia.org/wiki/Longest_proof">wiki page catalogues</a> numerous long mathematical theorems that might benefit from formalization.)  Formal methods are well-suited for many computer-assisted mathematical proofs.  In fact, at the formal level the line is erased between algorithms implemented as computer code and mathematical reasoning.  A single software system handles the formal verification of both.
 
-Formal methods have been under development for decades, and in recent
-years the verification of complex software systems, hardware, and
-intricate theorems has become a reality~\cite{FVI}.  Already in 1989,
-it was possible to formally specify and verify a simple computer
-system from high-level language to microprocessor~\cite{BHMY}.  As
-recent examples, we mention the full verification of a C
-compiler~\cite{CC-Web} and complex mathematical theorems such as the
-Feit-Thompson theorem~\cite{OOT-13} and the Four-Color
-theorem~\cite{gonthier:2008:formal}.
+Formal methods have been under development for decades, and in recent years the verification of complex software systems, hardware, and intricate theorems has <a href="#Harrison">become a reality</a>.  Already in 1989, it was possible to formally specify and  <a href="#Bevier et al.">verify a simple computer system</a> from high-level language to microprocessor.  As recent examples, we mention the  <a href="http://compcert.inria.fr/">full verification of a C compiler</a> and complex mathematical theorems such as the <a href="#Gonthier1">Feit-Thompson theorem</a> and the  <a href="#Gonthier2">Four-Color theorem</a>.
 
 
 <h1>Formal Verification in Cryptography</h1>
 
-Formal verification of computer code can be advised when human life or
-large economic interests are at stake: aircraft control systems,
-widely adopted cryptographic standards, or nuclear reactor
-controllers.  Formal verification reduces the software defect rate to
-a level that is scarcely attainable by other means.
+Formal verification of computer code can be advised when human life or large economic interests are at stake: aircraft control systems, widely adopted cryptographic standards, or nuclear reactor controllers.  Formal verification reduces the software defect rate to a level that is scarcely attainable by other means.
 
-For several reasons, cryptography calls out for formal verification.
-The field is highly mathematical.  Many key algorithms can be
-implemented as small blocks of code.  A tiny defect can potentially
-defeat the entire algorithm.  Adversaries actively seek out bugs to
-exploit.  Cryptography safeguards large financial interests and
-fundamental human freedoms.
+For several reasons, cryptography calls out for formal verification.  The field is highly mathematical.  Many key algorithms can be implemented as small blocks of code.  A tiny defect can potentially defeat the entire algorithm.  Adversaries actively seek out bugs to exploit.  Cryptography safeguards large financial interests and fundamental human freedoms.
 
-Various formal tools have been constructed especially for application
-to cryptography~\cite{MPRI-Notes}.  The $latex \pi$-calculus has been
-adapted to cryptographic protocols~\cite{AF},~\cite{SPI},~\cite{RM99}.
-Projects in the Isabelle proof assistant include protocol verification
-through inductive definitions \cite{Pau-ind} or game analysis
-\cite{Berg-thesis}. In the Coq proof assistant, there have been
-successful formal verifications of cryptographic primitives
-\cite{Nowak} and code-based cryptographic proofs \cite{Barthe-2009}.
-Significantly, formal methods have started to enter the
-standardization process~\cite{Meadows}.
+Various formal tools <a name="MPRI-Notes" id="MPRI-Notes" href="http://www.di.ens.fr/~blanchet/MPRI/2011-12/poly-mpri-2-30-draft.pdf">have been constructed</a> especially for application to cryptography.  The <a href="#Milner">pi-calculus</a> has been <a href="#Abadi Fournet">adapted</a> to <a href="#Abadi Gordon">cryptographic protocols</a>.  Projects in the Isabelle proof assistant include protocol verification through  <a name="Paulson" href="http://www.cl.cam.ac.uk/~lp15/papers/Auth/index.html">inductive definitions</a> and <a name="Formal verification of cryptographic security proofs" id="Berg" href="http://scidok.sulb.uni-saarland.de/volltexte/2013/5469/pdf/thesis_berg.pdf">game analysis</a>. In the Coq proof assistant, there have been successful <a href="http://arxiv.org/pdf/0904.1110.pdf">formal verifications of cryptographic primitives</a>  and <a name="Formal certification of code-based cryptographic proofs" id="Zanella et al." href="http://www-sop.inria.fr/everest/Benjamin.Gregoire/Cours/popl09.pdf">code-based cryptographic proofs</a>.  Significantly, formal methods have started to enter the <a name="Formal methods for cryptographic protocol analysis: Emerging issues and trends" id="Meadows" href="http://www.dtic.mil/dtic/tr/fulltext/u2/a465281.pdf">standardization process</a>.
 
+The working group on the <a href="http://www.dsi.unive.it/IFIPWG1_7/"><em>Theoretical Foundations of Security Analysis and Design</em>  </a> and the <a href="http://www.ieee-security.org/CSFWweb/">Computer Security Foundations Symposium of the IEEE</a> <a href="http://csf2013.seas.harvard.edu/index.html">(CSF 2013)</a> promote formal methods in cryptography.
 
-The working group on the <em> Theoretical Foundations of Security
-Analysis and Design</em> ~\cite{TFSAD} and the Computer Security
-Foundations Symposium of the IEEE~\cite{CSF2013} promote formal
-methods in cryptography.
+In truth, our imperfect knowledge prevents the comprehensive verification of cryptographic systems.  We are stymied by notorious problems like P versus NP and the existence of one-way functions.  We lack definitive lower bounds on the computational complexity of concrete problems such as factoring of integers.  Research into security reductions is ongoing.  There is no comprehensive security model.  For example, the  <a href="#Dolev-Yao">Dolev-Yao model</a> works at a high level of abstraction, assuming that cryptographic primitives function perfectly, while other models operate at various levels of detail.
 
-In truth, our imperfect knowledge prevents the comprehensive
-verification of cryptographic systems.  We are stymied by notorious
-problems like P versus NP and the existence of one-way functions.  We
-lack definitive lower bounds on the computational complexity of
-concrete problems such as factoring of integers.  Research into
-security reductions is ongoing.  There is no comprehensive security
-model.  For example, the Dolev-Yao model works at a high level of
-abstraction, assuming that cryptographic primitives function
-perfectly~\cite{DY}, while other models operate at various levels of
-detail.
-
-Nevertheless, we can work with these limitations, implementing a
-collection of interrelated formal proofs grounded in current
-technological capabilities, and move forward from there.
+Nevertheless, we can work with these limitations, implementing a collection of interrelated formal proofs grounded in current technological capabilities, and move forward from there.
 
 
 <h1>NIST standards</h1>
 
-Earlier critiques of the NIST standard 800-90A for pseudo-random
-number generation have focused on specific
-defects~\cite{Green-EC},\cite{2006-190}.  Here, we argue that
-mathematical weaknesses run throughout the standard.  Amid the
-accusations that the NSA has undermined NIST cryptographic standards,
-we remind NIST that one of the most effective ways to subvert a
-cryptographic standard is to muddle the math.
+<a href="http://blog.cryptographyengineering.com/2013/09/the-many-flaws-of-duale cdrbg.html">Earlier critiques</a> of the NIST standard 800-90A for pseudo-random number generation have focused on <a href="http://eprint.iacr.org/2006/190">specific defects</a>.  Here, we argue that mathematical weaknesses run throughout the standard.  Amid the accusations that the NSA has undermined NIST cryptographic standards, we remind NIST that one of the most effective ways to subvert a cryptographic standard is to muddle the math.
 
-The first requirement of a standard is to set the tone and level of
-discourse that reflects the current technological capabilities of the
-matter at hand.  By choosing to present an informal standard, avoiding
-both rigor and formal mathematics, NIST has produced a standard that
-is out of step with the mathematical technology.
+The first requirement of a standard is to set the tone and level of discourse that reflects the current technological capabilities of the matter at hand.  By choosing to present an informal standard, avoiding both rigor and formal mathematics, NIST has produced a standard that is out of step with the  technology of the time.
 
-Some definitions in the NIST standard operate are merely informal.
-For example, the NIST standard defines\footnote{Here is the full
-definition from NIST: "A process (or data produced by a process) is
-said to be pseudorandom when the outcome is deterministic, yet also
-effectively random, as long as the internal action of the process is
-hidden from from observation.  For cryptographic purposes,
-`effectively' means `within the limits of intended cryptographic
-strength.'"  Speaking of the data, we may ask with Knuth, "is 2 a
-random number?" }  pseudo-randomness as "deterministic yet also
-effectively random" \cite[page 7]{NIST}.  A mathematically rigorous
-definition of pseudo-random generators requires much more care,
-referencing rigorous notions of measure, probability, and complexity
-theory.  Properly formulated definitions are given in \cite{Luby1996},
-\cite{Yao82}, \cite{BM84}.  As it is manifestly impossible to base
-rigorous or formal mathematical proofs on something so vague as
-"deterministic yet effectively random," the early pages of the NIST
-standard effectively ward off careful mathematical analysis.
+Some definitions in the NIST standard are merely informal.  For example, the NIST standard defines<sup><a href="#fn1" id="ref1">1</a></sup>  pseudo-randomness as "deterministic yet also effectively random" <a href="#NIST">(NIST 800-90A, p.7)</a>.  A mathematically rigorous definition of pseudo-random generators requires much more care, referencing rigorous notions of measure, probability, and complexity theory.  Properly formulated definitions are given in <a href="#Luby">Luby</a>, <a href="#Yao">Yao</a>, <a href="#Blum Micali">Blum and Micali</a>.  As it is manifestly impossible to base rigorous or formal mathematical proofs on something so vague as "deterministic yet effectively random," the early pages of the NIST standard effectively ward off careful mathematical analysis.
 
-The lack of rigor continues throughout the document.  Algorithms are
-described with English-text pseudo-code.  With more care, NIST might
-have provided a formal specification and a reference implementation in
-executable code in a language with documented semantics.  Overall, the
-standard gives few mathematical arguments, and these do not inspire
-confidence.  The document slips into convenient inaccuracies:
-heuristics rather than proofs, fixed-point arithmetic, and Shannon
-entropy rather than min-entropy.  (See \cite[Appendix C.2]{NIST}.)  In
-fact, the standard is imprecise to such a degree that competing
-definitions of entropy are largely irrelevant.
+The lack of rigor continues throughout the document.  Algorithms are described with English-text pseudo-code.  With more care, NIST might have provided a formal specification and a reference implementation in executable code in a language with precise semantics.  Overall, the standard gives few mathematical arguments, and these do not inspire confidence.  The document slips into convenient inaccuracies: heuristics rather than proofs, fixed-point arithmetic, and Shannon entropy rather than min-entropy.  (See <a href="#NIST">NIST 800-90A, Appendix C.2</a>.)  In fact, the standard is imprecise to such a degree that competing definitions of entropy are largely irrelevant.
 
 <h1>An example of NIST reasoning</h1>
 
-This section goes into detail about a particular mathematical argument
-that appears in the NIST standard.\footnote{We pick the most extensive
-mathematical argument in the document.  It is telling that this
-argument is used to justify weakening the standard for the sake of
-efficiency.}  For our purposes, the topic of discussion matters less
-than the nature of the NIST committee's mathematical thought.  Do they
-reason as a mathematician in a unbroken chain of logic, or is the
-committee satisfied by a lesser standard?
+
+This section goes into detail about a particular mathematical argument that appears in the NIST standard.<sup><a href="#fn2" id="ref2">2</a></sup>  For our purposes, the topic of discussion matters less than the nature of the NIST committee's mathematical thought.  Do they reason as a mathematician in an unbroken chain of logic, or is the committee satisfied by a lesser standard?
 
 
-The context is the following.  Let <em>E</em> be an elliptic curve
-defined over a finite field $latex \ring{F}_p$, defined in affine
-coordinates by a polynomial equation $latex y^2 = f(x)$.  The
-pseudo-random generator extracts bits from the <em>x</em> coordinates
-of a sequence of points $latex P_1, P_2,\ldots $ on the elliptic
-curve.  The construction of the sequence of points $latex P_i$ does
-not concern us here.  The issue is this: if points are sampled
-uniformly at random from $latex E(\ring{F}_p)$, then their <em>x</em>
-coordinates are not uniformly distributed in $latex \ring{F}_p$; in
-fact, the <em>x</em> coordinates obviously belong to the subset of
-$latex \ring{F}_p$ on which <em>f(x)</em> is a square.  Research
-estimates are needed to determine how big an issue this is.
-Aggressive truncation of bits from the binary representation of
-<em>x</em> might improve pseudo-randomness but would make the
-algorithm less efficient.  \footnote{In light of the much discussed
-back door to the elliptic curve algorithm, NSA had a secret interest
-in persuading users not to discard many bits from <em>x</em>;
-aggressive truncation would make the back door more difficult to use.}
+The context is the following.  Let <em>E</em> be an elliptic curve defined over a finite field <em><b>F</b><sub>p</sub></em>, defined in affine coordinates by a polynomial equation <em>y<sup>2</sup> = f(x)</em>.  The pseudo-random generator extracts bits from the <em>x</em> coordinates of a sequence of points <em>P<sub>1</sub>, P<sub>2</sub>,...</em> on the elliptic curve.  The construction of the sequence of points does not concern us here.  The issue is this: if points are sampled uniformly at random from <em>E(<b>F</b><sub>p</sub>)</em>, then their <em>x</em> coordinates are not uniformly distributed in the finite field; in fact, the <em>x</em> coordinates obviously belong to the subset of the finite field on which <em>f(x)</em> is a square.  Research estimates are needed to determine how big an issue this is.  Aggressive truncation of bits from the binary representation of <em>x</em> might improve pseudo-randomness but would make the algorithm less efficient.<sup><a href="#fn3" id="ref3">3</a></sup> 
 
-NIST quotes the research \cite{MS2000} as "an additional reason that
-argues against increasing truncation."  There are numerous gaps in
-NIST reasoning.  \begin{enumerate} \item A bound on discrepancy is not
-the same as uniform distribution~\cite{SDA1651}.  \item Uniform
-distribution is not the same as cryptographically secure
-pseudo-randomness.  \item The sets $latex \{P_i\}$ of points used in
-real-world implementations have cardinalities far too small to be
-relevant to the given asymptotic estimates.  \item The research does
-not support the specific NIST rule that "the recommended number of
-bits discarded from each <em>x</em>-coordinate will be 16 or 17" and
-does not convincingly "argue against increasing truncation."
-\end{enumerate} Nevertheless, NIST uses the research to make the
-inflated claim that "certain guarantees can be made about the uniform
-distribution of the resulting truncated quantities" \cite{NIST}.  This
-is proof by intimidation.
+NIST quotes the research of <a href="#Shparlinski">El Mahassni and Shparlinski</a> as "an additional reason that argues against increasing truncation."  There are numerous gaps in NIST reasoning.  
+<UL>
+<LI>A bound on discrepancy is <a href="#Drmota Tichy">not the same</a> as uniform distribution.  </LI>
+<LI>Uniform distribution is not the same as cryptographically secure pseudo-randomness. </LI>
+<LI> The sets <em>{P<sub>i</sub>}</em> of points used in real-world implementations have cardinalities far too small to be relevant to the given asymptotic estimates.  </LI>
+<LI> The research does not support the specific NIST rule that "the recommended number of bits discarded from each <em>x</em>-coordinate will be 16 or 17" and does not convincingly "argue against increasing truncation."  </LI>
+</UL>
+Nevertheless, NIST uses the research to make the inflated claim that "certain guarantees can be made about the uniform distribution of the resulting truncated quantities" <a href="#NIST">(NIST 800-90A)</a>.  This is proof by intimidation.
 
 <h1>Assurances</h1>
 
-The NIST standard 800-90A states that "a user of a DRBG for
-cryptographic purposes requires assurance that the generator actually
-produces (pseudo) random and unpredictable bits.  The user needs
-assurance that the design of the generator, its implementation and its
-use to support cryptographic services are adequate to protect the
-user's information" \cite{NIST}. We agree.
+The NIST standard 800-90A states that "a user of a DRBG for cryptographic purposes requires assurance that the generator actually produces (pseudo) random and unpredictable bits.  The user needs assurance that the design of the generator, its implementation and its use to support cryptographic services are adequate to protect the user's information" <a href="#NIST">(NIST 800-90A)</a>. We agree.
 
-What assurances does NIST actually provide about the generator?  The
-document contains no mathematical proofs of pseudo-randomness and no
-supporting citations.  Indeed, careful proofs would be impossible,
-because as we have noted, definitions are more informal than rigorous.
-Instead, the user of the standard must rely on NIST's authoritative
-claim that "the design of each DRBG mechanism in this Recommendation
-has received an evaluation of its security properties prior to its
-selection for inclusion in this Recommendation."  That one sentence is
-the extent of NIST assurance of design.  That's it!  It seems that for
-NIST, assurance means to comfort with soothing words. To a
-mathematician, this attitude is exasperating.  There is no
-mathematical statement of what those security properties are, and no
-discussion of the methods that were used to reach the conclusion.  We
-are not told who made the evaluation or what the results of the
-evaluation were.
+What assurances does NIST actually provide about the generator?  The document contains no mathematical proofs of pseudo-randomness and no supporting citations.  Indeed, careful proofs would be impossible, because as we have noted, definitions are more informal than rigorous.  Instead, the user of the standard must rely on NIST's authoritative claim that "the design of each DRBG mechanism in this Recommendation has received an evaluation of its security properties prior to its selection for inclusion in this Recommendation."  That one sentence is the extent of NIST assurance of design.  That's it!  It seems that for NIST, assurance means to comfort with soothing words. To a mathematician, this attitude is exasperating.  There is no mathematical statement of what those security properties are, and no discussion of the methods that were used to reach the conclusion.  We are not told who made the evaluation or what the results of the evaluation were.
 
-Based on the <em> Memorandum of Understanding</em> between NIST and
-NSA from 1989 \cite[p.601]{ScAC}, we might wonder whether NIST's part
-in the evaluation was limited.  According to the memo, "The NIST will
-... recognize the NSA-certified rating of evaluated trusted systems
-under the Trusted Computer Security Evaluation Criteria Program <em>
-without requiring additional evaluation</em>" (emphasis added).
+Based on the <em> Memorandum of Understanding</em> between NIST and NSA from 1989, <a name="Schneier" id="Schneier" href="https://www.schneier.com/book-applied.html">quoted in Schneier (p. 601)</a>, we might wonder whether NIST's part in the evaluation was limited.  According to the memo, "The NIST will ... recognize the NSA-certified rating of evaluated trusted systems under the Trusted Computer Security Evaluation Criteria Program <em> without requiring additional evaluation</em>" (emphasis added).
 
-Here is the NIST discussion of <em>HMAC\_DRBG</em> (deterministic
-random bit generation based on hash message authentication codes).  It
-states, "In general, even relatively weak hash functions seem to be
-quite strong when used in the HMAC construction.  On the other hand,
-there is not a reduction proof from the hash function's collision
-resistance properties to the security of the DRBG" \cite[Appendix
-E.2]{NIST}.  Note the informal tone of the discussion, the reassurance
-that a weakness is strength, the brevity, and absence of mathematical
-theorems.
+Here is the NIST assurance of <em>HMAC_DRBG</em> (deterministic random bit generation based on hash message authentication codes).  It states, "In general, even relatively weak hash functions seem to be quite strong when used in the HMAC construction.  On the other hand, there is not a reduction proof from the hash function's collision resistance properties to the security of the DRBG" <a href="#NIST">(NIST 800-90A Appendix E.2)</a>.  Note the informal tone of the discussion, the reassurance that a weakness is strength, the brevity, and absence of mathematical theorems.
 
-Cryptographic standards derive their security through the underlying
-mathematics.  We can place our trust in mathematics but not in
-assurances such as these.
+Cryptographic standards derive their security through the underlying mathematics.  We can place our trust in mathematics but not in assurances such as these.
 
 <h1>Conclusions</h1>
 
 
-According to NIST aspirations, "NIST works to publish the strongest
-cryptographic standards possible." \cite{NIST-Supp}.  Our analysis
-shows that judged by professional mathematical standards, NIST is very
-far from its goal. Indeed, the current NIST standard was written in a
-pre-Snowden era of unverified assurances.
+According to <a href="http://csrc.nist.gov/publications/nistbul/itlbul2013_09_supplemental.pdf">NIST aspirations</a>, "NIST works to publish the strongest cryptographic standards possible."  Our analysis shows that judged by professional mathematical standards, NIST is very far from its goal. Indeed, the current NIST standard was written in a pre-Snowden era of unverified assurances.
 
 NIST sets the standard both by its choice of algorithms and by its
 attitude towards rigor.  Overall, its general careless tone will
 facilitate vulnerable implementations of the standard.
 
-Better approaches to standardization are available.  In fact, a number
-of formal verification projects have been completed (such as a formal
-verification of a C compiler mentioned above) that dwarf what we
-specifically ask NIST to do.  Please adopt verification technologies
-in widespread use!  Improvement in the formal specification of NIST
-standards is the first critical step in a larger process of formal
-verification along the entire chain, including the underlying
-mathematical concepts, cryptographic primitives, protocols and
-algorithms, and end implementations in computer code.
+Better approaches to standardization are available.  In fact, a number of formal verification projects have been completed (such as a formal verification of a C compiler mentioned above) that dwarf what we specifically ask NIST to do.  Please adopt verification technologies in widespread use!  Improvement in the formal specification of NIST standards is the first critical step in a larger process of formal verification along the entire chain, including the underlying mathematical concepts, cryptographic primitives, protocols and algorithms, and end implementations in computer code.
 
-<em>References</em>
+<h2><em>End Notes</em></h2>
+
+<sup id="fn1">1. [Here is the full definition from NIST: "A process (or data produced by a process) is said to be pseudorandom when the outcome is deterministic, yet also effectively random, as long as the internal action of the process is hidden from observation.  For cryptographic purposes, `effectively' means `within the limits of intended cryptographic strength.'"  Speaking of the data, we may ask with Knuth, "is 2 a random number?"] <a href="#ref1" title="Jump back to footnote 1 in the text.">(return to text)</a></sup>
+<sup id="fn2">2. [We pick the most extensive mathematical argument in the document.  It is telling that this argument is used to justify weakening the standard for the sake of efficiency.] <a href="#ref2" title="Jump back to footnote 2 in the text.">(return to text)</a></sup>
+<sup id="fn3">3. [In light of the much discussed back door to the elliptic curve algorithm, NSA had a secret interest in persuading users not to discard many bits from <em>x</em>; aggressive truncation would make the back door more difficult to use.] <a href="#ref3" title="Jump back to footnote 3 in the text.">(return to text)</a></sup>
+
+<h2><em>References</em></h2>
+
+<a name="Abadi Fournet" id="Abadi Fournet"> M. Abadi and C. Fournet,</a> <em>Mobile values, new names, and secure communication</em>, In POPL '01: Proceedings of the 28th ACM SIGPLAN-SIGACT symposium on the principles of programming languages (2001), 104--115.
+
+<a name="Abadi Gordon" id="Abadi Gordon"> M. Abadi and A. D. Gordon,</a> <em>A calculus for cryptographic protocols: The spi calculus</em>, Information and Communication <b>148</b> (January 1999), 1--70.
+
+<a name="NIST 800-90A" id="NIST" href="http://csrc.nist.gov/publications/nistpubs/800-90A/SP800-90A.pdf">NIST 800-90A,</a> E. Barker and J. Kelsey, <em>Recommendation for random number generation using deterministic random bit generators</em>, NIST Special Publication 800-90A (2012).
+
+<a name="Bevier et al." id="Bevier et al.">W. R. Bevier, W. A. Hunt Jr., J Strother Moore, and W. D. Young,</a> <em>An approach to systems verification</em>, Journal of Automated Reasoning <b>5</b> (1989), 411--428 and 422--423.
+
+<a name="Blum Micali" id="Blum Micali">M. Blum and S. Micali,</a> <em>How to generate cryptographically strong sequences of pseudo-random bits</em>, SIAM Journal on Computing <b>13</b> (1984), 850--864.
+
+<a name="Dolev-Yao" id="Dolev-Yao">D. Dolev and A. C. Yao</a>, <em>On the security of public-key protocols</em>, IEEE Transaction on Information Theory <b>2</b> (March 1983), 198--208.
+
+<a name="Drmota Tichy" id="Drmota Tichy">M. Drmota and R. F. Tichy</a>, <em>Sequences, discrepancies and applications</em>, Lecture Notes in Mathematics, Springer, 1997.
+
+<a name="Gonthier1" id="Gonthier1" href="http://hal.inria.fr/docs/00/81/66/99/PDF/main.pdf">G. Gonthier et al.</a>, <em>A machine-checked proof of the odd order theorem</em>, Lecture Notes in Computer Science <b>7998</b> (2013), 163--179.
+
+<a name="Gonthier2" id="Gonthier2">G. Gonthier,</a> <em>Formal proof -- the four colour theorem</em>, Notices of the AMS <b>55</b> (December 2008), no. 11, 1382--1393.
+
+<a name="Harrison" id="Harrison" href="http://www.cl.cam.ac.uk/~jrh13/slides/lics-22jun03.pdf">J. Harrison</a>, <em>Formal verification at Intel, Proceedings. 18th Annual IEEE Symposium on Logic in Computer Science (2003), 45--54.
+
+<a name="Luby" id="Luby">M. Luby</a>, <em>Pseudorandomness and cryptographic applications</em>, Princeton University Press, 1996.
+
+<a name="Shparlinski" id="Shparlinski" href="http://web.science.mq.edu.au/~igor/EC-PRNG.ps">E. El Mahassni and I. Shparlinski</a>, <em>On the uniformity of distribution of congruential generators over elliptic curves</em>, Discrete Mathematics and Theoretical Computer Science (2002), 257--264, Sequences and their Applications. 
+
+<a name="Milner" id="Milner">R. Milner</a>, <em>Communicating and mobile systems: the pi-calculus</em>, Cambridge University Press, 1999.
+
+<a name="Yao" id="Yao">A. Yao,</a> <em>Theory and applications of trapdoor functions</em>, FOCS (1982), 384--400.
+

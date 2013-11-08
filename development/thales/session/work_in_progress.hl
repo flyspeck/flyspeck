@@ -308,6 +308,43 @@ rt[path1_transform;glue]
   (* }}} *)
 *)
 
+let MEM_replace = prove_by_refinement(
+  `!x f xs g. MEM x (replace f xs g) ==> (MEM x g \/ (MEM f g /\ (MEM x xs)))`,
+  (* {{{ proof *)
+  [
+  REPLICATE_TAC 3 GEN_TAC;
+  LIST_INDUCT_TAC;
+    REWRITE_TAC[replace];
+    BY(MESON_TAC[]);
+  REWRITE_TAC[replace];
+  COND_CASES_TAC;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[MEM];
+    REWRITE_TAC[MEM_APPEND];
+    BY(ASM_MESON_TAC[]);
+  REWRITE_TAC[MEM];
+  ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let MEM2_replace = prove_by_refinement(
+  `!x f xs g. MEM f g /\ MEM x xs ==> MEM x (replace f xs g)`,
+  (* {{{ proof *)
+  [
+  REPLICATE_TAC 3 GEN_TAC;
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[MEM]);
+  REWRITE_TAC[MEM;replace];
+  COND_CASES_TAC;
+    ASM_REWRITE_TAC[];
+    ASM_REWRITE_TAC[MEM_APPEND];
+    BY(MESON_TAC[]);
+  ASM_REWRITE_TAC[MEM];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
 let tame9a_iso = prove_by_refinement(
   `!H H' f. tame_9a H /\ hyp_iso f (H,H') ==> tame_9a H'`,
   (* {{{ proof *)
@@ -940,6 +977,66 @@ let subdivFace0_induct = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let nonFinals_subdivFace0_induct = prove_by_refinement(
+  `!B vs g f u n.  ((!f' g. B g ==> B(makeFaceFinal f' g)) /\ (!g u v f'' n .
+        B g /\ MEM f'' (nonFinals g) /\ (~(n=0) \/  ~(nextVertex f'' u = v)) ==> 
+    (let ws = upt (countVertices g) (countVertices g + n) in
+     let (f1,f2,g') = splitFace g u v f'' ws in B g'))) ==>
+    (B g /\ MEM f (nonFinals g) ==> (B(subdivFace0 g f u n vs)))`,
+  (* {{{ proof *)
+  [
+
+  GEN_TAC;
+  LIST_INDUCT_TAC;
+    ASM_REWRITE_TAC[subdivFace0];
+    BY(ASM_MESON_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[subdivFace0];
+  COND_CASES_TAC;
+    BY(ASM_MESON_TAC[]);
+  REPEAT LET_TAC;
+  COND_CASES_TAC;
+    BY(ASM_MESON_TAC[]);
+  FIRST_X_ASSUM_ST `makeFaceFinal` (C INTRO_TAC [`g'`;`f2`;`v`;`0`]);
+  ASM_REWRITE_TAC[];
+  DISCH_THEN MATCH_MP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`g`;`u`;`v`;`f`;`n`]);
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[]);
+  ASM_REWRITE_TAC[];
+  LET_TAC;
+  ASM_REWRITE_TAC[];
+  LET_TAC;
+  (REWRITE_TAC[]);
+  DISCH_TAC;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `splitFace` MP_TAC;
+  REWRITE_TAC[splitFace;split_face];
+  REPEAT LET_TAC;
+  FIRST_X_ASSUM_ST `REVERSE` MP_TAC;
+  REWRITE_TAC[PAIR_EQ];
+  REPEAT LET_TAC;
+  REWRITE_TAC[PAIR_EQ];
+  REPEAT WEAKER_STRIP_TAC;
+  FULL_EXPAND_TAC "g'";
+  FIRST_X_ASSUM_ST `nonFinals` MP_TAC;
+  REWRITE_TAC[nonFinals];
+  REWRITE_TAC[MEM_FILTER];
+  REPEAT WEAKER_STRIP_TAC;
+  CONJ_TAC;
+    EXPAND_TAC "f2";
+    EXPAND_TAC "f2'";
+    BY(REWRITE_TAC[type_face_SND]);
+  REWRITE_TAC[faces_graph];
+  FULL_EXPAND_TAC "f2";
+  REWRITE_TAC[MEM_APPEND];
+  DISJ1_TAC;
+  FULL_EXPAND_TAC "fs";
+  MATCH_MP_TAC MEM2_replace;
+  BY(ASM_REWRITE_TAC[MEM])
+  ]);;
+  (* }}} *)
+
 let MEM_generatePolygon = prove_by_refinement(
   `!i v f g g'. MEM g' (generatePolygon i v f g) ==> (?e vs.
      MEM e (enumerator i (LENGTH (vertices f))) /\
@@ -1277,70 +1374,185 @@ let fgraph_makeFaceFinal = prove_by_refinement(
   ]);;
   (* }}} *)
 
-let all_MAP = prove_by_refinement(
-  `!f g xs. all f (MAP g xs) = all (f o g) `,
-  (* {{{ proof *)
-  [
-  #
-  ]);;
-  (* }}} *)
-
 let PlaneGraphs_all_nonempty = prove_by_refinement(
  `!g. PlaneGraphs g  ==> all (\(l:(num)list). ~(l = [])) (fgraph g)`,
   (* {{{ proof *)
   [
-  mmp PlaneGraphs_induct
- rt[all_nonempty_seed;LET_THM]
-    st/r
-fxa mp
-condcase
-rt[]
-dthen (mp o (mm MEM_generatePolygon))
-rt[subdivFace]
-st/r
-fxa sub1
-intro subdivFace0_induct [`(all (\ (l:(num)list). ~(l = []))) o fgraph`;`TL vs`;`g`;`(minimalFace (nonFinals g))`;`the (HD vs)`;`0`]
-rt[o_THM]
-st/r
-fxa mp
-art[]
-dthen mmp
-rt[fgraph_makeFaceFinal]
-repeat (fxa  kill)
-st/r
-repeat LET_TAC
-fxa mp
-rt[splitFace;split_face]
-repeat LET_TAC
-rt[PAIR_EQ]
-st/r  
-expand "g'"
-rt[fgraph]
-rt[faces_graph]
-rt[MAP_APPEND]
-rt[APPEND_cat;Seq.all_cat]
-rt[MAP]
-conj2
-rt[Seq.all]
-art[]
-fxast `Face` mp
-repeat LET_TAC
-rt[PAIR_EQ]
-st/r
-typ `~(vertices (Face (APPEND (REVERSE ws) f1'') F) = [])` ets
-amt[]
-rt[vertices_face_FST]
-rt[APPEND_EQ_NIL]
-expand "f1''"
-rt[APPEND_EQ_NIL]
-mt[NOT_CONS_NIL]
-comment "last case"
-
-
-rt[GSYM Seq.map_MAP;Seq.all_map]
-xxd 
+  MATCH_MP_TAC PlaneGraphs_induct;
+  REWRITE_TAC[all_nonempty_seed;LET_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  COND_CASES_TAC;
+    BY(REWRITE_TAC[]);
+  DISCH_THEN (MP_TAC o (MATCH_MP MEM_generatePolygon));
+  REWRITE_TAC[subdivFace];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM SUBST1_TAC;
+  INTRO_TAC subdivFace0_induct [`(all (\ (l:(num)list). ~(l = []))) o fgraph`;`TL vs`;`g`;`(minimalFace (nonFinals g))`;`the (HD vs)`;`0`];
+  REWRITE_TAC[o_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  ASM_REWRITE_TAC[];
+  DISCH_THEN MATCH_MP_TAC;
+  REWRITE_TAC[fgraph_makeFaceFinal];
+  REPEAT (FIRST_X_ASSUM kill);
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT LET_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[splitFace;split_face];
+  REPEAT LET_TAC;
+  REWRITE_TAC[PAIR_EQ];
+  REPEAT WEAKER_STRIP_TAC;
+  EXPAND_TAC "g'";
+  REWRITE_TAC[fgraph];
+  REWRITE_TAC[faces_graph];
+  REWRITE_TAC[MAP_APPEND];
+  REWRITE_TAC[APPEND_cat;Seq.all_cat];
+  REWRITE_TAC[MAP];
+  FIRST_X_ASSUM_ST `Face` MP_TAC;
+  REPEAT LET_TAC;
+  REWRITE_TAC[PAIR_EQ];
+  REPEAT WEAKER_STRIP_TAC;
+  CONJ2_TAC;
+    REWRITE_TAC[Seq.all];
+    ASM_REWRITE_TAC[];
+    TYPIFY `~(vertices (Face (APPEND (REVERSE ws) f1'') F) = [])` ENOUGH_TO_SHOW_TAC;
+      BY(ASM_MESON_TAC[]);
+    REWRITE_TAC[vertices_face_FST];
+    REWRITE_TAC[APPEND_EQ_NIL];
+    EXPAND_TAC "f1''";
+    REWRITE_TAC[APPEND_EQ_NIL];
+    BY(MESON_TAC[NOT_CONS_NIL]);
+  COMMENT "last case";
+  FULL_EXPAND_TAC "f2";
+  FULL_EXPAND_TAC "f2'";
+  FULL_EXPAND_TAC "f1";
+  FULL_EXPAND_TAC "f1'";
+  FULL_EXPAND_TAC "fs";
+  FULL_EXPAND_TAC "ws";
+  FULL_EXPAND_TAC "f2''";
+  REWRITE_TAC[GSYM Seq.map_MAP];
+  REWRITE_TAC[GSYM Seq.allP];
+  REWRITE_TAC[Seq.map_MAP;MEM_MAP];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `MEM` MP_TAC;
+  DISCH_THEN (MP_TAC o (MATCH_MP MEM_replace));
+  REWRITE_TAC[MEM];
+  DISCH_THEN DISJ_CASES_TAC;
+    FIRST_X_ASSUM_ST `all` MP_TAC;
+    REWRITE_TAC[fgraph];
+    REWRITE_TAC[GSYM Seq.map_MAP;GSYM Seq.allP];
+    REWRITE_TAC[Seq.map_MAP;MEM_MAP];
+    BY(REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC) THEN MESON_TAC[]);
+  FIRST_X_ASSUM MP_TAC THEN REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (ASSUME_TAC o GSYM);
+  FULL_EXPAND_TAC "x'";
+  FIRST_X_ASSUM kill;
+  FIRST_X_ASSUM_ST `upt` MP_TAC;
+  REWRITE_TAC[vertices_face_FST];
+  ASM_REWRITE_TAC[];
+  ONCE_REWRITE_TAC[EQ_SYM_EQ];
+  REWRITE_TAC[APPEND_EQ_NIL];
+  BY(REWRITE_TAC[NOT_CONS_NIL])
 ]);;
   (* }}} *)
+
+let mem_bn_minimal = prove_by_refinement(
+  `!f xs. ~(xs = []) ==> MEM (bn_minimal f xs) xs`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[bn_minimal];
+  GEN_TAC;
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[]);
+  REWRITE_TAC[bn_minimal];
+  COND_CASES_TAC;
+    BY(REWRITE_TAC[MEM]);
+  REWRITE_TAC[LET_THM];
+  COND_CASES_TAC;
+    BY(REWRITE_TAC[MEM]);
+  REWRITE_TAC[MEM];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let mem_minimalFace_nonFinals = prove_by_refinement(
+  `!g. ~(nonFinals g = []) ==> MEM (minimalFace (nonFinals g)) (nonFinals g)`,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  REWRITE_TAC[minimalFace];
+  BY(MESON_TAC[mem_bn_minimal])
+  ]);;
+  (* }}} *)
+
+let planeGraphs_transpose = prove_by_refinement(
+   `!g. PlaneGraphs g ==> (!d. MEM d (list_of_darts (fgraph g))
+                 ==> MEM (SND d,FST d) (list_of_darts (fgraph g)))`,
+  (* {{{ proof *)
+  [
+  MATCH_MP_TAC PlaneGraphs_induct;
+  REWRITE_TAC[mem_transpose_seed;LET_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `nonFinals` MP_TAC;
+  COND_CASES_TAC;
+    BY(REWRITE_TAC[]);
+  DISCH_THEN (MP_TAC o (MATCH_MP MEM_generatePolygon));
+  REWRITE_TAC[subdivFace];
+  REPEAT WEAKER_STRIP_TAC;
+  fxa mp
+  ort[EQ_SYM_EQ]
+  dt
+  fxast `list_of_darts` mp
+  INTRO_TAC nonFinals_subdivFace0_induct [`(\g. MEM d (list_of_darts(fgraph g)) ==> MEM (SND d, FST d) (list_of_darts(fgraph g)))`]
+rt[]
+fexp "g'"
+dt
+rule (  orr[taut `((a ==> a' ==> b ==> c) <=> ((a /\ a') ==> (b ==> c)))`])
+fxa mmp
+  REWRITE_TAC[fgraph_makeFaceFinal];
+art[]
+gm mem_minimalFace_nonFinals
+art[]
+  REPEAT (FIRST_X_ASSUM kill);
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT LET_TAC;
+dt
+comment "next"
+fxast `splitFace` mp
+  REWRITE_TAC[splitFace;split_face];
+  REPEAT LET_TAC;
+  REWRITE_TAC[PAIR_EQ];
+  REPEAT WEAKER_STRIP_TAC;
+fxast `Face` mp
+  REPEAT LET_TAC;
+  REWRITE_TAC[PAIR_EQ];
+  REPEAT WEAKER_STRIP_TAC;
+  fexp "g'";
+fxast `list_of_darts` mp
+  REWRITE_TAC[fgraph];
+  REWRITE_TAC[faces_graph];
+fexp "fs"
+repeat (fxast `replacefacesAt` kill)
+fxast `REPLICATE` kill
+repeat (fxast `betwn vs u v = vs'` kill)
+fexp "f2"
+fexp "f1"
+fxast `faceListAt` kill
+fxast `heights` kill
+repeat (fxast `x = x` kill)
+rt[MAP_APPEND]
+fexp "f1'"
+rt[MAP]
+rt[vertices_face_FST]
+rt[APPEND_cat]
+rt[List_hypermap.list_of_darts_cat]
+
+xxd...
+  #
+  ]);;
+  (* }}} *)
+
 
 let tame_good_concl = `!g. PlaneGraphs g /\ tame g ==> good_list (fgraph g)`;;
 let tame9a_correspondence = prove_by_refinement(

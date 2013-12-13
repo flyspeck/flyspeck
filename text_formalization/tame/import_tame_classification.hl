@@ -25,16 +25,28 @@ flyspeck_needs "../tame_archive/tame_archive.hl";;
 
 module Import_tame_classification = struct
 
-
   open Hales_tactic;;
-  parse_as_infix ("::", (12, "right"));;
-  override_interface ("::", `CONS`);;
-  parse_as_infix ("^^", (24, "right"));;
-  override_interface ("^^", `POWER`);;
+  
+  let override_interface' (a,b) = 
+    let _ = report ("override " ^ a ^ " " ^(string_of_term b)) in
+      override_interface (a,b);;
+    
 
-  let HOLDIR = "/Applications/Isabelle2013.app/Isabelle/src/HOL";;
-  let TAMEDIR = "~/Desktop/IsabelleTame/Isabelle-Flyspeck-Tame";;
+
+  parse_as_infix ("::", (12, "right"));;
+  override_interface' ("::", `CONS`);;
+  parse_as_infix ("^^", (24, "right"));;
+  override_interface' ("^^", `POWER`);;
+
+  let ISADIR = 
+    let dir = (Sys.getenv "FLYSPECK_DIR") in
+     Filename.concat dir "../isabelle_graph";;
+
+  let HOLDIR = Filename.concat ISADIR "hol";;
+  let TAMEDIR = Filename.concat ISADIR "tame";;
+
   let TESTDIR = "~/Desktop";;
+
   let tamefile  = Filename.concat TAMEDIR;;
   let holfile = Filename.concat HOLDIR;;
   let testfile = Filename.concat TESTDIR;;
@@ -43,6 +55,12 @@ module Import_tame_classification = struct
 (* ************************************************************************** *)
 (* TYPES *)
 (* ************************************************************************** *)
+
+  let new_definition' t = 
+    if has_stv t 
+    then (Print_types.print_term_types t; failwith "new_definition has stv") 
+    else new_definition t;;
+
 
 (*
 types: num, (A) list, (A ==> B), (A) Option, A#B, bool.
@@ -57,9 +75,6 @@ types: num, (A) list, (A ==> B), (A) Option, A#B, bool.
   };;
 
 
-  let new_definition' t = 
-    if has_stv t then (Print_types.print_term_types t; failwith "has stv") 
-    else new_definition t;;
 
   let lizt = ref [];;
 
@@ -189,7 +204,8 @@ type_synonym 'a fgraph = "'a list list"
 	  let sed = p "sed -n %d,%dp %s | tr '\t\n\\047' '  _' | sed -e %s " (fst lines) (snd lines) file e in
 	  let sed2 = p "sed -n %d,%dp %s | tr '\t\n\\047' '  _' | sed -e %s " (fst lines) (snd lines) file e2 in
 	  let sed'  = if expand then sed else sed2 in
-	    (process_to_string sed');;
+	    if Sys.file_exists file then (process_to_string sed') 
+	    else ("def-file not found "^file);;
 
   let get_hol_def fil lines = 
     let file = Filename.concat HOLDIR fil in
@@ -305,11 +321,11 @@ report (get_tame_def "ListAux.thy" (167,170));;
     let (loc,a,b) = recd.liz_loc in
     let s = get_liz_def loc (a,b) true in
     let ixr = infixr (get_infixr s) in
-    let _ = (ixr="") or (override_interface(ixr,recd.liz_holl); true) in
+    let _ = (ixr="") or (override_interface'(ixr,recd.liz_holl); true) in
     let ixl = infixl (get_infixl s) in
-    let _ = (ixl="") or (override_interface(ixl,recd.liz_holl); true) in
+    let _ = (ixl="") or (override_interface'(ixl,recd.liz_holl); true) in
     let ix = get_interface s in
-    let _ = (ix="") or (override_interface(ix,recd.liz_holl); true) in
+    let _ = (ix="") or (override_interface'(ix,recd.liz_holl); true) in
     let _ = print_liz recd in
     let nm = get_name s in
     let _ = nm = recd.liz_name or (report ("liz_add name mismatch "^nm); true) in
@@ -1540,7 +1556,7 @@ liz_thm = countNonFinals;
 
 let finalGraph = new_definition' `finalGraph g = (nonFinals g = [])`;;
 
-override_interface ("final",`finalGraph`);;
+override_interface' ("final",`finalGraph`);;
 
 liz_add {
 liz_name = "finalGraph";
@@ -2139,7 +2155,7 @@ liz_holl = `next_plane`;
 liz_thm = next_plane;
 };;
 
-override_interface ("PlaneGraphs",`PlaneGraphsP`);;
+override_interface' ("PlaneGraphs",`PlaneGraphsP`);;
 
 liz_add {
 liz_name = "PlaneGraphsP";
@@ -2227,7 +2243,7 @@ liz_thm = squanderVertex;
 };;
 
 liz_add {
-liz_name = "squanderFace";
+liz_name = "squanderFace";  (* __d *)
 liz_loc =  (tamefile "Tame.thy",42,49);   
 liz_holl = `squanderFace`;
 liz_thm = squanderFace;

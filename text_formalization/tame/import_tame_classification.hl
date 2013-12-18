@@ -26,17 +26,61 @@ flyspeck_needs "../tame_archive/tame_archive.hl";;
 module Import_tame_classification = struct
 
   open Hales_tactic;;
+
+  let overrides,add_override = 
+    let os = ref [] in
+    let ao t = (os := t :: !os) in
+    let oo() = map override_interface (!os) in
+      (oo,ao);;
   
   let override_interface' (a,b) = 
     let _ = report ("override " ^ a ^ " " ^(string_of_term b)) in
+    let _ = add_override (a,b) in
       override_interface (a,b);;
-    
 
+  let makeovers,add_makeover = 
+    let os = ref [] in
+    let ao t = (os := t :: !os) in
+    let oo() = map (fun (a,b) -> make_overloadable a b) (!os) in
+      (oo,ao);;
+  
+  let make_overloadable' a b = 
+    let _ = report ("makeover " ^ a ^ " " ^(string_of_type b)) in
+    let _ = add_makeover (a,b) in
+      make_overloadable a b;;
 
-  parse_as_infix ("::", (12, "right"));;
-  override_interface' ("::", `CONS`);;
-  parse_as_infix ("^^", (24, "right"));;
-  override_interface' ("^^", `POWER`);;
+  let overloads,add_overload = 
+    let os = ref [] in
+    let ao t = (os := t :: !os) in
+    let oo() = map overload_interface (!os) in
+      (oo,ao);;
+  
+  let overload_interface' (a,b) = 
+    let _ = report ("overload " ^ a ^ " " ^(string_of_term b)) in
+    let _ = add_overload (a,b) in
+      overload_interface (a,b);;
+
+  let parse_as_infixes,add_parse_as_infix =
+    let pais = ref [] in
+    let apai t = (pais := t :: !pais) in
+    let pai () = map parse_as_infix (!pais) in
+      (pai,apai);;
+
+  let parse_as_infix' t = 
+    let _ = add_parse_as_infix t in
+      parse_as_infix t;;
+
+  let notation() = 
+    let _ = parse_as_infixes() in
+    let _ = overrides() in
+    let _ = makeovers() in
+    let _ = overloads() in
+      ();;
+
+parse_as_infix' ("::", (12, "right"));;
+override_interface' ("::", `CONS`);;
+parse_as_infix' ("^^", (24, "right"));;
+override_interface' ("^^", `POWER`);;
 
   let ISADIR = 
     let dir = (Sys.getenv "FLYSPECK_DIR") in
@@ -73,8 +117,6 @@ types: num, (A) list, (A ==> B), (A) Option, A#B, bool.
     liz_t : string;
     liz_h : string;
   };;
-
-
 
   let lizt = ref [];;
 
@@ -130,14 +172,9 @@ type_synonym 'a fgraph = "'a list list"
     liz_h = "((A) list) list";
   };;
 
-
-
-
 (* ************************************************************************** *)
 (* TERMS *)
 (* ************************************************************************** *)
-
-
 
   let unsplit = Flyspeck_lib.unsplit;;
 
@@ -305,7 +342,7 @@ report (get_tame_def "ListAux.thy" (167,170));;
       let s' = trim s in
       let ix = assocd s' basic_dictionary s' in
       let _ = report ("adding infixr "^ix) in
-      let _ = parse_as_infix (ix, (translate_precedence_to_holl p,"right")) in
+      let _ = parse_as_infix' (ix, (translate_precedence_to_holl p,"right")) in
 	ix;;
 
   let infixl (s, p) = 
@@ -313,7 +350,7 @@ report (get_tame_def "ListAux.thy" (167,170));;
       let s' = trim s in
       let ix = assocd s' basic_dictionary s' in
       let _ = report ("adding infixl "^ix) in
-      let _ = parse_as_infix (ix, (translate_precedence_to_holl p,"left")) in
+      let _ = parse_as_infix' (ix, (translate_precedence_to_holl p,"left")) in
 	ix;;
 
   let liz_add recd = 
@@ -440,19 +477,15 @@ liz_thm = REVERSE;
    See http://www.cl.cam.ac.uk/research/hvg/Isabelle/dist/Isabelle2013/doc/main.pdf
 *)
 
-
-
-
 (*
 (* HOL Light definition from hypermap. Use ITER instead. *)
 
-parse_as_infix("POWER",(24,"right"));;
+parse_as_infix'("POWER",(24,"right"));;
 
 let POWER = new_recursive_definition num_RECURSION 
   `(!(f:A->A). f POWER 0  = I) /\  
    (!(f:A->A) (n:num). f POWER (SUC n) = (f POWER n) o f)`;;
 *)
-
 
 let APPEND_cat = prove_by_refinement(
   `APPEND = cat`,
@@ -465,9 +498,7 @@ let APPEND_cat = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
 (* import of 1.1 HOL *)
-
 
 let the = new_definition' `the s = @(x:A). (s = SOME x)`;;
 
@@ -540,7 +571,6 @@ liz_loc =  (holfile "List.thy",87,90);
 liz_holl = `flatten`;
 liz_thm = concat_flatten;
 };;
-
 
 (*
 let concat = new_recursive_definition list_RECURSION
@@ -722,7 +752,6 @@ liz_holl = `replace`;
 liz_thm = replace;
 };;
 
-
 (* clean this up later.  Isabelle has special notation for (list_update f n [] xs) *)
 
 (*
@@ -749,7 +778,6 @@ let list_update_ALT = prove_by_refinement(
   BY(REWRITE_TAC[])
   ]);;
   (* }}} *)
-
 
 liz_add {
 liz_name = "list_update";
@@ -780,7 +808,6 @@ let mapAt_ALT = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
 liz_add {
 liz_name = "mapAt";
 liz_loc =  (tamefile "ListAux.thy",172,177); 
@@ -805,7 +832,6 @@ let ITER_o = prove_by_refinement(
   BY(REWRITE_TAC[FUN_EQ_THM;ITER;I_THM;o_THM])
   ]);;
   (* }}} *)
-
 
 liz_add {
 liz_name = "funpow";
@@ -921,7 +947,6 @@ let rotate_mod = prove_by_refinement(
 
 (* 1.3 splitAt *)
 
-
 let split_at_rec = new_recursive_definition list_RECURSION 
  `split_at_rec (c:A) bs [] = (bs,[]) /\
    split_at_rec c bs ((a:A) :: xs) = if (a = c) then (bs,xs) else split_at_rec c (APPEND bs [a]) xs`;;
@@ -984,8 +1009,6 @@ liz_thm = betwn;
 
 (* 1.5 Tables *)
 
-
-
 (*
 let is_table = new_definition' `is_table (f:A->B) vs t =
     !p. (set_of_list t p ==> ((SND p = f (FST p)) /\ set_of_list vs (FST p)))`;;
@@ -1000,12 +1023,11 @@ let remove_key_list = new_recursive_definition list_RECURSION
     remove_key_list (w :: ws) (ps:(A#B) list) = remove_key w (remove_key_list ws ps)`;;
 *)
 
-
 (* XX overloaded and infix *)
 
 let cong = new_definition' `(__cong) (f1:A list) f2 <=> ?n. f2 = rotate n f1`;;
 
-  parse_as_infix ("__cong", (60, "right"));;
+  parse_as_infix' ("__cong", (60, "right"));;
 
 liz_add {  
 liz_name = "__cong";
@@ -1041,7 +1063,6 @@ let congs_rot = prove_by_refinement(
   BY(ARITH_TAC)
   ]);;
   (* }}} *)
-
 
 (* 2.2 homomorphism and isomorphism *)
 
@@ -1132,8 +1153,9 @@ let final_SND = prove_by_refinement(
   ]);;
   (* }}} *)
 
-make_overloadable "final" `:A -> bool`;;
-overload_interface ("final",`SND:num list # bool -> bool`);;
+make_overloadable' "final" `:A -> bool`;;
+
+overload_interface' ("final",`SND:num list # bool -> bool`);;
 
 liz_add {
 liz_name = "final_face";
@@ -1150,8 +1172,9 @@ let type_face_SND = prove_by_refinement(
   ]);;
   (* }}} *)
 
-make_overloadable "type" `:A -> bool`;;
-overload_interface ("type",`SND:num list # bool -> bool`);;
+make_overloadable' "type" `:A -> bool`;;
+
+overload_interface' ("type",`SND:num list # bool -> bool`);;
 
 liz_add {
 liz_name = "type_face";
@@ -1160,9 +1183,9 @@ liz_holl = `SND`;
 liz_thm = type_face_SND;
 };;
 
-make_overloadable "vertices" `:B -> (num list)`;;
+make_overloadable' "vertices" `:B -> (num list)`;;
 
-overload_interface ("vertices",`FST:num list # bool -> num list`);;
+overload_interface' ("vertices",`FST:num list # bool -> num list`);;
 
 let vertices_face_FST = prove_by_refinement(
   `vertices (Face vs (f:bool)) = (vs:num list)`,
@@ -1183,11 +1206,10 @@ liz_thm = vertices_face_FST;
 let bn_vertices_face = new_definition' `bn_vertices_face (vs:A,f:B) = vs`;;
 *)
 
-make_overloadable "__V" `:B -> (num -> bool)`;;
+make_overloadable' "__V" `:B -> (num -> bool)`;;
 
 let vertices_set1 = new_definition' `vertices_set1 (fs:num list#bool) = 
   set_of_list (vertices fs)`;;
-
 
 liz_add {
 liz_name = "vertices_set";
@@ -1195,7 +1217,6 @@ liz_loc =  (tamefile "Graph.thy",24,26);
 liz_holl = `vertices_set1`;
 liz_thm = vertices_set1;
 };;
-
 
 (* =~ on faces means =~ on vertex list *)
 
@@ -1273,7 +1294,8 @@ liz_holl = `nextVertex`;
 liz_thm = nextVertex_ALT;
 };;
 
-let nextVertices = new_definition' `nextVertices (f:(num list # bool)) (n:num) v = 
+let nextVertices = new_definition' 
+ `nextVertices (f:(num list # bool)) (n:num) v = 
     ITER n (nextVertex f) v`;;
 
 liz_add {
@@ -1325,7 +1347,6 @@ liz_holl = `Graph`;
 liz_thm = bn_Graph;
 };;
 
-
 (*
 let new_graph_th = prove(`?(x:((num list # bool) list) #  (num) 
    # (((num list # bool) list) list) # (num list))  . T`,MESON_TAC[]);;
@@ -1335,7 +1356,8 @@ let bn_graph_type = new_type_definition
 *)
 
 let faces = new_definition' 
- `faces  = FST:((num)list#bool)list#num#(((num)list#bool)list)list#(num)list -> ((num)list#bool)list`;;
+ `faces  = FST:((num)list#bool)list#num#(((num)list#bool)list)list#(num)list -> 
+    ((num)list#bool)list`;;
 
 let faces_graph = prove_by_refinement(
   `faces (Graph fs n f h) = fs`,
@@ -1410,12 +1432,12 @@ liz_thm = bn_upt;
 let vertices_graph = new_definition' 
  `vertices_graph g = upt 0 (countVertices g)`;;
 
-overload_interface ("vertices",`vertices_graph`);;
+overload_interface' ("vertices",`vertices_graph`);;
 
 let vertices_set2 = new_definition' 
  `vertices_set2 (g:((num)list#bool)list#num#(((num)list#bool)list)list#(num)list) = set_of_list (vertices g)`;;
 
-overload_interface ("__V",`vertices_set2`);;
+overload_interface' ("__V",`vertices_set2`);;
 
 let bn_vertices_graph = prove_by_refinement(
   `vertices_graph (Graph fs n f h) = upt 0 n`,
@@ -1518,7 +1540,6 @@ liz_loc =  (tamefile "Graph.thy",160,165);
 liz_holl = `graphl`;
 liz_thm = graph_ALT;
 };;
-
 
 (* 4.4 Operations on graphs *)
 
@@ -1662,7 +1683,6 @@ liz_holl = `neighbors`;
 liz_thm = neighbors;
 };;
 
-
 (* 4.5 Navigation in graphs *)
 
 (* nextFace *)
@@ -1676,8 +1696,6 @@ liz_loc =  (tamefile "Graph.thy",253,256);
 liz_holl = `directedLength`;
 liz_thm = directedLength;
 };;
-
-
 
 (* 4.6 Code generator setup *)
 
@@ -1769,7 +1787,6 @@ liz_thm = sub;
 
 (* notaton: a[n] = sub a n, a[m,n] = sub (sub a m) n, a[l,m,n] = sub(sub(sub a l)m)n *)
 
-
 (* 6 Enumerating Patches  *)
 
 let enumBase = new_definition' 
@@ -1854,7 +1871,6 @@ liz_loc =  (tamefile "Enumerator.thy",75,77);
 liz_holl = `indexToVertexList`;
 liz_thm = indexToVertexList;
 };;
-
 
 (* 7 Subdividing a Face *)
 
@@ -1972,9 +1988,6 @@ liz_loc =  (tamefile "FaceDivision.thy",69,71);
 liz_holl = `subdivFace`;
 liz_thm = subdivFace;
 };;
-
-
-
 
 (* 8. Transitive closure *)
 
@@ -2133,6 +2146,25 @@ let PlaneGraphsP = new_definition'
 
 let PlaneGraphs = new_definition'
   `PlaneGraphs = UNIONS (IMAGE planeGraphsP UNIV)`;;
+
+let planegraph = new_definition'
+  `planegraph g = (?p. 
+   (Seed p,g) IN RTranCl (next_plane p))`;;
+
+let planegraph_PlaneGraphs = prove_by_refinement(
+  `!g. PlaneGraphs g <=> (planegraph g /\ finalGraph g)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[planegraph;PlaneGraphs];
+  REWRITE_TAC[UNIONS;IN_ELIM_THM];
+  REWRITE_TAC[IN_IMAGE;IN_UNIV];
+  REWRITE_TAC[MESON [] `(?u. (?x. u = planeGraphsP x) /\ g IN u) <=> (?x. g IN planeGraphsP x)`];
+  REWRITE_TAC[PlaneGraphsP;IN_ELIM_THM];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
 
 liz_add {
 liz_name = "minimalFace";
@@ -2501,11 +2533,11 @@ liz_thm = archive_ALT;
 
 let EQ_CLASS = new_definition' ` ( //// ) A f = IMAGE (f:A->B) A`;;
 
-parse_as_infix ("////", (14, "right"));;
+parse_as_infix' ("////", (14, "right"));;
 
 let IMAGE_INFIX = new_definition' `(  #?# ) f X = IMAGE (f:A->B) X`;;
 
-parse_as_infix ("#?#",(16,"right"));;
+parse_as_infix' ("#?#",(16,"right"));;
 
 let is_pr_Hom = new_definition' `is_pr_Hom (phi:A->B) Fs1 Fs2 =
   ((( (MAP phi) #?# Fs1) //// (__cong)) = (Fs2 //// (__cong)))`;;

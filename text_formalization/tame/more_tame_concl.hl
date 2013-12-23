@@ -103,8 +103,8 @@ let PFUWHJH_concl =
   `!H (x:A) y n. dih2k H n /\ x IN dart H /\ y IN dart H ==>  
     (?phi. hyp_iso phi (H,H) /\ phi x = y)`;;
 
-let respects_finals = new_definition 
-  `respects_finals_v1 (phi:num#num->A->bool) g H NF = 
+let respect_final = new_definition 
+  `respect_final (phi:num#num->A->bool) g H NF = 
   final_quotient_faces H NF =  set_of_list 
     (MAP ((IMAGE phi) o set_of_list o list_pairs o FST) 
        (FILTER SND (faces g)))`;;
@@ -118,8 +118,136 @@ let UYOUIXG_concl =
     (?phi. 
       hyp_iso phi ((hypermap_of_list (fgraph (Seed (n-3)))) ,
 		   (quotient H {L1,L2})) /\
-      respects_finals_v1 phi (Seed (n-3)) H {L1,L2}) `;;
-							    
+      respect_final phi (Seed (n-3)) H {L1,L2}) `;;
+
+
+(* ========================================================================== *)
+(* Termination. *)
+(* ========================================================================== *)
+			
+let ADACDYF_concl = `!H NF L MF M (x:A).  is_marked(H,NF,L,x) /\
+   L IN final_loops H NF /\
+   (MF,M) = transform H x (NF,L) ==>
+  CARD (dart (quotient H NF)) < CARD (dart (quotient H MF))`;;
+
+let ZBHENEI_concl = `!H NF. is_restricted H /\ is_normal H NF ==>
+  CARD (dart (quotient H NF)) <= CARD (dart H)`;;
+
+let XWCNBMA_concl = `!H NF.  is_restricted H /\ is_normal H NF /\
+  final_loops H NF = NF ==> iso H (quotient H NF)`;;
+
+(* ========================================================================== *)
+(* Higher Transforms. *)
+(* ========================================================================== *)
+
+let path_index = new_definition `path_index n p x = 
+  indexl (x:A) (mkseq p n)`;;
+
+let modify_loop = new_definition `modify_loop n L (x:A) y p = 
+  (let q1 = path_of_loop L y in 
+   let index' = path_index n in
+   let q2 = shift_path p (index' p x) in
+   let m = index L y x in
+   let q = glue q1 q2 m  in
+   let n = index' q2 y + m in
+  loop (support_of_sequence q n, samsara q n))
+  `;;
+
+let LPWFYMU_concl = `!H NF L (x:A) M MF.
+  is_marked (H,NF,L,x) /\ ~(L IN final_loops H NF) /\
+  (!i. (MF i,M i) = (transform H x POWER i) (NF,L)) ==>
+  (!i. ~(M i IN final_loops H NF) ==>
+     (let f =  face_contour H x in
+      let fc =  complement H x in
+      let z = hyp'z H (MF i) (M i) x in
+      let n = CARD (dart H) in
+      let Mminus  = modify_loop n (M i) x z f in 
+      let Mplus = modify_loop n (M i) 
+	(inverse (node_map H) x) (node_map H z) fc in
+	(MF (SUC i) = ((MF i) DIFF {M i}) UNION {Mminus,Mplus}) /\
+	  M (SUC i) = Mminus))`;;
+
+let RYIUUVK_concl = `!H NF L (x:A) M MF.
+  is_marked (H,NF,L,x) /\ ~(L IN final_loops H NF) /\
+  (!i. (MF i,M i) = (transform H x POWER i) (NF,L)) ==>
+  (!i. ~(M i IN final_loops H NF) ==>
+       index (loop_of_face H x) x (hyp'z H (MF i) (M i) x) < 
+	 index (loop_of_face H x) x (hyp'y H (MF (SUC i)) (M (SUC i)) x))`;;
+
+(* XX I might not have the condition on final_loops quite right on these.
+   Check this. *)
+
+let CESHTIN1_concl = `!H NF L (x:A) M MF.
+  is_marked (H,NF,L,x) /\ ~(L IN final_loops H NF) /\
+  (!i. (MF i,M i) = (transform H x POWER i) (NF,L)) ==>
+  (!i. ~(M i IN final_loops H NF) ==>
+     hyp'z H (MF i) (M i) x IN dart_of_loop L)`;;
+
+let CESHTIN2_concl = `!H NF L (x:A) M MF.
+  is_marked (H,NF,L,x) /\ ~(L IN final_loops H NF) /\
+  (!i. (MF i,M i) = (transform H x POWER i) (NF,L)) ==>
+  (!i. ~(M i IN final_loops H NF) ==>
+     hyp'y H (MF i) (M i) x IN dart_of_loop L)`;;
+
+let CESHTIN3_concl = `!H NF L (x:A) M MF.
+  is_marked (H,NF,L,x) /\ ~(L IN final_loops H NF) /\
+  (!i. (MF i,M i) = (transform H x POWER i) (NF,L)) ==>
+  (!i. ~(M i IN final_loops H NF) ==>
+     index L x (hyp'z H (MF i) (M i) x) < 
+	 index L x (hyp'y H (MF (SUC i)) (M (SUC i)) x))`;;
+
+let CESHTIN4_concl = `!H NF L (x:A) M MF.
+  is_marked (H,NF,L,x) /\ ~(L IN final_loops H NF) /\
+  (!i. (MF i,M i) = (transform H x POWER i) (NF,L)) ==>
+  (!i. ~(M i IN final_loops H NF) ==>
+     index L x (hyp'y H (MF i) (M i) x) < 
+	 index L x (hyp'z H (MF i) (M i) x))`;;
+
+
+
+
+
+
+
+
+  
+
+
+(* ========================================================================== *)
+(* Induction step. *)
+(* ========================================================================== *)
+
+let corresponding_hyperdata = new_definition `
+  corresponding_hyperdata (H,NF,g,phi) <=> 
+  (is_normal (H:(A) hypermap) NF /\
+    planegraph g /\
+    hyp_iso phi (hypermap_of_list (fgraph g),quotient H NF) /\
+    respect_final phi g H NF /\
+   simple_hypermap (quotient H NF) /\
+   is_node_nondegenerate (quotient H NF) /\
+   empty_flagged H NF)`;;
+
+let loop_choice = new_definition `loop_choice (H,NF,g,phi) = @Lx.
+  (
+    let L = FST Lx in
+    let x = SND Lx in
+   let f = minimalFace (nonFinals g) in
+   let v = minimalVertex g f in
+   let w = nextVertex f v in
+   let d = phi(v,w) in
+      (x = tail_of_atom H NF (d:A) /\ d IN dart_of_loop L))`;;
+
+let HKBGWJI_concl = new_definition 
+  `!H NF g phi L (x:A).
+      is_restricted H /\
+     corresponding_hyperdata (H,NF,g,phi) /\
+     ~(nonFinals g = []) /\
+     ((L,x) = loop_choices(H,NF,g,phi)) ==>
+    is_marked (H,NF,L,x)`;;
+
+let dart_of_lgraph = new_definition `dart_of_lgraph g f v = 
+  (
+
 
 (* ========================================================================== *)
 (* Matching Isabelle-tame with hypermap-tame *)

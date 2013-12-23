@@ -466,18 +466,26 @@ let mk_deserialize_thm =
       let _ = St.mem d digest_set or failwith ("theorem digest not found "^d) in
 	th;;
 
-let deserialization_axiom () = 
+let deserialization_axiom = 
   let t = mk_const (deserial,[]) in
   let ax = axioms() in
   let found = filter (fun u -> t = concl u && hyp u = []) ax in
-    if (not(found=[])) then hd found else Hol.new_axiom t;;
+    fun () ->
+      if (not(found=[])) then hd found else Hol.new_axiom t;;
 
-let mk_ser_thm = 
+let use_serialization = 
+  try
+    let _ = Sys.getenv "FLYSPECK_SERIALIZATION" in
+      true
+ with Not_found -> false;;
+
+let mk_ser_thm t = 
+  let _ = use_serialization or failwith "mk_ser_thm" in
   let d = deserialization_axiom() in
-    fun t -> 
-      PROVE_HYP d (mk_deserialize_thm t);;
+    PROVE_HYP d (mk_deserialize_thm t);;
 
-let report_not_found t = report ("(-:) "^string_of_term t);;
+let report_not_found t = 
+  if use_serialization then report ("(-:) "^string_of_term t);;
 
 let des_prove (t,tac) = 
   try 

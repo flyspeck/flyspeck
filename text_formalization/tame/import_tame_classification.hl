@@ -1660,7 +1660,7 @@ liz_thm = exceptionalVertex;
 
 (* not used.
 let noExceptionals = new_definition'   `noExceptionals g V =
-   (!v. (v IN V ==> ~(exceptionalVertex g v))`;;
+   (!v. (v IN V ==> ~(exceptionalVertex g v)))`;;
 
 liz_add {
 liz_name = "noExceptionals";
@@ -2099,9 +2099,15 @@ liz_thm = containsDuplicateEdge;
 };;
 
 let generatePolygon = new_definition' 
-  `generatePolygon n v f g = 
+  `generatePolygon n v (f:(num)list#bool) g = 
   (let enumeration = enumerator n (LENGTH (vertices f)) in
    let enumeration = FILTER (\is. ~(containsDuplicateEdge g f v is)) enumeration in
+   let vertexLists = MAP (\is. indexToVertexList f v is) enumeration in
+     MAP (\vs. subdivFace g f vs) vertexLists)`;;
+
+let generatePolygon_relaxed = new_definition' 
+  `generatePolygon_relaxed n v (f:(num)list#bool) g = 
+  (let enumeration = enumerator n (LENGTH (vertices f)) in
    let vertexLists = MAP (\is. indexToVertexList f v is) enumeration in
      MAP (\vs. subdivFace g f vs) vertexLists)`;;
 
@@ -2136,7 +2142,28 @@ let next_plane = new_definition'
      if (fs = []) then [] else
        (let f = minimalFace fs in
 	let v = minimalVertex g f in
-	  (flatten (MAP (\i. generatePolygon i v f g) (upt 3 (SUC (maxGon p))) ))))`;;
+	  (flatten (MAP (\i. generatePolygon i v f g) 
+		      (upt 3 (SUC (maxGon p))) ))))`;;
+
+let next_plane_relaxed = new_definition'
+  `next_plane_relaxed p g = 
+  (let fs = nonFinals g in
+     if (fs = []) then [] else
+       (let f = minimalFace fs in
+	let v = minimalVertex g f in
+	  (flatten (MAP (\i. generatePolygon_relaxed i v f g) 
+		      (upt 3 (SUC (maxGon p))) ))))`;;
+
+
+(*
+let next_plane_relaxed = new_definition'
+  `next_plane_relaxed g = 
+  (let fs = nonFinals g in
+     if (fs = []) then [] else
+       (let f = minimalFace fs in
+	let v = minimalVertex g f in
+	  (flatten (MAP (\i. generatePolygon i v f g) {n | 3 <= n} ))))`;;
+*)
 
 let PlaneGraphsP = new_definition'
   `planeGraphsP p = 
@@ -2150,6 +2177,13 @@ let PlaneGraphs = new_definition'
 let planegraph = new_definition'
   `planegraph g = (?p. 
    (Seed p,g) IN RTranCl (next_plane p))`;;
+
+let planegraph_relaxed = new_definition'
+  `planegraph_relaxed g = (?p q. 
+   (Seed p,g) IN RTranCl (next_plane_relaxed q))`;;
+
+let planegraphP = new_definition'
+  `planegraphP p g = ((Seed p,g) IN RTranCl (next_plane p))`;;
 
 let planegraph_PlaneGraphs = prove_by_refinement(
   `!g. PlaneGraphs g <=> (planegraph g /\ finalGraph g)`,

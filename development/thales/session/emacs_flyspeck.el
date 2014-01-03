@@ -9,6 +9,8 @@
 
 (setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
 (setq hol-light-interactive-buffer-name "*dec24*")
+(setq hol-light-interactive-buffer-name "*jan1*")
+(setq hol-light-interactive-buffer-name "*test*")
 
 
 

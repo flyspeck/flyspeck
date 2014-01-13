@@ -1,0 +1,1193 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter:  Tame Hypermap                                           *)
+(* Lemma:  ASFUTBF                                                            *)
+(* Author:  Thomas Hales     *)
+(* Date: Jan 8, 2014                                                *)
+(* ========================================================================== *)
+
+
+module Asfutbf = struct
+
+open Hypermap;;
+open Import_tame_classification;;
+open More_tame_concl;;
+
+let ASFUTBF_concl = `!H:(A)hypermap .
+   (?V'. contravening V' /\
+      iso (opposite_hypermap (hypermap_of_fan (V',ESTD V'))) H)
+   ==> (?V. contravening V /\ iso (hypermap_of_fan (V,ESTD V)) H)`;;
+
+`hyp_iso (\ uv. --u,--v) 
+   (hypermap_of_fan (IMAGE (--) V,ESTD (IMAGE (--) V)),
+   opposite_hypermap (hypermap_of_fan(V,ESTD V)))`;;
+
+let contravening_negative_concl =
+  `!V. contravening V ==> contravening (IMAGE (--) V)`;;
+
+let opposite_hypermap_map = prove_by_refinement(
+  `!H:(A)hypermap. 
+      edge_map (opposite_hypermap H) = face_map H o node_map H /\
+      node_map (opposite_hypermap H) = inverse (node_map H) /\
+      face_map (opposite_hypermap H) = inverse (face_map H)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.opposite_hypermap];
+  GEN_TAC;
+  INTRO_TAC Hypermap.hypermap_lemma [`H`];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Hypermap.lemma_hypermap_rep [`dart H`;`face_map H o node_map H`;`inverse (node_map H)`;`inverse (face_map H)`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    ASM_SIMP_TAC[Hypermap.PERMUTES_COMPOSITION];
+    ASM_SIMP_TAC[PERMUTES_INVERSE];
+    TYPIFY_GOAL_THEN `(face_map H o node_map H) o inverse (node_map H) o inverse (face_map H) = (face_map H o (node_map H o inverse (node_map H)) o inverse (face_map H))` (unlist REWRITE_TAC);
+      BY(MESON_TAC[o_ASSOC]);
+    INTRO_TAC PERMUTES_INVERSES_o [`node_map H`;`dart H`];
+    ASM_REWRITE_TAC[];
+    ASM_SIMP_TAC[I_O_ID];
+    BY(ASM_MESON_TAC[PERMUTES_INVERSES_o]);
+  REPEAT WEAKER_STRIP_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+
+let iso_opposite = prove_by_refinement(
+  `!H:(A)hypermap H':(B)hypermap. iso H H' ==> iso (opposite_hypermap H) (opposite_hypermap H')`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (MP_TAC o (MATCH_MP Hypermap_iso.iso_imp_hyp_iso));
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Hypermap_iso.hyp_iso_inverse_comm [`H'`;`f`;`H`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  REWRITE_TAC[Hypermap.iso];
+  TYPIFY `f` EXISTS_TAC;
+  REWRITE_TAC[Tame_opposite.opposite_components;opposite_hypermap_map];
+  ASM_SIMP_TAC[];
+  ASM_SIMP_TAC[Hypermap_iso.hyp_iso_bij];
+  REWRITE_TAC[o_THM];
+  INTRO_TAC Hypermap_iso.hyp_iso_comm [`H'`;`f`;`H`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_SIMP_TAC[];
+  INTRO_TAC Hypermap.lemma_dart_invariant [`H`;`x`];
+  ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let iso_opposite_eq = prove_by_refinement(
+ `!H:(A)hypermap H':(B)hypermap. iso H H' <=> iso (opposite_hypermap H) (opposite_hypermap H')`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Geomdetail.EQ_EXPAND;iso_opposite];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (MP_TAC o (MATCH_MP iso_opposite));
+  BY(REWRITE_TAC[Tame_opposite.opposite_opposite_hypermap_eq_hypermap])
+  ]);;
+  (* }}} *)
+
+let iso_opposite_adjoint = prove_by_refinement(
+  `!H:(A)hypermap H':(B)hypermap. iso H (opposite_hypermap H') <=> iso (opposite_hypermap H) (H')`,
+  (* {{{ proof *)
+  [
+  BY(MESON_TAC[iso_opposite_eq;Tame_opposite.opposite_opposite_hypermap_eq_hypermap])
+  ]);;
+  (* }}} *)
+
+let IN_NEG = prove_by_refinement(
+  `!v. v IN IMAGE (--) (V:real^N->bool) <=> (-- v) IN V`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[IN_IMAGE];
+  BY(MESON_TAC[arith `-- (-- v) = v:real^N`])
+  ]);;
+  (* }}} *)
+
+let packing_negative = prove_by_refinement(
+  `!V. packing V ==> packing (IMAGE (--) V)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.packing_lt;IN_NEG];
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC (arith `-- u = -- v ==> (u = (v:real^3))`);
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[Yxionxl2.DIST_SYM_0];
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let ball_annulus_negative = prove_by_refinement(
+  `!V. V SUBSET ball_annulus ==> (IMAGE (--) V) SUBSET ball_annulus`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[SUBSET];
+  REWRITE_TAC[Fnjlbxs.in_ball_annulus];
+  REWRITE_TAC[IN_NEG];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `norm (x:real^3) = norm (-- x)` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REWRITE_TAC[NORM_NEG]);
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let ESTD_FAN_NEG = prove_by_refinement(
+  `!V. packing V /\ V SUBSET ball_annulus /\ ~(V = {}) ==> FAN (vec 0,IMAGE (--) V,ESTD (IMAGE (--) V))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (MP_TAC o (MATCH_MP ball_annulus_negative));
+  FIRST_X_ASSUM (MP_TAC o (MATCH_MP packing_negative));
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC Ckqowsa.CKQOWSA;
+  BY(ASM_REWRITE_TAC[IMAGE_EQ_EMPTY])
+  ]);;
+  (* }}} *)
+
+let ECTC_FAN_NEG = prove_by_refinement(
+  `!V. packing V /\ V SUBSET ball_annulus /\ ~(V = {}) ==> FAN (vec 0,IMAGE (--) V,ECTC (IMAGE (--) V))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (MP_TAC o (MATCH_MP ball_annulus_negative));
+  FIRST_X_ASSUM (MP_TAC o (MATCH_MP packing_negative));
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC Tame_general.UBHDEUU2;
+  BY(ASM_REWRITE_TAC[IMAGE_EQ_EMPTY])
+  ]);;
+  (* }}} *)
+
+let BIJ_negative = prove_by_refinement(
+  `!V:real^A->bool. BIJ (--) V (IMAGE (--) V)`,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  MATCH_MP_TAC (GEN_ALL Lunar_deform.INJ_IMP_BIJ_IMAGE);
+  TYPIFY `(:real^A)` EXISTS_TAC;
+  REWRITE_TAC[INJ];
+  REWRITE_TAC[INJ;IN_UNIV];
+  REPEAT WEAKER_STRIP_TAC;
+  ONCE_REWRITE_TAC[arith `((x:real^A) = y) <=> (--x = --y)`];
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let scriptL_negative = prove_by_refinement(
+  `!V. scriptL (IMAGE (--) V) = scriptL V `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.scriptL];
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC SUM_IMAGE;
+  CONJ_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    ONCE_REWRITE_TAC[arith `((x:real^A) = y) <=> (--x = --y)`];
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY ` ((\v. lmfun (norm v / &2)) o (--)) = (\(v:real^3). lmfun (norm v / &2))` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REWRITE_TAC[FUN_EQ_THM;o_THM;NORM_NEG]);
+  BY(REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let CARD_NEGATIVE = prove_by_refinement(
+  `!(V:real^N->bool). FINITE V ==> CARD (IMAGE (--) V) = CARD V`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  ONCE_REWRITE_TAC[EQ_SYM_EQ];
+  MATCH_MP_TAC Misc_defs_and_lemmas.BIJ_CARD;
+  BY(ASM_MESON_TAC[BIJ_negative])
+  ]);;
+  (* }}} *)
+
+let ESTD_NEG = prove_by_refinement(
+  `!V. ESTD (IMAGE (--) V) = IMAGE (IMAGE (--)) (ESTD V)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.ESTD;IN_NEG;EXTENSION;IN_ELIM_THM;];
+  REWRITE_TAC[IN_IMAGE;IN_ELIM_THM];
+  REWRITE_TAC[Geomdetail.EQ_EXPAND;iso_opposite];
+  REPEAT WEAKER_STRIP_TAC;
+  CONJ_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `{-- (v:real^3),-- w}` EXISTS_TAC;
+    REWRITE_TAC[IMAGE_CLAUSES;arith `-- (-- (v:real^3)) = v`];
+    CONJ_TAC;
+      BY(FIRST_X_ASSUM MP_TAC THEN SET_TAC[]);
+    GEXISTL_TAC [`-- (v:real^3)`;`-- (w:real^3)`];
+    ASM_REWRITE_TAC[arith `(-- (v:real^3) = -- w) <=> (v  =w)`];
+    BY(ASM_REWRITE_TAC[Yxionxl2.DIST_SYM_0]);
+  REPEAT WEAKER_STRIP_TAC;
+  GEXISTL_TAC [`-- (v:real^3)`;`-- (w:real^3)`];
+  ASM_REWRITE_TAC[arith `(-- (v:real^3) = -- w) <=> (v  =w)`;arith `-- (-- (v:real^3)) = v`;Yxionxl2.DIST_SYM_0];
+  BY(ASM_REWRITE_TAC[IMAGE_CLAUSES])
+  ]);;
+  (* }}} *)
+
+let ECTC_NEG = prove_by_refinement(
+  `!V. ECTC (IMAGE (--) V) = IMAGE (IMAGE (--)) (ECTC V)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.ECTC;IN_NEG;EXTENSION;IN_ELIM_THM;];
+  REWRITE_TAC[IN_IMAGE;IN_ELIM_THM];
+  REWRITE_TAC[Geomdetail.EQ_EXPAND;iso_opposite];
+  REPEAT WEAKER_STRIP_TAC;
+  CONJ_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `{-- (v:real^3),-- w}` EXISTS_TAC;
+    REWRITE_TAC[IMAGE_CLAUSES;arith `-- (-- (v:real^3)) = v`];
+    CONJ_TAC;
+      BY(FIRST_X_ASSUM MP_TAC THEN SET_TAC[]);
+    GEXISTL_TAC [`-- (v:real^3)`;`-- (w:real^3)`];
+    ASM_REWRITE_TAC[arith `(-- (v:real^3) = -- w) <=> (v  =w)`];
+    BY(ASM_REWRITE_TAC[Yxionxl2.DIST_SYM_0]);
+  REPEAT WEAKER_STRIP_TAC;
+  GEXISTL_TAC [`-- (v:real^3)`;`-- (w:real^3)`];
+  ASM_REWRITE_TAC[arith `(-- (v:real^3) = -- w) <=> (v  =w)`;arith `-- (-- (v:real^3)) = v`;Yxionxl2.DIST_SYM_0];
+  BY(ASM_REWRITE_TAC[IMAGE_CLAUSES])
+  ]);;
+  (* }}} *)
+
+let IMAGE_NEG_IMP = prove_by_refinement(
+  `!A (B:real^N->bool). A = IMAGE (--) B ==> B = IMAGE (--) A`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  TYPIFY `(--) = (\ (x:real^N). -- x)` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REWRITE_TAC[FUN_EQ_THM]);
+  BY(REWRITE_TAC[Yxionxl2.REFL_SYM_0])
+  ]);;
+  (* }}} *)
+
+let IMAGE_NEG_EQ = prove_by_refinement(
+  `!A (B:real^N->bool). A = IMAGE (--) B <=> IMAGE (--) A = B`,
+  (* {{{ proof *)
+  [
+  BY(MESON_TAC[IMAGE_NEG_IMP])
+  ]);;
+  (* }}} *)
+
+let IN_EDGE_NEG = prove_by_refinement(
+  `!E v w. {v,w} IN IMAGE (IMAGE (--)) E <=> {--v, -- (w:real^N)} IN E`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[IN_IMAGE];
+  REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[IMAGE_NEG_EQ;IMAGE_CLAUSES];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let set_of_edge_neg = prove_by_refinement(
+  `!(v:real^N) V E. set_of_edge v (IMAGE (--) V) (IMAGE (IMAGE (--)) E) =  (IMAGE (--)) (set_of_edge (-- v) V E)`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Fan_defs.set_of_edge;EXTENSION;IN_NEG;IN_ELIM_THM;IN_EDGE_NEG])
+  ]);;
+  (* }}} *)
+
+let dart_of_fan_neg = prove_by_refinement(
+  `!V E x. (x IN dart_of_fan (IMAGE (--) V, IMAGE (IMAGE (--)) E)) <=>
+       ((-- FST x,-- SND x) IN dart_of_fan (V,E)) `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.dart_of_fan;IN_NEG;IN_UNION];
+  REWRITE_TAC[IN_ELIM_THM;IN_EDGE_NEG];
+  REWRITE_TAC[set_of_edge_neg];
+  REWRITE_TAC[IMAGE_EQ_EMPTY];
+  TYPIFY_GOAL_THEN `!x v w. (--FST x, --SND x = v,w) <=> (x = (--(v:real^3),--(w:real^3)))` (unlist REWRITE_TAC);
+    REWRITE_TAC[PAIR_EQ];
+    REPEAT WEAKER_STRIP_TAC;
+    REWRITE_TAC[arith `!x (u:real^3). -- x = u <=> x = --u`];
+    BY(REWRITE_TAC[GSYM PAIR_EQ]);
+  REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  REPEAT WEAKER_STRIP_TAC;
+  CONJ_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM DISJ_CASES_TAC;
+      DISJ1_TAC;
+      FIRST_X_ASSUM MP_TAC THEN REPEAT WEAKER_STRIP_TAC;
+      TYPIFY `-- (v:real^3)` EXISTS_TAC;
+      BY(ASM_REWRITE_TAC[arith `-- (-- (v:real^3)) = v`]);
+    FIRST_X_ASSUM MP_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    DISJ2_TAC;
+    GEXISTL_TAC [`-- (v:real^3)`;`-- (w:real^3)`];
+    BY(ASM_REWRITE_TAC[arith `-- (-- (v:real^3)) = v`]);
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM DISJ_CASES_TAC;
+    DISJ1_TAC;
+    FIRST_X_ASSUM MP_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `-- (v:real^3)` EXISTS_TAC;
+    BY(ASM_REWRITE_TAC[arith `-- (-- (v:real^3)) = v`]);
+  FIRST_X_ASSUM MP_TAC THEN REPEAT WEAKER_STRIP_TAC;
+  DISJ2_TAC;
+  GEXISTL_TAC [`-- (v:real^3)`;`-- (w:real^3)`];
+  BY(ASM_REWRITE_TAC[arith `-- (-- (v:real^3)) = v`])
+  ]);;
+  (* }}} *)
+
+let FINITE_NEG = prove_by_refinement(
+  `!(S:real^N->bool). FINITE (IMAGE (--) S) <=> FINITE S`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  REPEAT WEAKER_STRIP_TAC;
+  CONJ2_TAC;
+    BY(ASM_MESON_TAC[FINITE_IMAGE]);
+  DISCH_TAC;
+  INTRO_TAC Misc_defs_and_lemmas.FINITE_BIJ2 [`S`;`IMAGE (--) (S:real^N->bool)`;`(--) : real^N->real^N`];
+  DISCH_THEN MATCH_MP_TAC;
+  ASM_REWRITE_TAC[];
+  BY(ASM_REWRITE_TAC[BIJ_negative])
+  ]);;
+  (* }}} *)
+
+let INTER_NEG = prove_by_refinement(
+  `!A (B:real^N->bool).  IMAGE (--) A INTER IMAGE (--) B = IMAGE (--) (A INTER B)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[EXTENSION;IN_INTER];
+  BY(REWRITE_TAC[EXTENSION;IN_INTER;IN_NEG])
+  ]);;
+  (* }}} *)
+
+let affine_hull_neg = prove_by_refinement(
+  `!(v:real^N).  IMAGE (--) (affine hull {vec 0,v}) = affine hull {vec 0,-- v}`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[AFFINE_HULL_2_ALT;EXTENSION;IN_NEG;IN_ELIM_THM;IN_UNIV];
+  REWRITE_TAC[arith `vec 0 + u % (v - vec 0) = u % v`];
+  REWRITE_TAC[arith `-- x = u % v <=> x = (u) % (-- v)`];
+  ]);;
+  (* }}} *)
+
+let cyclic_set_neg = prove_by_refinement(
+  `!V E (v:real^N). cyclic_set (set_of_edge (-- v) (IMAGE (--) V) (IMAGE (IMAGE (--)) E)) (vec 0) (--v) = 
+      cyclic_set (set_of_edge v V E) (vec 0) v`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.cyclic_set];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[set_of_edge_neg;VECTOR_NEG_NEG];
+  REWRITE_TAC[arith `vec 0 = -- (v:real^N) <=> vec 0 = v`];
+  ASM_CASES_TAC `(vec 0 = v:real^N)` THEN ASM_REWRITE_TAC[];
+  REWRITE_TAC[FINITE_NEG];
+  TYPIFY `~(FINITE (set_of_edge v V E))` ASM_CASES_TAC THEN RULE_ASSUM_TAC(REWRITE_RULE[]) THEN ASM_REWRITE_TAC[];
+  REWRITE_TAC[GSYM affine_hull_neg;INTER_NEG];
+  REWRITE_TAC[IMAGE_EQ_EMPTY];
+  TYPIFY `~(set_of_edge v V E INTER affine hull {vec 0, v} = {})` ASM_CASES_TAC THEN RULE_ASSUM_TAC(REWRITE_RULE[]) THEN ASM_REWRITE_TAC[];
+  TYPIFY_GOAL_THEN `!A (p:real^N). IMAGE (--) A p <=> A (--p)` (unlist REWRITE_TAC);
+    BY(MESON_TAC[IN_NEG;IN]);
+  REWRITE_TAC[arith `p = q + h % (vec 0 - -- v) <=> (--p) = (--q) + h % (vec 0 - v)`];
+  REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  REPEAT WEAKER_STRIP_TAC;
+  CONJ_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    ONCE_REWRITE_TAC[arith ` p = q <=> -- (p:real^N) = -- q`];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    REWRITE_TAC[VECTOR_NEG_NEG];
+    BY(ASM_MESON_TAC[]);
+  ONCE_REWRITE_TAC[arith ` p = q <=> -- (p:real^N) = -- q`];
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let azim_cycle_mono = prove_by_refinement(
+  `!V E v x x'. FAN (vec 0,V,E) /\ 
+    x IN set_of_edge v V E /\ x' IN set_of_edge v V E /\
+    (azim_cycle (set_of_edge v V E) (vec 0) v x = azim_cycle (set_of_edge v V E) (vec 0) v x') ==> (x = x')`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `{v,x} IN E /\ {v,x'} IN E` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT (FIRST_X_ASSUM_ST `set_of_edge` MP_TAC);
+    REWRITE_TAC[Fan_defs.set_of_edge;IN_ELIM_THM];
+    BY(SIMP_TAC[]);
+  FIRST_X_ASSUM_ST `azim_cycle` MP_TAC;
+  REPEAT (GMATCH_SIMP_TAC Localization.AZIM_CYCLE_EQ_SIGMA_FAN_ALT);
+  ASM_REWRITE_TAC[];
+  INTRO_TAC Fan.MONO_SIGMA_FAN [`(vec 0):real^3`;`V`;`E`;`v`;`x`;`x'`];
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let IVS_AZIM_CYCLE_SIMPLE = prove_by_refinement(
+  `!V E (v:real^3) x p. FAN (vec 0,V,E) /\ 
+    x IN set_of_edge v V E /\ 
+    (azim_cycle (set_of_edge v V E) (vec 0) v x = p) ==>
+     ivs_azim_cycle (set_of_edge v V E) (vec 0) v p = x
+`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC (GEN_ALL Lvducxu.PROPERTIES_OF_IVS_AZIM_CYCLE2) [`V`;`E`;`(vec 0):real^3`;`v`;`p`];
+  ASM_SIMP_TAC[Localization.EE_elim];
+  TYPIFY `p IN set_of_edge v V E` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM (SUBST1_TAC o GSYM);
+    ASM_SIMP_TAC[Localization.AZIM_CYCLE_EQ_SIGMA_FAN_ALT];
+    INTRO_TAC Fan.sigma_fan_in_set_of_edge [`(vec 0):real^3`;`V`;`E`;`v`;`x`];
+    BY(ASM_SIMP_TAC[]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC azim_cycle_mono [`V`;`E`;`v`;`(ivs_azim_cycle (set_of_edge v V E) (vec 0) v p)`;`x`];
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let AZIM_CYCLE_SIMPLE = prove_by_refinement(
+  `!V E v (x:real^3) p. FAN (vec 0,V,E) /\ 
+    x IN set_of_edge v V E /\ 
+    (ivs_azim_cycle (set_of_edge v V E) (vec 0) v x = p) ==>
+     azim_cycle (set_of_edge v V E) (vec 0) v p = x
+`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC (GEN_ALL Lvducxu.PROPERTIES_OF_IVS_AZIM_CYCLE2) [`V`;`E`;`(vec 0):real^3`;`v`;`x`];
+  BY(ASM_SIMP_TAC[Localization.EE_elim])
+  ]);;
+  (* }}} *)
+
+let set_of_edge_not_collinear = prove_by_refinement(
+  `!V E v (p:real^3). FAN (vec 0,V,E) /\ p IN set_of_edge v V E ==> ~collinear {vec 0,v,p}`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Fan_defs.set_of_edge;IN_ELIM_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[];
+  MATCH_MP_TAC Hypermap_and_fan.DART1_NOT_COLLINEAR;
+  GEXISTL_TAC [`V`;`E`] THEN ASM_REWRITE_TAC[];
+  REWRITE_TAC[Fan_defs.dart1_of_fan];
+  REWRITE_TAC[Fan_defs.dart1_of_fan;IN_ELIM_THM];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let sigma_fan_neg_lemma = prove_by_refinement(
+  `!V E v w. v IN V /\ w IN V /\ {v,w} IN E /\ FAN (vec 0,V,E) /\
+ FAN (vec 0,IMAGE (--) V,IMAGE (IMAGE (--)) E) /\
+   (!u. ~(set_of_edge v V E SUBSET {u})) /\
+    ~(set_of_edge v V E SUBSET {w}) 
+ ==>
+    -- (sigma_fan (vec 0) (IMAGE (--) V) (IMAGE (IMAGE (--)) E) (-- v) (-- w)) = 
+      (inverse_sigma_fan (vec 0) V E (v) (w))
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `cyclic_set (set_of_edge (--v) (IMAGE (--) V) (IMAGE (IMAGE (--) ) E)) (vec 0) (--v)` (C SUBGOAL_THEN ASSUME_TAC);
+    INTRO_TAC Fan.CYCLIC_SET_EDGE_FAN [`(vec 0):real^3`];
+    DISCH_THEN MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
+    BY(ASM_REWRITE_TAC[IN_NEG;VECTOR_NEG_NEG]);
+  COMMENT "1";
+  GMATCH_SIMP_TAC (GSYM Localization.AZIM_CYCLE_EQ_SIGMA_FAN_ALT);
+  ASM_REWRITE_TAC[set_of_edge_neg;IN_NEG;VECTOR_NEG_NEG];
+  SUBCONJ_TAC;
+    BY(ASM_REWRITE_TAC[Fan_defs.set_of_edge;IN_ELIM_THM]);
+  DISCH_TAC;
+  REWRITE_TAC[arith `-- (v:real^3) = u <=> v = -- u`];
+  MATCH_MP_TAC Zlzthic.IDENTIFY_AZIM_CYCLE_SIMPLE;
+  TYPED_ABBREV_TAC `p = inverse_sigma_fan (vec 0) V E v w`;
+  REWRITE_TAC[IN_NEG;VECTOR_NEG_NEG];
+  COMMENT "0";
+  TYPIFY `ivs_azim_cycle (set_of_edge v V E) (vec 0) v w = p` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Wrgcvdr_cizmrrh.IVS_AZIM_PROPERTIES;Localization.ivs_azim_cycle_elim]);
+  INTRO_TAC AZIM_CYCLE_SIMPLE [`V`;`E`;`v`;`w`;`p`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  COMMENT "00";
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `SUBSET` MP_TAC;
+    REWRITE_TAC[SUBSET;IN_NEG;IN_INSERT;NOT_IN_EMPTY;NOT_FORALL_THM];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `-- (x:real^3)` EXISTS_TAC;
+    BY(ASM_REWRITE_TAC[VECTOR_NEG_NEG;arith `-- (x:real^3) = -- w <=> x = w`]);
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `cyclic_set` MP_TAC;
+    BY(REWRITE_TAC[ set_of_edge_neg;VECTOR_NEG_NEG]);
+  ASM_REWRITE_TAC[VECTOR_NEG_NEG;arith `-- (x:real^3) = -- w <=> x = w`];
+  SUBCONJ_TAC;
+    CONJ2_TAC;
+      BY(ASM_MESON_TAC[Wrgcvdr_cizmrrh.IVS_AZIM_PROPERTIES;Localization.ivs_azim_cycle_elim]);
+    BY(ASM_MESON_TAC[Add_triangle.finite_set_of_edge;Wrgcvdr_cizmrrh.AZIM_CYCLE_PROPERTIES]);
+  (REPEAT WEAKER_STRIP_TAC);
+  COMMENT "2";
+  TYPIFY `q = -- (-- (q:real^3))` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REWRITE_TAC[VECTOR_NEG_NEG]);
+  REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC);
+  REWRITE_TAC[arith `q = -- w <=> --q = (w:real^3)`];
+  TYPED_ABBREV_TAC `(r:real^3) = --q`;
+  FIRST_X_ASSUM kill;
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (GMATCH_SIMP_TAC Yxionxl2.AZIM_NEG);
+  REPEAT (GMATCH_SIMP_TAC set_of_edge_not_collinear);
+  REWRITE_TAC[CONJ_ASSOC];
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  COMMENT "3";
+  INTRO_TAC (GEN_ALL Wrgcvdr_cizmrrh.AZIM_CYCLE_PROPERTIES) [`set_of_edge v V E`;`p`;`v`;`(vec 0):real^3`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[ Add_triangle.finite_set_of_edge]);
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`r`]);
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[IN]);
+  TYPIFY `~(azim (vec 0) v p w = azim (vec 0) v p r)` (C SUBGOAL_THEN ASSUME_TAC);
+    DISCH_TAC;
+    INTRO_TAC Fan.UNIQUE_AZIM_POINT_FAN [`(vec 0):real^3`;`V`;`E`;`v`;`p`;`w`;`r`];
+    ANTS_TAC;
+      ASM_REWRITE_TAC[];
+      REPEAT (FIRST_X_ASSUM_ST `set_of_edge` MP_TAC) THEN REWRITE_TAC[Fan_defs.set_of_edge;IN_ELIM_THM];
+      BY(MESON_TAC[]);
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[];
+  COMMENT "4";
+  DISCH_TAC;
+  MATCH_MP_TAC Counting_spheres.AZIM_COMP_LT;
+  INTRO_TAC Counting_spheres.AZIM_COMP_LT [`(vec 0):real^3`;`v`;`p`;`w`;`r`];
+  REWRITE_TAC[Zlzthic.azim_pos_iff_nz];
+  ASM_REWRITE_TAC[Zlzthic.azim_pos_iff_nz];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `~(azim (vec 0) v p w = &0) /\ ~(azim (vec 0) v w r = &0)` (C SUBGOAL_THEN ASSUME_TAC);
+    INTRO_TAC Fan.UNIQUE_AZIM_0_POINT_FAN [`(vec 0):real^3`;`V`;`E`;`v`;`p`;`w`];
+    INTRO_TAC Fan.UNIQUE_AZIM_0_POINT_FAN [`(vec 0):real^3`;`V`;`E`;`v`;`w`;`r`];
+    REPEAT (FIRST_X_ASSUM_ST `set_of_edge` MP_TAC) THEN REWRITE_TAC[Fan_defs.set_of_edge;IN_ELIM_THM];
+    BY(ASM_MESON_TAC[]);
+  ASM_REWRITE_TAC[];
+  INTRO_TAC Fan.sum5_azim_fan [`(vec 0):real^3`;`v`;`w`;`r`;`p`];
+  ANTS_TAC;
+    CONJ_TAC;
+      BY(REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+    REPEAT (GMATCH_SIMP_TAC set_of_edge_not_collinear);
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  ASM_REWRITE_TAC[];
+  ENOUGH_TO_SHOW_TAC `~(azim (vec 0) v r p = &0)`;
+    REWRITE_TAC[GSYM Zlzthic.azim_pos_iff_nz];
+    BY(REAL_ARITH_TAC);
+  DISCH_TAC;
+  INTRO_TAC Fan.UNIQUE_AZIM_0_POINT_FAN [`(vec 0):real^3`;`V`;`E`;`v`;`r`;`p`];
+  ANTS_TAC;
+    REPEAT (FIRST_X_ASSUM_ST `set_of_edge` MP_TAC) THEN REWRITE_TAC[Fan_defs.set_of_edge;IN_ELIM_THM];
+    BY(ASM_MESON_TAC[]);
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let CARD_GT_1 = prove_by_refinement(
+  `!(S:A->bool). FINITE S ==> ( (CARD S > 1) <=> (!x. ~(S SUBSET {x})))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[arith `(x > 1) <=> ~(x = 0) /\ ~(x = 1)`];
+  REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  CONJ_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `S = {} \/ S = {x}` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(FIRST_X_ASSUM MP_TAC THEN SET_TAC[]);
+    BY(ASM_MESON_TAC[CARD_CLAUSES;CARD_SING]);
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_SIMP_TAC[CARD_EQ_0;Local_lemmas.FINITE_CARD1_IMP_SINGLETON];
+  CONJ_TAC;
+    BY(FIRST_X_ASSUM MP_TAC THEN SET_TAC[]);
+  DISCH_TAC;
+  TYPIFY `!x. ~(S = {x})` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN SET_TAC[]);
+  BY(ASM_MESON_TAC[CARD_EQ_0;Local_lemmas.FINITE_CARD1_IMP_SINGLETON])
+  ]);;
+  (* }}} *)
+
+let sigma_fan_neg = prove_by_refinement(
+  `!V E v w.
+         v IN V /\
+         w IN V /\
+         {v, w} IN E /\
+         FAN (vec 0,V,E) /\
+         FAN (vec 0,IMAGE (--) V,IMAGE (IMAGE (--)) E) /\
+         CARD (set_of_edge v V E) > 1
+         ==> sigma_fan (vec 0) (IMAGE (--) V) (IMAGE (IMAGE (--)) E) (--v)
+               (--w) =
+             -- inverse_sigma_fan (vec 0) V E v w`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `         (!u. ~(set_of_edge v V E SUBSET {u})) ` (C SUBGOAL_THEN ASSUME_TAC);
+    GMATCH_SIMP_TAC (GSYM CARD_GT_1);
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[Add_triangle.finite_set_of_edge]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `         (!u. ~(set_of_edge v V E SUBSET {u})) ` (C SUBGOAL_THEN ASSUME_TAC);
+    GMATCH_SIMP_TAC (GSYM CARD_GT_1);
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[Add_triangle.finite_set_of_edge]);
+  ONCE_REWRITE_TAC[arith `(a = --b) <=> (--a = (b:real^N))`];
+  BY(ASM_MESON_TAC[sigma_fan_neg_lemma])
+  ]);;
+  (* }}} *)
+
+let azim_fan_neg = prove_by_refinement(
+  `!V E v w. v IN V /\ w IN V /\ 
+    {v, w} IN E /\
+         FAN (vec 0,V,E) /\
+         FAN (vec 0,IMAGE (--) V,IMAGE (IMAGE (--)) E) /\
+         CARD (set_of_edge v V E) > 1
+   ==> azim_fan (vec 0) (IMAGE (--) V) (IMAGE (IMAGE (--)) E) (--v) (--w) = 
+       azim_fan (vec 0) V E v (inverse_sigma_fan (vec 0) V E v w)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Fan_defs.azim_fan;set_of_edge_neg;VECTOR_NEG_NEG];
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC CARD_NEGATIVE;
+  ASM_REWRITE_TAC[];
+  ASM_SIMP_TAC[sigma_fan_neg];
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[Add_triangle.finite_set_of_edge]);
+  GMATCH_SIMP_TAC Yxionxl2.AZIM_NEG;
+  INTRO_TAC AZIM_CYCLE_SIMPLE [`V`;`E`;`v`;`w`;`ivs_azim_cycle (set_of_edge v V E) (vec 0) v w`];
+  TYPIFY `w IN set_of_edge v V E` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_REWRITE_TAC[Fan_defs.set_of_edge;IN_ELIM_THM]);
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `(ivs_azim_cycle (set_of_edge v V E) (vec 0) v w) = inverse_sigma_fan (vec 0) V E v w` (C SUBGOAL_THEN ASSUME_TAC);
+    GMATCH_SIMP_TAC Localization.ivs_azim_cycle_elim;
+    BY(ASM_REWRITE_TAC[]);
+  GMATCH_SIMP_TAC Localization.AZIM_CYCLE_EQ_SIGMA_FAN_ALT;
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  SIMP_TAC[];
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[Wrgcvdr_cizmrrh.IVS_AZIM_PROPERTIES]);
+  DISCH_TAC;
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (GMATCH_SIMP_TAC set_of_edge_not_collinear);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let azim_dart_neg = prove_by_refinement(
+  `!V E v w. v IN V /\ w IN V /\ 
+    {v, w} IN E /\
+         FAN (vec 0,V,E) /\
+         FAN (vec 0,IMAGE (--) V,IMAGE (IMAGE (--)) E) /\
+         CARD (set_of_edge v V E) > 1
+   ==> azim_dart (IMAGE (--) V, IMAGE (IMAGE (--)) E) (--v,--w) = 
+    azim_dart (V,E) (v,inverse_sigma_fan (vec 0) V E v w)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Fan_defs.azim_dart];
+  ASM_SIMP_TAC[azim_fan_neg];
+  REWRITE_TAC[arith `-- (v:real^3) = -- w <=> v = w`];
+  TYPIFY `w IN set_of_edge v V E` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_REWRITE_TAC[Fan_defs.set_of_edge;IN_ELIM_THM]);
+  TYPIFY `(ivs_azim_cycle (set_of_edge v V E) (vec 0) v w) = inverse_sigma_fan (vec 0) V E v w` (C SUBGOAL_THEN ASSUME_TAC);
+    GMATCH_SIMP_TAC Localization.ivs_azim_cycle_elim;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `~(v = w)` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Hypermap_iso.in_set_of_edge_neq;
+    BY(ASM_MESON_TAC[]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `~(v = inverse_sigma_fan (vec 0) V E v w)` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Hypermap_iso.in_set_of_edge_neq;
+    BY(ASM_MESON_TAC[Wrgcvdr_cizmrrh.IVS_AZIM_PROPERTIES]);
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let FORALL_NEG = prove_by_refinement(
+  `!P. (! (v:real^N). P v) <=> (!v. P (--v))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  GEN_TAC;
+  CONJ_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    BY(ASM_MESON_TAC[]);
+  BY(ASM_MESON_TAC[VECTOR_NEG_NEG])
+  ]);;
+  (* }}} *)
+
+let AZIM_LT_PI_IMP_CARD_GT_1 = prove_by_refinement(
+  `!V E v p. FAN (vec 0,V,E) /\ (v,p) IN dart_of_fan (V,E) /\ azim_dart (V,E) (v,p) < pi ==>
+    (p IN V /\ {v,p} IN E /\ CARD (set_of_edge v V E) > 1)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Fan_defs.dart_of_fan;IN_ELIM_THM;IN_UNION;PAIR_EQ;CONJ_ASSOC];
+  REWRITE_TAC[MESON[] `!P p. (?q. P q /\ (p = q)) <=> (P p)`];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM DISJ_CASES_TAC;
+    ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM_ST `azim_dart` MP_TAC;
+    ASM_REWRITE_TAC[Fan_defs.azim_dart];
+    BY(MESON_TAC[PI_POS;arith `&0 < x ==> ~(&2 * x < x)`]);
+  ASM_REWRITE_TAC[];
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[Local_lemmas1.FAN_E_SUB_V]);
+  DISCH_TAC;
+  PROOF_BY_CONTR_TAC;
+  FIRST_X_ASSUM_ST `azim_dart` MP_TAC;
+  ASM_REWRITE_TAC[Fan_defs.azim_dart];
+  TYPIFY `~(v = p)` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Hypermap_iso.fan_in_e_imp_neq;
+    BY(ASM_MESON_TAC[]);
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[Fan_defs.azim_fan];
+  REWRITE_TAC[Fan_defs.azim_fan];
+  ASM_REWRITE_TAC[];
+  BY(MESON_TAC[PI_POS;arith `&0 < x ==> ~(&2 * x < x)`])
+  ]);;
+  (* }}} *)
+
+let contravening_negative = prove_by_refinement(
+  `!V. contravening V ==> contravening (IMAGE (--) V)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Tame_defs.contravening];
+  REPEAT WEAKER_STRIP_TAC;
+  SUBCONJ_TAC;
+    MATCH_MP_TAC packing_negative;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    MATCH_MP_TAC ball_annulus_negative;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  TYPIFY `FINITE (V:real^3->bool) /\ FINITE (IMAGE (--) V)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[Fnjlbxs.finite_packing_ball_annulus]);
+  ASM_REWRITE_TAC[scriptL_negative];
+  ASM_SIMP_TAC[CARD_NEGATIVE];
+  REWRITE_TAC[ECTC_NEG;ESTD_NEG];
+  REPEAT (FIRST_X_ASSUM_ST `surrounded_node` MP_TAC);
+  REWRITE_TAC[Tame_defs.surrounded_node];
+  REWRITE_TAC[dart_of_fan_neg];
+  REWRITE_TAC[IN_NEG];
+  REWRITE_TAC[FORALL_PAIR_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "1";
+  ONCE_REWRITE_TAC[FORALL_NEG];
+  REWRITE_TAC[VECTOR_NEG_NEG;NORM_NEG];
+  TYPIFY `~(V = {})` (C SUBGOAL_THEN ASSUME_TAC);
+    DISCH_TAC;
+    BY(FIRST_X_ASSUM_ST `CARD` MP_TAC THEN ASM_REWRITE_TAC[CARD_CLAUSES] THEN NUM_REDUCE_TAC);
+  TYPIFY `FAN (vec 0,V,ESTD V) /\ FAN (vec 0,IMAGE (--) V,IMAGE (IMAGE (--)) (ESTD V))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[ESTD_FAN_NEG;Ckqowsa.CKQOWSA;ESTD_NEG]);
+  TYPIFY `FAN (vec 0,V,ECTC V) /\ FAN (vec 0,IMAGE (--) V,IMAGE (IMAGE (--)) (ECTC V))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[ECTC_FAN_NEG;Tame_general.UBHDEUU2;ECTC_NEG]);
+  COMMENT "1st";
+  CONJ_TAC;
+    GEN_TAC;
+    ONCE_REWRITE_TAC[FORALL_NEG];
+    DISCH_TAC THEN GEN_TAC THEN ONCE_REWRITE_TAC[FORALL_NEG];
+    REWRITE_TAC[VECTOR_NEG_NEG;VECTOR_EQ_NEG2];
+    REPEAT WEAKER_STRIP_TAC;
+    GMATCH_SIMP_TAC azim_dart_neg;
+    ASM_REWRITE_TAC[];
+    REPEAT (FIRST_X_ASSUM_ST `ECTC` kill);
+    FIRST_X_ASSUM (C INTRO_TAC [`v`]) THEN ASM_REWRITE_TAC[];
+    DISCH_THEN (C INTRO_TAC [`v`]) THEN ASM_REWRITE_TAC[];
+    DISCH_TAC;
+    SUBCONJ_TAC;
+      MATCH_MP_TAC AZIM_LT_PI_IMP_CARD_GT_1;
+      ASM_REWRITE_TAC[];
+      BY(ASM_MESON_TAC[]);
+    DISCH_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    REWRITE_TAC[Fan_defs.dart_of_fan];
+    REWRITE_TAC[Fan_defs.dart_of_fan;IN_ELIM_THM;PAIR_EQ];
+    REWRITE_TAC[Fan_defs.dart_of_fan;IN_ELIM_THM;PAIR_EQ;IN_UNION];
+    DISJ2_TAC;
+    REWRITE_TAC[CONJ_ASSOC;MESON[] `!P p. (?q. P q /\ (p = q)) <=> (P p)`];
+    GMATCH_SIMP_TAC (GSYM Localization.ivs_azim_cycle_elim);
+    ASM_REWRITE_TAC[];
+    INTRO_TAC (GEN_ALL Wrgcvdr_cizmrrh.IVS_AZIM_PROPERTIES) [`V`;`ESTD V`;`(vec 0):real^3`;`v`;`p2`];
+    ANTS_TAC;
+      ASM_REWRITE_TAC[];
+      REWRITE_TAC[Fan_defs.set_of_edge;IN_ELIM_THM];
+      BY(ASM_REWRITE_TAC[]);
+    BY(MESON_TAC[Fan_defs.set_of_edge;IN_ELIM_THM]);
+  COMMENT "2nd";
+  GEN_TAC;
+  ONCE_REWRITE_TAC[FORALL_NEG];
+  DISCH_TAC;
+  TYPIFY `norm v = &2` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  GEN_TAC THEN ONCE_REWRITE_TAC[FORALL_NEG];
+  REWRITE_TAC[VECTOR_NEG_NEG;VECTOR_EQ_NEG2];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `ESTD` kill);
+  GMATCH_SIMP_TAC azim_dart_neg;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM (C INTRO_TAC [`v`]) THEN ASM_REWRITE_TAC[];
+  DISCH_THEN (C INTRO_TAC [`v`]) THEN ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    MATCH_MP_TAC AZIM_LT_PI_IMP_CARD_GT_1;
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  REWRITE_TAC[Fan_defs.dart_of_fan;IN_ELIM_THM;PAIR_EQ;IN_UNION];
+  DISJ2_TAC;
+  REWRITE_TAC[CONJ_ASSOC;MESON[] `!P p. (?q. P q /\ (p = q)) <=> (P p)`];
+  GMATCH_SIMP_TAC (GSYM Localization.ivs_azim_cycle_elim);
+  ASM_REWRITE_TAC[];
+  INTRO_TAC (GEN_ALL Wrgcvdr_cizmrrh.IVS_AZIM_PROPERTIES) [`V`;`ECTC V`;`(vec 0):real^3`;`v`;`p2`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[Fan_defs.set_of_edge;IN_ELIM_THM];
+    BY(ASM_REWRITE_TAC[]);
+  BY(MESON_TAC[Fan_defs.set_of_edge;IN_ELIM_THM])
+  ]);;
+  (* }}} *)
+
+let INJ_IMAGE_11 = prove_by_refinement(
+  `!(f:A->B) x X. f x IN IMAGE f X /\ (!x y. f x = f y ==> x = y) ==> x IN X`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[IN_IMAGE];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let IMAGE_NEG_INJ = prove_by_refinement(
+  `!(A:real^N->bool) B. IMAGE (--) A = IMAGE (--) B ==> A = B`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[IMAGE];
+  REWRITE_TAC[IMAGE;EXTENSION;IN_ELIM_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC THEN ONCE_REWRITE_TAC[FORALL_NEG];
+  REWRITE_TAC[VECTOR_EQ_NEG2];
+  BY(SET_TAC[])
+  ]);;
+  (* }}} *)
+
+(* was dart_of_fan_neg *)
+
+let dart1_of_fan_neg = prove_by_refinement(
+  `!V u v. (--u,--v) IN (dart1_of_fan (IMAGE (--) V, ESTD (IMAGE (--) V))) <=> 
+    (u,v) IN (dart1_of_fan (V,ESTD V))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[GSYM Add_triangle.inE_eq_in_dart1;ESTD_NEG];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `{--u,--(v:real^3)} = IMAGE (--) {u,v}` (C SUBGOAL_THEN SUBST1_TAC);
+    REWRITE_TAC[Yxionxl2.ELEMENT2_SYM_0];
+    BY(REWRITE_TAC[IMAGE]);
+  REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  CONJ2_TAC;
+    BY(MESON_TAC[FUN_IN_IMAGE]);
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC (ISPEC `IMAGE (--):(real^3->bool)->(real^3->bool)` INJ_IMAGE_11);
+  BY(ASM_REWRITE_TAC[IMAGE_NEG_INJ])
+  ]);;
+  (* }}} *)
+
+let BIJ_dart1_of_fan_neg = prove_by_refinement(
+  `!V. BIJ (\uv. --FST uv,--SND uv)
+ (dart1_of_fan (IMAGE (--) V,ESTD (IMAGE (--) V)))
+ (dart1_of_fan (V,ESTD V))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[BIJ];
+  GEN_TAC;
+  SUBCONJ_TAC;
+    REWRITE_TAC[INJ];
+    REWRITE_TAC[FORALL_PAIR_THM];
+    REWRITE_TAC[FORALL_PAIR_THM;PAIR_EQ];
+    CONJ2_TAC;
+      REWRITE_TAC[VECTOR_EQ_NEG2];
+      BY(MESON_TAC[]);
+    ONCE_REWRITE_TAC[GSYM dart1_of_fan_neg];
+    REWRITE_TAC[VECTOR_NEG_NEG];
+    BY(REWRITE_TAC[dart1_of_fan_neg]);
+  REWRITE_TAC[INJ;SURJ];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[FORALL_PAIR_THM;PAIR_EQ];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `(--(p1:real^3),--(p2:real^3))` EXISTS_TAC;
+  BY(ASM_REWRITE_TAC[dart1_of_fan_neg;VECTOR_NEG_NEG])
+  ]);;
+  (* }}} *)
+
+let hyp_conj = new_definition `hyp_conj p (H:(A) hypermap) = 
+  hypermap(dart H, p o edge_map H o inverse p, p o node_map H o inverse p, p o face_map H o inverse p)`;;
+
+let hyp_conj_tuple = prove_by_refinement(
+  `!H:(A)hypermap p. p permutes (dart H) ==> tuple_hypermap(hyp_conj p H) = 
+    (dart H,p o edge_map H o inverse p, p o node_map H o inverse p, p o face_map H o inverse p)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[hyp_conj;GSYM Hypermap.hypermap_tybij];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Hypermap.node_map_and_darts];
+  REPEAT (GMATCH_SIMP_TAC PERMUTES_COMPOSE);
+  ASM_SIMP_TAC[PERMUTES_INVERSE];
+  INTRO_TAC Hypermap.hypermap_lemma [`H`];
+  SIMP_TAC[];
+  REWRITE_TAC[FUN_EQ_THM;o_THM;I_THM];
+  INTRO_TAC PERMUTES_INVERSES [`p`;`dart H`];
+  BY(ASM_SIMP_TAC[])
+  ]);;
+  (* }}} *)
+
+let hyp_conj_components  = prove_by_refinement(
+  `!p H:(A)hypermap.
+    p permutes dart H ==>
+    (dart (hyp_conj p H) = dart H /\
+     edge_map (hyp_conj p H) = p o edge_map H o inverse p /\
+     node_map (hyp_conj p H) = p o node_map H o inverse p /\
+     face_map (hyp_conj p H) = p o face_map H o inverse p)
+`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[GSYM Wrgcvdr_cizmrrh.SPEC_HY_ELEMS];
+  BY(REWRITE_TAC[hyp_conj_tuple])
+  ]);;
+  (* }}} *)
+
+let hyp_conj_opposite_components = prove_by_refinement(
+  `!H:(A) hypermap.
+    (dart (hyp_conj (node_map H) (opposite_hypermap H)) = dart H /\
+     edge_map (hyp_conj (node_map H) (opposite_hypermap H)) = inverse( edge_map H) /\
+     node_map (hyp_conj (node_map H) (opposite_hypermap H)) = inverse ( node_map H) /\
+     face_map (hyp_conj (node_map H) (opposite_hypermap H)) = 
+	node_map H o inverse (face_map H) o inverse (node_map H))`,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  TYPIFY `node_map H permutes dart (opposite_hypermap H)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REWRITE_TAC[Tame_opposite.opposite_components;Hypermap.node_map_and_darts]);
+  ASM_SIMP_TAC[hyp_conj_components;opposite_hypermap_map;Tame_opposite.opposite_components];
+  REWRITE_TAC[FUN_EQ_THM;o_THM];
+  INTRO_TAC PERMUTES_INVERSES [`node_map H`;`dart H`];
+  ASM_SIMP_TAC[Hypermap.node_map_and_darts];
+  BY(REWRITE_TAC[Hypermap.inverse_hypermap_maps;o_THM])
+  ]);;
+  (* }}} *)
+
+let hyp_conj_hyp_iso = prove_by_refinement(
+  `!p H:(A)hypermap. p permutes dart H ==> hyp_iso p (H, hyp_conj p H)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Hypermap_iso.hyp_iso_edge_face];
+  ASM_SIMP_TAC[hyp_conj_components];
+  ASM_SIMP_TAC[hyp_conj_components;o_THM];
+  INTRO_TAC PERMUTES_INVERSES [`p`;`dart H`];
+  ASM_SIMP_TAC[];
+  BY(ASM_MESON_TAC[Hypermap_iso.permutes_imp_bij])
+  ]);;
+  (* }}} *)
+
+let hyp_conj_node_hyp_iso = prove_by_refinement(
+  `!H:(A) hypermap. hyp_iso (node_map H) (H,hyp_conj (node_map H) H)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC hyp_conj_hyp_iso;
+  BY(REWRITE_TAC[Hypermap.node_map_and_darts])
+  ]);;
+  (* }}} *)
+
+
+
+
+(* next. opposite -- *)
+
+(*
+let NF_FAN_PAIR_EXT = prove_by_refinement(
+  `!V E d. FAN(vec 0,V,E) /\ d IN dart1_of_fan(V,E)
+  ==> (f_fan_pair_ext (V,E) o n_fan_pair_ext (V,E)) d = e_fan_pair_ext (V,E) d`,
+  (* {{{ proof *)
+  [
+  st/r
+  intro Add_triangle.f_fan_pair_eq_inv_n_o_e [`V`;`E`]
+  art[]
+  asimp[Fan_defs.f_fan_pair_ext]
+  dthen gm
+    type `x IN dart_of_fan (V,E)` asmcase
+  rt[
+  #
+  ]);;
+  (* }}} *)
+
+Add_triangle.f_fan_pair_eq_inv_n_o_e;;
+((\ uv. -- FST uv,-- SND uv) o inverse (node_map (hypermap_of_fan(V,ESTD V))))
+*)
+
+let n_fan_pair_ext_neg_lemma = prove_by_refinement(
+  `!V E v w. 
+   v IN V /\
+         w IN V /\
+         {v, w} IN E /\
+         FAN (vec 0,V,E) /\
+         FAN (vec 0,IMAGE (--) V,IMAGE (IMAGE (--)) E) /\
+         CARD (set_of_edge v V E) > 1
+         ==> 
+    (n_fan_pair_ext (IMAGE (--) V,IMAGE (IMAGE (--)) E) (--v,--w)) = 
+     (--v,-- inverse_sigma_fan (vec 0) V E v w) `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Fan_defs.n_fan_pair_ext];
+  REWRITE_TAC[GSYM Add_triangle.inE_eq_in_dart1];
+  TYPIFY_GOAL_THEN `{--(v:real^3),--w} IN IMAGE (IMAGE (--)) E` (unlist REWRITE_TAC);
+    REWRITE_TAC[IN_EDGE_NEG];
+    REWRITE_TAC[IN_EDGE_NEG;VECTOR_NEG_NEG];
+    BY(ASM_REWRITE_TAC[IN_EDGE_NEG;VECTOR_NEG_NEG]);
+  REWRITE_TAC[Fan_defs.n_fan_pair];
+  REWRITE_TAC[Fan_defs.n_fan_pair;PAIR_EQ];
+  MATCH_MP_TAC sigma_fan_neg;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let n_fan_pair_neg = prove_by_refinement(
+  `!V v w.
+    contravening V /\ (v,w) IN dart1_of_fan (V,ESTD V) ==>
+      (n_fan_pair_ext (IMAGE (--) V,ESTD (IMAGE (--) V)) (--v,--w)) = 
+     (--v,-- inverse_sigma_fan (vec 0) V (ESTD V) v w) `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[ESTD_NEG];
+  MATCH_MP_TAC n_fan_pair_ext_neg_lemma;
+  INTRO_TAC AZIM_LT_PI_IMP_CARD_GT_1 [`V`;`ESTD V`;`v`;`w`];
+  TYPIFY `FAN  (vec 0,V,ESTD V)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[Tame_general.CONTRAVENING_FAN]);
+  INTRO_TAC contravening_negative [`V`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY `FAN (vec 0,IMAGE (--) V,IMAGE (IMAGE (--)) (ESTD V))` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_SIMP_TAC[Tame_general.CONTRAVENING_FAN];
+    BY(ASM_MESON_TAC[Tame_general.CONTRAVENING_FAN;ESTD_NEG]);
+  TYPIFY `v,w IN dart_of_fan (V,ESTD V)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[More_list_hypermap.contravening_dart_eq_dart1]);
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    INTRO_TAC Tame_general.CONTRAVENING_IMP_FULLY_SURROUNDED [`V`];
+    REWRITE_TAC[Fan_defs.fully_surrounded];
+    ASM_REWRITE_TAC[];
+    DISCH_THEN MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `IN` MP_TAC;
+  REWRITE_TAC[Tame_defs.ESTD];
+  REWRITE_TAC[Tame_defs.ESTD;IN_ELIM_THM];
+  BY(SET_TAC[])
+  ]);;
+  (* }}} *)
+
+let hypermap_of_fan_neg  = prove_by_refinement(
+  `!V. contravening V ==> 
+    iso 
+   (hypermap_of_fan (IMAGE (--) V,ESTD (IMAGE (--) V)))
+   (opposite_hypermap (hypermap_of_fan(V,ESTD V)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPED_ABBREV_TAC `H = hypermap_of_fan (V,ESTD V)`;
+  INTRO_TAC Hypermap.iso_trans [`(hypermap_of_fan (IMAGE (--) V,ESTD (IMAGE (--) V)))`;`hyp_conj (node_map H) (opposite_hypermap H)`;`opposite_hypermap H`];
+  DISCH_THEN MATCH_MP_TAC;
+  CONJ2_TAC;
+    MATCH_MP_TAC Hypermap.iso_sym;
+    MATCH_MP_TAC Hypermap_iso.hyp_iso_imp_iso;
+    TYPIFY `node_map H` EXISTS_TAC;
+    MATCH_MP_TAC hyp_conj_hyp_iso;
+    REWRITE_TAC[Tame_opposite.opposite_components];
+    BY(REWRITE_TAC[Hypermap.node_map_and_darts]);
+  MATCH_MP_TAC Hypermap_iso.hyp_iso_imp_iso;
+  TYPIFY `(\ (uv:real^3#real^3). -- FST uv,-- SND uv)` EXISTS_TAC;
+  EXPAND_TAC "H";
+  FIRST_X_ASSUM kill;
+  TYPIFY `contravening (IMAGE (--) V)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[contravening_negative]);
+  TYPIFY `FAN (vec 0,V,ESTD V)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[Tame_general.CONTRAVENING_FAN]);
+  TYPIFY `FAN (vec 0,IMAGE (--) V,ESTD (IMAGE (--) V))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[Tame_general.CONTRAVENING_FAN]);
+  COMMENT "0";
+  REWRITE_TAC[Hypermap_iso.hyp_iso_edge_node];
+  ASM_SIMP_TAC[hyp_conj_opposite_components];
+  ASM_SIMP_TAC[Hypermap_and_fan.COMPONENTS_HYPERMAP_OF_FAN];
+  ASM_SIMP_TAC[More_list_hypermap.contravening_dart_eq_dart1];
+  REWRITE_TAC[BIJ_dart1_of_fan_neg];
+  REWRITE_TAC[FORALL_PAIR_THM;PAIR_EQ];
+  ONCE_REWRITE_TAC[FORALL_NEG];
+  GEN_TAC THEN ONCE_REWRITE_TAC[FORALL_NEG];
+  REWRITE_TAC[VECTOR_NEG_NEG;dart1_of_fan_neg];
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "edge";
+  CONJ_TAC;
+    REPEAT (GMATCH_SIMP_TAC List_hypermap_iso.e_fan_pair_ext_explicit);
+    ASM_SIMP_TAC[More_list_hypermap.contravening_dart_eq_dart1;VECTOR_NEG_NEG;dart1_of_fan_neg];
+    ASM_SIMP_TAC[Add_triangle.inv_e_fan_pair_ext];
+    GMATCH_SIMP_TAC List_hypermap_iso.e_fan_pair_ext_explicit;
+    BY(ASM_MESON_TAC[More_list_hypermap.contravening_dart_eq_dart1]);
+  COMMENT "node";
+  ASM_SIMP_TAC[n_fan_pair_neg];
+  REWRITE_TAC[VECTOR_NEG_NEG];
+  GMATCH_SIMP_TAC PERMUTES_INVERSE_EQ;
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[Hypermap_and_fan.N_FAN_PAIR_EXT_PERMUTES_DART_OF_FAN]);
+  REWRITE_TAC[Fan_defs.n_fan_pair_ext];
+  REWRITE_TAC[Fan_defs.n_fan_pair];
+  REWRITE_TAC[GSYM Add_triangle.inE_eq_in_dart1];
+  GMATCH_SIMP_TAC (GSYM Localization.ivs_azim_cycle_elim);
+  GMATCH_SIMP_TAC (GSYM Localization.AZIM_CYCLE_EQ_SIGMA_FAN_ALT);
+  INTRO_TAC (GEN_ALL Lvducxu.PROPERTIES_OF_IVS_AZIM_CYCLE2) [`V`;`ESTD V`;`(vec 0):real^3`;`p1`;`p2`];
+  ASM_SIMP_TAC[Localization.EE_elim];
+  TYPIFY `{p1,p2} IN (ESTD V)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_REWRITE_TAC[Add_triangle.inE_eq_in_dart1]);
+  TYPIFY `p1 IN  V /\ p2 IN  V` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[Tame_defs.ESTD];
+    REWRITE_TAC[IN_ELIM_THM];
+    BY(SET_TAC[]);
+  TYPIFY `p2 IN set_of_edge p1 V (ESTD V)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_REWRITE_TAC[Fan_defs.set_of_edge;IN_ELIM_THM]);
+  ASM_SIMP_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  ENOUGH_TO_SHOW_TAC `{p1, ivs_azim_cycle (set_of_edge p1 V (ESTD V)) (vec 0) p1 p2} IN ESTD V`;
+    BY(DISCH_THEN (unlist REWRITE_TAC));
+  FIRST_X_ASSUM kill;
+  PROOF_BY_CONTR_TAC;
+  FIRST_X_ASSUM_ST `x IN set_of_edge p1 V E` MP_TAC;
+  REWRITE_TAC[Fan_defs.set_of_edge;IN_ELIM_THM];
+  REWRITE_TAC[GSYM Fan_defs.set_of_edge];
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let ASFUTBF = prove_by_refinement(
+`!H:(A)hypermap .
+   (?V'. contravening V' /\
+      iso (opposite_hypermap (hypermap_of_fan (V',ESTD V'))) H)
+   ==> (?V. contravening V /\ iso (hypermap_of_fan (V,ESTD V)) H)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `IMAGE (--) (V':real^3->bool)` EXISTS_TAC;
+  ASM_SIMP_TAC[contravening_negative];
+  INTRO_TAC hypermap_of_fan_neg [`V'`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Hypermap.iso_trans [`hypermap_of_fan (IMAGE (--) V',ESTD (IMAGE (--) V'))`;`(opposite_hypermap (hypermap_of_fan (V',ESTD V')))`;`H`];
+  DISCH_THEN MATCH_MP_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+end;;

@@ -18,6 +18,28 @@ tactics.ml and lib.ml to get the intended values.
 
 module Hol_pervasives = struct 
 
+let needs s =
+  let s' = file_on_path (!load_path) s in
+  let fileid = (Filename.basename s',Digest.file s') in
+  if List.mem fileid (!loaded_files)
+  then Format.print_string("File \""^s^"\" already loaded\n") else loadt s;;
+
+let (rotate:int->refinement) =
+  let rotate_p (meta,sgs,just) =
+    let sgs' = (tl sgs)@[hd sgs] in
+    let just' i ths =
+      let ths' = (last ths)::(butlast ths) in
+      just i ths' in
+    (meta,sgs',just')
+  and rotate_n (meta,sgs,just) =
+    let sgs' = (last sgs)::(butlast sgs) in
+    let just' i ths =
+      let ths' = (tl ths)@[hd ths] in
+      just i ths' in
+    (meta,sgs',just') in
+  fun n -> if n > 0 then funpow n rotate_p
+           else funpow (-n) rotate_n;;
+
 let e tac = refine(by(VALID tac));;
 
 let r n = refine(rotate n);;

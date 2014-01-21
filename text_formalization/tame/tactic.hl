@@ -1,0 +1,567 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter:  Tame Hypermap                                           *)
+(* Author:  Hoang Le Truong     *)
+(* Date: Jan 21, 2014                                                *)
+(* ========================================================================== *)
+
+
+(* Tactics.   *)
+
+module Truong_tactic = struct
+
+
+
+let unlist tac t = tac [t];;
+
+let kill th = ALL_TAC;;
+
+let dest_goal gl = gl;;
+
+let goal_asms = fst;;
+
+let goal_concl = snd;;
+
+let mk_goal(asl,w) = (asl,w);;
+
+let LET_THM = CONJ LET_DEF LET_END_DEF;;
+
+let COMBINE_TAC ttac1 ttac2 = (fun t -> ttac1 t THEN ttac2 t);;
+
+let ASM_TAC=REPEAT(POP_ASSUM MP_TAC);;
+
+let RED_TAC=ASM_REWRITE_TAC[] THEN DISCH_TAC;;
+
+let RES_TAC=ASM_REWRITE_TAC[] THEN STRIP_TAC;;
+
+let REDA_TAC=ASM_REWRITE_TAC[] THEN DISCH_TAC THEN ASM_REWRITE_TAC[];;
+
+let RESA_TAC=ASM_REWRITE_TAC[] THEN STRIP_TAC THEN ASM_REWRITE_TAC[];;
+
+let REDAL_TAC (th: thm list) =ASM_REWRITE_TAC th THEN DISCH_TAC THEN ASM_REWRITE_TAC th;;
+
+let RESAL_TAC (th: thm list) = ASM_REWRITE_TAC th THEN STRIP_TAC THEN ASM_REWRITE_TAC th;;
+
+(*
+let REMOVE_ASSUM_TAC=POP_ASSUM(fun th-> REWRITE_TAC[]);;
+let SYM_ASSUM_TAC=POP_ASSUM(fun th-> REWRITE_TAC[SYM(th)]);;
+*)
+
+let REMOVE_ASSUM_TAC=POP_ASSUM kill THEN REWRITE_TAC[];;
+
+let SYM_ASSUM_TAC=POP_ASSUM((unlist REWRITE_TAC) o SYM);;
+
+let SYM_ASSUM1_TAC=POP_ASSUM(COMBINE_TAC ((unlist REWRITE_TAC) o SYM ) ASSUME_TAC);;
+
+let RESP_TAC=ASM_REWRITE_TAC[] THEN STRIP_TAC THEN POP_ASSUM(unlist REWRITE_TAC);;
+
+let RESPL_TAC (th: thm list) =ASM_REWRITE_TAC th THEN STRIP_TAC THEN POP_ASSUM(unlist REWRITE_TAC);;
+
+let REDUCE_ARITH_TAC=REWRITE_TAC[REAL_ARITH`&0 * a= &0`; REAL_ARITH`a * &0 = &0`; REAL_ARITH`a + &0 = a`; 
+REAL_ARITH`a- &0 =a`;REAL_ARITH`&0 +a =a`;REAL_ARITH`&1 * a =a`;REAL_ARITH`a * &1 =a`;REAL_ARITH`(A+B)-B=A`];;
+
+(* let REDUCE_VECTOR_TAC=REWRITE_TAC[VECTOR_ARITH`&0 % a= vec 0`; VECTOR_ARITH`a % vec 0= vec 0`;VECTOR_ARITH`a + vec 0 = a`; VECTOR_ARITH`vec 0 +a =a`; VECTOR_ARITH`a- vec 0 =a`;VECTOR_ARITH`&1 % a =a`;VECTOR_ARITH`a- b =vec 0<=> a=b`];;
+*)
+let MRESA_TAC th1 (th: term list) = MP_TAC(ISPECL th th1) THEN RESA_TAC;;
+
+let MRESA1_TAC th1 th = MP_TAC(ISPEC th th1) THEN RESA_TAC;;
+
+let MRESAL_TAC th1 (th: term list) (th2: thm list) =MP_TAC(ISPECL th th1) THEN ASM_REWRITE_TAC th2 THEN STRIP_TAC THEN ASM_REWRITE_TAC th2;;
+
+let MRESAL1_TAC th1 th (th2: thm list) =MP_TAC(ISPEC th th1) THEN ASM_REWRITE_TAC th2 THEN STRIP_TAC THEN ASM_REWRITE_TAC th2;;
+
+let ASM_SET_TAC l = 
+    (TRY(POP_ASSUM_LIST(MP_TAC o end_itlist CONJ))) THEN SET_TAC l;;
+
+
+(* GSYM theorems explicit *)
+
+let GSYM_EXISTS_PAIRED_THM = GSYM EXISTS_PAIRED_THM;;
+
+
+let has_stv t =
+  let typ = (type_vars_in_term t) in
+  can (find (fun ty -> (is_vartype ty) && ((dest_vartype ty).[0] = '?'))) typ;;
+
+let frees_of_goal (asl,w) = 
+  let tms = w::(map (concl o snd) asl)  in
+  let varl = List.flatten (map frees tms) in
+    map (fun t -> (fst (dest_var t), t)) varl;;
+
+(*
+let retype gls tm = 
+  let varl = filter has_stv (setify(frees tm)) in
+  let svarl = map (fun t-> (fst(dest_var t),t)) varl in
+  let fn = fun buff (s,t) -> try (let (_,_,m)= term_match [] t (assoc s gls) in m @ buff)
+  with _ -> failwith ("not found: "^s) in
+  let tyassoc = List.fold_left fn [] svarl in
+     (instantiate ([],[],tyassoc)) tm ;;
+*)
+
+(* new version 2013-07-13. Doesn't allow any new free variables, even if type inference works *)
+
+let retype gls tm = 
+  let allv = setify(frees tm) in
+  let varl = filter has_stv allv in
+  let svarl = map (fun t-> (fst(dest_var t),t)) varl in
+  let fn = fun buff (s,t) -> try (let (_,_,m)= term_match [] t (assoc s gls) in m @ buff)
+  with _ -> failwith ("not found: "^s) in
+  let tyassoc = List.fold_left fn [] svarl in
+  let tm' = (instantiate ([],[],tyassoc)) tm in
+  let glt = map snd gls in
+  let _ = map (fun x -> mem x glt or failwith ("not found: "^ fst (dest_var x))) (setify (frees tm')) in
+    tm';;
+
+let env (asl,w) tm = 
+  let gls = frees_of_goal (asl,w) in
+    retype gls tm;;
+
+(*
+let env (asl,w) tm = 
+  let gls = frees_of_goal (asl,w) in
+  let varl = filter has_stv (setify(frees tm)) in
+  let svarl = map (fun t-> (fst(dest_var t),t)) varl in
+  let fn = fun buff (s,t) -> try (let (_,_,m)= term_match [] t (assoc s gls) in m @ buff)
+  with _ -> failwith ("not found: "^s) in
+  let tyassoc = List.fold_left fn [] svarl in
+     (instantiate ([],[],tyassoc)) tm ;;
+*)
+
+let envl (asl,w) tml = 
+  let gls = frees_of_goal (asl,w) in
+  let varl = filter has_stv (setify (List.flatten(map frees tml))) in
+  let svarl = setify(map (fun t-> (fst(dest_var t),t)) varl) in
+  let fn = fun buff (s,t) -> try (let (_,_,m)= term_match [] t (assoc s gls) in m @ buff)
+  with _ -> failwith ("not found: "^s) in
+  let tyassoc = List.fold_left fn [] svarl in
+     map (instantiate ([],[],tyassoc)) tml ;;
+
+let gtyp (ttac:term->tactic) tm (asl,w) = ttac (env (asl,w) tm) (asl,w);;
+
+let gtypl (ttacl:term list -> tactic) tml (asl,w) =   
+   ttacl (map (env (asl,w)) tml) (asl,w);;
+
+let GEXISTS_TAC = gtyp EXISTS_TAC;;
+
+let GSUBGOAL_THEN t ttac (asl,w) = SUBGOAL_THEN (env (asl,w) t) ttac (asl,w);;
+
+let argthen ttac tac t = (ttac t) THEN tac;;
+
+let CONJ2_TAC = let t = (TAUT `a /\ b ==> b /\ a`) in MATCH_MP_TAC t THEN CONJ_TAC;;
+
+let GEXISTL_TAC tl = EVERY (map GEXISTS_TAC tl);;
+
+(* ========================================================================== *)
+(* TACTIC                                              *)
+
+let FORCE_EQ = REPEAT (CHANGED_TAC (AP_TERM_TAC ORELSE AP_THM_TAC ORELSE BINOP_TAC)) ;;
+
+let FORCE_MATCH = (MATCH_MP_TAC (TAUT `(a = b) ==> (a ==> b)`)) THEN FORCE_EQ ;;
+
+let FORCE_MATCH_MP_TAC th = 
+  MP_TAC th THEN ANTS_TAC THENL[ALL_TAC;FORCE_MATCH
+      ];;
+
+let HYP_CONJ_TAC = 
+  let th = TAUT `(a ==> b==> c) ==> (a /\ b ==> c)`  in
+    FIRST_X_ASSUM (fun t-> MP_TAC t THEN MATCH_MP_TAC th THEN DISCH_TAC THEN DISCH_TAC);;
+
+(* ******************************
+UNSORTED
+****************************** *)
+
+let SELECT_EXIST = prove_by_refinement(
+  `!(P:A->bool) Q. (?y. P y) /\ (!t. (P t ==> Q t)) ==> Q ((@) P)`,
+  (* {{{ proof *)
+
+  [
+  REPEAT STRIP_TAC;
+  ASSUME_TAC (ISPECL[`P:(A->bool)`;`y:A`] SELECT_AX);
+  ASM_MESON_TAC[];
+  ]);;
+
+  (* }}} *)
+
+let SELECT_THM = MESON[SELECT_EXIST]
+  `!(P:A->bool) Q. (((?y. P y) ==> (!t. (P t ==> Q t))) /\ ((~(?y. P y)) ==>
+     (!t. Q t))) ==> Q ((@) P)`;;
+
+let SELECT_TAC  =
+  let unbeta = prove(
+  `!(P:A->bool) (Q:A->bool). (Q ((@) P)) <=> (\t. Q t) ((@) P)`,MESON_TAC[]) in
+  let unbeta_tac = CONV_TAC (HIGHER_REWRITE_CONV[unbeta] true) in
+  unbeta_tac THEN (MATCH_MP_TAC SELECT_THM) THEN BETA_TAC THEN 
+  REPEAT STRIP_TAC;;
+
+(*
+let SELECT_TAC = Tactics.SELECT_TAC;;
+*)
+
+let COMMENT s = (report s; ALL_TAC);;
+
+let NAME _ = ALL_TAC;;
+
+let ROT_TAC =  (* permute conjuncts *)
+  let     t1 = TAUT `b /\ a ==> a /\ b` in
+  let t2 = TAUT `((b /\ c) /\ a) = (b /\ c /\ a)` in
+    MATCH_MP_TAC t1 THEN PURE_REWRITE_TAC[t2];;
+
+let ENOUGH_TO_SHOW_TAC t = 
+  let u = INST [(t,`A:bool`)] (TAUT ` ((A ==> B) /\ A) ==> B`) in
+    MATCH_MP_TAC u THEN CONJ_TAC;;
+
+(* like FIRST_X_ASSUM, except some subterm has to match t *)
+
+let FIRST_X_ASSUM_ST t x = 
+  FIRST_X_ASSUM (fun u -> 
+    let _ = find_term (can(term_match[] t)) (concl u) in x u);;
+
+let FIRST_ASSUM_ST t x = 
+  FIRST_ASSUM (fun u -> 
+    let _ = find_term (can(term_match[] t)) (concl u) in x u);;
+
+let BURY_TAC t (asl,w) = 
+  let n = List.length asl in
+    (REPEAT (FIRST_X_ASSUM MP_TAC) THEN ASSUME_TAC t THEN 
+      REPLICATE_TAC n DISCH_TAC)(asl,w);;
+
+let BURY_MP_TAC (asl,w) = 
+     (POP_ASSUM_LIST(K ALL_TAC) THEN DISCH_TAC THEN
+                       MAP_EVERY (fun (s,th) -> LABEL_TAC s (th))
+                                 (rev asl)) (asl,w);;
+
+(* out of load sequence. Moved to Calc_derivative module.
+let CALC_ID_TAC (asl,t) =  (MATCH_MP_TAC (Calc_derivative.rational_identity t) (asl,t));;
+*)
+
+let GOAL_TERM ttac g = (ttac g) g;;
+
+let TYPIFY t u = GOAL_TERM (fun w -> u (env w t));;
+
+let TYPIFY_GOAL_THEN t u = TYPIFY t (C SUBGOAL_THEN u);;
+
+
+(* puts the hypotheses of a conditional rewrite as a conjunct, rather than 
+   trying to prove them 
+  thm should have the form a ==> (b = c)  or the form  a ==> b.
+   Doesn't do matching on bound variables.
+  *)
+
+let GMATCH_SIMP_TAC thm (asl,w) = 
+  let lift_eq_thm = MESON[]   `! a b c. (a ==> ((b:B) = c)) ==> (!P. a /\ P c ==> P b)` in
+  let lift_eq t = GEN_ALL (MATCH_MP lift_eq_thm (SPEC_ALL t)) in
+  let thm' = hd (mk_rewrites true thm []) in
+  let t1 = fst (dest_eq(snd (dest_imp(concl(thm'))))) in
+  let matcher u t = 
+    let m = term_match [] t1 t in
+    let _ = subset (frees t) (frees u) or failwith "" in
+      m in
+  let w' = find_term (can (matcher w)) w in
+  let var1 = mk_var("v",type_of w') in
+  let vv = variant (frees w) var1 in
+  let athm = REWRITE_CONV[ ASSUME (mk_eq (w',vv))] w in
+  let bthm = (ISPECL [mk_abs(vv,rhs (concl athm));w'] BETA_THM) in
+  let betx = SYM(TRANS bthm (BETA_CONV (rhs (concl bthm)))) in
+   (ONCE_REWRITE_TAC[betx] THEN MATCH_MP_TAC (lift_eq thm') THEN 
+      BETA_TAC THEN REWRITE_TAC[]) (asl,w);;
+
+
+(*
+let ASM_REAL_ARITH_TAC t = 
+  REPEAT (POP_ASSUM MP_TAC) THEN MP_TAC (itlist CONJ t TRUTH) THEN
+    REAL_ARITH_TAC;;
+
+let MP_LIST t = EVERY (map MP_TAC t);;
+*)
+
+
+
+(* Gonthier's script organizational tactics. *)
+
+let BY (t:tactic) (asl,w) = 
+  let (a,b,c)  = t (asl,w) in
+  let _ = (b = []) or failwith "by failed to finish goal" in
+    (a,b,c);;
+
+let BRANCH_A (t::tl) = t THENL [EVERY tl;ALL_TAC];;
+
+let BRANCH_B (t::tl) = t THENL [ALL_TAC;EVERY tl];;
+
+(* a few from Jordan *)
+
+let X_IN  = REWRITE_RULE[IN];;
+
+let SUBCONJ_TAC =
+  MATCH_MP_TAC (TAUT `A /\ (A ==>B) ==> (A /\ B)`) THEN CONJ_TAC;;
+
+let SUBCONJ2_TAC =
+  MATCH_MP_TAC (TAUT `B /\ (B ==>A) ==> (A /\ B)`) THEN CONJ_TAC;;
+
+let nCONJ_TAC n (asl,w) = 
+  let w' = rhs(concl(PURE_REWRITE_CONV[GSYM CONJ_ASSOC] w)) in
+  let wn = List.nth (conjuncts w') n in
+      (SUBGOAL_THEN wn ASSUME_TAC) (asl,w);;
+
+let PROOF_BY_CONTR_TAC =
+  MATCH_MP_TAC (TAUT `(~A ==> F) ==> A`) THEN DISCH_TAC;;
+
+let (UNDISCH_FIND_TAC: term -> tactic) =
+ fun tm (asl,w) ->
+   let p = can (term_match[] tm)  in
+   try let sthm,_ = remove
+     (fun (_,asm) -> can (find_term p) (concl ( asm))) asl in
+     UNDISCH_TAC (concl (snd sthm)) (asl,w)
+   with Failure _ -> failwith "UNDISCH_FIND_TAC";;
+
+let rec type_set: (string*term) list  -> (term list*term) -> (term list*term)=
+  fun typinfo (acclist,utm) -> match acclist with
+    | [] -> (acclist,utm)
+    | (Var(s,_) as a)::rest ->
+         let a' = (assocd s typinfo a) in
+           if (a = a') then type_set typinfo (rest,utm)
+           else let inst = instantiate (term_match [] a a') in
+             type_set typinfo ((map inst rest),inst utm)
+    | _ -> failwith "type_set: variable expected"
+  ;;
+
+let has_stv t =
+  let typ = (type_vars_in_term t) in
+  can (find (fun ty -> (is_vartype ty) && ((dest_vartype ty).[0] = '?'))) typ;;
+
+
+let TYPE_THEN: term  -> (term -> tactic) -> tactic =
+  fun t (tac:term->tactic) (asl,w) ->
+  let avoids = itlist (union o frees o concl o snd) asl
+                               (frees w) in
+  let strip  = fun t-> (match t with
+       |Var(s,_) -> (s,t) | _ -> failwith "TYPE_THEN" ) in
+  let typinfo = map strip avoids in
+  let t' = (snd (type_set typinfo ((frees t),t))) in
+    (warn ((has_stv t')) "TYPE_THEN: unresolved type variables");
+    tac t' (asl,w);;
+
+(* this version must take variables *)
+
+let TYPEL_THEN: term list -> (term list -> tactic) -> tactic =
+  fun t (tac:term list->tactic) (asl,w) ->
+  let avoids = itlist (union o frees o concl o snd) asl
+                               (frees w) in
+  let strip  = fun t-> (match t with
+       |Var(s,_) -> (s,t) | _ -> failwith "TYPE_THEN" ) in
+  let typinfo = map strip avoids in
+  let t' = map (fun u -> snd (type_set typinfo ((frees u),u))) t in
+    (warn ((can (find has_stv) t')) "TYPEL_THEN: unresolved type vars");
+     tac t' (asl,w);;
+
+let (EXISTSv_TAC :string -> tactic) = 
+   fun s (asl,g) ->
+     let (v,_) = dest_binder "?" g in 
+     let (_,ty) = dest_var v in
+       EXISTS_TAC (mk_var(s,ty)) (asl,g);;
+
+let (X_GENv_TAC:string ->tactic) = 
+   fun s (asl,g) ->
+     let (v,_) = dest_binder "!" g in 
+     let (_,ty) = dest_var v in
+       X_GEN_TAC (mk_var(s,ty)) (asl,g);;
+
+(* weak version doesn't do conj *)
+
+let (WEAK_STRIP_TAC: tactic) =
+  fun g ->
+    try (fun ttac -> FIRST [GEN_TAC; DISCH_THEN ttac]) STRIP_ASSUME_TAC g
+    with Failure _ -> failwith "STRIP_TAC";;
+
+let WEAK_STRIP_THM_THEN =
+  FIRST_TCL [CONJUNCTS_THEN; CHOOSE_THEN];;
+
+let WEAK_STRIP_ASSUME_TAC =
+  let DISCARD_TAC th =
+    let tm = concl th in
+    fun (asl,w as g) ->
+       if exists (fun a -> aconv tm (concl(snd a))) asl then ALL_TAC g
+       else failwith "DISCARD_TAC: not already present" in
+  (REPEAT_TCL WEAK_STRIP_THM_THEN)
+  (fun gth -> FIRST [CONTR_TAC gth; ACCEPT_TAC gth;
+                     DISCARD_TAC gth; ASSUME_TAC gth]);;
+
+let (WEAKER_STRIP_TAC: tactic) =
+  fun g ->
+    try (fun ttac -> FIRST [GEN_TAC; DISCH_THEN ttac]) WEAK_STRIP_ASSUME_TAC g
+    with Failure _ -> failwith "STRIP_TAC";;
+
+let hold_def = new_definition `(hold:A->A) = I`;;
+
+let hold = MATCH_MP_TAC (prove_by_refinement(
+  `!a. hold a ==> a`,  [REWRITE_TAC [hold_def;I_DEF]  ]));;
+
+let unhold = MATCH_MP_TAC (prove_by_refinement(
+  `!a. a ==> hold a`,  [REWRITE_TAC [hold_def;I_DEF]  ]));;
+
+let MP_ASM_THEN = 
+  fun tac -> hold THEN 
+    (REPEAT (POP_ASSUM MP_TAC)) THEN 
+    tac THEN REPEAT DISCH_TAC 
+    THEN unhold;;
+
+let FULL_EXPAND_TAC s = FIRST_ASSUM (fun t -> 
+  let _ = (s = fst(dest_var(rhs(concl t)))) or failwith "" in
+    (MP_ASM_THEN (SUBST1_TAC (SYM t) THEN BETA_TAC)));;
+
+(*
+let RENAME_VAR (t,s) = (* rename free variable *)
+    let svar = mk_var (s,snd(dest_var t)) in
+    MP_ASM_THEN (SPEC_TAC (t,s) THEN X_GENv_TAC s);;
+*)
+let RENAME_FREE_VAR (t,s) = (* rename free variable *)
+    MP_ASM_THEN (SPEC_TAC (t,t) THEN X_GENv_TAC s);;
+
+(* rebind bound variables *)
+
+let rec rec_alpha_at (t,s) tm = match tm with 
+  | Comb (u,v) -> mk_comb (rec_alpha_at (t,s) u,rec_alpha_at (t,s) v)
+  | Abs (a,b)  -> if (a=t) then alpha s tm else mk_abs(a,rec_alpha_at (t,s) b)
+  | _ -> tm;;
+
+let alpha_at (t,s) = 
+  rec_alpha_at (t,mk_var(s,snd(dest_var t)));;
+
+let REBIND_CONV ts g = ALPHA g (alpha_at ts g);;
+
+REBIND_CONV (`x:real`,"y") (`pi + (\ x . x + pi) pi`);;
+
+let REBIND_RULE ts th1 = EQ_MP (REBIND_CONV ts (concl th1)) th1;;
+
+REBIND_RULE (`x:real`,"y") (ASSUME (`pi + (\ x . x + pi) pi = &1`));;
+
+let REBIND_TAC ts (asl,g) = (SUBST1_TAC (REBIND_CONV ts g)) (asl,g);;
+
+
+
+(* UNDISCHARGE BY SEARCH. Deprecated, creates toplevel error when in modules. *)
+
+(*
+let FIRST_SEARCH pat (asl,w) = 
+  let asl' = map (concl o snd) (search_thml (term_match[]) pat asl) in
+    FIRST (map UNDISCH_TAC asl') (asl,w);;
+
+let ALL_SEARCH pat (asl,w) = 
+  let asl' = map (concl o snd) (search_thml (term_match[]) pat asl) in
+    EVERY (map UNDISCH_TAC asl') (asl,w);;
+*)
+
+(* MISCELL. *)
+
+let arith tm  = 
+  let v = [ARITH_RULE;REAL_ARITH;(fun t -> prove(t,SIMPLE_COMPLEX_ARITH_TAC));REAL_RING;VECTOR_ARITH] in
+    tryfind (fun h -> h tm) v;;
+
+let varith = VECTOR_ARITH;;
+
+let COMMENT _ = ALL_TAC;;
+
+let INTRO_TAC th1 tml = 
+   GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w tml) th1)));;
+
+
+
+  let COPY_TAC = DISCH_THEN (fun t -> MP_TAC t THEN ASSUME_TAC t);;
+
+(* Corrected/ 2013-06-23  *)
+
+  let GABBREV_TAC t (asl,w) = 
+    let (a,b) = dest_eq t in
+    let b' = env (asl,w) b in
+    let (a',_) = dest_var a in
+    let t' =   mk_eq(mk_var(a',type_of b'),b')
+    in ABBREV_TAC t' (asl,w);;
+
+let MRESA_TAC th1 (th: term list) = INTRO_TAC (GEN_ALL th1) th THEN RESA_TAC;;
+
+let MRESAL_TAC th1 (th: term list) (th2: thm list) =INTRO_TAC (GEN_ALL th1) th THEN ASM_REWRITE_TAC th2 THEN STRIP_TAC THEN ASM_REWRITE_TAC th2;;
+
+
+let MRESAS_TAC th1 (th: term list) (th2: thm list) =INTRO_TAC (GEN_ALL th1) th THEN ASM_REWRITE_TAC th2 THEN STRIP_TAC THEN ASM_REWRITE_TAC th2
+THEN POP_ASSUM MP_TAC
+THEN ASM_SIMP_TAC th2
+THEN STRIP_TAC
+THEN ASM_SIMP_TAC th2
+;;
+
+
+let THAYTHE_TAC n (th1: term list) =
+REPLICATE_TAC n (POP_ASSUM MP_TAC)
+THEN POP_ASSUM(fun th-> REPLICATE_TAC n DISCH_TAC
+THEN MRESA_TAC th th1 );;
+
+
+let THAYTHEL_TAC n (th1: term list) (th2: thm list) =
+REPLICATE_TAC n (POP_ASSUM MP_TAC)
+THEN POP_ASSUM(fun th-> REPLICATE_TAC n DISCH_TAC
+THEN MRESAL_TAC th th1 th2);;
+
+
+let THAYTHES_TAC n (th1: term list) (th2: thm list) =
+REPLICATE_TAC n (POP_ASSUM MP_TAC)
+THEN POP_ASSUM(fun th-> REPLICATE_TAC n DISCH_TAC
+THEN MRESAS_TAC th th1 th2);;
+
+
+let THAYTHE_ASM_TAC n (th1: term list) =
+REPLICATE_TAC n (POP_ASSUM MP_TAC)
+THEN POP_ASSUM(fun th-> REPLICATE_TAC n DISCH_TAC
+THEN MRESA_TAC th th1 
+THEN ASSUME_TAC th);;
+
+
+
+
+let THAYTHEL_ASM_TAC n (th1: term list) (th2: thm list) =
+REPLICATE_TAC n (POP_ASSUM MP_TAC)
+THEN POP_ASSUM(fun th-> REPLICATE_TAC n DISCH_TAC
+THEN MRESAL_TAC th th1 th2
+THEN ASSUME_TAC th);;
+
+
+let DICH_TAC n  =
+REPLICATE_TAC n (POP_ASSUM MP_TAC)
+THEN POP_ASSUM(fun th-> REPLICATE_TAC n DISCH_TAC
+THEN MP_TAC th );;
+
+
+let MATCH_DICH_TAC n  =
+REPLICATE_TAC n (POP_ASSUM MP_TAC)
+THEN POP_ASSUM(fun th-> REPLICATE_TAC n DISCH_TAC
+THEN MATCH_MP_TAC th );;
+
+
+let SYM_DICH_TAC n=
+DICH_TAC n THEN STRIP_TAC
+THEN POP_ASSUM(fun th->  REWRITE_TAC[SYM th])
+;;
+
+
+(**************************)
+
+
+
+(* let gsearch () =
+  let (asl,gl) = top_goal () in
+  let tms = conjuncts gl in
+  let xths = flat (mapfilter (fun tm -> search [tm]) tms) in
+  let foo1 (x,th)      let tm = concl th in
+     (print_string (x ^ ": "); print_term tm; print_newline ()) in
+  let foo2 (x,th)      let tm = (snd o strip_forall o concl) th in
+     (if (is_imp tm)
+        then print_string ("MATCH_MP_TAC " ^ x ^ " THEN
+ASM_REWRITE_TAC []")
+        else print_string ("REWRITE_TAC [" ^ x ^ "]"));
+     print_newline () in
+  (do_list foo1 xths;
+   print_newline ();
+   do_list foo2 xths);;
+
+*)
+
+end;;

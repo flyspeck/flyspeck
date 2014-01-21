@@ -2038,9 +2038,24 @@ liz_thm = RTranCl_ALT;
 
 let maxGon = new_definition' `maxGon (p:num) = p + 3`;;
 
+(* a and b are vertices on the face f.  True if a and b are not
+   equal and not adjacent, but connected by some "remote" edge *)
+
 let duplicateEdge = new_definition' `duplicateEdge g f a b <=>
    (2 <= directedLength f a b /\ 2 <= directedLength f b a /\
     b IN set_of_list (neighbors g a))`;;
+
+(* in practice, N = as defined below in containsDuplicateEdge.
+   We test for enumerators (a weakly increasing list of indices)
+   that are situated as v < w < w' with N w w' remote connection.
+  
+   N.B. The code states N w w'. That is, we never test for more
+   than double joins.  The predecessor v is examined to make sure
+   that there are no inserted vertices, as in v = w or w = w'.
+
+   There is no testing for triangles or quads with enclosed vertices.
+
+*)
 
 let containsUnacceptableEdgeSnd = new_recursive_definition list_RECURSION
   `containsUnacceptableEdgeSnd N (v:num) [] = F /\
@@ -2050,6 +2065,16 @@ let containsUnacceptableEdgeSnd = new_recursive_definition list_RECURSION
      let ws' = TL ws in
   if (v < w /\ w < w' /\ N w w') then T 
   else containsUnacceptableEdgeSnd N w ws))`;;
+
+(* in practice, N = as defined below in containsDuplicateEdge.
+   We test for enumerators (an increasing list of indices)
+   that are situated as v < w  with N v w remote connection.
+   This would create a double join. 
+
+   Note that the first call is containsUnacceptableEdge, then the
+   recursion continues with containsDuplicateEdge.
+
+*)
   
 let containsUnacceptableEdge = new_recursive_definition list_RECURSION
   `containsUnacceptableEdge N [] = F /\
@@ -2105,6 +2130,11 @@ let generatePolygon = new_definition'
    let vertexLists = MAP (\is. indexToVertexList f v is) enumeration in
      MAP (\vs. subdivFace g f vs) vertexLists)`;;
 
+(* problem with this definition.  For there to be dart-uniqueness,
+   which is a property of good_lists, we must filter out the duplicate
+   edges.  So this doesn't work. *)
+
+(* deprecated: *)
 let generatePolygon_relaxed = new_definition' 
   `generatePolygon_relaxed n v (f:(num)list#bool) g = 
   (let enumeration = enumerator n (LENGTH (vertices f)) in
@@ -2145,6 +2175,7 @@ let next_plane = new_definition'
 	  (flatten (MAP (\i. generatePolygon i v f g) 
 		      (upt 3 (SUC (maxGon p))) ))))`;;
 
+(* deprecated, jan 21, 2014 *)
 let next_plane_relaxed = new_definition'
   `next_plane_relaxed p g = 
   (let fs = nonFinals g in
@@ -2154,8 +2185,8 @@ let next_plane_relaxed = new_definition'
 	  (flatten (MAP (\i. generatePolygon_relaxed i v f g) 
 		      (upt 3 (SUC (maxGon p))) ))))`;;
 
+(* added, jan 21, 2014 *)
 
-(*
 let next_plane_relaxed = new_definition'
   `next_plane_relaxed g = 
   (let fs = nonFinals g in
@@ -2163,7 +2194,7 @@ let next_plane_relaxed = new_definition'
        (let f = minimalFace fs in
 	let v = minimalVertex g f in
 	  (flatten (MAP (\i. generatePolygon i v f g) {n | 3 <= n} ))))`;;
-*)
+
 
 let PlaneGraphsP = new_definition'
   `planeGraphsP p = 
@@ -2177,6 +2208,8 @@ let PlaneGraphs = new_definition'
 let planegraph = new_definition'
   `planegraph g = (?p. 
    (Seed p,g) IN RTranCl (next_plane p))`;;
+
+(* depends on modified next_plane_relaxed, jan 21, 2014 *)
 
 let planegraph_relaxed = new_definition'
   `planegraph_relaxed g = (?p q. 

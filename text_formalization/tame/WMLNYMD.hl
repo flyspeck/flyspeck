@@ -16,7 +16,7 @@ flyspeck_needs "tame/import_tame_classification.hl";;
 flyspeck_needs "tame/more_tame_concl.hl";;
 
 module Wmlnymd = struct
-
+end;;
 
 open Hypermap;;
 open Import_tame_classification;;
@@ -24,13 +24,9 @@ open Tame_defs;;
 open Tame_concl;;
 open More_tame_concl;;
 open Oxaxucs;;
+open Asfutbf;;
+open Elllnyz;;
 
-(*
-  let new_definition' t = 
-    if has_stv t 
-    then (Print_types.print_term_types t; failwith "new_definition has stv") 
-    else new_definition t;;
-*)
 
 parse_as_infix("POWER",(24,"right"));;
 parse_as_infix("in_dart_of_loop",(11,"right"));;
@@ -38,6 +34,7 @@ parse_as_infix("in_dart_of_loop",(11,"right"));;
 unparse_as_infix "iso";;
 make_overloadable "vertices" `:B -> (num list)`;;
 overload_interface ("vertices",`FST:num list # bool -> num list`);;
+remove_interface "vertices";;
 
 let FILTER_CONJ = prove_by_refinement(
   `!f g xs. FILTER f (FILTER g xs) = FILTER (\(x:A). f x /\ g x) xs`,
@@ -134,7 +131,7 @@ let tame9a_correspondence = prove_by_refinement(
   REPEAT (FIRST_X_ASSUM MP_TAC);
   REWRITE_TAC[tame9a;tame_hypermap;tame_9a;List_hypermap.good_list];
   REPEAT WEAKER_STRIP_TAC;
-  ENOUGH_TO_SHOW_TAC `?d. MEM d (list_of_darts (fgraph g)) /\ sizel (find_face (fgraph g) d) = LENGTH (vertices f)`;
+  TYPIFY `?d. MEM d (list_of_darts (fgraph g)) /\ sizel (find_face (fgraph g) d) = LENGTH (  FST f)` ENOUGH_TO_SHOW_TAC;
     REPEAT WEAKER_STRIP_TAC;
     FIRST_X_ASSUM (unlist REWRITE_TAC o GSYM);
     FIRST_X_ASSUM (C INTRO_TAC [`d`]);
@@ -143,7 +140,6 @@ let tame9a_correspondence = prove_by_refinement(
     DISCH_THEN (unlist REWRITE_TAC o GSYM);
     REWRITE_TAC[arith `3 <= m <=> m >= 3`];
     FIRST_X_ASSUM MATCH_MP_TAC;
-
     ASM_REWRITE_TAC[];
     REWRITE_TAC[List_hypermap.darts_of_list];
     BY(ASM_REWRITE_TAC[IN_SET_OF_LIST]);
@@ -151,9 +147,9 @@ let tame9a_correspondence = prove_by_refinement(
   TYPIFY `MEM (FST f) (fgraph g)` (C SUBGOAL_THEN ASSUME_TAC);
     MATCH_MP_TAC fgraph_Faces;
     BY(ASM_REWRITE_TAC[]);
-  TYPIFY `~(vertices f = [])` (C SUBGOAL_THEN ASSUME_TAC);
+  TYPIFY `~(  FST f = [])` (C SUBGOAL_THEN ASSUME_TAC);
     BY(ASM_MESON_TAC[Seq.allP]);
-  TYPED_ABBREV_TAC `ff = vertices f`;
+  TYPED_ABBREV_TAC `ff =   FST f`;
   TYPIFY `MEM (HD ff) ff` (C SUBGOAL_THEN ASSUME_TAC);
     MATCH_MP_TAC MEM_HD;
     BY(ASM_REWRITE_TAC[]);
@@ -181,7 +177,7 @@ let tame9a_correspondence = prove_by_refinement(
   FIRST_X_ASSUM MP_TAC;
   REWRITE_TAC[List_hypermap.find_face_alt];
   DISCH_THEN SUBST1_TAC;
-  BY(ASM_REWRITE_TAC[])
+  ASM_REWRITE_TAC[];
   ]);;
   (* }}} *)
 
@@ -221,9 +217,9 @@ let tame10_correspondence = prove_by_refinement(
 
 let finalGraph_except = prove_by_refinement(
   `!g v. finalGraph g /\  
-     facesAt g v = FILTER (\f. MEM v (vertices f)) (faces g)
+     facesAt g v = FILTER (\f. MEM v (  FST f)) (faces g)
    ==> 
-   (except g v = LENGTH(FILTER (\f.  5 <= LENGTH(vertices f)) (facesAt g v)))`,
+   (except g v = LENGTH(FILTER (\f.  5 <= LENGTH(  FST f)) (facesAt g v)))`,
   (* {{{ proof *)
   [
   REWRITE_TAC[except;finalGraph;nonFinals];
@@ -234,7 +230,7 @@ let finalGraph_except = prove_by_refinement(
   TYPIFY `FILTER (\f. SND f) (faces g) = faces g` (C SUBGOAL_THEN ASSUME_TAC);
     REWRITE_TAC[FILTER_NEGATE];
     BY(ASM_REWRITE_TAC[]);
-  TYPIFY_GOAL_THEN `!x. ((SND x /\ 5 <= LENGTH (vertices x)) /\ MEM v (vertices x)) <=> (( 5 <= LENGTH (vertices x) /\ MEM v (vertices x)) /\ SND x)` (unlist REWRITE_TAC);
+  TYPIFY_GOAL_THEN `!x. ((SND x /\ 5 <= LENGTH (  FST x)) /\ MEM v (  FST x)) <=> (( 5 <= LENGTH (  FST x) /\ MEM v (  FST x)) /\ SND x)` (unlist REWRITE_TAC);
     BY(MESON_TAC[]);
   ONCE_REWRITE_TAC[GSYM FILTER_CONJ];
   RULE_ASSUM_TAC (REWRITE_RULE[ETA_AX]);
@@ -243,132 +239,685 @@ let finalGraph_except = prove_by_refinement(
   ]);;
   (* }}} *)
 
-(*
-let good_list_card_node = prove_by_refinement(
-  `!L (x:A#A). good_list L /\ good_list_nodes L /\ x IN darts_of_list L ==>
-    CARD (node (hypermap_of_list L) x) = sizel (filter (MEM (FST x)) L)`,
+
+(* good_graph2, jan 2014 
+let good_graph = new_definition `good_graph g <=> 
+   good_list (fgraph g) /\
+   good_list_nodes (fgraph g) /\
+   finalGraph g /\ 
+   (!v. v IN vertices_set2 g
+     ==> facesAt g v = FILTER (\f. MEM v (  FST f)) (faces g)) /\
+   (vertices_set2 g = elements_of_list (fgraph g)) `;;
+*)
+
+let good_graph2 = new_definition `good_graph2 g <=> 
+   good_list (fgraph g) /\
+   good_list_nodes (fgraph g) /\
+   finalGraph g /\ 
+   all uniq (fgraph g) /\
+   (!v. v IN vertices_set2 g
+     ==> facesAt g v = FILTER (\f. MEM v (  FST f)) (faces g)) /\
+   (vertices_set2 g = elements_of_list (fgraph g)) `;;
+
+
+let facesAt_list = new_definition 
+ `facesAt_list (L:((A)list)list) (v:A) =  FILTER (MEM v) L`;;
+
+let tame11a_list = new_definition
+  `tame11a_list L <=> 
+    (!v:A. v IN elements_of_list L ==> 3 <= LENGTH (facesAt_list L v))`;;
+
+(* was facesAt_list, duplicate name *)
+
+let facesAt2_list = prove_by_refinement(
+  `!g. good_graph2 g /\ v IN vertices_set2 g ==> map FST (facesAt g v) = 
+     facesAt_list (fgraph g) v`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[good_graph2;facesAt_list];
+  REPEAT WEAKER_STRIP_TAC THEN ASM_SIMP_TAC[];
+  REPEAT WEAKER_STRIP_TAC THEN ASM_SIMP_TAC[faces;fgraph];
+  REWRITE_TAC[FILTER_MAP];
+  REWRITE_TAC[Seq.map_MAP];
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  BY(REWRITE_TAC[FUN_EQ_THM;o_THM])
+  ]);;
+  (* }}} *)
+
+let tame11a_good_graph2 = prove_by_refinement(
+  `!g. good_graph2 g /\ tame11a_list (fgraph g) ==> tame11a g`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[tame11a_list;tame11a;degree];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`v`]);
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[good_graph2]);
+  GMATCH_SIMP_TAC (GSYM facesAt2_list);
+  CONJ_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  BY(REWRITE_TAC[LENGTH_MAP;Seq.map_MAP])
+  ]);;
+  (* }}} *)
+
+let except_list = new_definition `except_list L (v:A) = 
+  LENGTH (FILTER (\f. 5 <= LENGTH f) (facesAt_list L v))`;;
+
+let MEM_EQ_NIL = prove_by_refinement(
+  `!s. s = [] <=> (!x. ~MEM x s)`,
+  (* {{{ proof *)
+  [
+  BY(MESON_TAC[List_hypermap.mem_not_nil])
+  ]);;
+  (* }}} *)
+
+let good_final_filter = prove_by_refinement(
+  `!P g v. good_graph2 g /\ v IN vertices_set2 g ==>
+    FILTER (\f. SND f /\ P f) (facesAt g v) = 
+      FILTER P (facesAt g v)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[good_graph2;finalGraph;nonFinals];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `(\f. SND f /\ P f) = (\f. P f /\ SND f)` (C SUBGOAL_THEN SUBST1_TAC);
+    REWRITE_TAC[FUN_EQ_THM];
+    BY(MESON_TAC[]);
+  REWRITE_TAC[GSYM FILTER_CONJ];
+  AP_TERM_TAC;
+  REWRITE_TAC[FILTER_NEGATE];
+  REPEAT (FIRST_X_ASSUM_ST `[]` MP_TAC) THEN REWRITE_TAC[MEM_EQ_NIL];
+  REWRITE_TAC[MEM_FILTER;DE_MORGAN_THM];
+  TYPIFY `!x. MEM x (facesAt g v) ==> MEM x (faces g)` ENOUGH_TO_SHOW_TAC;
+    BY(MESON_TAC[]);
+  FIRST_X_ASSUM GMATCH_SIMP_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[MEM_FILTER];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let good_type_filter = prove_by_refinement(
+  `!P g v. good_graph2 g /\ v IN vertices_set2 g ==>
+      FILTER (\f. P (LENGTH f)) (facesAt_list (fgraph g) v) = 
+       MAP FST (FILTER (\f. P (LENGTH (FST f))) (facesAt g v))`,
   (* {{{ proof *)
   [
   REPEAT WEAKER_STRIP_TAC;
-  ASM_SIMP_TAC[List_hypermap.good_list_node];
-typ `FINITE {FST x,y | y | FST x,y IN darts_of_list L} /\ BIJ SND {FST x,y | y | FST x,y IN darts_of_list L} {y | FST x,y IN darts_of_list L}` sat
-    CONJ_TAC;
-      MATCH_MP_TAC FINITE_SUBSET;
-      TYPIFY `dart(hypermap_of_list L)` EXISTS_TAC;
-      CONJ_TAC;
-        BY(REWRITE_TAC[Hypermap.node_map_and_darts]);
-      REWRITE_TAC[SUBSET;IN_ELIM_THM];
-      REPEAT WEAKER_STRIP_TAC;
-      ASM_REWRITE_TAC[];
-      GMATCH_SIMP_TAC dart_hypermap_of_list;
-      BY(ASM_REWRITE_TAC[GSYM List_hypermap.darts_of_list]);
-    REWRITE_TAC[BIJ];
-    SUBCONJ_TAC;
-      REWRITE_TAC[INJ;IN_ELIM_THM];
-      CONJ_TAC;
-        REPEAT WEAKER_STRIP_TAC;
-        BY(ASM_REWRITE_TAC[]);
-      REPEAT WEAKER_STRIP_TAC;
-      ASM_REWRITE_TAC[];
-      FIRST_X_ASSUM MP_TAC;
-      BY(ASM_REWRITE_TAC[PAIR_EQ]);
-    REWRITE_TAC[SURJ;INJ;IN_ELIM_THM];
-    REPEAT WEAKER_STRIP_TAC;
-    ASM_REWRITE_TAC[];
-    REPEAT WEAKER_STRIP_TAC;
-    TYPIFY `(FST x,x')` EXISTS_TAC;
-    REWRITE_TAC[];
-    TYPIFY `x'` EXISTS_TAC;
-    BY(ASM_REWRITE_TAC[]);
-  TYPIFY `CARD {FST x,y | y | FST x,y IN darts_of_list L} = CARD {y | FST x,y IN darts_of_list L}` (C SUBGOAL_THEN SUBST1_TAC);
-    MATCH_MP_TAC Misc_defs_and_lemmas.BIJ_CARD;
-    EXISTS_TAC `SND:A#A->A`;
-art[]
-  COMMENT "2";
-  TYPIFY `sizel (filter (MEM (FST x)) L)  = CARD (set_of_list (filter (MEM (FST x)) L))` (C SUBGOAL_THEN SUBST1_TAC);
-    GMATCH_SIMP_TAC Seq2.card_set_of_list_uniq;
-    MATCH_MP_TAC Seq.filter_uniq;
-    MATCH_MP_TAC List_hypermap.good_list_uniq;
-    BY(ASM_REWRITE_TAC[])
-    typ `FINITE {y | FST x, y IN darts_of_list L}` sat
-amt[Misc_defs_and_lemmas.FINITE_BIJ]
-mmp Misc_defs_and_lemmas.BIJ_CARD
-art[]
-rt[Seq2.set_of_list_filter]
-
+  GMATCH_SIMP_TAC (GSYM facesAt2_list);
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[Seq.map_MAP;FILTER_MAP];
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  BY(REWRITE_TAC[FUN_EQ_THM;o_THM])
   ]);;
   (* }}} *)
 
-
-let tame11_correspondence = prove_by_refinement(
- `!g. tame_11a (hypermap_of_list (fgraph g)) /\ 
-   tame_11b (hypermap_of_list (fgraph g)) /\
-   tame_12o (hypermap_of_list (fgraph g)) /\
-   finalGraph g /\ 
-   good_list (fgraph g) /\
-   good_list_nodes (fgraph g) /\ 
-   (!v. v IN vertices_set2 g
-     ==> facesAt g v = FILTER (\f. MEM v (vertices f)) (faces g))
-   ==>
-  tame11a g /\ tame11b g`,
+let except_list_except = prove_by_refinement(
+  `!g. good_graph2 g /\ v IN vertices_set2 g ==>
+    except_list (fgraph g) v = except g v`,
   (* {{{ proof *)
   [
-  ASM_REWRITE_TAC[tame11a;tame_11a;tame_12o;tame_11b;tame11b;Import_tame_classification.degree;Tame_defs.node_exceptional_face;Tame_defs.exceptional_face];
-st/r
-mmp (MESON[] `(!v. r v ==> (P v /\ Q v)) ==> ((!v. r v ==> P v) /\ (!v. r v ==> Q v))`)
-st/r
-asimp[finalGraph_except]
-comment "cases"
-condcases
-  ENOUGH_TO_SHOW_TAC `?d. MEM d (list_of_darts (fgraph g)) /\ CARD (node (hypermap_of_list (fgraph g)) d) = LENGTH (FILTER (\f. MEM v (vertices f)) (faces g))`
-    REPEAT WEAKER_STRIP_TAC;
-    FIRST_X_ASSUM (sub1 o GSYM)
-intro dart_hypermap_of_list [`fgraph g`]
-art[]
-dt
-fxast `MEM` mp
-art[GSYM IN_SET_OF_LIST]
-amt[arith `m >= 3 <=> 3 <= m`]
-xxd
-
-  TYPIFY `MEM (FST f) (fgraph g)` (C SUBGOAL_THEN ASSUME_TAC);
-    MATCH_MP_TAC fgraph_Faces;
-    BY(ASM_REWRITE_TAC[]);
-  TYPIFY `~(vertices f = [])` (C SUBGOAL_THEN ASSUME_TAC);
-    BY(ASM_MESON_TAC[Seq.allP]);
-  TYPED_ABBREV_TAC `ff = vertices f`;
-  TYPIFY `MEM (HD ff) ff` (C SUBGOAL_THEN ASSUME_TAC);
-    MATCH_MP_TAC MEM_HD;
-    BY(ASM_REWRITE_TAC[]);
-  TYPED_ABBREV_TAC `L = fgraph g`;
-  TYPED_ABBREV_TAC `d = HD (list_pairs ff)`;
-  TYPIFY `d` EXISTS_TAC;
-  TYPIFY `sizel (list_pairs ff) = sizel (ff)` (C SUBGOAL_THEN ASSUME_TAC);
-    BY(REWRITE_TAC[List_hypermap.size_list_pairs]);
-  INTRO_TAC List_hypermap.list_pairs_empty [`ff`];
-  ASM_REWRITE_TAC[];
-  DISCH_TAC;
-  TYPIFY `MEM d (list_pairs ff)` (C SUBGOAL_THEN ASSUME_TAC);
-    EXPAND_TAC "d";
-    MATCH_MP_TAC MEM_HD;
-    BY(ASM_REWRITE_TAC[]);
-  TYPIFY `find_face L d = list_pairs ff` (C SUBGOAL_THEN ASSUME_TAC);
-    REWRITE_TAC[List_hypermap.find_face_alt];
-    AP_TERM_TAC;
-    ONCE_REWRITE_TAC[EQ_SYM_EQ];
-    MATCH_MP_TAC List_hypermap.find_pair_list_unique;
-    BY(ASM_REWRITE_TAC[]);
-  ASM_REWRITE_TAC[];
-  REWRITE_TAC[Seq.size];
-  REWRITE_TAC[List_hypermap.dart_in_find_pair_list];
-  FIRST_X_ASSUM MP_TAC;
-  REWRITE_TAC[List_hypermap.find_face_alt];
-  DISCH_THEN SUBST1_TAC;
-  BY(ASM_REWRITE_TAC[])
-
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[except_list];
+  GMATCH_SIMP_TAC finalGraph_except;
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[good_graph2]);
+  GMATCH_SIMP_TAC good_type_filter;
+  BY(ASM_REWRITE_TAC[LENGTH_MAP])
   ]);;
   (* }}} *)
 
-*)
+let tame11b_list = new_definition `tame11b_list L <=>
+  (!v. v IN  elements_of_list L ==>
+    LENGTH (facesAt_list L v) <= if except_list L v = 0 then 7 else 6)`;;   
 
-end;;
+let tame11b_list_tame11b = prove_by_refinement(
+  `!g. good_graph2 g /\ tame11b_list (fgraph g) ==> tame11b g`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[tame11b_list;tame11b;degree];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`v`]);
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[good_graph2]);
+  GMATCH_SIMP_TAC except_list_except;
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC (GSYM facesAt2_list);
+  BY(ASM_REWRITE_TAC[Seq.map_MAP;LENGTH_MAP])
+  ]);;
+  (* }}} *)
+
+let tri_list = new_definition `tri_list L (v:A) = 
+  LENGTH (FILTER (\f. LENGTH f = 3) (facesAt_list L v))`;;
+
+let quad_list = new_definition `quad_list L (v:A) = 
+  LENGTH (FILTER (\f. LENGTH f = 4) (facesAt_list L v))`;;
+
+let vertextype_list = new_definition `vertextype_list L (v:A) = 
+  tri_list L v, quad_list L v, except_list L v`;;
+
+let tri_list_tri = prove_by_refinement(
+  `!g v. good_graph2 g /\ v IN vertices_set2 g ==>
+    tri_list (fgraph g) v = tri g v`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[tri_list;Import_tame_classification.tri];
+  GMATCH_SIMP_TAC good_type_filter;
+  ASM_REWRITE_TAC[LENGTH_MAP];
+  GMATCH_SIMP_TAC good_final_filter;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let quad_list_quad = prove_by_refinement(
+  `!g v. good_graph2 g /\ v IN vertices_set2 g ==>
+    quad_list (fgraph g) v = quad g v`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[quad_list;Import_tame_classification.quad];
+  GMATCH_SIMP_TAC good_type_filter;
+  ASM_REWRITE_TAC[LENGTH_MAP];
+  GMATCH_SIMP_TAC good_final_filter;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let vertextype_list_vertextype = prove_by_refinement(
+  `!g v. good_graph2 g /\ v IN vertices_set2 g ==>
+    vertextype_list (fgraph g) v = vertextype g v`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[vertextype_list;Import_tame_classification.vertextype;PAIR_EQ];
+  BY(ASM_SIMP_TAC[tri_list_tri;quad_list_quad;except_list_except])
+  ]);;
+  (* }}} *)
+
+let tame12o_list = new_definition `tame12o_list L <=>
+  (!v. v IN elements_of_list L /\ ~(except_list L v = 0) /\
+    LENGTH (facesAt_list L v) = 6 ==>
+      vertextype_list L v = 5,0,1)`;;
+
+let tame12o_list_tame12o = prove_by_refinement(
+  `!g. good_graph2 g /\ tame12o_list (fgraph g) ==> tame12o g`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[tame12o_list;tame12o;degree];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`v`]);
+  ANTS_TAC;
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[good_graph2]);
+    GMATCH_SIMP_TAC except_list_except;
+    GMATCH_SIMP_TAC (GSYM facesAt2_list);
+    ASM_REWRITE_TAC[Seq.map_MAP;LENGTH_MAP];
+    BY(ASM_MESON_TAC[not_equal]);
+  GMATCH_SIMP_TAC vertextype_list_vertextype;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let admissible1_list = new_definition `admissible1_list w L <=>
+  (!f. MEM f L ==> squanderFace (LENGTH f) <= w f)`;;
+
+let admissible1_list_admissible1 = prove_by_refinement(
+  `!g w. admissible1_list w (fgraph g) ==> 
+     admissible1 (w o FST) g`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[admissible1_list;admissible1;bn_Faces;faces;IN_SET_OF_LIST;fgraph;o_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`FST f`]);
+  DISCH_THEN MATCH_MP_TAC;
+  MATCH_MP_TAC MEMf_MAP;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let admissible2_list = new_definition `admissible2_list w L <=>
+  (!v. v IN elements_of_list L /\ except_list L v = 0 ==>
+     squanderVertex (tri_list L v) (quad_list L v) <=
+      sumn (MAP w (facesAt_list L v)))`;;
+
+let admissible2_list_admissible2 = prove_by_refinement(
+  `!g w. good_graph2 g /\ admissible2_list w (fgraph g) ==> 
+     admissible2 (w o FST) g`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[admissible2_list;admissible2];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`v`]);
+  ANTS_TAC;
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[good_graph2]);
+    GMATCH_SIMP_TAC except_list_except;
+    BY(ASM_REWRITE_TAC[]);
+  ASM_SIMP_TAC[tri_list_tri;quad_list_quad];
+  GMATCH_SIMP_TAC (GSYM facesAt2_list);
+  ASM_REWRITE_TAC[Seq.map_MAP;GSYM MAP_o];
+  MATCH_MP_TAC (arith `(a = b) ==> (a ==> b)`);
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  BY(REWRITE_TAC[FUN_EQ_THM;o_THM])
+  ]);;
+  (* }}} *)
+
+let admissible3_list = new_definition `admissible3_list w L <=>
+  (!v. v IN elements_of_list L /\ vertextype_list L v = 5,0,1 ==>
+   sumn (MAP w (FILTER (\f. LENGTH f = 3) (facesAt_list L v))) >=
+    excessTCount)`;;
+
+let admissible3_list_admissible3 = prove_by_refinement(
+  `!g w. good_graph2 g /\ admissible3_list w (fgraph g) ==> 
+     admissible3 (w o FST) g`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[admissible3_list;admissible3];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`v`]);
+  ANTS_TAC;
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[good_graph2]);
+    GMATCH_SIMP_TAC vertextype_list_vertextype;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `(MAP w (FILTER (\f. LENGTH f = 3) (facesAt_list (fgraph g) v))) = (map (\f. (w o FST) f) (FILTER triangle (facesAt g v)))` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN SUBST1_TAC;
+    BY(REWRITE_TAC[]);
+  REWRITE_TAC[triangle;Seq.map_MAP];
+  GMATCH_SIMP_TAC (GSYM facesAt2_list);
+  ASM_REWRITE_TAC[Seq.map_MAP;GSYM MAP_o];
+  REWRITE_TAC[FILTER_MAP;GSYM MAP_o];
+  TYPIFY `triangle = (\f. LENGTH f = 3) o FST` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REWRITE_TAC[triangle;FUN_EQ_THM;o_THM]);
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  BY(REWRITE_TAC[FUN_EQ_THM;o_THM])
+  ]);;
+  (* }}} *)
+
+let tame13a_list = new_definition `tame13a_list L <=>
+   (?w. admissible1_list w L /\ admissible2_list w L /\ admissible3_list w L /\
+     sumn (MAP w L) < squanderTarget)`;;
+
+
+let tame13a_list_tame13a_lemma = prove_by_refinement(
+  `!g. good_graph2 g /\ tame13a_list (fgraph g) ==>
+      (?w. admissible' (w o FST) g /\
+        sumn (MAP (\f. (w o FST) f) (faces g)) < squanderTarget)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[tame13a_list;admissible'];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `w` EXISTS_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `fgraph` MP_TAC);
+  ASM_SIMP_TAC[admissible1_list_admissible1];
+  ASM_SIMP_TAC[admissible2_list_admissible2];
+  ASM_SIMP_TAC[admissible3_list_admissible3];
+  REWRITE_TAC[fgraph;faces];
+  REWRITE_TAC[fgraph;faces;GSYM MAP_o];
+  BY(REWRITE_TAC[ETA_AX])
+  ]);;
+  (* }}} *)
+
+let tame13a_list_tame13a = prove_by_refinement(
+  `!g. good_graph2 g /\ tame13a_list (fgraph g) ==>
+    tame13a g`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[tame13a];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC tame13a_list_tame13a_lemma [`g`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `(w o FST):(num)list#bool->num` EXISTS_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let dart_of_exists = prove_by_refinement(
+  `!L f (v:A). ?d. good_list L /\ MEM f L /\ MEM v f ==> 
+    MEM d (list_of_darts L) /\  f = find_pair_list L d /\ FST d = v`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[List_hypermap.list_of_darts_alt;List_hypermap.list_of_faces];
+  REWRITE_TAC[RIGHT_EXISTS_IMP_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Seq2.mem_flatten];
+  REWRITE_TAC[LEFT_AND_EXISTS_THM];
+  ONCE_REWRITE_TAC[MESON [] `(?a b. P a b ) <=> (?b a. P a b)`];
+  TYPIFY `list_pairs f` EXISTS_TAC;
+  INTRO_TAC List_hypermap.mem_list_pairs_exists [`v`;`f`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[EXISTS_PAIR_THM];
+  GEXISTL_TAC [`v`;`y`];
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    MATCH_MP_TAC MEMf_MAP;
+    BY(ASM_REWRITE_TAC[]);
+  MATCH_MP_TAC List_hypermap.find_pair_list_unique;
+  ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[List_hypermap.good_list])
+  ]);;
+  (* }}} *)
+
+let dart_of = new_specification ["dart_of"] 
+  (REWRITE_RULE[SKOLEM_THM] dart_of_exists);;
+
+let dart_of_find_face = prove_by_refinement(
+  `!L f v. good_list L /\ MEM f L /\ MEM v f ==>
+      find_face L (dart_of L f v) = list_pairs f`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[List_hypermap.find_face_alt];
+  BY(MESON_TAC[dart_of])
+  ]);;
+  (* }}} *)
+
+let dart_of_card_face = prove_by_refinement(
+  `!L f v. good_list L /\ MEM f L /\ MEM v f ==>
+    CARD (face (hypermap_of_list L) (dart_of L f v)) = LENGTH f`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC dart_of [`L`;`f`;`v`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC List_hypermap.card_face_of_list;
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC dart_of_find_face;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[List_hypermap.size_list_pairs];
+  BY(REWRITE_TAC[Seq.size])
+  ]);;
+  (* }}} *)
+
+let list_pairs_unique = prove_by_refinement(
+  `!f:(A)list d1 d2. uniq f /\ MEM d1 (list_pairs f) /\ MEM d2 (list_pairs f) /\
+     FST d1 = FST d2 ==> d1 = d2`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[FORALL_PAIR_THM;PAIR_EQ];
+  BY(ASM_MESON_TAC[List_hypermap.mem_list_pairs_explicit])
+  ]);;
+  (* }}} *)
+
+let dart_of_unique = prove_by_refinement(
+  `!L f v d. good_list L /\ all uniq L /\ MEM f L /\ MEM v f /\
+     MEM d (list_of_darts L) /\ find_pair_list L d = f /\
+     FST d = v ==> (d = dart_of L f v)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC dart_of [`L`;`f`;`v`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `MEM d (list_pairs f)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[List_hypermap.dart_in_face;List_hypermap.find_face_alt]);
+  MATCH_MP_TAC list_pairs_unique;
+  TYPIFY `f` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[Seq.allP]);
+  BY(ASM_MESON_TAC[List_hypermap.dart_in_face;List_hypermap.find_face_alt])
+  ]);;
+  (* }}} *)
+
+let dart_of_node = prove_by_refinement(
+  `!L x (v:A). 
+    good_list L /\ good_list_nodes L /\ all uniq L /\
+    MEM x (list_of_darts L) /\
+    FST x = v ==> 
+    BIJ (\f. dart_of L f v) (set_of_list (facesAt_list L v)) 
+    (node (hypermap_of_list L) x)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `x IN darts_of_list L` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_REWRITE_TAC[List_hypermap.darts_of_list;IN_SET_OF_LIST]);
+  ASM_SIMP_TAC[List_hypermap.good_list_node];
+  REWRITE_TAC[BIJ];
+  SUBCONJ2_TAC;
+    REWRITE_TAC[SURJ;IN_SET_OF_LIST;IN_ELIM_THM];
+    CONJ_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      INTRO_TAC dart_of [`L`;`x'`;`v`];
+      ASM_REWRITE_TAC[];
+      ANTS_TAC;
+        FIRST_X_ASSUM MP_TAC;
+        REWRITE_TAC[facesAt_list];
+        REWRITE_TAC[MEM_FILTER];
+        BY(SIMP_TAC[]);
+      REPEAT WEAKER_STRIP_TAC;
+      TYPIFY `SND (dart_of L x' v)` EXISTS_TAC;
+      SUBCONJ2_TAC;
+        BY(ASM_MESON_TAC[FST;SND;PAIR]);
+      DISCH_THEN (SUBST1_TAC o GSYM);
+      BY(ASM_REWRITE_TAC[ List_hypermap.darts_of_list;IN_SET_OF_LIST]);
+    REPEAT WEAKER_STRIP_TAC;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[facesAt_list;MEM_FILTER];
+    FIRST_X_ASSUM_ST `darts_of_list` MP_TAC;
+    ASM_REWRITE_TAC[ List_hypermap.darts_of_list;IN_SET_OF_LIST;List_hypermap.list_of_darts_alt];
+    REWRITE_TAC[Seq2.mem_flatten];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM_ST `list_of_faces` MP_TAC;
+    REWRITE_TAC[List_hypermap.list_of_faces;MEM_MAP];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `x''` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    SUBCONJ_TAC;
+      BY(ASM_MESON_TAC[List_hypermap.mem_list_pairs]);
+    DISCH_TAC;
+    ONCE_REWRITE_TAC[EQ_SYM_EQ];
+    MATCH_MP_TAC dart_of_unique;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      REWRITE_TAC[List_hypermap.mem_list_of_darts];
+      BY(ASM_MESON_TAC[]);
+    MATCH_MP_TAC List_hypermap.list_pairs_inj;
+    REWRITE_TAC[GSYM List_hypermap.find_face_alt];
+    REWRITE_TAC[GSYM List_hypermap.find_face_alt];
+    GMATCH_SIMP_TAC List_hypermap.find_face_eq;
+    ASM_REWRITE_TAC[List_hypermap.mem_list_of_darts];
+    REPEAT CONJ_TAC;
+          BY(ASM_MESON_TAC[List_hypermap.good_list]);
+        BY(ASM_MESON_TAC[]);
+      REWRITE_TAC[List_hypermap.list_of_faces];
+      MATCH_MP_TAC MEMf_MAP;
+      BY(ASM_REWRITE_TAC[]);
+    BY(ASM_MESON_TAC[]);
+  COMMENT "INJ";
+  REWRITE_TAC[SURJ;INJ] THEN REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[];
+  REWRITE_TAC[IN_SET_OF_LIST;facesAt_list;MEM_FILTER];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC dart_of [`L`;`x'`;`v`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC dart_of [`L`;`y`;`v`];
+  ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let dart_of_card_node = prove_by_refinement(
+  `!L x (v:A). 
+    good_list L /\ good_list_nodes L /\ all uniq L /\
+    MEM x (list_of_darts L) /\
+    FST x = v ==> 
+    CARD (node (hypermap_of_list L) x) = LENGTH (facesAt_list L v)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC dart_of_node [`L`;`x`;`v`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  FIRST_X_ASSUM (MP_TAC o MATCH_MP (REWRITE_RULE[MESON[] `( a /\ b ==> c) <=> (b ==> a ==> c)`]Misc_defs_and_lemmas.BIJ_CARD));
+  REWRITE_TAC[FINITE_SET_OF_LIST];
+  DISCH_THEN (SUBST1_TAC o GSYM);
+  GMATCH_SIMP_TAC Seq2.card_set_of_list_uniq;
+  REWRITE_TAC[Seq.size];
+  REWRITE_TAC[facesAt_list;GSYM filter_FILTER];
+  MATCH_MP_TAC Seq.filter_uniq;
+  MATCH_MP_TAC List_hypermap.good_list_uniq;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let node_of_element = prove_by_refinement(
+  `!L (v:A).  MEM v (list_of_elements L) ==>
+    MEM (filter (\d. FST d = v) (list_of_darts L)) (list_of_nodes L)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[List_hypermap.list_of_nodes;MEM_MAP];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `v` EXISTS_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let MEM_hypermap_of_list_node = prove_by_refinement(
+  `!L x y.  good_list_nodes L /\ MEM x (list_of_darts L) ==>
+     (y IN (node (hypermap_of_list L) x) <=>
+     (FST x = FST y /\ MEM y (list_of_darts L)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC More_list_hypermap.node_hypermap_of_list_explicit;
+  TYPIFY ` ((filter (\d. FST d = FST x) (list_of_darts L)))` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    CONJ_TAC;
+      MATCH_MP_TAC node_of_element;
+      INTRO_TAC Elllnyz.mem_list_of_darts_imp_mem_list_of_elements_alt [`L`;`FST x`;`SND x`];
+      BY(ASM_MESON_TAC[PAIR]);
+    BY(ASM_REWRITE_TAC[filter_FILTER;MEM_FILTER]);
+  ASM_REWRITE_TAC[IN_SET_OF_LIST;filter_FILTER;MEM_FILTER];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let set_of_n_meeting_node = prove_by_refinement(
+  `!P L (x:A#A).  
+   good_list L /\ good_list_nodes L /\ MEM x (list_of_darts L) ==>
+   BIJ (set_of_list o list_pairs) 
+  (set_of_list (filter (\f. P(LENGTH f)) (facesAt_list L (FST x))))
+  {face (hypermap_of_list L) y | y | 
+     y IN dart (hypermap_of_list L) /\ 
+     P(CARD (face (hypermap_of_list L) y)) /\
+       y IN node (hypermap_of_list L) x}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_SIMP_TAC[dart_hypermap_of_list;IN_SET_OF_LIST];
+  ASM_SIMP_TAC[MEM_hypermap_of_list_node];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `{face (hypermap_of_list L) y | y | MEM y (list_of_darts L) /\  P  (CARD  (face (hypermap_of_list L) y)) /\  FST x = FST y /\  MEM y (list_of_darts L)} = {face (hypermap_of_list L) y | y | MEM y (list_of_darts L) /\  P  (sizel (find_face L y)) /\  FST x = FST y }` (C SUBGOAL_THEN SUBST1_TAC);
+    REWRITE_TAC[EXTENSION;IN_ELIM_THM];
+    X_GENv_TAC "u";
+    BY(ASM_MESON_TAC[List_hypermap.card_face_of_list]);
+  REWRITE_TAC[BIJ];
+  SUBCONJ_TAC;
+    COMMENT "IMAGE";
+    REWRITE_TAC[INJ];
+    CONJ_TAC;
+      X_GENv_TAC "f";
+      REWRITE_TAC[IN_ELIM_THM;IN_SET_OF_LIST;o_THM;filter_FILTER;MEM_FILTER;facesAt_list];
+      REPEAT WEAKER_STRIP_TAC;
+      TYPIFY `dart_of L f (FST x)` EXISTS_TAC;
+      INTRO_TAC dart_of [`L`;`f`;`FST x`];
+      ASM_REWRITE_TAC[];
+      REPEAT WEAKER_STRIP_TAC;
+      ASM_REWRITE_TAC[];
+      GMATCH_SIMP_TAC More_list_hypermap.face_hypermap_of_list_explicit;
+      TYPIFY `list_pairs f` EXISTS_TAC;
+      ASM_REWRITE_TAC[];
+      GMATCH_SIMP_TAC dart_of_find_face;
+      REWRITE_TAC[List_hypermap.size_list_pairs];
+      ASM_REWRITE_TAC[Seq.size];
+      CONJ2_TAC;
+        GMATCH_SIMP_TAC (GSYM dart_of_find_face);
+        GEXISTL_TAC [`L`;`FST x`];
+        ASM_REWRITE_TAC[];
+        BY(ASM_MESON_TAC[List_hypermap.dart_in_face]);
+      REWRITE_TAC[List_hypermap.list_of_faces];
+      MATCH_MP_TAC MEMf_MAP;
+      BY(ASM_REWRITE_TAC[]);
+    COMMENT "INJ";
+    REWRITE_TAC[IN_SET_OF_LIST;o_THM];
+    REPEAT WEAKER_STRIP_TAC;
+    REPEAT (FIRST_X_ASSUM MP_TAC);
+    REWRITE_TAC[filter_FILTER;MEM_FILTER;facesAt_list];
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC List_hypermap.mem_face_lemma [`list_pairs x'`;`L`];
+    ANTS_TAC;
+      ASM_REWRITE_TAC[];
+      REWRITE_TAC[List_hypermap.list_of_faces];
+      MATCH_MP_TAC MEMf_MAP;
+      BY(ASM_REWRITE_TAC[]);
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC List_hypermap.find_face_eq [`L`;`d`;`list_pairs y`];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[List_hypermap.good_list]);
+    TYPIFY `MEM (list_pairs y) (list_of_faces L) /\ MEM d (list_pairs y)` ENOUGH_TO_SHOW_TAC;
+      DISCH_THEN (unlist REWRITE_TAC);
+      BY(ASM_MESON_TAC[List_hypermap.list_pairs_inj]);
+    CONJ_TAC;
+      REWRITE_TAC[List_hypermap.list_of_faces];
+      MATCH_MP_TAC MEMf_MAP;
+      BY(ASM_REWRITE_TAC[]);
+    TYPIFY `MEM d (find_face L d)` ENOUGH_TO_SHOW_TAC;
+      BY(ASM_MESON_TAC[IN_SET_OF_LIST]);
+    BY(ASM_MESON_TAC[List_hypermap.dart_in_face]);
+  COMMENT "SURJ";
+  REWRITE_TAC[INJ;SURJ;IN_ELIM_THM] THEN REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[IN_ELIM_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[o_THM;IN_SET_OF_LIST;filter_FILTER;MEM_FILTER;facesAt_list];
+  ASM_REWRITE_TAC[];
+  REPEAT (FIRST_X_ASSUM_ST `filter` kill);
+  ASM_SIMP_TAC[List_hypermap.face_of_list];
+  REWRITE_TAC[List_hypermap.find_face_alt];
+  TYPIFY `find_pair_list L y` EXISTS_TAC;
+  REWRITE_TAC[];
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `sizel` MP_TAC;
+    REWRITE_TAC[List_hypermap.find_face_alt];
+    REWRITE_TAC[List_hypermap.size_list_pairs];
+    BY(REWRITE_TAC[Seq.size]);
+  CONJ_TAC;
+    ONCE_REWRITE_TAC[List_hypermap.mem_list_pairs_exists];
+    TYPIFY `SND y` EXISTS_TAC;
+    REWRITE_TAC[PAIR];
+    BY(ASM_REWRITE_TAC[GSYM List_hypermap.dart_in_find_pair_list]);
+  MATCH_MP_TAC List_hypermap.mem_find_pair_list;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let card_set_of_n_meeting_node = prove_by_refinement(
+  `!P L (x:A#A).  
+   good_list L /\ good_list_nodes L /\ MEM x (list_of_darts L) ==>
+  CARD {face (hypermap_of_list L) y | y | 
+     y IN dart (hypermap_of_list L) /\ 
+     P(CARD (face (hypermap_of_list L) y)) /\
+       y IN node (hypermap_of_list L) x} = 
+  LENGTH
+  ( (filter (\f. P(LENGTH f)) (facesAt_list L (FST x))))
+`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC set_of_n_meeting_node [`P`;`L`;`x`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  FIRST_X_ASSUM (MP_TAC o MATCH_MP (REWRITE_RULE[MESON[] `( a /\ b ==> c) <=> (b ==> a ==> c)`]Misc_defs_and_lemmas.BIJ_CARD));
+  REWRITE_TAC[FINITE_SET_OF_LIST];
+  DISCH_THEN (SUBST1_TAC o GSYM);
+  GMATCH_SIMP_TAC Seq2.card_set_of_list_uniq;
+  REWRITE_TAC[Seq.size];
+  REWRITE_TAC[facesAt_list;GSYM filter_FILTER];
+  MATCH_MP_TAC Seq.filter_uniq;
+  MATCH_MP_TAC Seq.filter_uniq;
+  MATCH_MP_TAC List_hypermap.good_list_uniq;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)

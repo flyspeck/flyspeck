@@ -97,7 +97,7 @@ let build_report s =  build_date() ^
   indent ^ flyspeck_version() ^ 
   indent ^ ocaml_version() ^ "\n" ^ indent^ s^ "\n";;
 
-let fullpath s = Filename.concat flyspeck_dir s;;
+let flyspeckpath s = Filename.concat flyspeck_dir s;;
 
 
 (*
@@ -124,16 +124,10 @@ let load_on_path_b p s =
 
 let loadb s = load_on_path_b (!load_path) s;;
 
-let needb s =
-  let s' = file_on_path (!load_path) s in
-  let fileid = (Filename.basename s',Digest.file s') in
-    if List.mem fileid (!loaded_files)
-    then (Format.print_string("File \""^s^"\" already loaded\n");true) 
-    else loadb s;;
 
 (* debugging *)
-loadt (fullpath "general/parser_verbose.hl");;
-loadt (fullpath "general/debug.hl");;
+loadt (flyspeckpath "general/parser_verbose.hl");;
+loadt (flyspeckpath "general/debug.hl");;
 Debug.set_verbose_parsing();;
 
 
@@ -143,11 +137,6 @@ let CHEAT_TAC = FAIL_TAC "cheaters never prosper";;
 let new_axiom _ = failwith "new_axiom has been disabled.";; 
 let mk_thm _ = failwith "mk_thm has been disabled.  Use mk_fthm";;
 
-let needs s =
-  let _ = Hol_pervasives.needs s in
-  let s' = file_on_path (!load_path) s in
-  let _ = Format.print_string("File \""^s'^"\" -successfully loaded\n") in
-   ();;
 
 needs "Library/rstc.ml";;
 needs "Rqe/num_calc_simp.ml";;  
@@ -161,6 +150,23 @@ needs "general/theorem_digest.hl";;
 needs "general/serialization.hl";;
 needs "build.hl";;
 
+let needb s =
+  let s' = file_on_path (!load_path) s in
+  let fileid = (Filename.basename s',Digest.file s') in
+    if List.mem fileid (!loaded_files)
+    then (Format.print_string("File \""^s^"\" already loaded\n");true) 
+    else loadb s;;
+
+let needs s =
+  let s' = file_on_path (!load_path) s in
+  let fileid = (Filename.basename s',Digest.file s') in
+  if List.mem fileid (!loaded_files)
+  then Format.print_string("File \""^s^"\" already loaded\n") 
+  else 
+    let _ = loadt s in
+    let _ = Format.print_string("File \""^s'^"\" -successfully loaded\n") in
+      ();;
+
 let (prove,prove_by_refinement) = 
   let use_serialization = 
     try
@@ -173,16 +179,17 @@ let (prove,prove_by_refinement) =
 
 needs "Multivariate/flyspeck.ml";; (* load before state manager *)
 
-
-loadt (fullpath "general/state_manager.hl");;
-let reneeds s = loadt (fullpath s);;
+loadt (flyspeckpath "general/state_manager.hl");;
+let reneeds s = loadt (flyspeckpath s);;
 let rflyspeck_needs = reneeds;;
 
-
-
-let fileid s = 
-  let s' = file_on_path (!load_path) (fullpath s) in
+let flyspeckid s = 
+  let s' = file_on_path (!load_path) (flyspeckpath s) in
     (Filename.basename s',Digest.file s');;
+
+
+
+
 
 (* The dependency calculation in flyspeck_needs still has a bug if the
    file does not load correctly, but it calls another file that does load
@@ -197,9 +204,9 @@ let (flyspeck_needs_untimed,filetable,depend,depend_reset)  =
    (* associate constants with files *) 
   let depend = ref ([]:((string*Digest.t)*(string*Digest.t)) list) in 
    (* dependency table *)
-  let host = ref (fileid "build.hl") in
+  let host = ref (flyspeckid "build.hl") in
   let fn = fun s->
-  let id = fileid s in 
+  let id = flyspeckid s in 
     if (List.mem id (!loaded_files))
     then Format.print_string("File \""^s^"\" already loaded\n")
     else
@@ -208,7 +215,7 @@ let (flyspeck_needs_untimed,filetable,depend,depend_reset)  =
 	depend := (!host,id)::(!depend);	       
 	let h = !host in 
         let _ = (host := id) in
-        let b= needb (fullpath s) in
+        let b= needb (flyspeckpath s) in
         let _ = (host := h) in
 	let _ = try State_manager.neutralize_state () with
 	    Failure msg -> Format.print_string("File \""^s^
@@ -223,15 +230,6 @@ let (flyspeck_needs_untimed,filetable,depend,depend_reset)  =
 
 let flyspeck_needs s = time_msg s flyspeck_needs_untimed s;;
 
-(* disable "needs" for now *)
-(*
-let needs' = needs;;
-let needs _ = failwith "Use flyspeck_needs rather than needs";;
-*)
-
-
-
-
 (* utilities *)
 
 (* flyspeck_needs "general/flyspeck_utility.hl";; *)
@@ -242,7 +240,6 @@ let mk_goal(asl,w) = (asl,w);;
 
 (* verbose error reporting *)
 
-
 (* let prove_by_refinement = Debug.verbose Prove_by_refinement.prove_by_refinement;;  *)
 (* let prove = Debug.verbose prove;; *)
 let new_definition = Debug.verbose_1 new_definition;;
@@ -252,14 +249,11 @@ let EXISTS_TAC = Debug.verbose_1 EXISTS_TAC;;
 (* This next one gets iterated in FIRST_ASSUM and creates multiple error messages *)
 (* let ISPECL = Debug.verbose_thm ISPECL;; *)
 
-
-
-
 let build_and_report() = 
   let s = try
     (let _ = map flyspeck_needs Build.build_sequence in  "full load completed")
   with Failure t -> t  in
-  let oc = open_out_gen [Open_append;Open_text] 436 (fullpath "log.txt") in
+  let oc = open_out_gen [Open_append;Open_text] 436 (flyspeckpath "log.txt") in
   (Pervasives.output_string oc (build_report s); close_out oc);;
 
 let build_silent() = 
@@ -278,9 +272,7 @@ let try_do f  =
     try_dof;;
 
 let already_loaded s =
-  let s' = file_on_path (!load_path) s in
-  let fileid = (Filename.basename s',Digest.file s') in
-    List.mem fileid (!loaded_files);;
+    List.mem (flyspeckid s) (!loaded_files);;
 
 let new_build_silent() = 
   let loaded = try_do (fun s -> flyspeck_needs s; s) Build.build_sequence in
@@ -304,6 +296,6 @@ let build_all() =
    map (fun t -> State_manager.neutralize_state(); needs t) build_sequence);;
 *)
 
-
+State_manager.neutralize_state();;
 new_build_silent();;
 State_manager.neutralize_state();;

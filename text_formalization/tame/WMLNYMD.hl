@@ -1083,6 +1083,107 @@ let nfloor = new_specification ["nfloor"]
 let wt_floor = new_definition `wt_floor w (f:A->bool) = 
   if (CARD f) > 4 then squanderFace (CARD f) else nfloor 10000 (w f)`;;
 
+let adm_1_floor = new_definition `adm_1_floor (H:(A)hypermap) w <=>
+   (!x. x IN dart H ==> w (face H x) >= squanderFace (CARD (face H x)))`;;
+
+let adm_2_floor = new_definition `adm_2_floor (H:(A)hypermap) w <=>
+   (!x. x IN dart H /\ CARD (set_of_exceptional_meeting_node H x) = 0
+              ==> nsum (set_of_face_meeting_node H x) w >=
+                  squanderVertex (CARD (set_of_triangles_meeting_node H x))
+                  (CARD (set_of_quadrilaterals_meeting_node H x)))`;;
+
+let adm_3_floor = new_definition `adm_3_floor (H:(A)hypermap) w <=>
+         (!x. x IN dart H /\ type_of_node H x = 5,0,1
+            ==> nsum (set_of_triangles_meeting_node H x) w >= excessTCount)`;;
+
+let tame_13a_floor = new_definitionx `tame_13a_floor (H:(A)hypermap) <=>
+  (?w. adm_1_floor H w /\ adm_2_floor H w /\ adm_3_floor H w /\
+         nsum (face_set H) w < squanderTarget)`;;
+
+let wt_floor_nn = prove_by_refinement(
+  `!H w x. x IN dart H /\ adm_1 H w ==>
+    &0 <= w (face H x)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[adm_1;d_tame;Tame_defs.tgt];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`x`]) THEN ASM_REWRITE_TAC[];
+  BY(REPEAT COND_CASES_TAC THEN ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let wt_floor_le_wt = prove_by_refinement(
+  `!H w x. x IN dart H /\ adm_1 H w  ==> 
+   &(wt_floor w (face H x)) <= w (face H x) * &10000`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC wt_floor_nn [`H`;`w`;`x`] THEN ASM_REWRITE_TAC[];
+  REPEAT (FIRST_X_ASSUM MP_TAC);
+  REWRITE_TAC[adm_1;wt_floor;arith `x >= y <=> y <= x`];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`x`]);
+  ASM_REWRITE_TAC[];
+  COND_CASES_TAC;
+    DISCH_TAC;
+    MATCH_MP_TAC REAL_LE_TRANS;
+    TYPIFY `d_tame (CARD (face H x)) * &10000` EXISTS_TAC;
+    CONJ2_TAC;
+      BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC);
+    REWRITE_TAC[squanderFace;d_tame];
+    ASM_SIMP_TAC [arith `n > 4 ==> ~(n = 3) /\ ~(n=4)`];
+    COND_CASES_TAC;
+      ASM_REWRITE_TAC[];
+      BY(REAL_ARITH_TAC);
+    ASM_REWRITE_TAC[];
+    COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+      BY(REAL_ARITH_TAC);
+    REWRITE_TAC[squanderTarget;Tame_defs.tgt];
+    BY(REAL_ARITH_TAC);
+  BY(ASM_SIMP_TAC[nfloor])
+  ]);;
+  (* }}} *)
+
+let total_weight_floor = prove_by_refinement(
+  `!H w. adm_1 H w /\ total_weight H w < tgt ==> 
+    nsum (face_set H) (wt_floor w) < squanderTarget`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[total_weight;Tame_defs.tgt];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC wt_floor_le_wt [`H`;`w`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[GSYM REAL_OF_NUM_LT];
+  GMATCH_SIMP_TAC REAL_OF_NUM_SUM;
+  REWRITE_TAC[Hypermap.FINITE_HYPERMAP_ORBITS];
+  RULE_ASSUM_TAC (ONCE_REWRITE_RULE[arith `x < y <=> x * &10000 < y * &10000`]);
+  RULE_ASSUM_TAC (REWRITE_RULE[GSYM SUM_RMUL]);
+  TYPIFY `&squanderTarget =  #1.541 * &10000` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REWRITE_TAC[squanderTarget] THEN REAL_ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC REAL_LET_TRANS;
+  TYPIFY `sum (face_set H) (\x. w x * &10000)` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC SUM_LE;
+  REWRITE_TAC[Hypermap.FINITE_HYPERMAP_ORBITS];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (MP_TAC o (MATCH_MP Hypermap.lemma_face_representation));
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+
+(* xxd
+ next adm_1 adm_1_floor, 2, 3.
+*)
+
+`tame_13a (hypermap_of_list L) ==> tame_13a_floor (hypermap_of_list L)`;;
+
+total_weight;;
+admissible_weight;;
+tame_13a;;
+
 let tame13a_correspondence = prove_by_refinement(
  `!L:((A)list)list.    good_list L /\ 
    good_list_nodes L  /\

@@ -15,7 +15,6 @@ flyspeck_needs "tame/import_tame_classification.hl";;
 flyspeck_needs "tame/more_tame_concl.hl";;
 
 module Wmlnymd = struct
-end;;
 
 open Hypermap;;
 open Import_tame_classification;;
@@ -31,6 +30,8 @@ parse_as_infix("POWER",(24,"right"));;
 parse_as_infix("in_dart_of_loop",(11,"right"));;
 (* parse_as_infix("iso",(24,"right"));; *)
 unparse_as_infix "iso";;
+
+
 make_overloadable "vertices" `:B -> (num list)`;;
 overload_interface ("vertices",`FST:num list # bool -> num list`);;
 remove_interface "vertices";;
@@ -1531,6 +1532,36 @@ let sumn_nsum = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let uniq_facesAt_list = prove_by_refinement(
+  `!L v. good_list L ==> uniq (facesAt_list L v)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[facesAt_list];
+  REWRITE_TAC[GSYM filter_FILTER];
+  MATCH_MP_TAC Seq.filter_uniq;
+  BY(ASM_MESON_TAC[List_hypermap.good_list_uniq])
+  ]);;
+  (* }}} *)
+
+let BIJ_NSUM = prove_by_refinement(
+  `!A B f (ab:A->B). FINITE A /\ BIJ ab A B ==> nsum A (f o ab) = nsum B f`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `FINITE B` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[ Misc_defs_and_lemmas.FINITE_BIJ]);
+  FIRST_X_ASSUM (MP_TAC o MATCH_MP Basics.BIJ_SUM);
+  DISCH_TAC;
+  REWRITE_TAC[GSYM REAL_OF_NUM_EQ];
+  ASM_SIMP_TAC[REAL_OF_NUM_SUM];
+  FIRST_X_ASSUM (C INTRO_TAC [`(\x. &(f x))`]);
+  DISCH_THEN (SUBST1_TAC o GSYM);
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  BY(REWRITE_TAC[FUN_EQ_THM;o_THM])
+  ]);;
+  (* }}} *)
+
 let tame13a_correspondence = prove_by_refinement(
  `!L:((A)list)list.    good_list L /\ 
    good_list_nodes L  /\
@@ -1541,52 +1572,149 @@ let tame13a_correspondence = prove_by_refinement(
   tame13a_list L`,
   (* {{{ proof *)
   [
-  st/r
-  typ `tame_13a_floor (hypermap_of_list L)` smp
-  asimp[tame_13_a_floor_tame_13_a]
-  rt[tame_13a_floor]
-st/r
-abbrev `w' = w o set_of_list o list_pairs` 
-rt[tame13a_list]
-typ `w'` ex
-comment "adm1"
-conj
-rt[admissible1_list]
-rule (rr[adm_1_floor])
-st/r
-expand "w'" then rt[o_THM]
-intro List_hypermap.mem_face_lemma [`list_pairs f`;`L`]
-art[]
-typ `MEM (list_pairs f) (list_of_faces L)` sat
-rt[List_hypermap.list_of_faces]
-mmp MEMf_MAP then art[]
-art[]
-st/r
-fxa (C intro [`d`])
-asimp[dart_hypermap_of_list;IN_SET_OF_LIST]
-asimp[List_hypermap.card_face_of_list]
-asimp[List_hypermap.face_of_list]
-fxa (sub1 o GSYM)
-rt[List_hypermap.size_list_pairs]
-rt[Seq.size]
-ARITH_TAC
-comment "total_weight"
-nconj 2
-typ `sumn (map w' L) = nsum (face_set (hypermap_of_list L)) w` ets
-rep 2 (fxa mp) then rt[Seq.map_MAP] then ARITH_TAC
-gm List_hypermap.face_set_eq_list
-art[]
-gm (GSYM sumn_nsum)
-asimp[List_hypermap.uniq_faces_of_list]
-rt[List_hypermap.faces_of_list;List_hypermap.list_of_faces]
-art[Seq.map_MAP;GSYM MAP_o]
-art[]
-comment "adm2"
-
-
-  #
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `tame_13a_floor (hypermap_of_list L)` (C SUBGOAL_THEN MP_TAC);
+    BY(ASM_SIMP_TAC[tame_13_a_floor_tame_13_a]);
+  REWRITE_TAC[tame_13a_floor];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPED_ABBREV_TAC `w' = w o set_of_list o list_pairs`;
+  REWRITE_TAC[tame13a_list];
+  TYPIFY `w'` EXISTS_TAC;
+  COMMENT "adm1";
+  CONJ_TAC;
+    REWRITE_TAC[admissible1_list];
+    RULE_ASSUM_TAC (REWRITE_RULE[adm_1_floor]);
+    REPEAT WEAKER_STRIP_TAC;
+    EXPAND_TAC "w'" THEN REWRITE_TAC[o_THM];
+    INTRO_TAC List_hypermap.mem_face_lemma [`list_pairs f`;`L`];
+    ASM_REWRITE_TAC[];
+    TYPIFY `MEM (list_pairs f) (list_of_faces L)` (C SUBGOAL_THEN ASSUME_TAC);
+      REWRITE_TAC[List_hypermap.list_of_faces];
+      BY(MATCH_MP_TAC MEMf_MAP THEN ASM_REWRITE_TAC[]);
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [`d`]);
+    ASM_SIMP_TAC[dart_hypermap_of_list;IN_SET_OF_LIST];
+    ASM_SIMP_TAC[List_hypermap.card_face_of_list];
+    ASM_SIMP_TAC[List_hypermap.face_of_list];
+    FIRST_X_ASSUM (SUBST1_TAC o GSYM);
+    REWRITE_TAC[List_hypermap.size_list_pairs];
+    REWRITE_TAC[Seq.size];
+    BY(ARITH_TAC);
+  COMMENT "total_weight";
+  nCONJ_TAC 2;
+    TYPIFY `sumn (map w' L) = nsum (face_set (hypermap_of_list L)) w` ENOUGH_TO_SHOW_TAC;
+      BY(REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN REWRITE_TAC[Seq.map_MAP] THEN ARITH_TAC);
+    GMATCH_SIMP_TAC List_hypermap.face_set_eq_list;
+    ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC (GSYM sumn_nsum);
+    ASM_SIMP_TAC[List_hypermap.uniq_faces_of_list];
+    REWRITE_TAC[List_hypermap.faces_of_list;List_hypermap.list_of_faces];
+    BY(ASM_REWRITE_TAC[Seq.map_MAP;GSYM MAP_o]);
+  ASM_REWRITE_TAC[];
+  COMMENT "adm2";
+  CONJ_TAC;
+    REWRITE_TAC[admissible2_list] THEN RULE_ASSUM_TAC(REWRITE_RULE[adm_2_floor]);
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `?f. MEM v f /\ MEM f L` (C SUBGOAL_THEN MP_TAC);
+      FIRST_X_ASSUM_ST `IN` MP_TAC THEN REWRITE_TAC[List_hypermap.elements_of_list;IN_SET_OF_LIST;List_hypermap.list_of_elements];
+      REWRITE_TAC[Seq.mem_undup;Seq2.mem_flatten];
+      BY(MESON_TAC[]);
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC dart_of [`L`;`f`;`v`];
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [`dart_of L f v`]);
+    ANTS_TAC;
+      ASM_SIMP_TAC[dart_hypermap_of_list;IN_SET_OF_LIST];
+      BY(ASM_SIMP_TAC[card_set_of_n_meeting_node_pqr]);
+    ASM_SIMP_TAC[card_set_of_n_meeting_node_pqr];
+    TYPIFY `sumn (MAP w' (facesAt_list L v)) = nsum (set_of_face_meeting_node (hypermap_of_list L) (dart_of L f v)) w` ENOUGH_TO_SHOW_TAC;
+      BY(ARITH_TAC);
+    REWRITE_TAC[GSYM Seq.map_MAP];
+    GMATCH_SIMP_TAC sumn_nsum;
+    ASM_SIMP_TAC[uniq_facesAt_list];
+    EXPAND_TAC "w'";
+    GMATCH_SIMP_TAC BIJ_NSUM;
+    TYPIFY `(set_of_face_meeting_node (hypermap_of_list L) (dart_of L f v))` EXISTS_TAC;
+    REWRITE_TAC[FINITE_SET_OF_LIST];
+    INTRO_TAC set_of_n_meeting_node [`predT:num->bool`;`L`;`dart_of L f v`];
+    TYPIFY `(\f:(A)list. predT (LENGTH f)) = predT` (C SUBGOAL_THEN SUBST1_TAC);
+      BY(REWRITE_TAC[FUN_EQ_THM;Ssrbool.predT]);
+    REWRITE_TAC[Seq.filter_predT];
+    ASM_REWRITE_TAC[];
+    BY(REWRITE_TAC[set_of_face_meeting_node;Ssrbool.predT]);
+  COMMENT "adm_3";
+  REWRITE_TAC[admissible3_list] THEN RULE_ASSUM_TAC(REWRITE_RULE[adm_3_floor]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `?f. MEM v f /\ MEM f L` (C SUBGOAL_THEN MP_TAC);
+    FIRST_X_ASSUM_ST `IN` MP_TAC THEN REWRITE_TAC[List_hypermap.elements_of_list;IN_SET_OF_LIST;List_hypermap.list_of_elements];
+    REWRITE_TAC[Seq.mem_undup;Seq2.mem_flatten];
+    BY(MESON_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC dart_of [`L`;`f`;`v`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`dart_of L f v`]);
+  ANTS_TAC;
+    ASM_SIMP_TAC[dart_hypermap_of_list;IN_SET_OF_LIST];
+    BY(ASM_SIMP_TAC[type_of_node_vertextype]);
+  ASM_SIMP_TAC[card_set_of_n_meeting_node_pqr];
+  TYPIFY `sumn (MAP w' (FILTER (\f. LENGTH f = 3) (facesAt_list L v))) = nsum (set_of_triangles_meeting_node (hypermap_of_list L) (dart_of L f v)) w` ENOUGH_TO_SHOW_TAC;
+    BY(ARITH_TAC);
+  REWRITE_TAC[GSYM Seq.map_MAP];
+  GMATCH_SIMP_TAC sumn_nsum;
+  ASM_SIMP_TAC[GSYM filter_FILTER;Seq.filter_uniq;uniq_facesAt_list];
+  EXPAND_TAC "w'";
+  GMATCH_SIMP_TAC BIJ_NSUM;
+  TYPIFY `(set_of_triangles_meeting_node (hypermap_of_list L) (dart_of L f v))` EXISTS_TAC;
+  REWRITE_TAC[FINITE_SET_OF_LIST];
+  INTRO_TAC set_of_n_meeting_node [`\n. n = 3`;`L`;`dart_of L f v`];
+  ASM_REWRITE_TAC[];
+  BY(REWRITE_TAC[set_of_triangles_meeting_node])
   ]);;
   (* }}} *)
 
-tgt;;
-squanderTarget;;
+let tame_correspondence1 = prove_by_refinement(
+  `!g. good_graph g /\
+     tame_9a (hypermap_of_list (fgraph g)) /\
+     tame_10 (hypermap_of_list (fgraph g)) /\
+     tame_11a (hypermap_of_list (fgraph g)) /\
+     tame_11b (hypermap_of_list (fgraph g)) /\
+     tame_12o (hypermap_of_list (fgraph g)) /\
+     tame_13a (hypermap_of_list (fgraph g)) ==>
+      tame g`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Import_tame_classification.tame];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_ASSUM_ST `good_graph` MP_TAC;
+  REWRITE_TAC[good_graph] THEN REPEAT WEAKER_STRIP_TAC;
+  ASM_SIMP_TAC[tame9a_correspondence;tame10_correspondence];
+  TYPIFY `tame11a_list (fgraph g) /\ tame11b_list (fgraph g) /\ tame12o_list (fgraph g) /\ tame13a_list (fgraph g)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[tame13a_correspondence;tame11_correspondence;tame12o_correspondence]);
+  ASM_SIMP_TAC[tame11a_good_graph];
+  ASM_SIMP_TAC[tame11b_list_tame11b];
+  ASM_SIMP_TAC[tame12o_list_tame12o];
+  BY(ASM_SIMP_TAC[tame13a_list_tame13a])
+  ]);;
+  (* }}} *)
+
+let tame_correspondence_iso = prove_by_refinement(
+  `!g H:(A)hypermap. good_graph g /\ tame_hypermap H /\ 
+    iso H (hypermap_of_list (fgraph g)) ==>
+    tame g`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[tame_hypermap];
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC tame_correspondence1;
+  FIRST_X_ASSUM (MP_TAC o MATCH_MP Hypermap_iso.iso_imp_hyp_iso) THEN REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[Oxaxucs.tame9a_iso;Oxaxucs.tame10_iso;Oxaxucs.tame11a_iso;Oxaxucs.tame11b_iso;Oxaxucs.tame12o_iso;Oxaxucs.tame13a_iso;])
+  ]);;
+  (* }}} *)
+
+let WMLNYMD = tame_correspondence_iso;;
+
+ end;;

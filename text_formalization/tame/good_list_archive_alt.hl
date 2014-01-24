@@ -1,73 +1,15 @@
-(* Contains methods and constants for loading the raw tame archive *) 
-needs "../glpk/tame_archive/lpproc.ml";;
-(* good_list conversion and all definitions *)
-needs "../formal_lp/hypermap/computations/list_hypermap_computations.hl";;
 
 module Good_list_archive = struct
 
 let archive_const_name = "tame_archive_lists";;
 
-(* A custom list printer parameter which indicates the maximum number of terms to be printed *)
-let long_list_max = ref 3;;
-
-let dest_long_list tm =
-  let rec dest n tm acc =
-    if n <= 0 then (rev acc, true) else
-      match tm with
-	| Comb (Comb (Const ("CONS", _), h_tm), t_tm) ->
-	    begin
-	      match t_tm with
-		| Const ("NIL", _) -> (rev (h_tm :: acc), false)
-		| _ -> dest (n - 1) t_tm (h_tm :: acc)
-	    end
-	| Const ("NIL", _) -> (rev acc, false)
-	| _ -> failwith "dest_long_list" in
-    dest !long_list_max tm [];;
-
-
-let print_long_list =
-  let rec print_term_sequence sep = function
-    | [] -> ()
-    | h :: ts ->
-	let _ = print_term h in
-	  if ts = [] then ()
-	  else print_string sep; print_term_sequence sep ts in
-    fun tm ->
-      let tms, flag = dest_long_list tm in
-      let _ = print_string "[" in
-      let _ = print_term_sequence ";" tms in
-      let _ = if flag then print_string " ..." else () in
-	print_string "]";;
-
-
-install_user_printer ("long_list", print_long_list);;
-
-
-open Lpproc;;
-open List_hypermap_computations;;
-open List_conversions;;
+(* FAKE VERSION  *)
 
 let archive_const_def =
-  let lhs = mk_var (archive_const_name, `:(((num)list)list)list`) in
-  let list = Glpk_link.strip_archive (!archiveraw) in
-  let list_tms = map (to_num o create_hol_list_str) list in
-  let rhs = mk_list (list_tms, `:((num)list)list`) in
-  let eq_tm = mk_eq (lhs, rhs) in
-    new_definition eq_tm;;
+    new_definition `(tame_archive_lists:(((num)list)list)list) = []`;;
 
 let archive_const = lhand (concl archive_const_def);;
 
-(*
-let good_list_archive =
-  let good_conv tm = 
-    let raw_tm = rand tm in
-      EQT_INTRO (eval_good_list0 raw_tm (eval_list_of_darts raw_tm)) in
-  let eq_th = AP_TERM `ALL (good_list:((num)list)list->bool)` archive_const_def in
-  let th1 = EQT_ELIM (all_conv_univ good_conv (rand (concl eq_th))) in
-    EQ_MP (SYM eq_th) th1;;
-*)
-
-delete_user_printer "long_list";;
 
 end;;
 

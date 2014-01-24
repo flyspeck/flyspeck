@@ -11,7 +11,6 @@ needs "Library/rstc.ml";;
 flyspeck_needs "hypermap/hypermap.hl";;
 flyspeck_needs "../formal_lp/hypermap/ssreflect/list_hypermap_iso-compiled.hl";;
 flyspeck_needs "../formal_lp/hypermap/computations/list_conversions2.hl";;
-flyspeck_needs "../tame_archive/tame_archive.hl";;
 flyspeck_needs "tame/import_tame_classification.hl";;
 flyspeck_needs "tame/more_tame_concl.hl";;
 
@@ -1064,7 +1063,7 @@ let nfloor_exists = prove_by_refinement(
   (* {{{ proof *)
   [
   REPEAT WEAKER_STRIP_TAC;
-  INTRO_TAC mmtrunc_lemma [`x * &d`];
+  INTRO_TAC floor_lemma [`x * &d`];
   DISCH_TAC;
   RULE_ASSUM_TAC( REWRITE_RULE[GSYM RIGHT_EXISTS_IMP_THM]);
   FIRST_X_ASSUM MP_TAC THEN REPEAT WEAKER_STRIP_TAC;
@@ -1096,7 +1095,7 @@ let adm_3_floor = new_definition `adm_3_floor (H:(A)hypermap) w <=>
          (!x. x IN dart H /\ type_of_node H x = 5,0,1
             ==> nsum (set_of_triangles_meeting_node H x) w >= excessTCount)`;;
 
-let tame_13a_floor = new_definitionx `tame_13a_floor (H:(A)hypermap) <=>
+let tame_13a_floor = new_definition `tame_13a_floor (H:(A)hypermap) <=>
   (?w. adm_1_floor H w /\ adm_2_floor H w /\ adm_3_floor H w /\
          nsum (face_set H) w < squanderTarget)`;;
 
@@ -1173,35 +1172,418 @@ let total_weight_floor = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let adm_1_floor_adm_1 = prove_by_refinement(
+  `!H w. adm_1 H w /\ tame_9a H ==> adm_1_floor H (wt_floor w)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC wt_floor_nn [`H`;`w`] THEN ASM_REWRITE_TAC[];
+  REPEAT (FIRST_X_ASSUM MP_TAC);
+  REWRITE_TAC[adm_1;adm_1_floor;d_tame;squanderFace];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM (C INTRO_TAC [`x`]));
+  TYPED_ABBREV_TAC `n = CARD (face H x)`;
+  ASM_REWRITE_TAC[Tame_defs.tgt;squanderTarget;squanderFace] THEN REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC wt_floor [`w`;`face H x`];
+  INTRO_TAC nfloor [`10000`;`w (face H x)`];
+  ASM_REWRITE_TAC[];
+  TYPIFY `n >= 3` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[tame_9a]);
+  ASM_CASES_TAC `n = 3` THEN ASM_REWRITE_TAC[];
+    BY(ARITH_TAC);
+  FIRST_X_ASSUM_ST `#0.206` MP_TAC;
+  ASM_CASES_TAC `n = 4` THEN ASM_REWRITE_TAC[arith `~(4 > 4)`;squanderFace];
+    SIMP_TAC[];
+    REWRITE_TAC[arith `a >= (b:num) <=> b <= a`;GSYM REAL_OF_NUM_LE];
+    BY(REAL_ARITH_TAC);
+  ASM_CASES_TAC `n= 5` THEN ASM_REWRITE_TAC[arith `5 > 4`];
+    BY(ARITH_TAC);
+  ASM_CASES_TAC `n=6` THEN ASM_REWRITE_TAC[arith `6 > 4`];
+    BY(ARITH_TAC);
+  TYPIFY_GOAL_THEN `n > 4` (unlist REWRITE_TAC);
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  BY(REWRITE_TAC[squanderTarget] THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
 
-(* xxd
- next adm_1 adm_1_floor, 2, 3.
-*)
+let FINITE_set_of_face_meeting_node = prove_by_refinement(
+  `!H x. FINITE (set_of_face_meeting_node H x)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[set_of_face_meeting_node];
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC FINITE_SUBSET;
+  TYPIFY `face_set H` EXISTS_TAC;
+  REWRITE_TAC[Hypermap.FINITE_HYPERMAP_ORBITS];
+  REWRITE_TAC[SUBSET;IN_ELIM_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  BY(ASM_REWRITE_TAC[GSYM Hypermap.lemma_in_face_set])
+  ]);;
+  (* }}} *)
 
-`tame_13a (hypermap_of_list L) ==> tame_13a_floor (hypermap_of_list L)`;;
+let FINITE_set_of_n_meeting_node = prove_by_refinement(
+  `!H x. FINITE (set_of_triangles_meeting_node H x) /\ 
+    FINITE (set_of_quadrilaterals_meeting_node H x)  /\
+   FINITE (set_of_exceptional_meeting_node H x) `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[set_of_triangles_meeting_node;set_of_quadrilaterals_meeting_node;set_of_exceptional_meeting_node];
+  BY(REPEAT STRIP_TAC THEN MATCH_MP_TAC FINITE_SUBSET THEN TYPIFY `set_of_face_meeting_node H x` EXISTS_TAC THEN REWRITE_TAC[FINITE_set_of_face_meeting_node] THEN REWRITE_TAC[set_of_face_meeting_node;SUBSET;IN_ELIM_THM] THEN MESON_TAC[])
+  ]);;
+  (* }}} *)
 
-total_weight;;
-admissible_weight;;
-tame_13a;;
+let set_of_n_meeting_node_union = prove_by_refinement(
+  `!H x. tame_9a H ==> set_of_face_meeting_node H x = set_of_triangles_meeting_node H x UNION set_of_quadrilaterals_meeting_node H x UNION set_of_exceptional_meeting_node H x`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC THEN REWRITE_TAC[EXTENSION;IN_ELIM_THM;set_of_triangles_meeting_node;set_of_quadrilaterals_meeting_node;set_of_exceptional_meeting_node;set_of_face_meeting_node;IN_UNION];
+  REWRITE_TAC[OR_EXISTS_THM];
+  X_GENv_TAC "u";
+  TYPIFY `!y. y IN dart H ==> CARD (face H y) >= 3` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[tame_9a]);
+  TYPIFY `!n. n >= 3 <=> (n = 3 \/ n = 4 \/ n >= 5)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ARITH_TAC);
+  REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  CONJ_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `CARD (face H y) = 3 \/ CARD (face H y) = 4 \/ CARD (face H y) >= 5` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[]);
+    BY(TYPIFY `y` EXISTS_TAC THEN ASM_REWRITE_TAC[]);
+  TYPIFY `y` EXISTS_TAC THEN ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let b_tame_explicit = prove_by_refinement(
+  `b_tame 0 3 = #0.618 /\ b_tame 0 4 = #0.97 /\ 
+   b_tame 1 2 = #0.656 /\ b_tame 1 3 = #0.618 /\
+   b_tame 2 1 = #0.797 /\ b_tame 2 2 = #0.412 /\ b_tame 2 3 = #1.2851 /\ 
+   b_tame 3 1 = #0.311 /\ b_tame 3 2 = #0.817 /\
+   b_tame 4 0 = #0.347 /\ b_tame 4 1 = #0.366 /\
+   b_tame 5 0 = #0.04 /\ b_tame 5 1 = #1.136 /\
+   b_tame 6 0 = #0.686 /\ b_tame 7 0 = #1.450 /\
+  (!p q. ~((p,q)=(0,3)) /\ ~((p,q)=(0,4)) /\
+~((p,q)=(1,2)) /\ ~((p,q)=(1,3)) /\
+~((p,q)=(2,1)) /\ ~((p,q)=(2,2)) /\ ~((p,q)=(2,3)) /\
+~((p,q)=(3,1)) /\ ~((p,q)=(3,2)) /\
+~((p,q)=(4,0)) /\ ~((p,q)=(4,1)) /\
+~((p,q)=(5,0)) /\ ~((p,q)=(5,1)) /\
+~((p,q)=(6,0)) /\ ~((p,q)=(7,0)) ==> b_tame p q = tgt)
+`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[b_tame;PAIR_EQ] THEN NUM_REDUCE_TAC;
+  BY(REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let squanderVertex_explicit = prove_by_refinement(
+  `squanderVertex 0 3 = 6177 /\ squanderVertex 0 4 = 9696 /\ 
+   squanderVertex 1 2 = 6557 /\ squanderVertex 1 3 = 6176 /\
+   squanderVertex 2 1 = 7967 /\ squanderVertex 2 2 = 4116 /\ squanderVertex 2 3 = 12846 /\ 
+   squanderVertex 3 1 = 3106 /\ squanderVertex 3 2 = 8165 /\
+   squanderVertex 4 0 = 3466 /\ squanderVertex 4 1 = 3655 /\
+   squanderVertex 5 0 =  395 /\ squanderVertex 5 1 =11354 /\
+   squanderVertex 6 0 = 6854 /\ squanderVertex 7 0 =14493 /\
+  (!p q. ~((p,q)=(0,3)) /\ ~((p,q)=(0,4)) /\
+~((p,q)=(1,2)) /\ ~((p,q)=(1,3)) /\
+~((p,q)=(2,1)) /\ ~((p,q)=(2,2)) /\ ~((p,q)=(2,3)) /\
+~((p,q)=(3,1)) /\ ~((p,q)=(3,2)) /\
+~((p,q)=(4,0)) /\ ~((p,q)=(4,1)) /\
+~((p,q)=(5,0)) /\ ~((p,q)=(5,1)) /\
+~((p,q)=(6,0)) /\ ~((p,q)=(7,0)) ==> squanderVertex p q = squanderTarget)
+`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[squanderVertex;PAIR_EQ] THEN NUM_REDUCE_TAC;
+  BY(REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let vertextypes_explicit = prove_by_refinement(
+  `!H w x p q. total_weight H w < tgt /\ tame_9a H /\ adm_1 H w /\ adm_2 H w /\ x IN dart H /\
+    CARD(set_of_exceptional_meeting_node H x) = 0 /\
+    CARD (set_of_triangles_meeting_node H x) = p /\ CARD (set_of_quadrilaterals_meeting_node H x) = q ==>
+   ( ((p,q)=(0,3)) \/ ((p,q)=(0,4)) \/
+((p,q)=(1,2)) \/ ((p,q)=(1,3)) \/
+((p,q)=(2,1)) \/ ((p,q)=(2,2)) \/ ((p,q)=(2,3)) \/
+((p,q)=(3,1)) \/ ((p,q)=(3,2)) \/
+((p,q)=(4,0)) \/ ((p,q)=(4,1)) \/
+((p,q)=(5,0)) \/ ((p,q)=(5,1)) \/
+((p,q)=(6,0)) \/ ((p,q)=(7,0))    ) `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  PROOF_BY_CONTR_TAC;
+  RULE_ASSUM_TAC(REWRITE_RULE[DE_MORGAN_THM]);
+  TYPIFY `b_tame p q = tgt` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[b_tame_explicit]);
+  FIRST_X_ASSUM_ST `0,3` kill;
+  TYPIFY `b_tame p q <= total_weight H w` ENOUGH_TO_SHOW_TAC;
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  REPEAT (FIRST_X_ASSUM_ST `tgt` kill);
+  REWRITE_TAC[total_weight];
+  RULE_ASSUM_TAC (REWRITE_RULE[adm_2]);
+  FIRST_X_ASSUM (C INTRO_TAC [`x`]) THEN ASM_REWRITE_TAC[];
+  TYPIFY `sum (set_of_face_meeting_node H x) w <= sum (face_set H) w` ENOUGH_TO_SHOW_TAC;
+    BY(REAL_ARITH_TAC);
+  MATCH_MP_TAC SUM_SUBSET_SIMPLE;
+  REWRITE_TAC[Hypermap.FINITE_HYPERMAP_ORBITS];
+  CONJ2_TAC;
+    REWRITE_TAC[IN_DIFF];
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC wt_floor_nn [`H`;`w`];
+    BY(ASM_MESON_TAC[Hypermap.lemma_face_representation]);
+  REWRITE_TAC[set_of_face_meeting_node;SUBSET;IN_ELIM_THM;];
+  BY(MESON_TAC[Hypermap.lemma_in_face_set])
+  ]);;
+  (* }}} *)
+
+let no_except_empty = prove_by_refinement(
+  `!H x. CARD(set_of_exceptional_meeting_node H x) = 0  ==>
+     set_of_exceptional_meeting_node H x = {}`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC (GSYM CARD_EQ_0);
+  BY(ASM_REWRITE_TAC[FINITE_set_of_n_meeting_node])
+  ]);;
+  (* }}} *)
+
+let no_except_wfloor = prove_by_refinement(
+  `!H w x. CARD (set_of_exceptional_meeting_node H x) = 0 /\ x IN dart H ==>
+      wt_floor w (face H x) = nfloor 10000 (w (face H x))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[wt_floor];
+  REWRITE_TAC[arith `!n. n > 4 <=> n >= 5`];
+  COND_CASES_TAC;
+    FIRST_X_ASSUM (MP_TAC o MATCH_MP no_except_empty);
+    REWRITE_TAC[GSYM NOT_EXISTS_THM;NOT_IN_EMPTY;IN_ELIM_THM;EXTENSION;set_of_exceptional_meeting_node];
+    REPEAT WEAKER_STRIP_TAC;
+    PROOF_BY_CONTR_TAC;
+    FIRST_X_ASSUM kill;
+    FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[];
+    TYPIFY `face H x` EXISTS_TAC;
+    TYPIFY `x` EXISTS_TAC THEN ASM_REWRITE_TAC[];
+    BY(REWRITE_TAC[Hypermap.node_refl]);
+  BY(REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+(* was set_of_exceptional_meeting_node_transfer *)
+
+let set_of_exceptional_meeting_node_identity = prove_by_refinement(
+  `!x y. x IN dart H /\ y IN node H x ==> set_of_exceptional_meeting_node H x = set_of_exceptional_meeting_node H y`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[set_of_exceptional_meeting_node;EXTENSION;IN_ELIM_THM];
+  BY(MESON_TAC[Hypermap.lemma_node_identity])
+  ]);;
+  (* }}} *)
+
+let adm_2_floor_adm_2 = prove_by_refinement(
+  `!H w. tame_9a H /\ adm_1 H w /\ adm_2 H w /\ total_weight H w < tgt ==> adm_2_floor H (wt_floor w)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC wt_floor_nn [`H`;`w`] THEN ASM_REWRITE_TAC[];
+  INTRO_TAC vertextypes_explicit [`H`;`w`] THEN ASM_REWRITE_TAC[];
+  REPEAT (FIRST_X_ASSUM MP_TAC);
+  REWRITE_TAC[adm_2;adm_2_floor];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `face` MP_TAC;
+  REPEAT (FIRST_X_ASSUM (C INTRO_TAC [`x`])) THEN ASM_REWRITE_TAC[];
+  INTRO_TAC FINITE_set_of_face_meeting_node [`H`;`x`] THEN DISCH_TAC;
+  TYPED_ABBREV_TAC `p = CARD (set_of_triangles_meeting_node H x)`;
+  TYPED_ABBREV_TAC `q = CARD (set_of_quadrilaterals_meeting_node H x)`;
+  INTRO_TAC FINITE_set_of_n_meeting_node [`H`;`x`] THEN REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`p`;`q`]) THEN REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[arith `(n:num) >= m <=> m <= n`];
+  REWRITE_TAC[GSYM REAL_OF_NUM_LE];
+  GMATCH_SIMP_TAC REAL_OF_NUM_SUM;
+  ASM_REWRITE_TAC[];
+  TYPIFY `&(squanderVertex p q) + &p + &q <= sum (set_of_face_meeting_node H x) (\x. &(wt_floor w x)) + &p + &q` ENOUGH_TO_SHOW_TAC;
+    BY(REAL_ARITH_TAC);
+  MATCH_MP_TAC REAL_LE_TRANS;
+  TYPIFY `b_tame p q * &10000` EXISTS_TAC;
+  CONJ_TAC;
+    BY(FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[PAIR_EQ] THEN REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[squanderVertex_explicit;b_tame_explicit] THEN TRY REAL_ARITH_TAC);
+  FIRST_X_ASSUM kill;
+  MATCH_MP_TAC REAL_LE_TRANS;
+  TYPIFY `sum (set_of_face_meeting_node H x) w * &10000` EXISTS_TAC;
+  CONJ_TAC;
+    BY(REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  REWRITE_TAC[GSYM SUM_RMUL];
+  MATCH_MP_TAC REAL_LE_TRANS;
+  TYPIFY `sum (set_of_face_meeting_node H x) (\x. &(wt_floor w x) + &1)` EXISTS_TAC;
+  CONJ_TAC;
+    MATCH_MP_TAC SUM_LE;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[set_of_face_meeting_node;IN_ELIM_THM];
+    REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[];
+    ASM_SIMP_TAC[no_except_wfloor];
+    GMATCH_SIMP_TAC no_except_wfloor;
+    ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[set_of_exceptional_meeting_node_identity]);
+    INTRO_TAC nfloor [`10000`;`w (face H y)`];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[]);
+    BY(REAL_ARITH_TAC);
+  GMATCH_SIMP_TAC SUM_ADD;
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC (arith `b <= c ==> a + b <= a + c`);
+  ASM_SIMP_TAC[GSYM CARD_EQ_SUM];
+  ASM_SIMP_TAC[set_of_n_meeting_node_union];
+  ASM_SIMP_TAC[no_except_empty];
+  REWRITE_TAC[UNION_EMPTY];
+  EXPAND_TAC "p";
+  EXPAND_TAC "q";
+  REWRITE_TAC[REAL_OF_NUM_ADD];
+  REWRITE_TAC[ REAL_OF_NUM_LE];
+  MATCH_MP_TAC CARD_UNION_LE;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let adm_3_floor_adm_3 = prove_by_refinement(
+  `!H w. tame_9a H /\ adm_1 H w /\ adm_3 H w ==> adm_3_floor H (wt_floor w)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[adm_3;adm_3_floor];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC wt_floor_nn [`H`;`w`] THEN ASM_REWRITE_TAC[];
+  REPEAT (FIRST_X_ASSUM (C INTRO_TAC [`x`])) THEN ASM_REWRITE_TAC[];
+  INTRO_TAC FINITE_set_of_n_meeting_node [`H`;`x`] THEN REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[arith `(n:num) >= m <=> m <= n`];
+  REWRITE_TAC[GSYM REAL_OF_NUM_LE];
+  GMATCH_SIMP_TAC REAL_OF_NUM_SUM;
+  ASM_REWRITE_TAC[];
+  TYPIFY `CARD (set_of_triangles_meeting_node H x) = 5` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(FIRST_X_ASSUM_ST `type_of_node` MP_TAC THEN ASM_SIMP_TAC[type_of_node;PAIR_EQ]);
+  TYPIFY `&excessTCount + &5 <= sum (set_of_triangles_meeting_node H x) (\x. &(wt_floor w x)) + &5` ENOUGH_TO_SHOW_TAC;
+    BY(REAL_ARITH_TAC);
+  MATCH_MP_TAC REAL_LE_TRANS;
+  TYPIFY `a_tame * &10000` EXISTS_TAC;
+  CONJ_TAC;
+    BY(REWRITE_TAC[excessTCount;a_tame] THEN REAL_ARITH_TAC);
+  MATCH_MP_TAC REAL_LE_TRANS;
+  TYPIFY `sum (set_of_triangles_meeting_node H x) w * &10000` EXISTS_TAC;
+  CONJ_TAC;
+    BY(REPLICATE_TAC 3 (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
+  REWRITE_TAC[GSYM SUM_RMUL];
+  MATCH_MP_TAC REAL_LE_TRANS;
+  TYPIFY `sum (set_of_triangles_meeting_node H x) (\x. &(wt_floor w x) + &1)` EXISTS_TAC;
+  CONJ_TAC;
+    MATCH_MP_TAC SUM_LE;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[set_of_triangles_meeting_node;IN_ELIM_THM];
+    REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[];
+    REWRITE_TAC[wt_floor];
+    ASM_SIMP_TAC[arith `~(3 > 4)`];
+    INTRO_TAC nfloor [`10000`;`w (face H y)`];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[]);
+    BY(REAL_ARITH_TAC);
+  GMATCH_SIMP_TAC SUM_ADD;
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC (arith `b <= c ==> a + b <= a + c`);
+  ASM_SIMP_TAC[GSYM CARD_EQ_SUM];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let tame_13_a_floor_tame_13_a = prove_by_refinement(
+  `!H. tame_13a H /\ tame_9a H ==> tame_13a_floor H`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[tame_13a;tame_13a_floor;admissible_weight];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `wt_floor w` EXISTS_TAC;
+  ASM_SIMP_TAC[adm_3_floor_adm_3;adm_2_floor_adm_2;adm_1_floor_adm_1];
+  BY(ASM_SIMP_TAC[total_weight_floor])
+  ]);;
+  (* }}} *)
+
+let sumn_cons = prove_by_refinement(
+  `!h hs. sumn (h::hs) = h + sumn hs`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Seq.sumn;Seq.foldr])
+  ]);;
+  (* }}} *)
+
+let sumn_nsum = prove_by_refinement(
+  `!(s:(A)list) f. uniq s ==> sumn (map f s) = nsum (set_of_list s) f`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[GSYM REAL_OF_NUM_EQ];
+  GMATCH_SIMP_TAC REAL_OF_NUM_SUM;
+  REWRITE_TAC[FINITE_SET_OF_LIST];
+  ASM_SIMP_TAC[ (GSYM Seq2.list_sum_set_of_list)];
+  FIRST_X_ASSUM kill;
+  SPEC_TAC (`s:(A)list`,`s:(A)list`);
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[Seq2.list_sum_nil;Seq.sumn0;Seq.map]);
+  BY(ASM_REWRITE_TAC[Seq.map;Seq2.list_sum_cons;sumn_cons;GSYM REAL_OF_NUM_ADD])
+  ]);;
+  (* }}} *)
 
 let tame13a_correspondence = prove_by_refinement(
  `!L:((A)list)list.    good_list L /\ 
    good_list_nodes L  /\
    all uniq L /\
+   tame_9a (hypermap_of_list L) /\
    tame_13a (hypermap_of_list L) 
    ==>
   tame13a_list L`,
   (* {{{ proof *)
   [
-  ASM_REWRITE_TAC[tame_13a;tame13a_list;admissible_weight;total_weight;]
-  rt[adm_1;adm_2;adm_3]
+  st/r
+  typ `tame_13a_floor (hypermap_of_list L)` smp
+  asimp[tame_13_a_floor_tame_13_a]
+  rt[tame_13a_floor]
 st/r
-abbrev `w' = nabs o int_of_real o (\u. &10000 * u) o  w o set_of_list o list_pairs` 
+abbrev `w' = w o set_of_list o list_pairs` 
+rt[tame13a_list]
 typ `w'` ex
 comment "adm1"
 conj
 rt[admissible1_list]
+rule (rr[adm_1_floor])
 st/r
+expand "w'" then rt[o_THM]
+intro List_hypermap.mem_face_lemma [`list_pairs f`;`L`]
+art[]
+typ `MEM (list_pairs f) (list_of_faces L)` sat
+rt[List_hypermap.list_of_faces]
+mmp MEMf_MAP then art[]
+art[]
+st/r
+fxa (C intro [`d`])
+asimp[dart_hypermap_of_list;IN_SET_OF_LIST]
+asimp[List_hypermap.card_face_of_list]
+asimp[List_hypermap.face_of_list]
+fxa (sub1 o GSYM)
+rt[List_hypermap.size_list_pairs]
+rt[Seq.size]
+ARITH_TAC
+comment "total_weight"
+nconj 2
+typ `sumn (map w' L) = nsum (face_set (hypermap_of_list L)) w` ets
+rep 2 (fxa mp) then rt[Seq.map_MAP] then ARITH_TAC
+gm List_hypermap.face_set_eq_list
+art[]
+gm (GSYM sumn_nsum)
+asimp[List_hypermap.uniq_faces_of_list]
+rt[List_hypermap.faces_of_list;List_hypermap.list_of_faces]
+art[Seq.map_MAP;GSYM MAP_o]
+art[]
+comment "adm2"
+
+
   #
   ]);;
   (* }}} *)

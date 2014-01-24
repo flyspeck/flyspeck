@@ -7,18 +7,21 @@
 (* ========================================================================== *)
 
 (*
-Generate the files Tri.ML Quad.ML Pent.ML Hex.ML
+Generate the tame archive files Tri.ML Quad.ML Pent.ML Hex.ML
 from the java-generated data.
+
+Convert Tri.ML etc. from ML format back into Ocaml lists.
 *)
 
 flyspeck_needs "../glpk/glpk_link.ml";;
 flyspeck_needs "../glpk/tame_archive/lpproc.ml";;
 
 module Make_archive = struct
-end;;
 
 let tame = Glpk_link.strip_archive (!Lpproc.archiveraw);;
-List.length tame;; (* 19713, as of Jan 2014. *)
+
+let _ = 
+  (List.length tame = 19713);; (* as of Jan 2014. *)
 
 let tame_list = map Glpk_link.convert_to_list tame;;
 
@@ -50,20 +53,59 @@ let ml_string name ss =
   let il3 s = (join ",\n\n" (map il2 s)) in
     p "val %s = [\n%s\n];" name (il3 (map snd ss));;
 
+(*
 ml_string "Tri" tame3;;
 
 report (ml_string "Tri" tame3);;
+*)
 
-let output_filestring = Flyspeck_lib.output_filestring;;
 
 let f3_out =  Filename.temp_file "Tri" ".ML";;
 let f4_out =  Filename.temp_file "Quad" ".ML";;
 let f5_out =  Filename.temp_file "Pent" ".ML";;
 let f6_out =  Filename.temp_file "Hex" ".ML";;
 
-output_filestring f3_out (ml_string "Tri" tame3);;
-output_filestring f4_out (ml_string "Quad" tame4);;
-output_filestring f5_out (ml_string "Pent" tame5);;
-output_filestring f6_out (ml_string "Hex" tame6);;
+let save_out () = 
+  let outfile = Flyspeck_lib.output_filestring in
+  let _ = outfile f3_out (ml_string "Tri" tame3) in
+  let _ = outfile f4_out (ml_string "Quad" tame4) in
+  let _ = outfile f5_out (ml_string "Pent" tame5) in
+  let _ = outfile f6_out (ml_string "Hex" tame6) in ();;
+
+(* To save permanently, copy f3_out to Tri.ML etc. *)
+
+(* RELOAD archives by converting ML to ocaml *)
+
+let archive_dir = 
+ Filename.concat (Filename.concat (flyspeck_dir) Filename.parent_dir_name) 
+ "isabelle_graph/archive";;
+
+(* translate commas to semicolons in lists.
+   translate "val Tri = " to "let arc3 = " etc.
+   creates arc3 = [[ ... ] ...] *)
+
+let convert_archive filename ext =  
+  let (ic,oc) = Unix.open_process(sprintf 
+     "cat %s | tr 'A-Z' 'a-z'| sed 's/;/;;/g'| sed 's/,/;/g'| sed 's/val *[a-z]*/let arc%d/g' " 
+     filename ext) in
+  let s = Flyspeck_lib.load_and_close_channel false ic in
+  let _ = Unix.close_process (ic,oc) in
+  let ss = Flyspeck_lib.join_space s in
+    Flyspeck_lib.eval_command ~silent:true ss;;
+
+(*
+convert_archive f3_out 3;;
+arc3 = map snd tame3;;
+
+convert_archive f3_out 3;;
+arc3 = map snd tame3;;
+
+convert_archive f3_out 3;;
+arc3 = map snd tame3;;
+
+convert_archive f6_out 6;;
+arc6 = map snd tame6;;
+*)
 
 
+ end;;

@@ -18,7 +18,7 @@ flyspeck_needs "../formal_lp/hypermap/computations/list_conversions2.hl";;
 flyspeck_needs "tame/import_tame_classification.hl";;
 
 module More_tame_concl = struct
-
+end;;
 
 open Hypermap;;
 open Import_tame_classification;;
@@ -37,6 +37,28 @@ Import_tame_classification.notation();;
 (* ========================================================================== *)
 (* definitions *)
 (* ========================================================================== *)
+
+let good_list = new_definition
+  `!L. good_list L <=>
+            uniq (list_of_darts L) /\
+            all (\l. ~(l = [])) L /\
+            (!d. MEM d (list_of_darts L)
+                 ==> MEM (SND d,FST d) (list_of_darts L))`;;
+
+let good_list_nodes = new_definition
+  `!L. good_list_nodes L <=>
+            node_set (hypermap_of_list L) = 
+      set_of_list (nodes_of_list L)`;;
+
+let good_graph = new_definition
+ `!g. good_graph g <=>
+            good_list (fgraph g) /\
+            good_list_nodes (fgraph g) /\
+            finalGraph g /\
+            all uniq (fgraph g) /\
+            (!v. v IN vertices_set2 g
+                 ==> facesAt g v = FILTER (\f. MEM v (FST f)) (faces g)) /\
+            vertices_set2 g = elements_of_list (fgraph g)`;;
 
 
 let f_last = new_definition 
@@ -83,30 +105,26 @@ let partition_into_atom0 = new_recursive_definition list_RECURSION
 let partition_into_atom = new_definition `partition_into_atom n r =
   partition_into_atom0 n [] (rev r)`;;
 
+(* old:
 let parts = new_definition `parts L r = 
   (let H = hypermap_of_list L in
      partition_into_atom (inverse (node_map H)) r)`;;
+*)
+
+let parts = new_definition `parts L r = 
+  partition_into_atom ((f_list L) o e_list) r`;;
+
+(* redone, feb 2 2014 *)
+
+let quotient_list = new_definition 
+ `quotient_list (L:((A)list)list) N = 
+  core_list (map (parts L) N)`;;
 
 let final_list = new_definition `final_list L r = 
    all (\p. sizel p = 1) (parts L r)`;;
 
 let final_dart_list = new_definition `final_dart_list L N = 
   flatten (filter (final_list L) N)`;;
-
-let quotient_list = new_definition `quotient_list (L:((A)list)list) N = 
-  map (partition_into_atom ((f_list L) o e_list)) N`;;
-
-(*
-let MEMf_MAP = prove_by_refinement(
-  `!f:A->B x u. MEM x u ==> MEM (f x) (MAP f u)`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAKER_STRIP_TAC;
-  REWRITE_TAC[MEM_MAP];
-  BY(ASM_MESON_TAC[])
-  ]);;
-  (* }}} *)
-*)
 
 let loop_of_list_v2 = new_definition `loop_of_list_v2 r = 
   loop(set_of_list r, next_el r)`;;
@@ -225,9 +243,9 @@ let marked_list = new_definition `!L N r (x:A#A).
     normal_list L N /\
     MEM r N /\
     MEM x r /\
-    (let cs = core_list (map (parts L) N) in
-       all uniq cs /\ // 1. simple
-       all (\v. sizel (filter (MEM v) cs) > 1) (flatten cs)) /\ // 2. n' nondeg.
+    (let qs = quotient_list L N in
+       all uniq qs /\ // 1. simple
+       all (\v. sizel (filter (MEM v) qs) > 1) (flatten qs)) /\ // 2. n' nondeg.
     next_el r x = f_list L x /\  // 3.
     (let r' = find_list N (e_list x) in final_list L r') /\ // 4.
     (final_list L r ==> flag_list L N) /\
@@ -288,6 +306,25 @@ let ordered_list_v2 = new_definition
       (let n = CARD vset in
 	 vset = (0.. (n-1)) /\ extra = upt n (n+sizel extra))`;;
 
+let dih2k_list =
+  new_definition `dih2k_list L <=> (?(u:A list). uniq u /\
+				      L = [u;rev u])`;;
+
+(* ========================================================================== *)
+(* Matching Isabelle-planar with hypermap-planar *)
+(* ========================================================================== *)
+
+let import_tame_classification = 
+  Import_tame_classification.import_tame_classification;;
+
+(* This is the main result.  
+It needs to be built up inductively step by step.   *)
+
+let LSKOKJE_concl = `!H. is_restricted H ==>
+  (?g. PlaneGraphs g /\ good_graph g /\
+     iso H (hypermap_of_list (fgraph g)))`;;
+
+
 
 (* ========================================================================== *)
 (* good_list in Isabelle development. *)
@@ -312,7 +349,10 @@ let CGGZYRC_concl = `!g f d. planegraph g /\ MEM f (faces g) /\
 
 *)
 
-let DPZGBYF_concl = `!g. planegraph g ==> planegraph_relaxed g`;;
+
+let DPZGBYF_concl = 
+  "formalized DPZGBYU",
+  (`!g. planegraph g ==> planegraph_relaxed g`);;
 
 let ETDLJXT1_concl = `!g. planegraph_relaxed g ==> 
   (vertices_set2 g = elements_of_list (fgraph g))`;;
@@ -320,91 +360,98 @@ let ETDLJXT1_concl = `!g. planegraph_relaxed g ==>
 let HWDMZDM_concl = `!g v. planegraph_relaxed g /\ v IN vertices_set2 g ==>
   facesAt g v = FILTER (\f. MEM v (FST f)) (faces g)`;;
 
-let concl = `!L N. good_list L /\ normal_list L N ==>
+let SNVACWG_concl = `!L N. good_list L /\ 
+  good_list_nodes L /\ is_restricted (hypermap_of_list L) /\
+  normal_list L N ==>
   good_list (quotient_list L N)`;;
 
-let concl = `!L N. good_list_nodes L /\ normal_list L N ==>
+let PMBRINH_concl = `!L N. good_list_nodes L /\ normal_list L N ==>
   good_list_nodes (quotient_list L N)`;;
 
-let concl = `!L N. all uniq L /\ normal_list L N ==>
-  all uniq (quotient_list L N)`;;
-
-xxd
+let LYNVPSU_concl = `!L N r x. marked_list L N r x ==>
+    all uniq (quotient_list L N)`;;
 
 (* ========================================================================== *)
 (* Isomorphism *)
 (* ========================================================================== *)
 
 
-let concl = `!L N L' N'. iso_list (L,N) (L',N') <=> 
+let iso_list_isop_list = `!L N L' N'. iso_list (L,N) (L',N') <=> 
   (?phi. isop_list phi (L,N) (L',N'))`;;
 
 (* compare Elllnyz.hypermap_of_list_map *)
 
-let concl = `!L N L' N'. 
+
+
+let GNBEVVU_concl = `!L N L' N'. 
     good_list L /\ iso_list (L,N) (L',N') ==> 
     iso (hypermap_of_list L) (hypermap_of_list L')`;;
 
-let concl = `!a. iso_list a a`;;
+let iso_list_refl = `!a. iso_list a a`;;
 
-let concl = `!a b. iso_list a b ==> iso_list b a`;;
+let iso_list_sym = `!a b. iso_list a b ==> iso_list b a`;;
 
-let concl = `!a b c. iso_list a b /\ iso_list b c ==> iso_list a b`;;
+let iso_list_trans = 
+ `!a b c. iso_list a b /\ iso_list b c ==> iso_list a b`;;
 
-let concl = `!L N L' N' phi.
+let isop_append = `!L N L' N' phi.
    (isop_list phi (L,APPEND N1 N2) (L',APPEND N1' N2') /\ 
       sizel N1 = sizel N1' ) <=>
    (isop_list phi (L,N1) (L',N1') /\ isop_list phi (L,N2) (L',N2'))`;;
 
-let concl = `!L N L' N' r r' phi.
+let isop_cons = `!L N L' N' r r' phi.
     (isop_list phi (L,(r::N)) (L',(r'::N'))) <=>
     (isop_list phi (L,N) (L',N') /\ r' = 
 	MAP (\u. (phi (FST u),phi(SND u))) r)`;;
 
-let concl = `!L N L' N'.
+let PEUTLZH_concl = `!L N L' N'.
   good_list L /\ iso_list (L,N) (L',N') ==>
   good_list L'`;;
 
-let concl = `!L N L' N'.
+let OISRWOF_concl = `!L N L' N'.
   good_list_nodes L /\ iso_list (L,N) (L',N') ==>
   good_list_nodes L'`;;
 
-let concl = `!L N L' N'.
+let UEYETNI_concl = `!L N L' N'.
   all uniq L /\ iso_list (L,N) (L',N') ==>
   all uniq L'`;;
 
-let concl = `!L N L' N'.
+let XKDZKWV_concl = `!L N L' N'.
   good_list L /\ iso_list (L,N) (L',N') /\ normal_list L N ==>
   normal_list L' N'`;;
 
-let concl = `!L N L' N' r r' x x'.
-  good_list L /\ iso_list (L,([x]:: r :: N)) (L',([x']::r' :: N')) /\
+let MEEIXJO_concl = `!L N L' N' r r' x x'.
+  good_list L /\ 
+  iso_list (L,([x]:: r :: N)) (L',([x']::r' :: N')) /\
   marked_list L N r x ==> marked_list L' N' r' x'`;;
 
+(* tautology 
 let concl = `!L N.
   good_list L /\ all uniq L /\ normal_list L N ==>
   iso_list ((quotient_list L N),[])
      ((core_list(map (parts L) N)),[])`;;
-
+*)
 
 (* ========================================================================== *)
 (* Reduction of restricted hypermap to special hypermap_of_list form. *)
 (* ========================================================================== *)
 
 (* reductions to hypermap_of_list L, then num, then ordered_list form *)
+
+let DAKEFCC_concl = 
+  `!H K. is_restricted H /\ iso H K ==> is_restricted K`;;
+
 				
-let concl = 
+let RXOKSKC_concl = 
   `!H. is_restricted H ==> 
     (?L. good_list L /\ good_list_nodes L /\ all uniq L /\
        iso H (hypermap_of_list L))`;;
 
-let concl = 
-  `!H K. is_restricted H /\ iso H K ==> is_restricted K`;;
+let JXBJOAB_concl = 
+  `!(L:((A)list)list). 
+   ?(L':((num)list))list. iso_list (L,[]) (L',[])`;;
 
-let concl = 
-  `!(L:((A)list)list). ?(L':((num)list))list. iso_list (L,[]) (L',[])`;;
-
-let concl = 
+let SHXWKXQ_concl = 
   `!L:((num)list)list N x. 
      (
        let f = find_face L x in
@@ -419,37 +466,55 @@ let concl =
 	    let extra' = MAP FST (filter (\d. ~MEM d r') (rotate_to f' x')) in
 	      ordered_list_v2 (set_of_list(MAP FST (flatten N'))) extra')))`;;
 
+(* main result reduction *)
+
+let JCAJYDU_concl = `(!L. 
+  good_list L /\ good_list_nodes L /\ all uniq L /\
+  is_restricted (hypermap_of_list L) ==>
+  (?g. PlaneGraphs g /\ 
+     good_graph g /\
+     iso (hypermap_of_list L) (hypermap_of_list (fgraph g))))
+   ==> 
+   (!H. is_restricted H ==>
+  (?g. PlaneGraphs g /\ good_graph g /\
+     iso H (hypermap_of_list (fgraph g))))`;;
+
 
 (* ========================================================================== *)
 (* Translate hypermap notions into list notions *)
 (* AQIUNPP in Hypermaps chapter *)
 (* ========================================================================== *)
 
-let concl = `!L N r x.
+let GZLJIGN1_concl = `!L N r x.
       hyp'm (hypermap_of_list L) N (loop_of_list_v2 r) x = 
 	l'm L r x`;;
 
-let concl = `!L N r x.
+let GZLJIGN2_concl = `!L N r x.
   hyp'p (hypermap_of_list L) (loop_family_of_list N) (loop_of_list_v2 r) x = 
 	l'p L N r x`;;
 
-let concl = `!L N r x.
+let GZLJIGN3_concl = `!L N r x.
   hyp'q (hypermap_of_list L) (loop_family_of_list N) (loop_of_list_v2 r) x = 
   l'q L N r x`;;
 
-let concl = `!L N r x.
+let GZLJIGN4_concl = `!L N r x.
   hyp'y (hypermap_of_list L) N (loop_of_list_v2 r) x = 
   l'y L r x`;;
 
-let concl = `!L N r x.
+let GZLJIGN5_concl = `!L N r x.
   hyp'z (hypermap_of_list L) (loop_family_of_list N) (loop_of_list_v2 r) x = 
   l'z L N r x`;;
 
-let concl = `!L N.
+let EVNAPDQ_concl = `!L N.
   good_list L /\ normal_list L N ==>
   normal_family (hypermap_of_list L) (loop_family_of_list N)`;;
 
-let concl = `!L N r x.
+let ABKCJWD_concl = `!L N.
+  good_list L /\ normal_list L N ==>
+  iso (quotient (hypermap_of_list L) (loop_family_of_list N))
+  (hypermap_of_list (quotient_list L N))`;;
+
+let ODWAFRG_concl = `!L N r x.
   good_list L /\ marked_list L N r x ==>
   is_marked 
   ((hypermap_of_list L),(loop_family_of_list N),(loop_of_list_v2 r),x)`;;
@@ -492,27 +557,38 @@ let AQIUNPP2_concl =
     marked_list L N r x ==>
     (let (N',r') = transform_list L x (N,r) in marked_list L N r x)`;;
 
-(* ========================================================================== *)
-(* Matching Isabelle-planar with hypermap-planar *)
-(* ========================================================================== *)
-
-let import_tame_classification = 
-  Import_tame_classification.import_tame_classification;;
-
-(* This is the main result.  
-It needs to be built up inductively step by step.   *)
-
-let LSKOKJE_L_concl = `!L. 
-  good_list L /\ good_list_nodes L /\ all uniq L /\
-  is_restricted (hypermap_of_list L) ==>
-  (?g. PlaneGraphs g /\ 
-     good_graph g /\
-     iso (hypermap_of_list L) (hypermap_of_list (fgraph g)))`;;
 
 
 (* ========================================================================== *)
 (* Initialization. dih2k *)
 (* ========================================================================== *)
+
+
+let FOEGZEQ1_concl = 
+  ("good-list-seed",
+  `!p. good_list (fgraph (Seed p))`);;
+
+let FOEGZEQ2_concl = 
+  ("all-uniq-seed",
+  `!p. good_list (fgraph (Seed p))`);;
+
+let TAGYMW_concl = 
+  `!p. good_list_nodes (fgraph (Seed p))`;;
+
+let ENWCUED_concl = 
+  `!p.  dih2k_list ( (fgraph (Seed p)))`;;
+
+let DLWOJBB_concl = 
+  `!L. dih2k_list L ==> 
+    dih2k (hypermap_of_list L) (sizel (HD L))`;;
+
+let KUKASGD_concl = 
+  `!L. dih2k_list L /\ dih2k_list L' /\
+     sizel (HD L) = sizel (HD L') ==> iso_list (L,[]) (L',[])`;;
+
+let UNHQYQM_concl = 
+  `!L L'. iso_list (L,[]) (L',[]) /\ dih2k_list L)
+    ==> dih2k_list L'`;;
 
 let AUQTZYZ_concl = `!H (x:A) L1. is_restricted H /\ (x IN dart H)  /\ 
   (L1 = loop_of_face H x) ==>
@@ -522,20 +598,11 @@ let AUQTZYZ_concl = `!H (x:A) L1. is_restricted H /\ (x IN dart H)  /\
 
 let AUQTZYZ_list = `!L f. is_restricted (hypermap_of_list L) /\
   good_list L /\ MEM f (list_of_faces L) ==>
-   (?f'. normal_list L [f;f'] /\ core_list (map (parts L) [f;f']) = 
-      [(MAP FST f); rev (MAP FST f)])`;;
-
-let concl = `!u. uniq u ==> 
-  dih2k (hypermap_of_list [u;rev u]) (sizel u)`;;
-
-let ENWCUED_concl = 
-  `!n.  dih2k (hypermap_of_list (fgraph (Seed n))) (n+3)`;;
-
-let PFUWHJH_concl = 
-  `!u. uniq u ==> iso_list ([u;rev u],[]) ([rev u;u],[])`;;
+   (?f'. normal_list L [f;f'] /\ quotient_list L [f;f'] = 
+      [f; rev f])`;;
 
 let UYOUIXG_concl = `!L f .  is_restricted (hypermap_of_list L) /\
-   good_list L /\ MEM f (list_of_faces L) ==>
+   good_list L /\ MEM f (list_of_faces L) /\ ~dih2k_list L ==>
      (?L' N' f2. iso_list (L,[f;f2]) (L',N') /\
 	normal_list L' N' /\ 
 	 respect_final_exact (Seed (sizel f -3)) L' N')`;;
@@ -543,29 +610,30 @@ let UYOUIXG_concl = `!L f .  is_restricted (hypermap_of_list L) /\
 (* ========================================================================== *)
 (* Termination. *)
 (* ========================================================================== *)
-			
+
+(*			
 let ADACDYF_concl = `!H NF L MF M (x:A).  is_marked(H,NF,L,x) /\
    ~(L IN final_loops H NF) /\
    (MF,M) = transform H x (NF,L) ==>
   CARD (dart (quotient H NF)) < CARD (dart (quotient H MF))`;;
+*)
 
 let ADACDYF_concl = `!L N r N' r' (x:A#A). marked_list L N r x /\
     ~final_list L r /\ (N',r') = transform_list L x (N,r) ==>
-  sizel (flatten (map (parts L) N)) < sizel (flatten (map (parts L) N'))`;;
-
-let concl = `!L N.
-   sizel (flatten (map (parts L) N)) = 
-   CARD (dart (hypermap_of_list (quotient_list L N)))`;;
+  sizel (list_of_darts (quotient_list L N)) <
+  sizel (list_of_darts (quotient_list L N'))`;;
 
 let ZBHENEI_hypermap = Hypermap.lemma_finite_normal_loops;;
 
 let XWCNBMA_hypermap = Hypermap.face_quotient_lemma;;
 
 let ZBHENEI_concl = `!L N. normal_list L N ==>
-  sizel (flatten (map (parts L) N)) <= sizel (list_of_darts L)`;;
+  sizel (list_of_darts (quotient_list L N)) 
+  <= sizel (list_of_darts L)`;;
 
-let XWCNBMA_concl = `!L N. normal_list L N /\ 
-  all (final_list L) N ==> L = core_list (map (parts L) N)`;;
+let XWCNBMA_concl = `!L N. normal_list L N /\
+  is_restricted (hypermap_of_list L) /\ 
+  all (final_list L) N ==> L = quotient_list L N`;;
 
 (* ========================================================================== *)
 (* Higher Transforms. *)
@@ -722,16 +790,12 @@ Next theorem: give an existence statement for enumerations.
 
 Next theorem: give a criterion for no dups.  Then were are essentially done.
 
+Next theorem: compare finals.
+
 *)
 
-(* ========================================================================== *)
-(* Induction step -- construction of g' -- phi_g'. *)
-(* ========================================================================== *)
 
 
-let LSKOKJE_concl = `!H. is_restricted H ==>
-  (?g. PlaneGraphs g /\ good_graphs g /\
-     iso H (hypermap_of_list (fgraph g)))`;;
 
 (* ========================================================================== *)
 (* Matching Isabelle-tame with hypermap-tame *)

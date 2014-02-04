@@ -1545,10 +1545,11 @@ liz_thm = graph_ALT;
 
 (* 4.4 Operations on graphs *)
 
-(*
+
 let finals = new_definition' `finals g =
    FILTER SND (faces g)`;;
 
+(*
 liz_add {
 liz_name = "finals";
 liz_loc =  (tamefile "Graph.thy",170,172);  
@@ -1991,6 +1992,43 @@ let subdivFace0 = new_recursive_definition list_RECURSION
 let subdivFace = new_definition' 
   `subdivFace g f vos = subdivFace0 g f (the(HD vos)) 0 (TL vos)`;;
 
+(* second version, where makeFaceFinal is pulled out *)
+
+let subdivFace0_alt = new_recursive_definition list_RECURSION
+  `subdivFace0_alt g f u n [] = (f,g) /\
+    subdivFace0_alt g f u n (vo :: vos) = 
+      if (vo = NONE) then subdivFace0_alt g f u (SUC n) vos else
+	(let v = the vo in
+	   if (nextVertex f u = v /\ n = 0) then subdivFace0_alt g f v 0 vos
+	   else 
+	     (let ws = upt (countVertices g) (countVertices g + n) in
+	      let (f1,f2,g') = splitFace g u v f ws in
+		subdivFace0_alt g' f2 v 0 vos))`;;
+
+let subdivFaceFinal = new_definition' 
+  `subdivFaceFinal g f vos = 
+  (let (f,g) =subdivFace0_alt g f (the(HD vos)) 0 (TL vos)
+   in makeFaceFinal f g)`;;
+
+(* subdivFace = subdivFaceFinal *)
+
+(* Feb 4, 2014.
+ yet another variant that preprocesses the list vos into triples (u,v,n) *)
+
+let subdivFace0_alt2 = new_recursive_definition list_RECURSION
+  `subdivFace0_alt2 g f n0 ([]:(num#num#num) list) = (f,g) /\
+  subdivFace0_alt2 g f n0 (uvn :: uvnos) = 
+    (let (u,v,n) = uvn in
+     let ws = upt n0 (n0+n) in
+     let (f1,f2,g') = splitFace g u v f ws in
+       subdivFace0_alt2 g' f2 (n+n0) uvnos)`;;
+
+let subdivFaceFinal2 = new_definition'
+  `subdivFaceFinal2 g f uvns = 
+  (let (f,g) = subdivFace0_alt2 g f (countVertices g) uvns in
+     makeFaceFinal f g)`;;
+   
+
 liz_add {
 liz_name = "subdivFace_";
 liz_loc =  (tamefile "FaceDivision.thy",58,68);   
@@ -2083,7 +2121,7 @@ let containsUnacceptableEdgeSnd = new_recursive_definition list_RECURSION
   else containsUnacceptableEdgeSnd N w ws))`;;
 
 (* in practice, N = as defined below in containsDuplicateEdge.
-   We test for enumerators (an increasing list of indices)
+   We test for enumerators (a weakly increasing list of indices)
    that are situated as v < w  with N v w remote connection.
    This would create a double join. 
 

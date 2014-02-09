@@ -45,7 +45,6 @@ BY(LIST_INDUCT_TAC THEN REWRITE_TAC[Seq.rcons;NOT_CONS_NIL])
   ]);;
   (* }}} *)
 
-
 let nextElem_nonmem_rcons = prove_by_refinement(
   `!s x u. ~(MEM x s) ==> nextElem (rcons s a) u x = u`,
   (* {{{ proof *)
@@ -224,12 +223,143 @@ let vertices_set2_makeFaceFinal = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let set_of_list_flatten_APPEND = prove_by_refinement(
+  `!a b. set_of_list (flatten (APPEND a b)) = 
+    set_of_list (flatten a) UNION set_of_list (flatten b)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[List_hypermap.set_of_list_flatten_map];
+  REWRITE_TAC[upper_case;SET_OF_LIST_APPEND;MAP_APPEND];
+  BY(SET_TAC[])
+  ]);;
+  (* }}} *)
+
+let SPLIT_AT_MEM_FST = prove_by_refinement(
+  `!f (u:A) v b. 
+    (MEM v (FST(split_at_rec u b f))) ==> MEM v f \/ MEM v b`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[split_at];
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+  REPEAT GEN_TAC;
+  COND_CASES_TAC;
+    ASM_REWRITE_TAC[FST;MEM];
+    BY(MESON_TAC[]);
+  FIRST_X_ASSUM (C INTRO_TAC [`u`;`v`;`APPEND b [h]`]);
+  REWRITE_TAC[MEM_APPEND];
+  REWRITE_TAC[MEM];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `MEM v b` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  TYPIFY `MEM v t` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let SPLIT_AT_MEM_SND = prove_by_refinement(
+  `!f (u:A) v b. 
+    (MEM v (SND(split_at_rec u b f))) ==> MEM v f \/ MEM v b`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[split_at];
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+  REPEAT GEN_TAC;
+  COND_CASES_TAC;
+    ASM_REWRITE_TAC[FST;MEM];
+    BY(MESON_TAC[]);
+  FIRST_X_ASSUM (C INTRO_TAC [`u`;`v`;`APPEND b [h]`]);
+  REWRITE_TAC[MEM_APPEND];
+  REWRITE_TAC[MEM];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `MEM v b` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  TYPIFY `MEM v t` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let SPLIT_AT_ACC = prove_by_refinement(
+  `!f (u:A) v b. MEM v b ==>
+    (MEM v (FST (split_at_rec u b f)))`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+  REPEAT WEAKER_STRIP_TAC THEN COND_CASES_TAC THEN ASM_REWRITE_TAC[FST;MEM];
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(ASM_REWRITE_TAC[MEM_APPEND])
+  ]);;
+  (* }}} *)
+
+let SPLIT_AT_BOTH = prove_by_refinement(
+  `!f (u:A) v b.  
+    (MEM v f) /\ (v = u ==> MEM v b) ==>
+    (MEM v (FST (split_at_rec u b f)) \/ MEM v (SND (split_at_rec u b f)))`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+  REPEAT GEN_TAC;
+  COND_CASES_TAC;
+    ASM_REWRITE_TAC[FST;MEM];
+    BY(MESON_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `v = h` ASM_CASES_TAC;
+    DISJ1_TAC;
+    MATCH_MP_TAC SPLIT_AT_ACC;
+    BY(ASM_REWRITE_TAC[MEM_APPEND;MEM]);
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  ASM_REWRITE_TAC[MEM_APPEND;MEM];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let PAIR_EQ_EXPAND = prove_by_refinement(
+  `!x a b. x = (a,b) <=> (FST x = a /\ SND x = b)`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[FORALL_PAIR_THM;PAIR_EQ])
+  ]);;
+  (* }}} *)
+
+let BETWN_MEM = prove_by_refinement(
+  `!f (u:A) v w. MEM w (betwn f u v) ==>
+     MEM w f`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[betwn;split_at;split_at_rec];
+  REPEAT GEN_TAC;
+  REPEAT (LET_TAC);
+  ASM_REWRITE_TAC[IN_SET_OF_LIST];
+  TYPIFY `MEM w post1 \/ MEM w pre2 \/ MEM w pre2' ==> MEM w f` ENOUGH_TO_SHOW_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    FIRST_X_ASSUM MP_TAC THEN COND_CASES_TAC THEN ASM_SIMP_TAC[MEM_APPEND];
+    BY(MESON_TAC[]);
+  RULE_ASSUM_TAC(REWRITE_RULE[PAIR_EQ_EXPAND]);
+  RULE_ASSUM_TAC(ONCE_REWRITE_RULE[EQ_SYM_EQ]) THEN ASM_REWRITE_TAC[];
+  BY(MESON_TAC[SPLIT_AT_MEM_SND;SPLIT_AT_MEM_FST;MEM])
+  ]);;
+  (* }}} *)
+
+let BETWN_UNION = prove_by_refinement(
+  `!f (u:A) v.  MEM u f /\ MEM v f ==>
+      (set_of_list (betwn f u v) UNION set_of_list (betwn f v u) UNION {u,v} = 
+      set_of_list f)`,
+  (* {{{ proof *)
+  [
+  st/r
+  ... xxd
+  ]);;
+  (* }}} *)
+
+
+
 let ETDLJXT = prove_by_refinement(
   `!g. planegraph_relaxed g ==> 
   (vertices_set2 g = elements_of_list (fgraph g))`,
   (* {{{ proof *)
   [
-  mmp planegraph_relaxed_induct
+  ...
+
+  MATCH_MP_TAC planegraph_relaxed_induct;
   REWRITE_TAC[all_nonempty_seed;good_vertices_set2_seed;LET_THM];
   REPEAT WEAKER_STRIP_TAC;
   FIRST_X_ASSUM MP_TAC;
@@ -239,14 +369,14 @@ let ETDLJXT = prove_by_refinement(
   REWRITE_TAC[subdivFace];
   REPEAT WEAKER_STRIP_TAC;
   FIRST_X_ASSUM SUBST1_TAC;
-  abbrev `mf = minimalFace (nonFinals g)`
-  mp (REWRITE_RULE[TAUT `(a ==> b ==> c) <=> (a /\ b ==> c)`] subdivFace0_induct)
-  dthen (C intro [`\r. vertices_set2 r = elements_of_list (fgraph r)`]) then rt[]
-  dthen mmp
-  art[]
-  rt[fgraph_makeFaceFinal;vertices_set2_makeFaceFinal]  
-  st/r
-  repeat LET_TAC
+  TYPED_ABBREV_TAC `mf = minimalFace (nonFinals g)`;
+  MP_TAC (REWRITE_RULE[TAUT `(a ==> b ==> c) <=> (a /\ b ==> c)`] subdivFace0_induct);
+  DISCH_THEN (C INTRO_TAC [`\r. vertices_set2 r = elements_of_list (fgraph r)`]) THEN REWRITE_TAC[];
+  DISCH_THEN MATCH_MP_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[fgraph_makeFaceFinal;vertices_set2_makeFaceFinal];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT LET_TAC;
   FIRST_X_ASSUM MP_TAC;
   REWRITE_TAC[splitFace;split_face];
   REPEAT LET_TAC;
@@ -254,21 +384,35 @@ let ETDLJXT = prove_by_refinement(
   REPEAT WEAKER_STRIP_TAC;
   EXPAND_TAC "g''";
   REWRITE_TAC[fgraph;vertices_set2;faces_graph;vertices_graph];
-  rt[countVertices]
-  rt[List_hypermap.elements_of_list;List_hypermap.list_of_elements]
-  rt[Seq2.set_of_list_undup]
-  fxa kill
-  repeat (fxast `replacefacesAt` kill)
-  rep 3 (fxa kill)
-  fxa mp then repeat LET_TAC then rt[PAIR_EQ] then st/r
-  fexp "f1'"
-  fexp "f2'"
-  rt[face_def]
-  fexp "f1"
-  fexp "f2"
-  rep 4 (fxa kill)
+  REWRITE_TAC[countVertices];
+  REWRITE_TAC[List_hypermap.elements_of_list;List_hypermap.list_of_elements];
+  REWRITE_TAC[Seq2.set_of_list_undup];
+  FIRST_X_ASSUM kill;
+  REPEAT (FIRST_X_ASSUM_ST `replacefacesAt` kill);
+  REPLICATE_TAC 3 (FIRST_X_ASSUM kill);
+  FIRST_X_ASSUM MP_TAC THEN REPEAT LET_TAC THEN REWRITE_TAC[PAIR_EQ] THEN REPEAT WEAKER_STRIP_TAC;
+  FULL_EXPAND_TAC "f1'";
+  FULL_EXPAND_TAC "f2'";
+  REWRITE_TAC[face_def];
+  FULL_EXPAND_TAC "f1";
+  FULL_EXPAND_TAC "f2";
+  REPLICATE_TAC 4 (FIRST_X_ASSUM kill);
   REWRITE_TAC[MAP_APPEND];
-  rt[MAP]
+  REWRITE_TAC[MAP];
+  FULL_EXPAND_TAC "vs'";
+  REPLICATE_TAC 5 (FIRST_X_ASSUM kill);
+  FIRST_X_ASSUM_ST `vertices_set2` MP_TAC THEN ASM_REWRITE_TAC[vertices_set2;vertices_graph];
+  FULL_EXPAND_TAC "fs";
+  FULL_EXPAND_TAC "ws";
+  REPEAT (FIRST_X_ASSUM_ST `x = x` kill);
+  REWRITE_TAC[upt0];
+  REWRITE_TAC[Import_tame_classification.upt;GSYM Seq.size;Seq.size_iota];
+  REWRITE_TAC[arith `n' + (n' + n:num) - n' = n' + n`;arith `(n'+n:num) - n' = n`];
+  REWRITE_TAC[set_of_list_flatten_APPEND];
+  REWRITE_TAC[concat_flatten];
+  REWRITE_TAC[APPEND_NIL];
+  REWRITE_TAC[SET_OF_LIST_APPEND];
+  (REWRITE_TAC[set_of_list])
 
 ...
 

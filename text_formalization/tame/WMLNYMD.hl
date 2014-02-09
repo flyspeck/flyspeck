@@ -11,17 +11,18 @@ needs "Library/rstc.ml";;
 flyspeck_needs "hypermap/hypermap.hl";;
 flyspeck_needs "../formal_lp/hypermap/ssreflect/list_hypermap_iso-compiled.hl";;
 flyspeck_needs "../formal_lp/hypermap/computations/list_conversions2.hl";;
-flyspeck_needs "tame/import_tame_classification.hl";;
+(* flyspeck_needs "tame/import_tame_classification.hl";; *)
 flyspeck_needs "tame/more_tame_concl.hl";;
 
 module Wmlnymd = struct
 
-  open Hales_tactic;;
+open Hales_tactic;;
 open Hypermap;;
 open Import_tame_classification;;
 open Tame_defs;;
 open Tame_concl;;
 open More_tame_concl;;
+open Tame_list;;
 open Oxaxucs;;
 open Asfutbf;;
 open Elllnyz;;
@@ -37,72 +38,6 @@ make_overloadable "vertices" `:B -> (num list)`;;
 overload_interface ("vertices",`FST:num list # bool -> num list`);;
 remove_interface "vertices";;
 
-let FILTER_CONJ = prove_by_refinement(
-  `!f g xs. FILTER f (FILTER g xs) = FILTER (\(x:A). f x /\ g x) xs`,
-  (* {{{ proof *)
-  [
-  REPLICATE_TAC 2 GEN_TAC;
-  LIST_INDUCT_TAC;
-    BY(REWRITE_TAC[FILTER]);
-  REWRITE_TAC[FILTER];
-  REPEAT COND_CASES_TAC THEN RULE_ASSUM_TAC(REWRITE_RULE[]) THEN ASM_REWRITE_TAC[FILTER];
-  BY(ASM_MESON_TAC[])
-  ]);;
-  (* }}} *)
-
-let FILTER_NEGATE  = prove_by_refinement(
-  `!f xs. FILTER f xs = xs <=> FILTER (\ (x:A). ~(f x)) xs = []`,
-  (* {{{ proof *)
-  [
-  GEN_TAC;
-  LIST_INDUCT_TAC THEN REWRITE_TAC[FILTER];
-  BY(REPEAT COND_CASES_TAC THEN ASM_REWRITE_TAC[FILTER;CONS_11;NOT_CONS_NIL] THEN ASM_MESON_TAC[MEM_FILTER;Seq.mem_head])
-  ]);;
-  (* }}} *)
-
-let CARD_upt = prove_by_refinement(
-  `!n. CARD (set_of_list (upt 0 n)) = n`,
-  (* {{{ proof *)
-  [
-  GEN_TAC;
-  GMATCH_SIMP_TAC Seq2.card_set_of_list_uniq;
-  REWRITE_TAC[Oxaxucs.upt0];
-  REWRITE_TAC[Seq.iota_uniq];
-  BY(REWRITE_TAC[Seq.iota_uniq;Seq.size_iota])
-  ]);;
-  (* }}} *)
-
-let MEMf_MAP = prove_by_refinement(
-  `!f:A->B x u. MEM x u ==> MEM (f x) (MAP f u)`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAKER_STRIP_TAC;
-  REWRITE_TAC[MEM_MAP];
-  BY(ASM_MESON_TAC[])
-  ]);;
-  (* }}} *)
-
-let fgraph_Faces = prove_by_refinement(
-  `!g f. f IN Faces g ==> MEM (FST f) (fgraph g)`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[fgraph;bn_Faces];
-  REPEAT WEAKER_STRIP_TAC;
-  MATCH_MP_TAC MEMf_MAP;
-  BY(ASM_REWRITE_TAC[GSYM IN_SET_OF_LIST])
-  ]);;
-  (* }}} *)
-
-let MEM_HD = prove_by_refinement(
-  `!xs:(A)list. ~(xs = []) ==> MEM (HD xs) xs`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[GSYM EL];
-  REPEAT WEAKER_STRIP_TAC;
-  MATCH_MP_TAC MEM_EL;
-  BY(ASM_REWRITE_TAC[arith `0 < m <=> ~(m=0)`;LENGTH_EQ_NIL])
-  ]);;
-  (* }}} *)
 
 let dart_hypermap_of_list = prove_by_refinement(
   `!(L:((A)list)list). good_list L ==> 
@@ -205,7 +140,7 @@ let tame10_correspondence = prove_by_refinement(
     BY(ARITH_TAC);
   FIRST_X_ASSUM_ST `vertices_set2` MP_TAC;
   REWRITE_TAC[vertices_set2];
-  REWRITE_TAC[Import_tame_classification.vertices_graph];
+  REWRITE_TAC[vertices_graph];
   REWRITE_TAC[List_hypermap.elements_of_list];
   DISCH_TAC;
   INTRO_TAC CARD_upt [`countVertices g`];
@@ -304,13 +239,6 @@ let tame11a_good_graph = prove_by_refinement(
 let except_list = new_definition `except_list L (v:A) = 
   LENGTH (FILTER (\f. 5 <= LENGTH f) (facesAt_list L v))`;;
 
-let MEM_EQ_NIL = prove_by_refinement(
-  `!s. s = [] <=> (!x. ~MEM x s)`,
-  (* {{{ proof *)
-  [
-  BY(MESON_TAC[List_hypermap.mem_not_nil])
-  ]);;
-  (* }}} *)
 
 let good_final_filter = prove_by_refinement(
   `!P g v. good_graph g /\ v IN vertices_set2 g ==>
@@ -467,7 +395,7 @@ let admissible1_list_admissible1 = prove_by_refinement(
      admissible1 (w o FST) g`,
   (* {{{ proof *)
   [
-  REWRITE_TAC[admissible1_list;admissible1;bn_Faces;faces;IN_SET_OF_LIST;fgraph;o_THM];
+  REWRITE_TAC[admissible1_list;admissible1;FACES;faces;IN_SET_OF_LIST;fgraph;o_THM];
   REPEAT WEAKER_STRIP_TAC;
   FIRST_X_ASSUM (C INTRO_TAC [`FST f`]);
   DISCH_THEN MATCH_MP_TAC;
@@ -789,7 +717,7 @@ let MEM_hypermap_of_list_node = prove_by_refinement(
   CONJ_TAC;
     CONJ_TAC;
       MATCH_MP_TAC node_of_element;
-      INTRO_TAC Elllnyz.mem_list_of_darts_imp_mem_list_of_elements_alt [`L`;`FST x`;`SND x`];
+      INTRO_TAC mem_list_of_darts_imp_mem_list_of_elements_alt [`L`;`FST x`;`SND x`];
       BY(ASM_MESON_TAC[PAIR]);
     BY(ASM_REWRITE_TAC[filter_FILTER;MEM_FILTER]);
   ASM_REWRITE_TAC[IN_SET_OF_LIST;filter_FILTER;MEM_FILTER];

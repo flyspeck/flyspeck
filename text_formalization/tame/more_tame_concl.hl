@@ -15,10 +15,9 @@ needs "Library/rstc.ml";;
 flyspeck_needs "hypermap/hypermap.hl";;
 flyspeck_needs "../formal_lp/hypermap/ssreflect/list_hypermap_iso-compiled.hl";;
 flyspeck_needs "../formal_lp/hypermap/computations/list_conversions2.hl";;
-flyspeck_needs "tame/import_tame_classification.hl";;
+(* flyspeck_needs "tame/import_tame_classification.hl";; *)
 
 module More_tame_concl = struct
-end;;
 
 open Hales_tactic;;
 open Hypermap;;
@@ -35,24 +34,25 @@ overload_interface ("vertices",`FST:num list # bool -> num list`);;
 Import_tame_classification.notation();;
 *)
 
-
 (* ========================================================================== *)
-(* definitions *)
+(* February 2014 additions *)
+(* definitions
+ *)
 (* ========================================================================== *)
 
-let good_list = new_definition
-  `!L. good_list L <=>
+let good_list = new_definition'
+  `!(L:((A)list)list). good_list L <=>
             uniq (list_of_darts L) /\
             all (\l. ~(l = [])) L /\
             (!d. MEM d (list_of_darts L)
                  ==> MEM (SND d,FST d) (list_of_darts L))`;;
 
-let good_list_nodes = new_definition
-  `!L. good_list_nodes L <=>
+let good_list_nodes = new_definition'
+  `!(L:((A)list)list). good_list_nodes L <=>
             node_set (hypermap_of_list L) = 
       set_of_list (nodes_of_list L)`;;
 
-let good_graph = new_definition
+let good_graph = new_definition'
  `!g. good_graph g <=>
             good_list (fgraph g) /\
             good_list_nodes (fgraph g) /\
@@ -62,51 +62,52 @@ let good_graph = new_definition
                  ==> facesAt g v = FILTER (\f. MEM v (FST f)) (faces g)) /\
             vertices_set2 g = elements_of_list (fgraph g)`;;
 
-let iso_list = new_definition `!L N L' N'. iso_list (L,N) (L',N') <=>
-   (?phi.  inj_on phi (elements_of_list L) /\
+let iso_list = new_definition' `!L N L' N'. iso_list (L,N) (L',N') <=>
+   (?(phi:A->B).  inj_on phi (elements_of_list L) /\
       L' = MAP (MAP phi) L /\
       N' = MAP (MAP (\u. phi (FST u),phi (SND u))) N)`;;
 
-let isop_list = new_definition `!L N L' N'. isop_list phi (L,N) (L',N') <=>
+let isop_list = new_definition' `!L N L' N'. 
+  isop_list (phi:A->B) (L,N) (L',N') <=>
    (inj_on phi (elements_of_list L) /\
       L' = MAP (MAP phi) L /\
       N' = MAP (MAP (\u. phi (FST u),phi (SND u))) N)`;;
 
-let indexf = new_definition `!s x y. indexf (x:A) y s = 
+let indexf = new_definition' `!s x y. indexf (x:A) y s = 
    (indexl y s + (sizel s - indexl x s) MOD (sizel s))`;;
 
-let f_last = new_definition 
- `f_last L s <=> (next_el s (LAST s) = f_list L (LAST s))`;;
+let f_last = new_definition'
+ `f_last L (s:(A#A)list) <=> (next_el s (LAST s) = f_list L (LAST s))`;;
 
-let one_step_list = new_definition `one_step_list L x y = 
+let one_step_list = new_definition' `one_step_list L (x:A#A) y = 
   (y = f_list L x \/ y = (f_list L (e_list x)))`;;
 
-let loop_list = new_definition
+let loop_list = new_definition'
   `loop_list L (s:(A#A)list) <=>
     (all (\x. MEM x (list_of_darts L) /\ one_step_list L x (next_el s x)) s)`;;
 
-let contour_list = new_definition
+let contour_list = new_definition'
   `contour_list L (s:(A#A) list) <=>
     (all (\x. MEM x (list_of_darts L) /\ 
        (x = LAST s \/ one_step_list L x (next_el s x))) s)`;;
 
-let normal_list = new_definition
+let normal_list = new_definition'
   `normal_list L N <=>
     (uniq (flatten N) /\
      all (\s. ~(s = [])) N /\
      all (f_last L) N /\
      all (loop_list L) N /\
-     (!d. MEM d (flatten N) ==> 
+     (!(d:A#A). MEM d (flatten N) ==> 
 	(node (hypermap_of_list L) d SUBSET set_of_list (flatten N))))`;;
 
-let list_of_face = new_definition `list_of_face H ff = 
+let list_of_face = new_definition' `list_of_face H (ff:A->bool) = 
   map (\i. node H ((face_map H POWER i) (CHOICE ff))) (upt 0 (CARD ff))`;;
 
-let list_of_hypermap = new_definition `list_of_hypermap H = 
+let list_of_hypermap = new_definition' `list_of_hypermap (H:(A)hypermap) = 
   map (list_of_face H) (list_of_set (face_set H))`;;
 
-let core_list = new_definition `core_list PN = 
-  map (\f. map (\x. FST (HD x)) f) PN`;;
+let core_list = new_definition' `core_list PN = 
+  map (\f. map (\x. FST (HD (x:(A#B)list))) f) PN`;;
 
 let partition_into_atom0 = new_recursive_definition list_RECURSION
   `partition_into_atom0 (n:A->A) acc [] = acc /\
@@ -116,8 +117,8 @@ let partition_into_atom0 = new_recursive_definition list_RECURSION
            then partition_into_atom0 n ((r:: HD acc)::TL acc) rs
 	   else partition_into_atom0 n ([r]::acc) rs)`;;
      
-let partition_into_atom = new_definition `partition_into_atom n r =
-  partition_into_atom0 n [] (rev r)`;;
+let partition_into_atom = new_definition' `partition_into_atom n r =
+  partition_into_atom0 (n:A->A) [] (rev r)`;;
 
 (* old:
 let parts = new_definition `parts L r = 
@@ -125,40 +126,40 @@ let parts = new_definition `parts L r =
      partition_into_atom (inverse (node_map H)) r)`;;
 *)
 
-let parts = new_definition `parts L r = 
+let parts = new_definition' `parts L (r:(A#A)list) = 
   partition_into_atom ((f_list L) o e_list) r`;;
 
 (* redone, feb 2 2014 *)
 
-let quotient_list = new_definition 
+let quotient_list = new_definition'
  `quotient_list (L:((A)list)list) N = 
   core_list (map (parts L) N)`;;
 
-let final_list = new_definition `final_list L r = 
+let final_list = new_definition' `final_list L (r:(A#A)list) = 
    all (\p. sizel p = 1) (parts L r)`;;
 
-let final_dart_list = new_definition `final_dart_list L N = 
+let final_dart_list = new_definition' `final_dart_list (L:((A)list)list) N = 
   flatten (filter (final_list L) N)`;;
 
-let loop_of_list = new_definition `loop_of_list r = 
+let loop_of_list = new_definition' `loop_of_list (r:(A)list) = 
   loop(set_of_list r, next_el r)`;;
 
-let loop_family_of_list = new_definition `loop_family_of_list N = 
+let loop_family_of_list = new_definition' `loop_family_of_list (N:((A)list)list) = 
   set_of_list (map loop_of_list N )`;;
 
-let split_list_face_n = new_definition `!newVs (f:(A) list) ram1 ram2.
+let split_list_face_n = new_definition' `!newVs (f:(A) list) ram1 ram2.
          split_list_face_n f ram1 ram2 newVs =
          (let f1 = APPEND [ram1] (APPEND (betwn f ram1 ram2) [ram2]) in
           let f2 = APPEND [ram2] (APPEND (betwn f ram2 ram1) [ram1]) in
           APPEND (REVERSE newVs) f1,APPEND f2 newVs)`;;
 
-let splitFace_list = new_definition
+let splitFace_list = new_definition'
   `!newVs oldF ram1 ram2 (fs:((A) list)list).
       splitFace_list fs ram1 ram2 oldF newVs =
          (let f1,f2 = split_list_face_n oldF ram1 ram2 newVs in
             f1,f2,(APPEND (replace oldF [f2] fs) [f1]))`;;
 
-let split_normal_list = new_definition `!L r f (ram1:A#A) (ram2:A#A). 
+let split_normal_list = new_definition' `!L r f (ram1:A#A) (ram2:A#A). 
   split_normal_list L r f ram1 ram2 = 
     (let ram1' = next_el r ram1 in
      let ram2' = next_el r ram2 in
@@ -172,29 +173,29 @@ let split_normal_list = new_definition `!L r f (ram1:A#A) (ram2:A#A).
 
 (* hyp'm: l'm *) (* was l'm *)
 
-let l_m = new_definition `!L r x. l'm L r x = 
+let l_m = new_definition' `!L r (x:A#A). l'm L r x = 
   (let r' = rotate_to r x in
      min_num 
        { m | ~(ITER (SUC(SUC m)) (next_el r') x = 
 	     f_list L (ITER (SUC m) (next_el r') x))  })`;;
 
-let l_y = new_definition `!L r x. l'y L r x = 
+let l_y = new_definition' `!L r (x:A#A). l'y L r x = 
    ((f_list L) POWER (SUC (l'm L r x))) x`;;
 
-let l_p = new_definition `!L N r x. l'p L N r x = 
+let l_p = new_definition' `!L N r (x:A#A). l'p L N r x = 
   min_num 
   { p | MEM ((f_list L POWER (SUC p)) (l'y L r x)) (flatten N) }`;;
 
-let l_z = new_definition `!L N r x. l'z L N r x =
+let l_z = new_definition' `!L N r (x:A#A). l'z L N r x =
   (f_list L POWER (SUC (l'p L N r x))) (l'y L r x)`;;
 
-let l_q = new_definition `!L N r (x:A#A). l'q L N r x = 
+let l_q = new_definition' `!L N r (x:A#A). l'q L N r x = 
   (let x' = find_list (parts L r) x in
    let z' = find_list (parts L r) (l'z L N r x) in
   min_num { q | l'm L r x < q /\ 
 		(next_el (parts L r) POWER (SUC q)) x' = z' })`;;
 
-let transform_list = new_definition `!L N r (x:A#A).
+let transform_list = new_definition' `!L N r (x:A#A).
   transform_list L x (N, r)  = 
   (
    let y = l'y L r x in
@@ -205,32 +206,32 @@ let transform_list = new_definition `!L N r (x:A#A).
    let N' = APPEND (replace r [SND split] N) [FST split] in
      if (final_list L r) then (N,r) else (N', SND split))`;;
 
-let ntrans = new_definition `!L N r (x:A#A) i.
+let ntrans = new_definition' `!L N r (x:A#A) i.
   ntrans L N r x i = FST ((transform_list L x POWER i) (N,r))`;;
 
-let rtrans = new_definition `!L N r (x:A#A) i.
+let rtrans = new_definition' `!L N r (x:A#A) i.
   rtrans L N r x i = SND ((transform_list L x POWER i) (N,r))`;;
 
-let ytrans = new_definition `!L N r (x:A#A) i.
+let ytrans = new_definition' `!L N r (x:A#A) i.
   ytrans L N r x i = l'y L (rtrans L N r x i) x`;;
 
-let ztrans = new_definition `!L N r (x:A#A) i.
+let ztrans = new_definition' `!L N r (x:A#A) i.
   ztrans L N r x i = l'z L (ntrans L N r x i) (rtrans L N r x i) x`;;
 
-let mtrans = new_definition `!L N r (x:A#A) i.
+let mtrans = new_definition' `!L N r (x:A#A) i.
   mtrans L N r x i = l'm L (rtrans L N r x i) x`;;
 
-let transform_count = new_definition
+let transform_count = new_definition'
   `!L N r (x:A#A). transform_count L N r x = 
       min_num {i | final_list L (rtrans L N r x i) }`;;
 
 (* hyp'S: *)
 
-let s_list = new_definition `!L r x. s_list L r x =
+let s_list = new_definition' `!L r (x:A#A). s_list L r x =
   (let r' = rotate_to r x in
      betwn r x (ITER (SUC (l'm L r x)) (next_el r') x))`;;
 
-let s_flag_list = new_definition `!L N r x.
+let s_flag_list = new_definition' `!L N r (x:A#A).
      s_flag_list L N r x <=>
      (!u v.
           MEM u (final_dart_list L N) /\ MEM v (final_dart_list L N)
@@ -248,9 +249,9 @@ let s_flag_list = new_definition `!L N r x.
 
 (* was empty_flag_list *)
 
-let flag_list = new_definition `!L N.
+let flag_list = new_definition' `!L N.
      flag_list L N <=>
-     (!u v.
+     (!(u:A#A) v.
           MEM u (final_dart_list L N) /\ MEM v (final_dart_list L N)
           ==> (?s. contour_list L s /\
                    HD s = u /\
@@ -267,7 +268,7 @@ let flag_list = new_definition `!L N.
 (* was respect_final_exact.  The set of finals in g can
    lag behind the set of finals in L//N. *)
 
-let match_core_list = new_definition
+let match_core_list = new_definition'
  `match_core_list g L N <=>
    (
     set_of_list (MAP (list_pairs o FST) 
@@ -279,7 +280,7 @@ let match_core_list = new_definition
    premarked_list gives conditions that will lead to a marked_list, 
    when supplied with a loop_choice r and x *)
 
-let premarked_list = new_definition
+let premarked_list = new_definition'
   `!g L N. premarked_list g L N <=> 
      (normal_list L N /\
      match_core_list g L N /\ 
@@ -289,7 +290,7 @@ let premarked_list = new_definition
         // 2. n' nondeg.
      `;;
 
-let marked_list = new_definition `!L N r (x:A#A).
+let marked_list = new_definition' `!L N r (x:A#A).
   marked_list L N r x <=>
     is_restricted (hypermap_of_list L) /\
     normal_list L N /\
@@ -304,7 +305,7 @@ let marked_list = new_definition `!L N r (x:A#A).
     (~final_list L r ==> s_flag_list L N r x) // 5. flag
      `;;
 
-let loop_choice = new_definition 
+let loop_choice = new_definition'
  `!g L N. loop_choice g (L:((num)list)list) N =
   (let f = minimalFace (nonFinals g) in
    let v = minimalVertex g f in
@@ -314,7 +315,7 @@ let loop_choice = new_definition
    let p = parts L r in
      (r,LAST (find_list p d)))`;;
 
-let triple_data = new_definition
+let triple_data = new_definition'
   `!g L N. triple_data g L N = 
     (
       let (r,x) = loop_choice g L N in
@@ -325,17 +326,17 @@ let triple_data = new_definition
       let z = zip a b in
 	(MAP (\ (a0,b0). (a0,b0,betwn f a0 b0)) z))`;;
 
-let core_triple = new_definition
+let core_triple = new_definition'
   `core_triple g L N = 
   MAP (\ (u,v,ns). (FST u,FST v,sizel ns)) (triple_data g L N)`;;
 
-let ordered_list = new_definition
+let ordered_list = new_definition'
   `!vset extra. ordered_list vset extra <=>
       (let n = CARD vset in
 	 vset = (0.. (n-1)) /\ extra = upt n (n+sizel extra))`;;
 
 let dih2k_list =
-  new_definition `dih2k_list L <=> (?(u:A list). uniq u /\
+  new_definition' `dih2k_list L <=> (?(u:A list). uniq u /\
 				      L = [u;rev u])`;;
 
 (*  enumeration lists.
@@ -359,7 +360,7 @@ let mk_triple0 = new_recursive_definition list_RECURSION
 	   else 
 	     mk_triple0 f v 0 ((u,v,n)::sofar) vos)`;;
 
-let mk_triple = new_definition
+let mk_triple = new_definition'
  `mk_triple f (vs:((A)option)list) = mk_triple0 f (the (HD vs)) 0 [] (TL vs)`;;
 
 (* was dest_triples0, dest_triple *)
@@ -380,8 +381,8 @@ let dest_triple0 = new_recursive_definition list_RECURSION
 		  else (dest_triple0 f (flatten[sofar;b;[SOME u];ns;[SOME v]]) uvns)
 		 )))`;;
 
-let dest_triple = new_definition
-  `dest_triple f uvns = dest_triple0 f [] uvns`;;
+let dest_triple = new_definition'
+  `dest_triple f uvns = dest_triple0 (f:(A)list) [] uvns`;;
 
 (* next 3 defs are from Isabelle *)
 
@@ -411,6 +412,7 @@ let showDups = new_recursive_definition list_RECURSION
 let enum_of_VertexList = new_definition'
   `enum_of_VertexList f (v:A) vs = 
     MAP (\u. indexf v u f  ) (showDups vs)`;;
+
 
 
 (* ========================================================================== *)
@@ -545,7 +547,7 @@ let RXOKSKC_concl =
 
 let JXBJOAB_concl = 
   `!(L:((A)list)list). 
-   ?(L':((num)list))list. iso_list (L,[]) (L',[])`;;
+   ?(L':((num)list)list). iso_list (L,[]) (L',[])`;;
 
 
 (* ordering the list of darts in L *)
@@ -691,7 +693,7 @@ let KUKASGD_concl =
      sizel (HD L) = sizel (HD L') ==> iso_list (L,[]) (L',[])`;;
 
 let UNHQYQM_concl = 
-  `!L L'. iso_list (L,[]) (L',[]) /\ dih2k_list L)
+  `!L L'. iso_list (L,[]) (L',[]) /\ dih2k_list L
     ==> dih2k_list L'`;;
 
 let AUQTZYZ_concl = `!H (x:A) L1. is_restricted H /\ (x IN dart H)  /\ 
@@ -703,7 +705,7 @@ let AUQTZYZ_concl = `!H (x:A) L1. is_restricted H /\ (x IN dart H)  /\
 let AUQTZYZ_list = `!L f. is_restricted (hypermap_of_list L) /\
   good_list L /\ MEM f (list_of_faces L) ==>
    (?f'. normal_list L [f;f'] /\ quotient_list L [f;f'] = 
-      [f; rev f])`;;
+      [(MAP FST f); rev (MAP FST f)])`;;
 
 let UYOUIXG_concl = `!L f .  is_restricted (hypermap_of_list L) /\
    good_list L /\ MEM f (list_of_faces L) /\ ~dih2k_list L ==>
@@ -739,7 +741,7 @@ let ZBHENEI_concl = `!L N. normal_list L N ==>
 
 let XZAJELF_concl = `!g L N. 
      match_core_list g L N ==>
-     sizel (flatten (finals g)) <=
+     sizel (flatten (MAP FST (finals g))) <=
      sizel (list_of_darts L)`;;
 
 let XWCNBMA_concl = `!L N. normal_list L N /\
@@ -757,7 +759,7 @@ let concl = `subdivFaceFinal = subdivFace`;;
 
 let subdivFace0_finals = `!g f u n vs.
   ~(MEM f (finals g)) ==> 
-  (finals g = finals (subdivFace0_alt g f u n vs))`;;
+  (finals g = finals (SND(subdivFace0_alt g f u n vs)))`;;
 
 
 (* ========================================================================== *)
@@ -792,8 +794,8 @@ let concl =
   `!f vs. hypotheses ==>
     indexToVertexList f (Enum_of_VertexList (FST f) vs) = vs`;;
 
-let concl = hypotheses ==>
-`subdivFaceFinal2 g f (mk_triple (FST f) vs) = subdivFace g f vs`;;
+let concl = `hypotheses ==>
+  subdivFaceFinal2 g f (mk_triple (FST f) vs) = subdivFace g f vs`;;
 
 (* ========================================================================== *)
 (* The Index Calculus of Higher Transforms. *)
@@ -987,7 +989,7 @@ let concl = `!L.
    ==>
      (?L' N' g'. iso_list (L,[]) (L',[]) /\
 	premarked_list g' L' N' /\ planegraph g' /\
-	sizel (flatten (finals g')) > sizel (flatten (finals g))))
+	sizel (flatten (MAP FST (finals g'))) > sizel (flatten (MAP FST (finals g)))))
   ==>
    (?g. PlaneGraphs g /\ 
      iso (hypermap_of_list L) (hypermap_of_list (fgraph g)))`;;
@@ -1007,7 +1009,7 @@ let concl = `!g L N i. hypotheses ==>
     let k = transform_count L N r x in
     let f = find_face L x in
       (!i. i <= k ==>
-	 (transform_list L x POWER i) (N,r) = FST (ITER i
+	 (ntrans L N r x i,rtrans L N r x i) = FST (ITER i
 	   (\ Nrz. 
 	      (let (N,r) = FST Nrz in
 	       let zs = SND Nrz in
@@ -1024,15 +1026,14 @@ let concl = `!g L N i. hypotheses ==>
 let concl = `!g L N i. hypotheses /\ i <= transform_count L N r x 
   ==>
   (let (r,x) = loop_choice g L N in
-   let (Ni,ri) = (transform_list L x POWER i) (N,r) in
    let triples = core_triple g L N in
    let mf = (FST (minimalFace (nonFinals g))) in
-     quotient L Ni = part1 (ITER i (\ t.
-	(let (oldF,L'),zs = t in
+     quotient_list L (ntrans L N r x i) = part1 (ITER i (\ t.
+	(let oldF,L',zs = t in
 	 let ram1,ram2,n = HD zs in
-	 let newVs = betwn vf ram1 ram2 in
+	 let newVs = betwn mf ram1 ram2 in
 	 let f1,f2,L'' = splitFace_list L' ram1 ram2 oldF newVs in
-	   ((f2,L''),(TL zs))))
+	   (f2,L'',TL zs)))
 			      (mf,(fgraph g),triples)
 					      ))`;;
 
@@ -1045,20 +1046,18 @@ let concl = `!g L N r x k.
    (let (r,x) = loop_choice g L N in
     let k = transform_count L N r x in
     let f = find_face L x in
-    let (Nk,rk) = (transform_list L x POWER k) (N,r) in
-      (f = rk))`;;
+      (f = rtrans L N r x k))`;;
 
 let concl = `!g L N r x k.
    match_list g L N /\
    ~(nonFinals g = []) ==>
    (let (r,x) = loop_choice g L N in
     let f = find_face L x in
-    let ff = MAP FST f in
     let mf = minimalFace (nonFinals g) in
     let triples = triple_data g L N in
     let uvns = MAP (\ (u,v,ns). (FST u,FST v,sizel ns)) triples in
     let (f',g') = subdivFace0_alt2 g mf (countVertices g) uvns in
-      f' = ff)`;;
+      FST f' = MAP FST f)`;;
 
 (* main matching result of transform^k with subdivFaceFinal2 *)
 
@@ -1067,12 +1066,11 @@ let concl = `!g L N r x k.
    ~(nonFinals g = []) ==>
    (let (r,x) = loop_choice g L N in
     let k = transform_count L N r x in
-    let (Nk,rk) = (transform_list L x POWER k) (N,r) in
     let mf = minimalFace (nonFinals g) in
     let triples = triple_data g L N in
     let uvns = MAP (\ (u,v,ns). (FST u,FST v,sizel ns)) triples in
     let g' = subdivFaceFinal2 g mf uvns in
-      match_list g' L Nk)`;;
+      match_list g' L (ntrans L N r x k))`;;
 
 (* XX Now we just need to show that uvns comes from an enumeration
    and we are home. *)

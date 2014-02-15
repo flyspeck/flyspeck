@@ -1429,4 +1429,1591 @@ let lower_case = end_itlist CONJ
 
 let upper_case  = GSYM lower_case;;
 
+(* QYHXIVZ *)
+
+let PAIR_EQ2 = Wrgcvdr_cizmrrh.PAIR_EQ2;;
+
+(*
+let PAIR_EQ_EXPAND = prove_by_refinement(
+  `!x a b. x = (a,b) <=> (FST x = a /\ SND x = b)`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[FORALL_PAIR_THM;PAIR_EQ])
+  ]);;
+  (* }}} *)
+*)
+
+let rcons_nonnil = prove_by_refinement(
+  `!s x. ~(rcons s x = [])`,
+  (* {{{ proof *)
+  [
+BY(LIST_INDUCT_TAC THEN REWRITE_TAC[Seq.rcons;NOT_CONS_NIL])
+  ]);;
+  (* }}} *)
+
+let index_uniq = prove_by_refinement(
+  `!x y. MEM x s /\ MEM y s /\ indexl x s = indexl y s ==> (x = y)`,
+  (* {{{ proof *)
+  [
+    BY(MESON_TAC[Seq.nth_index])
+  ]);;
+  (* }}} *)
+
+let index0 = prove_by_refinement(
+  `!s x. MEM x s /\ indexl x s = 0 ==> x = HD s`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `indexl (HD s) s = 0` ENOUGH_TO_SHOW_TAC;
+    TYPIFY `MEM (HD s) s` (C SUBGOAL_THEN MP_TAC);
+      MATCH_MP_TAC Wmlnymd.MEM_HD;
+      BY(ASM_MESON_TAC[MEM]);
+    DISCH_TAC;
+    BY(ASM_MESON_TAC[index_uniq]);
+  INTRO_TAC (GSYM Seq2.index_head) [`x`;`s`];
+  DISCH_THEN (SUBST1_TAC);
+  REPLICATE_TAC 2 (AP_TERM_TAC ORELSE AP_THM_TAC);
+  GMATCH_SIMP_TAC Seq2.head_HD;
+  REWRITE_TAC[arith `0 < s <=> ~(s = 0)`];
+  BY(ASM_MESON_TAC[Seq.size_eq0;MEM])
+  ]);;
+  (* }}} *)
+
+let index_rot = prove_by_refinement(
+  `!s x. MEM x s /\ ~(x = HD s) ==> SUC (indexl x (rot 1 s)) = indexl x s`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[MEM;HD;Seq.index;Seq.find;Seq.rot1_cons;Seq.has_pred1];
+  REWRITE_TAC[Seq.pred1];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  AP_TERM_TAC;
+  REWRITE_TAC[Seq.find_cat;GSYM Seq.cats1];
+  REWRITE_TAC[GSYM Seq.pred1];
+  REWRITE_TAC[GSYM Seq.pred1;Seq.has_pred1];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let indexf = new_definition' `indexf'' (x:A) y s = 
+  if (MEM x s /\ MEM y s) then (indexl y s + (sizel s - indexl x s)) MOD sizel s 
+  else sizel s`;;
+
+let indexf0 = prove_by_refinement(
+  `!(x:A) y s. indexf'' x y [] = 0`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[indexf;MEM;Seq.size_nil])
+  ]);;
+  (* }}} *)
+
+let indexf1 = prove_by_refinement(
+  `!(x:A) y s. ~MEM x s ==> indexf'' x y s = sizel s`,
+  (* {{{ proof *)
+  [
+    BY(SIMP_TAC[indexf])
+  ]);;
+  (* }}} *)
+
+let indexf2 = prove_by_refinement(
+  `!(x:A) y s. ~MEM y s ==> indexf'' x y s = sizel s`,
+  (* {{{ proof *)
+  [
+    BY(SIMP_TAC[indexf])
+  ]);;
+  (* }}} *)
+
+let sizel0 = prove_by_refinement(
+  `!s:A list. sizel s = 0 <=> ~(?x. MEM x s)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Seq.size;LENGTH_EQ_NIL;List_hypermap.mem_not_nil];
+  BY(MESON_TAC[List_hypermap.mem_not_nil])
+  ]);;
+  (* }}} *)
+
+let indexf_le_sizel = prove_by_refinement(
+  `!s (x:A) y. indexf'' x y s <= sizel s`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[indexf] THEN REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC THEN REWRITE_TAC[arith `n <= n:num`];
+  TYPIFY `~(sizel s = 0)` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[DIVISION;arith `a < (b:num) ==> a <= b`]);
+  BY(ASM_MESON_TAC[sizel0])
+  ]);;
+  (* }}} *)
+
+let indexf_lt_sizel = prove_by_refinement(
+  `!s (x:A) y. MEM x s /\ MEM y s ==> indexf'' x y s < sizel s`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[indexf] THEN REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  TYPIFY `~(sizel s = 0)` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[DIVISION]);
+  BY(ASM_MESON_TAC[sizel0])
+  ]);;
+  (* }}} *)
+
+let indexf_refl = prove_by_refinement(
+  `!(x:A) s. MEM x s ==> indexf'' x x s = 0`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Seq.index_mem [`x`;`s`];
+  ASM_REWRITE_TAC[] THEN DISCH_TAC;
+  ASM_SIMP_TAC[indexf];
+  ASM_SIMP_TAC[arith `i < s ==> i + s - i = (s:num)`];
+  MATCH_MP_TAC Oxl_2012.MOD_REFL;
+  BY(ASM_MESON_TAC[sizel0])
+  ]);;
+  (* }}} *)
+
+let indexf0 = prove_by_refinement(
+  `!(x:A) y s. MEM x s /\ MEM y s /\ indexf'' x y s = 0 ==> (x = y)`,
+  (* {{{ proof *)
+  [
+  SIMP_TAC[indexf];
+  REPEAT WEAKER_STRIP_TAC THEN FIRST_X_ASSUM MP_TAC THEN ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `indexl y s = indexl x s` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[index_uniq]);
+  FIRST_X_ASSUM MP_TAC;
+  GMATCH_SIMP_TAC MOD_EQ_0;
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[sizel0]);
+  DISCH_TAC;
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Seq.index_mem [`x`;`s`];
+  INTRO_TAC Seq.index_mem [`y`;`s`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `q = 1` ENOUGH_TO_SHOW_TAC;
+    DISCH_TAC;
+    FIRST_X_ASSUM_ST `a = q* sizel s` MP_TAC;
+    ASM_REWRITE_TAC[];
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  REWRITE_TAC[arith `q = 1 <=> ~(q = 0) /\ (q < 2)`];
+  SUBCONJ_TAC;
+    DISCH_TAC;
+    FIRST_X_ASSUM_ST `a = q* sizel s` MP_TAC;
+    ASM_REWRITE_TAC[];
+    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC);
+  DISCH_TAC;
+  TYPIFY `q * sizel s < 2 * sizel s` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[LT_MULT_RCANCEL]);
+  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let indexf_antisym_wlog = prove_by_refinement(
+  `!(x:A) y s. MEM x s /\ MEM y s /\ ~(x = y) /\ indexl x s < indexl y s 
+    ==> indexf'' x y s + indexf'' y x s = sizel s`,
+  (* {{{ proof *)
+  [
+  SIMP_TAC[indexf];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `~(sizel s = 0)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[sizel0]);
+  INTRO_TAC Seq.index_mem [`y`;`s`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `(indexl y s + sizel s - indexl x s) MOD sizel s = indexl y s - indexl x s /\ (indexl x s + sizel s - indexl y s) MOD sizel s = indexl x s + sizel s - indexl y s` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN (unlist REWRITE_TAC);
+    BY(ASM_TAC THEN ARITH_TAC);
+  CONJ2_TAC;
+    MATCH_MP_TAC MOD_LT;
+    BY(ASM_TAC THEN ARITH_TAC);
+  TYPIFY_GOAL_THEN `indexl y s + sizel s - indexl x s = 1 * sizel s + (indexl y s - indexl x s)` (unlist REWRITE_TAC);
+    BY(ASM_TAC THEN ARITH_TAC);
+  SIMP_TAC[MOD_MULT_ADD];
+  MATCH_MP_TAC MOD_LT;
+  BY(ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let indexf_antisym = prove_by_refinement(
+  `!(x:A) y s. MEM x s /\ MEM y s /\ ~(x = y) 
+    ==> indexf'' x y s + indexf'' y x s = sizel s`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `(indexl x s = indexl y s) \/ indexl x s < indexl y s \/ indexl y s < indexl x s` (C SUBGOAL_THEN MP_TAC);
+    BY(ARITH_TAC);
+  REPEAT STRIP_TAC;
+      BY(ASM_MESON_TAC[index_uniq]);
+    BY(ASM_MESON_TAC[indexf_antisym_wlog]);
+  BY(ASM_MESON_TAC[indexf_antisym_wlog;arith `x + (y:num) = y + x`])
+  ]);;
+  (* }}} *)
+
+let indexf_cond = prove_by_refinement(
+  `!(x:A) y s. MEM x s /\ MEM y s ==>
+    indexf'' x y s = if (indexl x s <= indexl y s) 
+    then indexl y s - indexl x s 
+    else indexl y s + (sizel s - indexl x s)`,
+  (* {{{ proof *)
+  [
+  ASM_SIMP_TAC[indexf];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Seq.index_mem [`y`;`s`];
+  INTRO_TAC Seq.index_mem [`x`;`s`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC;
+    ASM_SIMP_TAC[arith `x <= y /\ x < n ==> (y + n -x = 1*n + (y - x))`];
+    REWRITE_TAC[MOD_MULT_ADD];
+    MATCH_MP_TAC MOD_LT;
+    BY(ASM_TAC THEN ARITH_TAC);
+  MATCH_MP_TAC MOD_LT;
+  BY(ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let indexf_add_left = prove_by_refinement(
+  `!(x:A) y z s. MEM x s /\ MEM y s /\ MEM z s /\
+    indexf'' x y s <= indexf'' x z s ==>
+    indexf'' x y s + indexf'' y z s = indexf'' x z s
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Seq.index_mem [`y`;`s`];
+  INTRO_TAC Seq.index_mem [`x`;`s`];
+  INTRO_TAC Seq.index_mem [`z`;`s`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `indexf''` MP_TAC;
+  ASM_SIMP_TAC[indexf_cond];
+  BY(REPEAT COND_CASES_TAC THEN ASM_TAC THEN TRY ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let indexf_add_right = prove_by_refinement(
+  `!(x:A) y z s. MEM x s /\ MEM y s /\ MEM z s /\
+    indexf'' y z s <= indexf'' x z s ==>
+    indexf'' x y s + indexf'' y z s = indexf'' x z s
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Seq.index_mem [`y`;`s`];
+  INTRO_TAC Seq.index_mem [`x`;`s`];
+  INTRO_TAC Seq.index_mem [`z`;`s`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `indexf''` MP_TAC;
+  ASM_SIMP_TAC[indexf_cond];
+  BY(REPEAT COND_CASES_TAC THEN ASM_TAC THEN TRY ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let indexf_add_sum = prove_by_refinement(
+  `!(x:A) y z s. MEM x s /\ MEM y s /\ MEM z s /\
+    indexf'' x y s + indexf'' y z s < sizel s ==>
+    indexf'' x y s + indexf'' y z s = indexf'' x z s
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Seq.index_mem [`y`;`s`];
+  INTRO_TAC Seq.index_mem [`x`;`s`];
+  INTRO_TAC Seq.index_mem [`z`;`s`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `indexf''` MP_TAC;
+  ASM_SIMP_TAC[indexf_cond];
+  BY(REPEAT COND_CASES_TAC THEN ASM_TAC THEN TRY ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let sizel_gt_1 = prove_by_refinement(
+  `!(x:A) y s. MEM x s /\ MEM y s /\ ~(x = y) ==>
+    1 < sizel s`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC LTE_TRANS;
+  TYPIFY `CARD (set_of_list s)` EXISTS_TAC;
+  REWRITE_TAC[CARD_SET_OF_LIST_LE;Seq.size];
+  TYPIFY `FINITE (set_of_list s)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REWRITE_TAC[FINITE_SET_OF_LIST]);
+  REWRITE_TAC[arith `1 < n <=> (1 <= n) /\ ~(n = 1)`];
+  TYPIFY `x IN set_of_list s /\ y IN set_of_list s` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_REWRITE_TAC[IN_SET_OF_LIST]);
+  TYPIFY `~({x} = {y})` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_TAC THEN SET_TAC[]);
+  CONJ_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    BY(ASM_MESON_TAC[Hypermap.CARD_ATLEAST_1]);
+  BY(ASM_MESON_TAC[Hypermap.set_one_point])
+  ]);;
+  (* }}} *)
+
+let indexf_rot = prove_by_refinement(
+  `!(x:A) y s. MEM x s /\ MEM y s /\ uniq s ==>
+    indexf'' x y s = indexf'' x y (rot 1 s)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Seq.index_mem [`y`;`s`];
+  INTRO_TAC Seq.index_mem [`x`;`s`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Seq.mem_rot [`1`;`s`;`x`];
+  INTRO_TAC Seq.mem_rot [`1`;`s`;`y`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `x = y` ASM_CASES_TAC;
+    BY(ASM_SIMP_TAC[indexf_refl]);
+  TYPIFY `1 < sizel s` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC sizel_gt_1;
+    BY(ASM_MESON_TAC[]);
+  ASM_SIMP_TAC[indexf_cond;];
+  ASM_SIMP_TAC [Seq2.index_rot];
+  REWRITE_TAC[Seq.size_rot];
+  BY(REPEAT (COND_CASES_TAC THEN ASM_REWRITE_TAC[]) THEN ASM_TAC THEN TRY ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let indexf_rotn = prove_by_refinement(
+  `!n (x:A) y s. MEM x s /\ MEM y s /\ uniq s /\ n <= sizel s ==>
+    indexf'' x y s = indexf'' x y (rot n s)`,
+  (* {{{ proof *)
+  [
+  INDUCT_TAC;
+    BY(REWRITE_TAC[Seq.rot0]);
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC Seq.rotS;
+  CONJ_TAC;
+    BY(ASM_TAC THEN ARITH_TAC);
+  FIRST_X_ASSUM (GMATCH_SIMP_TAC);
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    BY(ASM_TAC THEN ARITH_TAC);
+  MATCH_MP_TAC indexf_rot;
+  BY(ASM_REWRITE_TAC[Seq.mem_rot;Seq.rot_uniq])
+  ]);;
+  (* }}} *)
+
+let indexf1 = prove_by_refinement(
+  `!(x:A) y s. MEM x s /\ MEM y s /\ uniq s /\ indexf'' x y s = 1 ==>
+    next_el s x = y`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `?n. next_el (rot n s) x = y` ENOUGH_TO_SHOW_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    BY(ASM_MESON_TAC[Seq2.next_el_rot_eq]);
+  INTRO_TAC Seq2.rot_to_index [`s`;`x`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `indexl x s` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  INTRO_TAC Seq.index_mem [`x`;`s`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC indexf_rotn [`indexl x s`;`x`;`y`;`s`];
+  ASM_SIMP_TAC[arith `i < (s:num) ==> i <= s`];
+  TYPIFY `MEM x (x::t) /\ MEM y (x::t)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Seq.mem_rot]);
+  ASM_SIMP_TAC[indexf_cond];
+  REWRITE_TAC[Seq2.index_cons;arith `0 <= n`;arith `n - 0 = n`];
+  COND_CASES_TAC THEN REWRITE_TAC[arith `~(1 = 0)`;arith `1 = SUC n <=> n = 0`];
+  TYPIFY `MEM y t` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[MEM]);
+  DISCH_TAC;
+  TYPIFY `y = HD t` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[index0]);
+  GMATCH_SIMP_TAC Seq2.next_el_hd_cons;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `sizel` MP_TAC THEN ASM_REWRITE_TAC[Seq.size_cons];
+  INTRO_TAC sizel_gt_1 [`x`;`y`;`s`];
+  ASM_REWRITE_TAC[];
+  TYPIFY `sizel s = sizel (x::t)` ENOUGH_TO_SHOW_TAC;
+    BY(REWRITE_TAC[Seq.size_cons] THEN ARITH_TAC);
+  BY(ASM_MESON_TAC[Seq.size_rot])
+  ]);;
+  (* }}} *)
+
+let next_el_indexf = prove_by_refinement(
+  `!(x:A) y s. MEM x s /\ MEM y s /\ uniq s /\ next_el s x = y /\ 1 < sizel s ==>
+    indexf'' x y s = 1`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `?n. n <= sizel s /\ indexf'' x y (rot n s) =1` ENOUGH_TO_SHOW_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    BY(ASM_MESON_TAC[indexf_rotn]);
+  INTRO_TAC Seq2.rot_to_index [`s`;`x`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `indexl x s` EXISTS_TAC;
+  INTRO_TAC Seq.index_mem [`x`;`s`];
+  ASM_SIMP_TAC[arith `i < (s:num) ==> i <= s`] THEN REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Seq2.next_el_rot_eq [`s`;`indexl x s`];
+  ASM_REWRITE_TAC[FUN_EQ_THM] THEN DISCH_THEN (C INTRO_TAC [`x`]);
+  DISCH_TAC;
+  TYPIFY `MEM x (x::t) /\ MEM y (x::t)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Seq.mem_rot]);
+  ASM_SIMP_TAC[indexf_cond];
+  REWRITE_TAC[Seq2.index_cons;arith `0 <= n`;arith `n - 0 = n`];
+  INTRO_TAC Seq2.next_el_hd_cons [`x`;`t`];
+  TYPIFY `0 < sizel t` (C SUBGOAL_THEN ASSUME_TAC);
+    TYPIFY `sizel s = sizel (x::t)` ENOUGH_TO_SHOW_TAC;
+      BY(REWRITE_TAC[Seq.size_cons] THEN ASM_TAC THEN ARITH_TAC);
+    BY(ASM_MESON_TAC[Seq.size_rot]);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY `uniq (x:: t)` (C SUBGOAL_THEN MP_TAC);
+    BY(ASM_MESON_TAC[Seq.rot_uniq]);
+  COND_CASES_TAC THEN REWRITE_TAC[arith `~(1 = 0)`;arith `SUC n = 1 <=> n = 0`];
+    REWRITE_TAC[Seq.cons_uniq];
+    REWRITE_TAC[Seq.cons_uniq;DE_MORGAN_THM];
+    DISJ1_TAC;
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[Wmlnymd.MEM_HD;Seq.size_eq0;arith `0 < s ==> ~(s = 0)`]);
+  (DISCH_TAC);
+  TYPIFY `headl y t = HD t` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[Seq2.index_head]);
+  MATCH_MP_TAC Seq2.head_HD;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let next_eln_indexf = prove_by_refinement(
+  `!n (x:A) y s. MEM x s /\ MEM y s /\ uniq s /\ 
+    (next_el s POWER n) x = y /\ n < sizel s ==>
+    indexf'' x y s = n`,
+  (* {{{ proof *)
+  [
+  INDUCT_TAC;
+    REWRITE_TAC[Hypermap.POWER;I_THM];
+    BY(MESON_TAC[indexf_refl]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPED_ABBREV_TAC `yn = (next_el s POWER n) x`;
+  FIRST_X_ASSUM (C INTRO_TAC [`x`;`yn`;`s`]);
+  ASM_SIMP_TAC[arith `SUC n < s ==> n < s`];
+  TYPIFY `MEM yn s` (C SUBGOAL_THEN ASSUME_TAC);
+    EXPAND_TAC "yn";
+    FIRST_X_ASSUM kill;
+    ASM_SIMP_TAC[Seq2.next_el_power];
+    MATCH_MP_TAC Seq.mem_nth;
+    BY(ASM_MESON_TAC[DIVISION;arith `n < (s:num) ==> ~(s = 0)`]);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  INTRO_TAC indexf_add_sum [`x`;`yn`;`y`;`s`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN (GMATCH_SIMP_TAC o GSYM);
+  TYPIFY `indexf'' yn y s = 1` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_TAC THEN ARITH_TAC);
+  MATCH_MP_TAC next_el_indexf;
+  ASM_SIMP_TAC[arith `SUC n < s ==> 1 < s`];
+  CONJ2_TAC;
+    BY(ASM_TAC THEN ARITH_TAC);
+  FULL_EXPAND_TAC "y";
+  FULL_EXPAND_TAC "yn";
+  BY(REWRITE_TAC[Hypermap.COM_POWER;o_THM])
+  ]);;
+  (* }}} *)
+
+let indexf_n = prove_by_refinement(
+  `!(x:A) y s. MEM x s /\ MEM y s /\ uniq s ==>
+    ((next_el s) POWER (indexf'' x y s)) x = y`,
+  (* {{{ proof *)
+  [
+  TYPIFY `!n (x:A) y s. MEM x s /\ MEM y s /\ uniq s /\ (indexf'' x y s = n) ==>    ((next_el s) POWER n) x = y` ENOUGH_TO_SHOW_TAC;
+    BY(MESON_TAC[]);
+  INDUCT_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `x = y` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[indexf0]);
+    BY(ASM_REWRITE_TAC[Fan.POWER;I_THM]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Seq.index_mem [`x`;`s`];
+  ASM_REWRITE_TAC[] THEN DISCH_TAC;
+  TYPED_ABBREV_TAC `yn = (next_el s POWER n) x`;
+  TYPIFY `MEM yn s` (C SUBGOAL_THEN ASSUME_TAC);
+    EXPAND_TAC "yn";
+    FIRST_X_ASSUM kill;
+    ASM_SIMP_TAC[Seq2.next_el_power];
+    MATCH_MP_TAC Seq.mem_nth;
+    BY(ASM_MESON_TAC[DIVISION;arith `n < (s:num) ==> ~(s = 0)`]);
+  INTRO_TAC indexf_lt_sizel [`s`;`x`;`yn`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  INTRO_TAC indexf_lt_sizel [`s`;`x`;`y`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  INTRO_TAC next_eln_indexf [`n`;`x`;`yn`;`s`];
+  ASM_SIMP_TAC[arith `SUC n < s ==> n < s`];
+  DISCH_TAC;
+  INTRO_TAC indexf_add_left [`x`;`yn`;`y`;`s`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    BY(ARITH_TAC);
+  ASM_REWRITE_TAC[arith `n + i = SUC n <=> i = 1`];
+  DISCH_TAC;
+  INTRO_TAC indexf1 [`yn`;`y`;`s`];
+  ASM_REWRITE_TAC[];
+  BY(ASM_REWRITE_TAC[Hypermap.COM_POWER;o_THM])
+  ]);;
+  (* }}} *)
+
+let nextElem_nonmem = prove_by_refinement(
+  `!s x u. ~(MEM x s) ==> nextElem s u x = u`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN SIMP_TAC[nextElem;MEM];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `~MEM x t` ASM_CASES_TAC;
+    BY(REPEAT COND_CASES_TAC THEN ASM_REWRITE_TAC[] THEN ASM_MESON_TAC[]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+
+let nextElem_nonmem_rcons = prove_by_refinement(
+  `!s x u. ~(MEM x s) ==> nextElem (rcons s a) u x = u`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN SIMP_TAC[nextElem;MEM;Seq.rcons;rcons_nonnil];
+    BY(MESON_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `~MEM x t` ASM_CASES_TAC;
+    BY(REPEAT COND_CASES_TAC THEN ASM_REWRITE_TAC[] THEN ASM_MESON_TAC[]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let nextElem_rcons = prove_by_refinement(
+  `!s h x u. MEM x s ==> (nextElem s h x = nextElem (rcons s h) u x)`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN SIMP_TAC[nextElem;MEM;Seq.rcons;rcons_nonnil];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `~MEM x t` ASM_CASES_TAC;
+    TYPIFY `x = h` (C SUBGOAL_THEN MP_TAC);
+      BY(ASM_MESON_TAC[]);
+    SIMP_TAC[];
+    COND_CASES_TAC THEN REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[HD;Seq.rcons];
+    ONCE_REWRITE_TAC[Seq.headI];
+    REWRITE_TAC[HD];
+    GMATCH_SIMP_TAC Seq2.head_HD;
+    REWRITE_TAC[arith `0 < s <=> ~(s = 0)`];
+    BY(ASM_MESON_TAC[Seq.size_eq0]);
+  RULE_ASSUM_TAC (REWRITE_RULE[]);
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+    ONCE_REWRITE_TAC[Seq.headI];
+    REWRITE_TAC[HD];
+    GMATCH_SIMP_TAC Seq2.head_HD;
+    REWRITE_TAC[arith `0 < s <=> ~(s = 0)`];
+    BY(ASM_MESON_TAC[Seq.size_eq0;MEM]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let nextElem_rot = prove_by_refinement(
+  `!s x. MEM x s /\ ~(x = HD s) ==> nextElem s (HD s) x = nextElem (rot 1 s) (HD (rot 1 s)) x `,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[nextElem;Seq.head;MEM;Seq.rot1_cons] THEN GEN_TAC;
+  REWRITE_TAC[HD];
+  DISCH_TAC;
+  TYPIFY `MEM x t /\ ~(x = h)` (C SUBGOAL_THEN MP_TAC);
+    BY(ASM_MESON_TAC[]);
+  FIRST_X_ASSUM kill THEN DISCH_TAC THEN ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[nextElem_rcons])
+  ]);;
+  (* }}} *)
+
+
+let index_nextElem_next_el = prove_by_refinement(
+  `!n s x. MEM x s /\ indexl x s = n ==> nextElem s (HD s) x = next_el s x`,
+  (* {{{ proof *)
+  [
+  INDUCT_TAC;
+    LIST_INDUCT_TAC;
+      BY(REWRITE_TAC[MEM]);
+    REWRITE_TAC[HD;nextElem];
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC index0 [`h::t`;`x`];
+    ASM_REWRITE_TAC[HD];
+    DISCH_TAC THEN ASM_REWRITE_TAC[];
+    COND_CASES_TAC;
+      BY(ASM_REWRITE_TAC[Dpzgbyf.next_el1]);
+    GMATCH_SIMP_TAC Seq2.next_el_hd_cons;
+    BY(ASM_MESON_TAC[arith `0 < s <=> ~(s = 0)`;Seq.size_eq0]);
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC nextElem_rot;
+  ASM_REWRITE_TAC[];
+  SUBCONJ_TAC;
+    DISCH_TAC;
+    INTRO_TAC Seq2.head_HD [`x`;`s`];
+    REWRITE_TAC[arith `0 < s <=> ~(s = 0)`;Seq.size_eq0];
+    BY(ASM_MESON_TAC[MEM;arith `~(0=SUC n)`;Seq2.index_head]);
+  DISCH_TAC;
+  GMATCH_SIMP_TAC Seq2.next_el_alt;
+  TYPIFY `x` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM (C INTRO_TAC [`rot 1 s`;`x`]);
+  TYPIFY `MEM x (rot 1 s) /\ indexl x (rot 1 s) = n` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_REWRITE_TAC[Seq.mem_rot];
+    MATCH_MP_TAC (arith `SUC u = SUC v ==> u = v`);
+    GMATCH_SIMP_TAC index_rot;
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[];
+  INTRO_TAC Seq2.next_el_mod [`x`];
+  DISCH_THEN GMATCH_SIMP_TAC;
+  ASM_REWRITE_TAC[];
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[arith `n+1 = SUC n`] THEN MATCH_MP_TAC MOD_LT;
+  BY(ASM_MESON_TAC[Seq.index_mem;Seq.size_rot])
+  ]);;
+  (* }}} *)
+
+let nextElem_next_el = prove_by_refinement(
+  `!s x. MEM x s ==> nextElem s (HD s) x = next_el s x`,
+  (* {{{ proof *)
+  [
+BY(MESON_TAC[index_nextElem_next_el])
+  ]);;
+  (* }}} *)
+
+let nextVertex_next_el = prove_by_refinement(
+  `!f x. MEM x (FST f) ==> nextVertex f x = next_el (FST f) x`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[nextVertex;FORALL_PAIR_THM];
+  BY(SIMP_TAC[nextElem_next_el])
+  ]);;
+  (* }}} *)
+
+let fgraph_makeFaceFinal = prove_by_refinement(
+  `!f g. fgraph (makeFaceFinal f g) = fgraph g`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[fgraph;makeFaceFinal;faces_graph;makeFaceFinalFaceList];
+  BY(REWRITE_TAC[FST_setFinal])
+  ]);;
+  (* }}} *)
+
+let vertices_set2_makeFaceFinal = prove_by_refinement(
+  `!f g. vertices_set2 (makeFaceFinal f' g) = vertices_set2 g`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[vertices_set2;makeFaceFinal;bn_vertices_graph];
+  BY(REWRITE_TAC[vertices_graph])
+  ]);;
+  (* }}} *)
+
+let set_of_list_flatten_APPEND = prove_by_refinement(
+  `!a b. set_of_list (flatten (APPEND a b)) = 
+    set_of_list (flatten a) UNION set_of_list (flatten b)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[List_hypermap.set_of_list_flatten_map];
+  REWRITE_TAC[upper_case;SET_OF_LIST_APPEND;MAP_APPEND];
+  BY(SET_TAC[])
+  ]);;
+  (* }}} *)
+
+let split_at_mem_fst = prove_by_refinement(
+  `!f (u:A) v b. 
+    (MEM v (FST(split_at_rec u b f))) ==> MEM v f \/ MEM v b`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[split_at];
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+  REPEAT GEN_TAC;
+  COND_CASES_TAC;
+    ASM_REWRITE_TAC[FST;MEM];
+    BY(MESON_TAC[]);
+  FIRST_X_ASSUM (C INTRO_TAC [`u`;`v`;`APPEND b [h]`]);
+  REWRITE_TAC[MEM_APPEND];
+  REWRITE_TAC[MEM];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `MEM v b` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  TYPIFY `MEM v t` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+(* replace with snd_split_at_acc.
+let split_at_snd_acc = prove_by_refinement(
+  `!f (u:A) v b. MEM v (SND (split_at_rec u [] f)) <=>
+    MEM v (SND (split_at_rec u b f))`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `h = u` ASM_CASES_TAC THEN ASM_REWRITE_TAC[MEM];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+*)
+
+let snd_split_at_acc = prove_by_refinement(
+  `!f (u:A) b.  (SND (split_at_rec u b f)) =
+     (SND (split_at_rec u [] f))`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+  REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC THEN REWRITE_TAC[];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+(*
+let split_at_mem_snd = prove_by_refinement(
+  `!f (u:A) v b. 
+    (MEM v (SND(split_at_rec u b f))) ==> MEM v f \/ MEM v b`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[split_at];
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+  REPEAT GEN_TAC;
+  COND_CASES_TAC;
+    ASM_REWRITE_TAC[FST;MEM];
+    BY(MESON_TAC[]);
+  FIRST_X_ASSUM (C INTRO_TAC [`u`;`v`;`APPEND b [h]`]);
+  REWRITE_TAC[MEM_APPEND];
+  REWRITE_TAC[MEM];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `MEM v b` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  TYPIFY `MEM v t` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+*)
+
+let split_at_mem_snd = prove_by_refinement(
+  `!f (u:A) v b. 
+    (MEM v (SND(split_at_rec u b f))) ==> MEM v f`,
+  (* {{{ proof *)
+  [
+  ONCE_REWRITE_TAC[snd_split_at_acc];
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+  REPEAT GEN_TAC;
+  COND_CASES_TAC;
+    ASM_REWRITE_TAC[SND;MEM];
+    BY(MESON_TAC[]);
+  BY(ASM_MESON_TAC[snd_split_at_acc])
+  ]);;
+  (* }}} *)
+
+(* was SPLIT_AT_ACC *)
+
+let split_at_acc_fst = prove_by_refinement(
+  `!f (u:A) v b. MEM v b ==>
+    (MEM v (FST (split_at_rec u b f)))`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+  REPEAT WEAKER_STRIP_TAC THEN COND_CASES_TAC THEN ASM_REWRITE_TAC[FST;MEM];
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(ASM_REWRITE_TAC[MEM_APPEND])
+  ]);;
+  (* }}} *)
+
+let split_at_both = prove_by_refinement(
+  `!f (u:A) v b.  
+    (MEM v f) /\ (v = u ==> MEM v b) ==>
+    (MEM v (FST (split_at_rec u b f)) \/ MEM v (SND (split_at_rec u b f)))`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+  REPEAT GEN_TAC;
+  COND_CASES_TAC;
+    ASM_REWRITE_TAC[FST;MEM];
+    BY(MESON_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `v = h` ASM_CASES_TAC;
+    DISJ1_TAC;
+    MATCH_MP_TAC split_at_acc_fst;
+    BY(ASM_REWRITE_TAC[MEM_APPEND;MEM]);
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  ASM_REWRITE_TAC[MEM_APPEND;MEM];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+(* replaced with fst_split_at_acc.
+let split_at_fst_acc = prove_by_refinement(
+  `!f (u:A) v b. MEM v (FST (split_at_rec u [] f)) \/ MEM v b <=>
+    MEM v (FST (split_at_rec u b f))`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `h = u` ASM_CASES_TAC THEN ASM_REWRITE_TAC[MEM];
+  FIRST_X_ASSUM_ST `MEM` (unlist ONCE_REWRITE_TAC o GSYM);
+  REWRITE_TAC[MEM;MEM_APPEND];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+*)
+
+let fst_split_at_acc = prove_by_refinement(
+  `!f (u:A) b. APPEND b (FST (split_at_rec u [] f)) = 
+     (FST (split_at_rec u b f))`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND;APPEND_NIL];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `h = u` ASM_CASES_TAC THEN ASM_REWRITE_TAC[MEM;APPEND_NIL];
+  FIRST_X_ASSUM_ST `APPEND` (unlist ONCE_REWRITE_TAC o GSYM);
+  BY(MESON_TAC[APPEND_ASSOC])
+  ]);;
+  (* }}} *)
+
+let split_at_fst_antirefl = prove_by_refinement(
+  `!f (u:A) b. MEM u (FST (split_at_rec u b f)) ==> MEM u b`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+  REPEAT GEN_TAC;
+  TYPIFY `h = u` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  BY(ASM_MESON_TAC[fst_split_at_acc;MEM_APPEND;MEM])
+  ]);;
+  (* }}} *)
+
+let split_at_snd_antirefl = prove_by_refinement(
+  `!f (u:A) b. uniq f ==> ~(MEM u (SND (split_at_rec u b f)))`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+  REPEAT GEN_TAC;
+  TYPIFY `h = u` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+    BY(MESON_TAC[Seq.cons_uniq]);
+  BY(ASM_MESON_TAC[Seq.cons_uniq])
+  ]);;
+  (* }}} *)
+
+let split_at_fst_antisym = prove_by_refinement(
+  `!f (u:A) v b. MEM v (FST (split_at_rec u b f)) /\ 
+    MEM u (FST (split_at_rec v b f)) ==>
+     (MEM u b \/ MEM v b)`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+    REPEAT GEN_TAC;
+    BY(MESON_TAC[]);
+  REPEAT GEN_TAC;
+  REPEAT COND_CASES_TAC THEN ASM_REWRITE_TAC[FST;MEM];
+        BY(MESON_TAC[]);
+      BY(MESON_TAC[]);
+    BY(MESON_TAC[]);
+  FIRST_X_ASSUM (C INTRO_TAC [`u`;`v`;`APPEND b [h]`]);
+  BY(ASM_REWRITE_TAC[MEM_APPEND;MEM])  
+  ]);;
+  (* }}} *)
+
+let split_at_snd_antisym = prove_by_refinement(
+  `!f (u:A) v b. uniq f /\ MEM v (SND (split_at_rec u b f)) /\ 
+    MEM u (SND (split_at_rec v b f)) ==> F`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND];
+  REPEAT GEN_TAC;
+  BY(REPEAT COND_CASES_TAC THEN ASM_REWRITE_TAC[FST;MEM;Seq.cons_uniq] THEN REPEAT WEAKER_STRIP_TAC THEN ASM_MESON_TAC[split_at_mem_snd;snd_split_at_acc])
+  ]);;
+  (* }}} *)
+
+let snd_split_at_hd = prove_by_refinement(
+  `!f (u:A) v b. ~(f=[]) ==> SND(split_at_rec (HD f) b f) = TL f`,
+  (* {{{ proof *)
+  [
+  BY(LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND;HD;TL])
+  ]);;
+  (* }}} *)
+
+let fst_split_at_hd = prove_by_refinement(
+  `!f (u:A) v b.  FST(split_at_rec (HD f) b f) = b`,
+  (* {{{ proof *)
+  [
+  (LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND;HD;TL])
+  ]);;
+  (* }}} *)
+
+let fst_split_at_take = prove_by_refinement(
+  `!f (u:A) b. 
+     FST(split_at_rec u b f) = APPEND b (take (indexl u f) f)`,
+  (* {{{ proof *)
+  [
+  (LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND;HD;TL;Seq.take;APPEND_NIL]);
+  REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[Seq.index_head;Seq.take0;APPEND_NIL];
+  ASM_SIMP_TAC[GSYM APPEND_ASSOC];
+  AP_TERM_TAC;
+  ASM_REWRITE_TAC[Seq2.index_cons;];
+  ASM_REWRITE_TAC[Seq.take_cons];
+  BY(ASM_REWRITE_TAC[Seq.take_cons;APPEND_SING])
+  ]);;
+  (* }}} *)
+
+let snd_split_at_drop = prove_by_refinement(
+  `!f (u:A) b.
+    SND(split_at_rec u b f) = (dropl (SUC(indexl u f)) f)`,
+  (* {{{ proof *)
+  [
+  (LIST_INDUCT_TAC THEN REWRITE_TAC[split_at_rec;MEM;APPEND;HD;TL;Seq.drop;APPEND_NIL]);
+  REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[Seq.index_head;Seq.drop0;APPEND_NIL];
+  ASM_REWRITE_TAC[Seq2.index_cons;];
+  ]);;
+  (* }}} *)
+
+let split_at_take_drop = prove_by_refinement(
+  `!f (u:A) b.
+    split_at_rec u b f = (APPEND b (take (indexl u f) f)),dropl (SUC(indexl u f)) f`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[fst_split_at_take;snd_split_at_drop;PAIR_EQ2])
+  ]);;
+  (* }}} *)
+
+let split_at_nil_take_drop = prove_by_refinement(
+  `!f (u:A).
+    split_at_rec u [] f = take (indexl u f) f,dropl (SUC(indexl u f)) f`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[split_at_take_drop;APPEND])
+  ]);;
+  (* }}} *)
+
+
+(* was BETWN_MEM *)
+
+let betwn_mem = prove_by_refinement(
+  `!f (u:A) v w. MEM w (betwn f u v) ==>
+     MEM w f`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[betwn;split_at;split_at_rec];
+  REPEAT GEN_TAC;
+  REPEAT (LET_TAC);
+  ASM_REWRITE_TAC[IN_SET_OF_LIST];
+  TYPIFY `MEM w post1 \/ MEM w pre2 \/ MEM w pre2' ==> MEM w f` ENOUGH_TO_SHOW_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    FIRST_X_ASSUM MP_TAC THEN COND_CASES_TAC THEN ASM_SIMP_TAC[MEM_APPEND];
+    BY(MESON_TAC[]);
+  RULE_ASSUM_TAC(REWRITE_RULE[PAIR_EQ2]);
+  RULE_ASSUM_TAC(ONCE_REWRITE_RULE[EQ_SYM_EQ]) THEN ASM_REWRITE_TAC[];
+  BY(MESON_TAC[split_at_mem_snd;split_at_mem_fst;MEM])
+  ]);;
+  (* }}} *)
+
+let mem_drop_index = prove_by_refinement(
+  `!k (v:A) s. uniq s /\ MEM v s ==>
+    (MEM v (dropl k s) <=> k <= indexl v s)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  REPEAT STRIP_TAC;
+    ONCE_REWRITE_TAC[arith `k <= i <=> ~(i < k:num)`];
+    DISCH_TAC;
+    INTRO_TAC Seq.cat_take_drop [`k`;`s`];
+    DISCH_TAC;
+    INTRO_TAC Seq2.mem_imp_not_uniq_cat [`v`;`take k s`;`dropl k s`];
+    ANTS_TAC;
+      ASM_REWRITE_TAC[];
+      REWRITE_TAC[GSYM Seq.index_mem;Seq2.index_take];
+      ASM_REWRITE_TAC[];
+      GMATCH_SIMP_TAC Seq.size_takel;
+      ASM_REWRITE_TAC[];
+      MATCH_MP_TAC (arith `~(s <= k:num) ==> (k <= s)`);
+      DISCH_THEN (MP_TAC o MATCH_MP Seq.drop_oversize);
+      BY(ASM_MESON_TAC[MEM]);
+    BY(ASM_MESON_TAC[]);
+  INTRO_TAC Seq.cat_take_drop [`k`;`s`];
+  DISCH_TAC;
+  INTRO_TAC Seq.index_cat [`v`;`take k s`;`dropl k s`];
+  COND_CASES_TAC;
+    FIRST_X_ASSUM_ST `MEM` MP_TAC THEN REWRITE_TAC[GSYM Seq.index_mem];
+    GMATCH_SIMP_TAC Seq.size_takel;
+    SUBCONJ_TAC;
+      MATCH_MP_TAC LE_TRANS;
+      TYPIFY `indexl v s` EXISTS_TAC;
+      ASM_REWRITE_TAC[];
+      BY(REWRITE_TAC[Seq.index_size]);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM_ST `x < k:num` MP_TAC THEN REWRITE_TAC[Seq2.index_take];
+    COND_CASES_TAC;
+      BY(ASM_TAC THEN ARITH_TAC);
+    BY(ARITH_TAC);
+  BY(ASM_MESON_TAC[Seq.mem_cat])
+  ]);;
+  (* }}} *)
+
+let size_take_le = prove_by_refinement(
+  `!k (v:A) s. sizel (take k s) <= sizel s`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Seq.size_take];
+  BY(REPEAT WEAKER_STRIP_TAC THEN COND_CASES_TAC THEN ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let size_drop_le = prove_by_refinement(
+  `!k (v:A) s. sizel (dropl k s) <= sizel s`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Seq.size_drop];
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let mem_take_index = prove_by_refinement(
+  `!k (v:A) s. uniq s /\ 
+    MEM v s ==>
+    (MEM v (take k s) <=>  indexl v s < k)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  REPEAT STRIP_TAC;
+    ONCE_REWRITE_TAC[arith `k < i <=> ~(i <= k:num)`];
+    DISCH_TAC;
+    INTRO_TAC Seq.cat_take_drop [`k`;`s`];
+    DISCH_TAC;
+    INTRO_TAC Seq2.mem_imp_not_uniq_cat [`v`;`take k s`;`dropl k s`];
+    ANTS_TAC;
+      ASM_REWRITE_TAC[];
+      BY(ASM_MESON_TAC[mem_drop_index]);
+    BY(ASM_MESON_TAC[]);
+  INTRO_TAC Seq.cat_take_drop [`k`;`s`];
+  DISCH_TAC;
+  INTRO_TAC Seq.index_cat [`v`;`take k s`;`dropl k s`];
+  TYPIFY `sizel s <= k` ASM_CASES_TAC;
+    BY(ASM_MESON_TAC[Seq.take_oversize]);
+  COND_CASES_TAC;
+    BY(FIRST_X_ASSUM_ST `MEM` MP_TAC THEN REWRITE_TAC[GSYM Seq.index_mem]);
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC Seq.size_takel;
+  BY(ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let take_take = prove_by_refinement(
+  `!i j s. i <= j ==> take i (take j s) = take i s`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `sizel s <= j` ASM_CASES_TAC;
+    BY(ASM_SIMP_TAC[Seq.take_oversize]);
+  INTRO_TAC Seq.cat_take_drop [`j`;`s`];
+  TYPIFY `i <= sizel (take j s)` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[Seq.takel_cat]);
+  REWRITE_TAC[Seq.size_take];
+  BY(COND_CASES_TAC THEN ASM_TAC THEN TRY ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let drop_drop = prove_by_refinement(
+  `!(s:A list) j i. dropl i (dropl j s) = dropl (i+j) s`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[Seq.drop];
+  BY(INDUCT_TAC THEN ASM_REWRITE_TAC[Seq.drop;arith `i+0 = i`;arith `i + SUC j = SUC (i+j)`])
+  ]);;
+  (* }}} *)
+
+let betwn_take_drop = prove_by_refinement(
+  `!f (u:A) (v:A).  MEM v f /\ uniq f ==> betwn f u v = 
+      if (indexl u f < indexl v f) 
+      then take (PRE(indexl v f - indexl u f)) (dropl (SUC (indexl u f)) f)
+      else APPEND (dropl (SUC (indexl u f)) f) (take (indexl v f) f)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[betwn;split_at_nil_take_drop;split_at;IN_SET_OF_LIST];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT LET_TAC;
+  RULE_ASSUM_TAC(REWRITE_RULE[PAIR_EQ2]);
+  RULE_ASSUM_TAC(ONCE_REWRITE_RULE[EQ_SYM_EQ]) THEN ASM_REWRITE_TAC[];
+  REPLICATE_TAC 3 (FIRST_X_ASSUM kill);
+  ASM_SIMP_TAC[mem_drop_index];
+  REWRITE_TAC[arith `SUC n <= i <=> n < i`];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[] THENL [ALL_TAC;AP_TERM_TAC];
+    TYPIFY `(indexl v (dropl (SUC (indexl u f)) f)) = (PRE (indexl v f - indexl u f))` ENOUGH_TO_SHOW_TAC;
+      BY(DISCH_THEN (unlist REWRITE_TAC));
+    GMATCH_SIMP_TAC Seq2.index_drop_le;
+    CONJ_TAC;
+      BY(ASM_TAC THEN ARITH_TAC);
+    BY(ASM_TAC THEN ARITH_TAC);
+  GMATCH_SIMP_TAC take_take;
+  TYPIFY `indexl v (take (indexl u f) f) = indexl v f` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN (unlist ASM_REWRITE_TAC);
+    BY(ASM_TAC THEN ARITH_TAC);
+  REWRITE_TAC[Seq2.index_take];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+  BY(ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let drop_take_commute = prove_by_refinement(
+  `!(s:A list) k n. k <= n ==> dropl k (take n s) = take (n-k) (dropl k s)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `sizel s <= k` ASM_CASES_TAC;
+    REPEAT (GMATCH_SIMP_TAC Seq.drop_oversize);
+    ASM_REWRITE_TAC[Seq.take];
+    MATCH_MP_TAC LE_TRANS;
+    TYPIFY `sizel s` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    BY(REWRITE_TAC[Seq.size_take] THEN COND_CASES_TAC THEN ASM_TAC THEN ARITH_TAC);
+  TYPIFY `take n s = take n (cat (take k s) (dropl k s))` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(MESON_TAC[ Seq.cat_take_drop]);
+  REWRITE_TAC[Seq.take_cat];
+  COND_CASES_TAC;
+    FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[Seq.size_take];
+    BY(COND_CASES_TAC THEN ASM_TAC THEN ARITH_TAC);
+  REWRITE_TAC[Seq.drop_cat];
+  TYPIFY_GOAL_THEN `sizel (take k s) = k` (unlist REWRITE_TAC);
+    BY(REWRITE_TAC[Seq.size_take] THEN COND_CASES_TAC THEN ASM_TAC THEN ARITH_TAC);
+  BY(REWRITE_TAC[arith `~(k<k:num)`;arith `(k:num) - k = 0`;Seq.drop0])
+  ]);;
+  (* }}} *)
+
+let take_drop_commute = prove_by_refinement(
+  `!(s:A list) k n. take n (dropl k s) = dropl k (take (n+k) s)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC drop_take_commute;
+  BY(REWRITE_TAC[arith `(n + k) - (k:num) = n`;arith `(k:num) <= n+ k`])
+  ]);;
+  (* }}} *)
+
+(*
+let betwn_hd = prove_by_refinement(
+  `!f (u:A) v x. MEM u f /\ MEM v f /\ ~(u = v) ==>
+    betwn f u v = if (u = HD f) then take (indexl v f - 1) (TL f) else 
+      betwn (rot 1 f) u v`,
+  (* {{{ proof *)
+  [
+  st/r
+  rt[betwn]
+  repeat (LET_TAC)
+  rule(rr[PAIR_EQ2])
+  rule(orr[EQ_SYM_EQ])
+  art[] then rep 6 (fxa kill)
+  rt[IN_SET_OF_LIST]
+  repeat condcse then art[]
+  ...
+  ]);;
+  (* }}} *)
+*)
+
+let size_betwn = prove_by_refinement(
+  `!x:A y s. uniq s /\ MEM x s /\  MEM y s /\ ~(x= y) ==>
+    sizel (betwn s x y ) = PRE (indexf'' x y s)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_SIMP_TAC[betwn_take_drop];
+  COND_CASES_TAC;
+    GMATCH_SIMP_TAC Seq.size_takel;
+    REWRITE_TAC[Seq.size_drop];
+    REWRITE_TAC[arith `n - SUC u = PRE (n - u)`];
+    CONJ_TAC;
+      MATCH_MP_TAC (arith `n <= m ==> PRE n <= PRE m`);
+      INTRO_TAC Seq.index_size [`y`;`s`];
+      BY(ASM_TAC THEN ARITH_TAC);
+    MATCH_MP_TAC (arith `n = m ==> PRE n = PRE m`);
+    GMATCH_SIMP_TAC indexf_cond;
+    BY(ASM_SIMP_TAC[arith `x < y ==> x <= (y:num)`]);
+  REWRITE_TAC[Dpzgbyf.lower_case];
+  REWRITE_TAC[Seq.size_cat];
+  GMATCH_SIMP_TAC Seq.size_takel;
+  REWRITE_TAC[Seq.size_drop];
+  SUBCONJ_TAC;
+    BY(ASM_TAC THEN REWRITE_TAC[GSYM Seq.index_mem] THEN ARITH_TAC);
+  DISCH_TAC;
+  TYPIFY `~(indexl x s = indexl y s)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[index_uniq]);
+  ASM_SIMP_TAC[indexf_cond];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+    BY(ASM_TAC THEN ARITH_TAC);
+  BY(ASM_TAC THEN REWRITE_TAC[GSYM Seq.index_mem] THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let uniq_drop = prove_by_refinement(
+  `!k v:A s. uniq s ==> uniq (dropl k s)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Seq.cat_take_drop [`k`;`s`];
+  BY(ASM_MESON_TAC[Seq.cat_uniq])
+  ]);;
+  (* }}} *)
+
+let uniq_take = prove_by_refinement(
+  `!k v:A s. uniq s ==> uniq (take k s)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Seq.cat_take_drop [`k`;`s`];
+  BY(ASM_MESON_TAC[Seq.cat_uniq])
+  ]);;
+  (* }}} *)
+
+let not_betwn1 = prove_by_refinement(
+  `!x:A z s. uniq s /\ MEM z s ==> ~(MEM x (betwn s x z))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  ASM_SIMP_TAC[betwn_take_drop];
+  COND_CASES_TAC;
+    DISCH_TAC;
+    FIRST_ASSUM (ASSUME_TAC o MATCH_MP Seq.mem_take);
+    FIRST_ASSUM (ASSUME_TAC o MATCH_MP Seq.mem_drop);
+    FIRST_X_ASSUM_ST `dropl` MP_TAC;
+    ASM_SIMP_TAC[mem_drop_index];
+    BY(ARITH_TAC);
+  REWRITE_TAC[MEM_APPEND];
+  STRIP_TAC;
+    FIRST_ASSUM (ASSUME_TAC o MATCH_MP Seq.mem_drop);
+    FIRST_X_ASSUM_ST `dropl` MP_TAC;
+    ASM_SIMP_TAC[mem_drop_index];
+    BY(ARITH_TAC);
+  FIRST_ASSUM (ASSUME_TAC o MATCH_MP Seq.mem_take);
+  FIRST_X_ASSUM_ST `take` MP_TAC;
+  BY(ASM_SIMP_TAC[mem_take_index])
+  ]);;
+  (* }}} *)
+
+let not_betwn2 = prove_by_refinement(
+  `!x:A z s. uniq s ==> ~(MEM z (betwn s x z))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `MEM z s` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[betwn_mem]);
+  FIRST_X_ASSUM_ST `betwn` MP_TAC;
+  ASM_SIMP_TAC[betwn_take_drop];
+  COND_CASES_TAC;
+    DISCH_TAC;
+    FIRST_ASSUM (ASSUME_TAC o MATCH_MP Seq.mem_take);
+    FIRST_ASSUM (ASSUME_TAC o MATCH_MP Seq.mem_drop);
+    FIRST_X_ASSUM_ST `take` MP_TAC;
+    REWRITE_TAC[take_drop_commute];
+    DISCH_TAC;
+    FIRST_ASSUM (ASSUME_TAC o MATCH_MP Seq.mem_drop);
+    FIRST_X_ASSUM MP_TAC;
+    ASM_SIMP_TAC[mem_take_index];
+    BY(ASM_TAC THEN ARITH_TAC);
+  REWRITE_TAC[MEM_APPEND];
+  STRIP_TAC;
+    FIRST_X_ASSUM_ST `dropl` MP_TAC;
+    ASM_SIMP_TAC[mem_drop_index];
+    BY(ASM_TAC THEN ARITH_TAC);
+  FIRST_X_ASSUM_ST `take` MP_TAC;
+  (ASM_SIMP_TAC[mem_take_index]);
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let indexl_betwn = prove_by_refinement(
+  `!x:A y z s. uniq s /\ MEM x s /\ MEM z s /\ MEM y (betwn s x z) ==>
+    SUC (indexl y (betwn s x z)) = indexf'' x y s`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `~(x = y)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[not_betwn1]);
+  REPEAT (FIRST_X_ASSUM_ST `MEM` MP_TAC) THEN REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM MP_TAC;
+  ASM_SIMP_TAC[betwn_take_drop];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+    REWRITE_TAC[Seq2.index_take];
+    DISCH_TAC;
+    FIRST_ASSUM (ASSUME_TAC o MATCH_MP Seq.mem_take);
+    FIRST_ASSUM (ASSUME_TAC o MATCH_MP Seq.mem_drop);
+    FIRST_X_ASSUM_ST `take` MP_TAC;
+    GMATCH_SIMP_TAC mem_take_index;
+    ASM_SIMP_TAC[uniq_drop];
+    GMATCH_SIMP_TAC Seq2.index_drop_le;
+    FIRST_X_ASSUM_ST `dropl` MP_TAC;
+    GMATCH_SIMP_TAC mem_drop_index;
+    ASM_REWRITE_TAC[];
+    REPEAT STRIP_TAC;
+      BY(ASM_TAC THEN ARITH_TAC);
+    GMATCH_SIMP_TAC indexf_cond;
+    ASM_SIMP_TAC[arith `SUC i <= j ==> i <= j`];
+    BY(ASM_TAC THEN ARITH_TAC);
+  REWRITE_TAC[MEM_APPEND];
+  COMMENT "cases";
+  DISCH_TAC;
+  TYPIFY `MEM y (dropl (SUC (indexl x s)) s)` ASM_CASES_TAC;
+    FIRST_X_ASSUM_ST `take` kill;
+    FIRST_ASSUM (ASSUME_TAC o MATCH_MP Seq.mem_drop);
+    REWRITE_TAC[Seq2.APPEND_cat];
+    REWRITE_TAC[Seq.index_cat];
+    ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC Seq2.index_drop_le;
+    FIRST_X_ASSUM_ST `dropl` MP_TAC;
+    GMATCH_SIMP_TAC mem_drop_index;
+    ASM_REWRITE_TAC[];
+    SIMP_TAC[];
+    DISCH_TAC;
+    GMATCH_SIMP_TAC indexf_cond;
+    ASM_SIMP_TAC[arith `SUC i <= j ==> i <= j`];
+    BY(ASM_TAC THEN ARITH_TAC);
+  FIRST_X_ASSUM_ST `take` MP_TAC THEN ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  FIRST_ASSUM (ASSUME_TAC o MATCH_MP Seq.mem_take);
+  REWRITE_TAC[Seq2.APPEND_cat];
+  ASM_REWRITE_TAC[Seq.index_cat];
+  REWRITE_TAC[ Seq.size_drop];
+  REWRITE_TAC[Seq2.index_take];
+  FIRST_X_ASSUM_ST `take` MP_TAC;
+  GMATCH_SIMP_TAC mem_take_index;
+  ASM_REWRITE_TAC[];
+  SIMP_TAC[];
+  DISCH_TAC;
+  GMATCH_SIMP_TAC indexf_cond;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `dropl` MP_TAC;
+  GMATCH_SIMP_TAC mem_drop_index;
+  ASM_SIMP_TAC[];
+  DISCH_TAC THEN COND_CASES_TAC;
+    TYPIFY `indexl x s = indexl y s` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_TAC THEN ARITH_TAC);
+    BY(ASM_MESON_TAC[index_uniq]);
+  TYPIFY `indexl x s < sizel s` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_TAC THEN ARITH_TAC);
+  BY(ASM_REWRITE_TAC[Seq.index_mem])
+  ]);;
+  (* }}} *)
+
+let indexf_betwn = prove_by_refinement(
+  `!s x:A y z. ~(x = z) /\ uniq s /\ MEM x s /\
+     MEM z s /\ MEM y (betwn s x z) ==>
+    0 < indexf'' x y s /\ indexf'' x y s < indexf'' x z s`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC indexl_betwn [`x`;`y`;`z`;`s`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN (SUBST1_TAC o GSYM);
+  CONJ_TAC;
+    BY(ARITH_TAC);
+  MATCH_MP_TAC (arith (`u < PRE i ==> SUC u < i`));
+  GMATCH_SIMP_TAC (GSYM size_betwn);
+  ASM_REWRITE_TAC[];
+  BY(ASM_REWRITE_TAC[Seq.index_mem])
+  ]);;
+  (* }}} *)
+
+let not_take_drop = prove_by_refinement(
+  `!s x:A k. uniq s ==>  ~(MEM x (take k s) /\ MEM x (dropl k s))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_ASSUM (ASSUME_TAC o MATCH_MP Seq.mem_take);
+  INTRO_TAC Seq.cat_take_drop [`k`;`s`];
+  BY(ASM_MESON_TAC[Seq2.mem_imp_not_uniq_cat])
+  ]);;
+  (* }}} *)
+
+let take_or_drop = prove_by_refinement(
+  `!s x:A k. uniq s /\ MEM x s ==>  (MEM x (take k s) \/ MEM x (dropl k s))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Seq.cat_take_drop [`k`;`s`];
+  BY(ASM_MESON_TAC[Seq.mem_cat])
+  ]);;
+  (* }}} *)
+
+let betwn_cases = prove_by_refinement(
+  `!s x:A y z. ~(x = z) /\ uniq s /\ 
+    MEM x s /\ MEM y s /\ MEM z s ==>
+      (y = x) \/ (y = z) \/ (MEM y (betwn s x z)) \/ MEM y (betwn s z x)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `(y = x)` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  TYPIFY `(y = z)` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  TYPIFY `MEM y (betwn s x z)` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  TYPIFY `~(indexl x s =indexl z s) /\ ~(indexl x s = indexl y s) /\ ~(indexl y s = indexl z s)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[index_uniq]);
+  FIRST_X_ASSUM_ST `betwn` MP_TAC;
+  ASM_SIMP_TAC[betwn_take_drop];
+  COND_CASES_TAC THEN ASM_SIMP_TAC[arith `x < z:num ==> ~(z < x:num)`;arith `~(x < z:num) /\ ~(x = z) ==> (z < x)`;Seq2.APPEND_cat;Seq.mem_cat];
+    DISCH_TAC;
+    TYPIFY `MEM y (take (indexl x s) s)` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM_ST `PRE` MP_TAC;
+    REWRITE_TAC[ take_drop_commute];
+    ASM_SIMP_TAC[arith `x < z:num ==> (PRE( z - x) + SUC x = z)`];
+    FIRST_X_ASSUM MP_TAC;
+    TYPIFY `MEM y (take(indexl z s) s)` ASM_CASES_TAC;
+      ASM_SIMP_TAC[mem_take_index];
+      ASM_SIMP_TAC[uniq_take;mem_drop_index];
+      REWRITE_TAC[Seq2.index_take];
+      TYPIFY `indexl y s < indexl z s` (C SUBGOAL_THEN ASSUME_TAC);
+        BY(ASM_MESON_TAC[mem_take_index]);
+      ASM_REWRITE_TAC[];
+      BY(ASM_TAC THEN ARITH_TAC);
+    REPLICATE_TAC 2 (DISCH_THEN kill);
+    FIRST_X_ASSUM MP_TAC;
+    ASM_SIMP_TAC[mem_take_index];
+    ASM_SIMP_TAC[uniq_take;mem_drop_index];
+    BY(ASM_TAC THEN ARITH_TAC);
+  COMMENT "last case";
+  REWRITE_TAC[DE_MORGAN_THM];
+  REWRITE_TAC[ take_drop_commute];
+  TYPIFY `indexl z s < indexl x s` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_TAC THEN ARITH_TAC);
+  ASM_SIMP_TAC[arith `x < z:num ==> (PRE( z - x) + SUC x = z)`];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `MEM y (take(indexl x s) s)` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `dropl` MP_TAC;
+    ASM_SIMP_TAC[mem_take_index];
+    ASM_SIMP_TAC[uniq_take;mem_drop_index];
+    BY(ASM_TAC THEN ARITH_TAC);
+  REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `( ~)` MP_TAC);
+  ASM_SIMP_TAC[mem_take_index];
+  ASM_SIMP_TAC[uniq_take;mem_drop_index];
+  REWRITE_TAC[Seq2.index_take];
+  REPEAT WEAKER_STRIP_TAC;
+  BY(COND_CASES_TAC THEN ASM_REWRITE_TAC[] THEN ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let indexf_betwn_eq = prove_by_refinement(
+  `!s x:A y z.
+    ~(x = z) /\ uniq s /\ MEM x s /\ MEM z s ==>
+    (MEM y (betwn s x z) <=>
+    0 < indexf'' x y s /\ indexf'' x y s < indexf'' x z s
+    )`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Geomdetail.EQ_EXPAND];
+  CONJ_TAC;
+    DISCH_TAC;
+    MATCH_MP_TAC indexf_betwn;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `MEM y s` (C SUBGOAL_THEN ASSUME_TAC);
+    PROOF_BY_CONTR_TAC;
+    FIRST_X_ASSUM (ASSUME_TAC o MATCH_MP indexf2);
+    BY(ASM_MESON_TAC[indexf_lt_sizel;arith `~(a < b:num /\ b < a)`]);
+  INTRO_TAC betwn_cases [`s`;`x`;`y`;`z`];
+  ASM_REWRITE_TAC[];
+  TYPIFY `y = x` ASM_CASES_TAC;
+    BY(ASM_MESON_TAC[indexf_refl;arith `~(x < x:num)`]);
+  TYPIFY `y = z` ASM_CASES_TAC;
+    BY(ASM_MESON_TAC[arith `~(x < x:num)`]);
+  TYPIFY `~(MEM y (betwn s z x))` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  INTRO_TAC indexf_betwn [`s`;`z`;`y`;`x`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC indexf_add_left [`z`;`y`;`x`;`s`];
+  ASM_SIMP_TAC[arith `x < (y:num) ==> x <= y`];
+  DISCH_TAC;
+  TYPIFY `indexf'' y x s <= indexf'' z x s` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_TAC THEN ARITH_TAC);
+  INTRO_TAC indexf_antisym [`y`;`x`;`s`];
+  INTRO_TAC indexf_antisym [`z`;`x`;`s`];
+  ASM_REWRITE_TAC[];
+  BY(ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let indexf_add_betwn = prove_by_refinement(
+  `!x y z s. ~(x = z) /\ uniq s /\ MEM x s /\ MEM y (betwn s x z) /\ MEM z s ==>
+   indexf'' x y s + indexf'' y z s = indexf'' x z s`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC indexf_add_left;
+  FIRST_ASSUM (ASSUME_TAC o MATCH_MP betwn_mem);
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC (arith `x < y:num ==> x <= y`);
+  FIRST_X_ASSUM_ST `betwn` MP_TAC;
+  GMATCH_SIMP_TAC indexf_betwn_eq;
+  ASM_REWRITE_TAC[];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let indexf_add_not_betwn = prove_by_refinement(
+  `!x y z s. ~(x = z) /\ uniq s /\ MEM x s /\ MEM y s /\
+    ~MEM y (betwn s z x) /\ MEM z s ==>
+   indexf'' x y s + indexf'' y z s = indexf'' x z s`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC betwn_cases [`s`;`x`;`y`;`z`];
+  ASM_REWRITE_TAC[];
+  BY(REPEAT STRIP_TAC THEN ASM_SIMP_TAC[indexf_add_betwn;indexf_refl;arith `n +0 = n /\ 0 + n = n`])
+  ]);;
+  (* }}} *)
+
+let next_el_refl = prove_by_refinement(
+  `!(x:A) s. MEM x s /\ next_el s x = x /\ uniq s ==> s = [x]`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `~(sizel s = 0)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Seq.size_eq0;MEM]);
+  TYPIFY `indexl x s < sizel s` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(INTRO_TAC Seq.index_mem [`x`;`s`] THEN ASM_MESON_TAC[]);
+  TYPIFY `sizel s = 1` ENOUGH_TO_SHOW_TAC;
+    REWRITE_TAC[Seq2.size1_eq];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_ASSUM_ST `MEM` MP_TAC;
+    BY(ASM_MESON_TAC[MEM]);
+  FIRST_ASSUM (ASSUME_TAC o MATCH_MP Seq2.next_el_mod);
+  PROOF_BY_CONTR_TAC;
+  TYPIFY `1 < sizel s` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_TAC THEN ARITH_TAC);
+  INTRO_TAC (GEN_ALL Qknvmlb.SUC_MOD_NOT_EQ) [`sizel s`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN (C INTRO_TAC [`indexl x s`]);
+  DISCH_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`x`]);
+  DISCH_TAC;
+  INTRO_TAC Seq.nth_uniq [`x`;`s`;`indexl x s`;`SUC (indexl x s) MOD sizel s`];
+  TYPIFY `SUC (indexl x s) MOD sizel s < sizel s` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[DIVISION]);
+  TYPIFY_GOAL_THEN `~(indexl x s = SUC (indexl x s) MOD sizel s)` (unlist ASM_REWRITE_TAC);
+    BY(ASM_MESON_TAC[MOD_LT]);
+  (ASM_SIMP_TAC[Seq.nth_index]);
+  BY(ASM_MESON_TAC[arith `SUC x = x + 1`])
+  ]);;
+  (* }}} *)
+
+(* FWDDPHY: *)
+
+let indexf_prev = prove_by_refinement(
+  `!(x:A) y s. MEM x s /\ MEM y s /\ uniq s /\  
+   next_el s x = y ==> indexf'' y x s = 
+      sizel s - 1`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `x = y` ASM_CASES_TAC;
+    INTRO_TAC next_el_refl [`x`;`s`];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[]);
+    DISCH_TAC THEN ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[indexf_refl;Seq2.size1;arith `0 = 1 - 1`]);
+  TYPIFY `1 < sizel s` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC sizel_gt_1;
+    BY(ASM_MESON_TAC[]);
+  INTRO_TAC indexf_antisym [`x`;`y`;`s`];
+  ASM_REWRITE_TAC[];
+  TYPIFY `indexf'' x y s = 1` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_TAC THEN ARITH_TAC);
+  MATCH_MP_TAC next_el_indexf;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+
+
+
 end;;

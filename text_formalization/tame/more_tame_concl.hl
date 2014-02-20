@@ -118,7 +118,7 @@ let core_list = new_definition' `core_list PN =
 
 let partition_into_atom0 = new_recursive_definition list_RECURSION
   `partition_into_atom0 (n:A->A) acc [] = acc /\
-   partition_into_atom0 n acc (r::rs) = 
+   partition_into_atom0 (n:A->A) acc (r::rs) = 
      if (acc = []) then partition_into_atom0 n [[r]] rs
      else (if (n r = HD(HD acc)) 
            then partition_into_atom0 n ((r:: HD acc)::TL acc) rs
@@ -350,7 +350,7 @@ let dih2k_list =
 				      L = [u;rev u])`;;
 
 (*  enumeration lists.
-    mk_triple inverse of dest_triple
+    mk_triple1 inverse of dest_triple
     enum_of_VertexList inverse of indexToVertexList.
 
    enum (Isabelle side) -> VertexList -> triples (hypermap list side)
@@ -370,8 +370,9 @@ let mk_triple0 = new_recursive_definition list_RECURSION
 	   else 
 	     mk_triple0 f v 0 ((u,v,n)::sofar) vos)`;;
 
-let mk_triple = new_definition'
- `mk_triple f (vs:((A)option)list) = mk_triple0 f (the (HD vs)) 0 [] (TL vs)`;;
+let mk_triple1 = new_definition'
+ `mk_triple1 f (vs:((A)option)list) = 
+   if (vs = []) then [] else mk_triple0 f (the (HD vs)) 0 [] (TL vs)`;;
 
 (* was dest_triples0, dest_triple *)
 
@@ -417,12 +418,25 @@ let showDups0 = new_recursive_definition list_RECURSION
 
 let showDups = new_recursive_definition list_RECURSION
   `showDups ([]:((A)option)list) = [] /\
-   showDups (b::bs) = showDups0 (the b) (b::bs)`;;
+   showDups ((b:(A)option)::bs) = showDups0 (the b) (b::bs)`;;
 
 let enum_of_VertexList = new_definition'
   `enum_of_VertexList f (v:A) vs = 
     MAP (\u. indexf v u f  ) (showDups vs)`;;
 
+let unadj = new_recursive_definition list_RECURSION
+  `(unadj ([]:(A)list) = T) /\
+   unadj ((h:A) ::t) = if (t = []) then T else (~((h:A) = HD t) /\ unadj t)`;;
+
+let pairwisel = new_recursive_definition list_RECURSION
+  `(pairwisel f ([]:(A)list) = T) /\
+    pairwisel f ((h:A)::t) = if (t=[]) then T else (f h (HD t) /\ pairwisel f t)`;;
+
+(* deleted image_hide1 *)
+
+let image_hideDups = new_definition
+  `image_hideDups s = 
+    (s = [] \/ (unadj (filter isSome s) /\ isSome (HD s)))`;;
 
 
 (* ========================================================================== *)
@@ -502,12 +516,12 @@ let GNBEVVU_concl = `!L N L' N'.
     good_list L /\ iso_list (L,N) (L',N') ==> 
     iso (hypermap_of_list L) (hypermap_of_list L')`;;
 
-let iso_list_refl = `!a. iso_list a a`;;
+let iso_list_refl = ("done",`!a. iso_list a a`);;
 
-let iso_list_sym = `!a b. iso_list a b ==> iso_list b a`;;
+let iso_list_sym = ("done",`!a b. iso_list a b ==> iso_list b a`);;
 
-let iso_list_trans = 
- `!a b c. iso_list a b /\ iso_list b c ==> iso_list a b`;;
+let iso_list_trans = ("done",
+ `!a b c. iso_list a b /\ iso_list b c ==> iso_list a b`);;
 
 let isop_append = `!L N L' N' phi.
    (isop_list phi (L,APPEND N1 N2) (L',APPEND N1' N2') /\ 
@@ -519,21 +533,24 @@ let isop_cons = `!L N L' N' r r' phi.
     (isop_list phi (L,N) (L',N') /\ r' = 
 	MAP (\u. (phi (FST u),phi(SND u))) r)`;;
 
-let PEUTLZH_concl = `!L N L' N'.
+let PEUTLZH_concl = ("done",`!L N L' N'.
   good_list L /\ iso_list (L,N) (L',N') ==>
-  good_list L'`;;
+  good_list L'`);;
 
-let OISRWOF_concl = `!L N L' N'.
+let OISRWOF_concl = ("done",`!L N L' N'.
   good_list_nodes L /\ iso_list (L,N) (L',N') ==>
-  good_list_nodes L'`;;
+  good_list_nodes L'`);;
 
-let UEYETNI_concl = `!L N L' N'.
+let UEYETNI_concl = ("done",`!L N L' N'.
   all uniq L /\ iso_list (L,N) (L',N') ==>
-  all uniq L'`;;
+  all uniq L'`);;
 
 let XKDZKWV_concl = `!L N L' N'.
   good_list L /\ iso_list (L,N) (L',N') /\ normal_list L N ==>
   normal_list L' N'`;;
+
+let DAKEFCC_concl = 
+  `!H K. is_restricted H /\ iso H K ==> is_restricted K`;;
 
 let MEEIXJO_concl = `!L N L' N' r r' x x'.
   good_list L /\ 
@@ -545,9 +562,6 @@ let MEEIXJO_concl = `!L N L' N' r r' x x'.
 (* ========================================================================== *)
 
 (* reductions to hypermap_of_list L, then num, then ordered_list form *)
-
-let DAKEFCC_concl = 
-  `!H K. is_restricted H /\ iso H K ==> is_restricted K`;;
 
 				
 let RXOKSKC_concl = 
@@ -776,36 +790,44 @@ let subdivFace0_finals = `!g f u n vs.
 (* Enumeration Lists *)
 (* ========================================================================== *)
 
+
+let show_hideDups_concl = ("done",
+  `!s. showDups (hideDups s) = s`);;
+
+let hideDups_show_concl = ("done",
+  `!s. image_hideDups s ==> hideDups (showDups s) = s`);;
+
+let enum_indexToVertexList_concl = ("done",
+  `!e f v. MEM v (FST f) /\ (uniq (FST f)) /\ 
+    (all (\n. n < sizel (FST f)) e) ==>
+    enum_of_VertexList (FST f) v (indexToVertexList f v e) = e`);;
+
+let indexToVertexList_enum_concl = ("done",
+  `!vs f v. uniq (FST f) /\ MEM v (FST f) /\ 
+    image_hideDups vs /\
+    all (\t.  MEM (the t) (FST f)) (filter isSome vs) ==>
+    indexToVertexList f v (enum_of_VertexList (FST f) v vs) = vs`);;
+
+let concl = 
+  `!f vs. hypotheses ==> dest_triple f (mk_triple1 f vs) = vs`;;
+
+let concl = 
+  `!f vs. hypotheses ==> mk_triple1 f (dest_triple f vs) = vs`;;
+
+
+let concl = `hypotheses ==>
+  subdivFaceFinal2 g f (mk_triple1 (FST f) vs) = subdivFace g f vs`;;
+
 (* this justifies the duplicate edge filter *)
 
 let concl = 
   `!g f v enum. containsDuplicateEdge g f v enum ==>
     (let vs = indexToVertexList f v enum in
-     let triple = mk_triple (FST f) vs in
+     let triple = mk_triple1 (FST f) vs in
        (?u v. MEM (u,v,0) triple /\ MEM (u,v) (list_of_darts (fgraph g))))`;;
 
-let concl = 
-  `showDups (HideDups A) = A`;;
 
-let concl = 
-  `HideDups (showDups A) = A`;;
 
-let concl = 
-  `!f vs. hypotheses ==> dest_triple f (mk_triple f vs) = vs`;;
-
-let concl = 
-  `!f vs. hypotheses ==> mk_triple f (dest_triple f vs) = vs`;;
-
-let concl = 
-  `!f e. hypotheses ==> 
-    Enum_of_VertexList (FST f) (indexToVertexList f e) = e`;;
-
-let concl = 
-  `!f vs. hypotheses ==>
-    indexToVertexList f (Enum_of_VertexList (FST f) vs) = vs`;;
-
-let concl = `hypotheses ==>
-  subdivFaceFinal2 g f (mk_triple (FST f) vs) = subdivFace g f vs`;;
 
 (* ========================================================================== *)
 (* The Index Calculus of Higher Transforms. *)

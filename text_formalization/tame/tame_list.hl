@@ -1425,7 +1425,7 @@ let rev0 = prove_by_refinement(
 
 let lower_case = end_itlist CONJ
  [GSYM Seq.map_MAP;GSYM Seq.size;GSYM filter_FILTER;
-  REVERSE_rev;GSYM last_LAST;APPEND_cat];;
+  REVERSE_rev;GSYM last_LAST;APPEND_cat;Seq2.ALL_all];;
 
 let upper_case  = GSYM lower_case;;
 
@@ -1507,7 +1507,7 @@ let indexf0 = prove_by_refinement(
   ]);;
   (* }}} *)
 
-let indexf1 = prove_by_refinement(
+let indexf_mem1 = prove_by_refinement(
   `!(x:A) y s. ~MEM x s ==> indexf x y s = sizel s`,
   (* {{{ proof *)
   [
@@ -3025,6 +3025,404 @@ let indexf_prev = prove_by_refinement(
   ]);;
   (* }}} *)
 
+
+let not_some_none = prove_by_refinement(
+  `!x:A. ~(SOME x = NONE)`,
+  (* {{{ proof *)
+  [
+    BY(MESON_TAC[Ssrbool.isSome])
+  ]);;
+  (* }}} *)
+
+(* was show_HideDups *)
+
+let show_hideDups = prove_by_refinement(
+  `!s. showDups (hideDups s) = s`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[showDups;hideDups;showDups0;the_some;not_some_none];
+  AP_TERM_TAC;
+  REWRITE_TAC[hideDupsRec];
+  FIRST_X_ASSUM MP_TAC;
+  TYPIFY `t` (fun t -> SPEC_TAC (t,t));
+  LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[showDups;hideDups;hideDupsRec;showDups0;the_some;not_some_none;CONS_11];
+  COND_CASES_TAC;
+    BY(ASM_REWRITE_TAC[showDups0;CONS_11]);
+  BY(ASM_REWRITE_TAC[showDups0;not_some_none;the_some;CONS_11])
+  ]);;
+  (* }}} *)
+
+let some_the = prove_by_refinement(
+  `!(x:(A)option). ~(x = NONE) ==> SOME (the x) = x`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[FORALL_OPTION;the_some])
+  ]);;
+  (* }}} *)
+
+(*
+let hideDupsRec_showDups0 = prove_by_refinement(
+  `!s b a c. 
+     hideDupsRec c (showDups0 b []) = [] /\
+     hideDupsRec c (showDups0 b (SOME a :: s)) = (if (c=a) then NONE else SOME a) :: s /\
+    hideDupsRec c (showDups0 b (NONE :: s)) = g`,
+  (* {{{ proof *)
+  [
+  rt[showDups0;the_some;not_some_none;hideDupsRec]
+
+  LIST_INDUCT_TAC then art[hideDupsRec;showDups0;not_some_none;the_some]
+  st/r then condcase then art[hideDupsRec]
+  asimp[some_the]
+  ]);;
+  (* }}} *)
+*)
+
+
+let unadj = new_recursive_definition list_RECURSION
+  `(unadj (([]:(A)list)) = T) /\
+   unadj ((h:A) ::t) = if (t = []) then T else (~((h:A) = HD t) /\ unadj t)`;;
+
+(* deleted image_hide1 *)
+
+let image_hideDups = new_definition
+  `image_hideDups s = 
+    (s = [] \/ (unadj (filter isSome s) /\ isSome (HD s)))`;;
+
+(*
+let image_hideDups_alt = prove_by_refinement(
+  `image_hideDups s = 
+     ((s = []) \/ (~(s = []) /\ (unadj (filter isSome s) /\ isSome (HD s))))`,
+  (* {{{ proof *)
+  [
+    BY(MESON_TAC[image_hideDups])
+  ]);;
+  (* }}} *)
+*)
+
+let some_inj = prove_by_refinement(
+  `!x y. SOME x = SOME y <=> x = y`,
+  (* {{{ proof *)
+  [
+    BY(MESON_TAC[the_some])
+  ]);;
+  (* }}} *)
+
+let hideDups_eq_nil = prove_by_refinement(
+  `!s. hideDups s = [] <=> s = []`,
+  (* {{{ proof *)
+  [
+  BY(LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[hideDups;hideDupsRec;NOT_CONS_NIL])
+  ]);;
+  (* }}} *)
+
+let image_hideDups2 = prove_by_refinement(
+  `!s. image_hideDups (hideDups s)`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[hideDups;hideDupsRec;image_hideDups;NOT_CONS_NIL;HD;Ssrbool.isSome];
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[image_hideDups];
+  REWRITE_TAC[Seq.filter_cons;Ssrbool.isSome;unadj;hideDups_eq_nil];
+  COND_CASES_TAC;
+    BY(REWRITE_TAC[]);
+  TYPIFY `t = []` ASM_CASES_TAC;
+    FIRST_X_ASSUM_ST `filter` MP_TAC;
+    BY(ASM_REWRITE_TAC[hideDups;hideDupsRec;Seq.filter_nil]);
+  ASM_REWRITE_TAC[];
+  INTRO_TAC list_CASES [`t`] THEN ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `isSome` MP_TAC) THEN ASM_REWRITE_TAC[];
+  REWRITE_TAC[hideDups;hideDupsRec;NOT_CONS_NIL;unadj;HD;Ssrbool.isSome];
+  REPEAT (FIRST_X_ASSUM kill);
+  REWRITE_TAC[Seq.filter];
+  TYPIFY `h = h'` ASM_CASES_TAC THEN ASM_REWRITE_TAC[Ssrbool.isSome;Seq.filter;unadj;HD];
+    BY(SIMP_TAC[]);
+  BY(COND_CASES_TAC THEN ASM_REWRITE_TAC[some_inj])
+  ]);;
+  (* }}} *)
+
+let the_inj = prove_by_refinement(
+  `!a b. isSome a /\ isSome b ==> (the a = the b <=> a = b)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[FORALL_OPTION;Ssrbool.isSome;the_some];
+  BY(MESON_TAC[some_inj])
+  ]);;
+  (* }}} *)
+
+let hideDupsRec_show = prove_by_refinement(
+  `!t a. (~(filter isSome t = []) ==> ~(a = HD (filter isSome t)) /\ unadj (filter isSome t)) /\ isSome a ==> hideDupsRec (the a) (showDups0 (the a) t) = t`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[showDups0;hideDupsRec;Seq.filter;unadj];
+  GEN_TAC;
+  COND_CASES_TAC;
+    TYPIFY `~(h = NONE)` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[Ssrbool.isSome]);
+    ASM_REWRITE_TAC[hideDupsRec;HD];
+    ASM_SIMP_TAC[the_inj;NOT_CONS_NIL;some_the;CONS_11;unadj];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_MESON_TAC[]);
+  TYPIFY `h = NONE` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Ssrbool.isSome;some_the]);
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[hideDupsRec;CONS_11];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let hideDups_show = prove_by_refinement(
+  `!s. image_hideDups s ==> hideDups (showDups s) = s`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[image_hideDups;showDups;hideDups;showDups0;the_some;not_some_none;HD;NOT_CONS_NIL];
+  SIMP_TAC[];
+  REWRITE_TAC[Seq.filter];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `unadj` MP_TAC;
+  ASM_REWRITE_TAC[unadj];
+  DISCH_TAC;
+  COND_CASES_TAC;
+    BY(ASM_MESON_TAC[Ssrbool.isSome]);
+  REWRITE_TAC[hideDups];
+  ASM_SIMP_TAC[hideDups;some_the;CONS_11];
+  MATCH_MP_TAC hideDupsRec_show;
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let MEM_nextVertices = prove_by_refinement(
+  `!v f n. MEM v (FST f) ==> MEM (nextVertices f n v) (FST f)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[nextVertices];
+  REPLICATE_TAC 2 GEN_TAC;
+  INDUCT_TAC THEN REWRITE_TAC[ITER];
+  DISCH_TAC;
+  GMATCH_SIMP_TAC nextVertex_next_el;
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  BY(ASM_MESON_TAC[Seq2.mem_next_el])
+  ]);;
+  (* }}} *)
+
+let nextVertices0 = prove_by_refinement(
+  `!f v. nextVertices f 0 v = v`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[nextVertices;ITER])
+  ]);;
+  (* }}} *)
+
+let nextVertices1 = prove_by_refinement(
+  `!f v. nextVertices f 1 v = nextVertex f v`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[nextVertices;ITER_1])  
+  ]);;
+  (* }}} *)
+
+
+
+(*
+let indexToVertexList_lt = prove_by_refinement(
+  `!e f v n. MEM v (FST f) ==> 
+    indexf v (nextVertices f v n) (FST f) < sizel (FST f)`,
+  (* {{{ proof *)
+  [
+  #
+  ]);;
+  (* }}} *)
+*)
+
+let indexf_nextVertices = prove_by_refinement(
+  `!f v n. MEM v (FST f) /\ (uniq (FST f)) /\ n < sizel (FST f) 
+     ==> indexf v (nextVertices f n v) (FST f) = n`,
+  (* {{{ proof *)
+  [
+  REPLICATE_TAC 2 GEN_TAC;
+  INDUCT_TAC THEN DISCH_TAC;
+    REWRITE_TAC[nextVertices0];
+    MATCH_MP_TAC indexf_refl;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[nextVertices;ITER];
+  REWRITE_TAC[GSYM nextVertices];
+  INTRO_TAC MEM_nextVertices [`v`;`f`;`n`];
+  ASM_REWRITE_TAC[];
+  ASM_SIMP_TAC[nextVertex_next_el];
+  DISCH_TAC;
+  INTRO_TAC indexf_add_sum [`v`;`nextVertices f n v`;`next_el (FST f) (nextVertices f n v)`;`FST f`];
+  ASM_REWRITE_TAC[];
+  TYPIFY `MEM (next_el (FST f) (nextVertices f n v)) (FST f)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[Seq2.mem_next_el]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `indexf v (nextVertices f n v) (FST f) = n` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[arith `SUC n < s ==> n < s`]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `indexf (nextVertices f n v) (next_el (FST f) (nextVertices f n v)) (FST f) = 1` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN (unlist REWRITE_TAC);
+    BY(ASM_MESON_TAC[arith `SUC n = n+1`]);
+  MATCH_MP_TAC next_el_indexf;
+  ASM_REWRITE_TAC[];
+  BY(ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let enum_indexToVertexList = prove_by_refinement(
+  `!e f v. MEM v (FST f) /\ (uniq (FST f)) /\ (all (\n. n < sizel (FST f)) e) ==>
+    enum_of_VertexList (FST f) v (indexToVertexList f v e) = e`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[More_tame_concl.enum_of_VertexList;indexToVertexList];
+  REWRITE_TAC[show_hideDups];
+  REWRITE_TAC[GSYM MAP_o];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `MAP ((\u. indexf v u (FST f)) o (\k. nextVertices f k v)) e = MAP I e` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN SUBST1_TAC;
+    BY(REWRITE_TAC[MAP_I;I_THM]);
+  MATCH_MP_TAC MAP_EQ;
+  REWRITE_TAC[I_THM;o_THM;Seq2.ALL_all;GSYM Seq.allP];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `x < sizel (FST f)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Seq.allP]);
+  MATCH_MP_TAC indexf_nextVertices;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let nextVertices_indexf = prove_by_refinement(
+  `!f v w. uniq (FST f) /\ MEM v (FST f) /\ MEM w (FST f) ==> 
+    nextVertices f (indexf v w (FST f)) v = w`,
+  (* {{{ proof *)
+  [
+  TYPIFY `!n f v w. uniq (FST f) /\ MEM v (FST f) /\ MEM w (FST f) /\ indexf v w (FST f)= n ==> nextVertices f n v = w` ENOUGH_TO_SHOW_TAC;
+    BY(MESON_TAC[]);
+  INDUCT_TAC THEN REWRITE_TAC[nextVertices0];
+    BY(MESON_TAC[indexf0]);
+  REWRITE_TAC[nextVertices;ITER];
+  REWRITE_TAC[GSYM nextVertices];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC MEM_nextVertices [`v`;`f`;`n`];
+  ASM_REWRITE_TAC[];
+  ASM_SIMP_TAC[nextVertex_next_el];
+  DISCH_TAC;
+  MATCH_MP_TAC indexf1;
+  ASM_REWRITE_TAC[];
+  INTRO_TAC indexf_add_left [`v`;`nextVertices f n v`;`w`;`FST f`];
+  ASM_REWRITE_TAC[];
+  INTRO_TAC indexf_nextVertices [`f`;`v`;`n`];
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[indexf_lt_sizel;arith `SUC n < m ==> n < m`]);
+  DISCH_TAC THEN ASM_REWRITE_TAC[arith `n <= SUC n`];
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let not_isSome_NONE = prove_by_refinement(
+  `!x. isSome x <=> ~(x = NONE)`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[FORALL_OPTION;Ssrbool.isSome;not_some_none])
+  ]);;
+  (* }}} *)
+
+let MEM_showDups0 = prove_by_refinement(
+  `!vs a. 
+    all (\t. (t=a)\/ MEM t (MAP the (filter isSome vs))) (showDups0 a vs)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[GSYM Seq.allP];
+  LIST_INDUCT_TAC THEN REWRITE_TAC[showDups;GSYM Seq.allP;MEM;Seq.filter;showDups0];
+  REPEAT GEN_TAC;
+  TYPIFY `isSome h` ASM_CASES_TAC THEN ASM_SIMP_TAC[MEM;not_isSome_NONE];
+    TYPIFY `~(h=NONE)` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[not_isSome_NONE]);
+    ASM_REWRITE_TAC[MEM;MAP];
+    BY(ASM_MESON_TAC[]);
+  TYPIFY `(h=NONE)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[not_isSome_NONE]);
+  ASM_REWRITE_TAC[];
+  ASM_REWRITE_TAC[MEM];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let MEM_showDups = prove_by_refinement(
+  `!vs. (~(vs = []) ==> (isSome (HD vs))) ==>
+    all (\t. MEM t (MAP the (filter isSome vs))) (showDups vs)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[GSYM Seq.allP];
+  GEN_TAC;
+  INTRO_TAC list_CASES [`vs`];
+  REPEAT STRIP_TAC;
+    BY(FIRST_X_ASSUM MP_TAC THEN ASM_REWRITE_TAC[Seq.filter;MAP;MEM;showDups;showDups0]);
+  REPLICATE_TAC 2 (FIRST_X_ASSUM MP_TAC) THEN ASM_REWRITE_TAC[MEM;showDups;MAP;HD;NOT_CONS_NIL;Seq.filter];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[MAP;MEM];
+  INTRO_TAC MEM_showDups0 [`h::t`;`the h`];
+  ASM_REWRITE_TAC[GSYM Seq.allP;Seq.filter;MAP;MEM];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let indexToVertexList_enum = prove_by_refinement(
+  `!vs f v. uniq (FST f) /\ MEM v (FST f) /\ 
+    image_hideDups vs /\
+    all (\t.  MEM (the t) (FST f)) (filter isSome vs) ==>
+    indexToVertexList f v (enum_of_VertexList (FST f) v vs) = vs`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[More_tame_concl.enum_of_VertexList;indexToVertexList];
+  REWRITE_TAC[GSYM MAP_o];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `MAP ((\k. nextVertices f k v) o (\u. indexf v u (FST f))) (showDups vs) = MAP I (showDups vs)` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN (unlist REWRITE_TAC);
+    REWRITE_TAC[MAP_I;I_THM];
+    MATCH_MP_TAC hideDups_show;
+    BY(ASM_REWRITE_TAC[]);
+  MATCH_MP_TAC MAP_EQ;
+  REWRITE_TAC[Seq2.ALL_all;I_THM;o_THM;GSYM Seq.allP];
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC nextVertices_indexf;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `all` MP_TAC;
+  REWRITE_TAC[GSYM Seq.allP];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC MEM_showDups [`vs`];
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[image_hideDups]);
+  REWRITE_TAC[GSYM Seq.allP];
+  DISCH_THEN (C INTRO_TAC [`x`]);
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM (C INTRO_TAC [`SOME x`]);
+  REWRITE_TAC[the_some];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  PROOF_BY_CONTR_TAC;
+  FIRST_X_ASSUM_ST `MAP` MP_TAC;
+  TYPIFY `x = the (SOME x)` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REWRITE_TAC[the_some]);
+  DISCH_TAC;
+  INTRO_TAC MEMf_MAP [`SOME:num->(num)option`];
+  DISCH_THEN (fun t -> (FIRST_X_ASSUM (ASSUME_TAC o MATCH_MP t)));
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[the_some;GSYM MAP_o];
+  TYPIFY `(MAP (SOME o the) (filter isSome vs)) = MAP I (filter isSome vs)` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN SUBST1_TAC;
+    BY(ASM_REWRITE_TAC[MAP_I;I_THM]);
+  MATCH_MP_TAC MAP_EQ;
+  REWRITE_TAC[Seq2.ALL_all;GSYM Seq.allP;o_THM;I_THM];
+  REPEAT WEAKER_STRIP_TAC THEN MATCH_MP_TAC some_the;
+  DISCH_TAC;
+  FIRST_X_ASSUM_ST `MEM` MP_TAC;
+  REWRITE_TAC[Seq.mem_filter];
+  BY(ASM_MESON_TAC[not_isSome_NONE])
+  ]);;
+  (* }}} *)
 
 
 

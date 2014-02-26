@@ -114,5 +114,42 @@ unset_jrh_lexer
  
 set_jrh_lexer
 
+(* Feb 26, 2014. temp: slight modification of benign redefinition *)
+
+let define =
+  let close_definition_clauses tm =
+    let avs,bod = strip_forall tm in
+    let cjs = conjuncts bod in
+    let fs =
+      try map (repeat rator o lhs o snd o strip_forall) cjs
+      with Failure _ -> failwith "close_definition_clauses: non-equation" in
+    if length (setify fs) <> 1
+    then failwith "close_definition_clauses: defining multiple functions" else
+    let f = hd fs in
+    if mem f avs then failwith "close_definition_clauses: fn quantified" else
+    let do_clause t =
+      let lvs,bod = strip_forall t in
+      let fvs = subtract (frees(lhs bod)) (f::lvs) in
+      SPECL fvs (ASSUME(list_mk_forall(fvs,t))) in
+    let ths = map do_clause cjs in
+    let ajs = map (hd o hyp) ths in
+    let th = ASSUME(list_mk_conj ajs) in
+    f,itlist GEN avs (itlist PROVE_HYP (CONJUNCTS th) (end_itlist CONJ ths)) in
+  fun tm ->
+    let tm' = snd(strip_forall tm) in
+    try let th,th' = tryfind (fun th -> th,PART_MATCH I th tm')
+                             (!the_definitions) in
+        if can (PART_MATCH I th') (snd (strip_forall (concl th))) then
+         (warn true "Benign redefinition"; th')
+        else failwith ""
+    with Failure _ ->
+      let f,th = close_definition_clauses tm in
+      let etm = mk_exists(f,hd(hyp th)) in
+      let th1 = prove_general_recursive_function_exists etm in
+      let th2 = new_specification[fst(dest_var f)] th1 in
+      let g = mk_mconst(dest_var f) in
+      let th3 = PROVE_HYP th2 (INST [g,f] th) in
+      the_definitions := th3::(!the_definitions); th3;;
+
 
 end;;

@@ -30,6 +30,7 @@ module Import_tame_classification = struct
   open Hales_tactic;;
   open Tame_defs;;
   open Tame_list;;
+  open Tame_defs2;;
 
   let overrides,add_override = 
     let os = ref [] in
@@ -416,9 +417,6 @@ let case = new_definition' `case (n:A) (a1, b1:B) (a2,b2) =
   if (n=a1) then b1 else if (n=a2) then b2 else b2`;;
 *)
 
-let C_EL = new_definition' `( #!# ) (l:(A) list) n = EL n l`;;
-
-let not_equal = new_definition' `( ~= ) (x : A) y <=> ( ~(x = y))`;;
 
 let C_EL_REC = prove_by_refinement(
   `(#!#) (x::xs) n = if (n = 0) then (x:A) else (let k = PRE n in (#!#) xs k)`,
@@ -526,11 +524,6 @@ liz_holl = `MAP`;
 liz_thm = MAP;
 };;
 
-let list_prod1 = new_definition' `list_prod1 (a:A) (b:B list) = 
-   MAP(\x. (a,x)) b`;;
-
-let list_prod = new_definition' `list_prod (a:A list) (b:B list) =
-   flatten (MAP (\x. list_prod1 x b) a)`;;
 
 liz_add {
 liz_name = "listProd1";
@@ -572,12 +565,6 @@ liz_holl = `replace`;
 liz_thm = replace;
 };;
 
-(* clean this up later.  Isabelle has special notation for (list_update f n [] xs) *)
-
-let list_update = new_recursive_definition list_RECURSION
-  `list_update [] i (v:A) = [] /\
-   list_update (x :: xs) i (v:A) = 
-      if (i=0) then (v :: xs) else (x :: list_update xs (i-1) v)`;;
 
 let list_update_ALT = prove_by_refinement(
   `list_update [] i v = [] /\ 
@@ -599,10 +586,6 @@ liz_holl = `list_update`;
 liz_thm = list_update_ALT;
 };;
 
-let mapAt = new_recursive_definition list_RECURSION 
-  `(mapAt [] (f:A->A) (xs:A list) = xs) /\
-    (mapAt ((n:num) :: ns) (f:A->A) (xs:A list) = if (n < LENGTH xs) 
-       then mapAt ns f (list_update xs n (f (EL n xs))) else mapAt ns f xs)`;;
 
 let mapAt_ALT = prove_by_refinement(
   `(mapAt [] (f:A->A) (xs:A list) = xs) /\
@@ -935,7 +918,7 @@ liz_holl = `heights`;
 liz_thm = HEIGHTS;
 };;
 
-let height = new_definition' `height g v = EL v (heights g)`;;
+
 
 liz_add {
 liz_name = "height";
@@ -1092,7 +1075,6 @@ liz_thm = directedLength;
 
 (* 5.2 Access *)
 
-let sub1 = new_definition' `sub1 ((xs:A list), (n:num)) = EL n xs`;;
 
 let sub1_ALT = prove_by_refinement(
   `sub1 p  =  (let (a, n) = p in (let as = a in (as #!# n)))`,
@@ -1103,7 +1085,7 @@ let sub1_ALT = prove_by_refinement(
   ]);;
   (* }}} *)
    
-let sub = new_definition' `sub   (a:A list) n = sub1 (a,n)`;;
+
 
 let sub_nth = prove_by_refinement(
   `sub a n = a #!# n`,
@@ -1131,19 +1113,6 @@ liz_thm = sub;
 
 (* 6 Enumerating Patches  *)
 
-let enumBase = new_definition' 
-  `enumBase nmax = MAP (\i. [i]) (upt 0  (SUC nmax))`;;
-
-let enumAppend = new_definition'
-   `enumAppend nmax iss = 
-   flatten (MAP (\is.   MAP (\n.  is #@# [n]) (upt (LAST is) (SUC nmax))) iss)`;;
-
-let enumerator = new_definition'
-   `enumerator inner outer = 
-      (let nmax = outer - 2 in
-       let k = inner - 3 in
-       (MAP (\is.  [0] #@# is #@# [outer -1]) 
-	  ( (enumAppend nmax ^^ k) (enumBase nmax))))`;;
 
 liz_add {
 liz_name = "enumBase";
@@ -1165,20 +1134,6 @@ liz_loc =  (tamefile "Enumerator.thy",50,54);
 liz_holl = `enumerator`;
 liz_thm = enumerator;
 };;
-
-let hideDupsRec = new_recursive_definition list_RECURSION 
-  `hideDupsRec (a:A) [] = []  /\
-    hideDupsRec a (b :: bs) = 
-      if (a = b) then NONE :: (hideDupsRec b bs) 
-      else  (SOME b) :: (hideDupsRec b bs)`;;
-
-let hideDups = new_recursive_definition list_RECURSION
-  `hideDups ([]:A list) = [] /\
-    hideDups ((b:A) :: bs) = (SOME b) :: (hideDupsRec b bs)`;;
-
-let indexToVertexList = new_definition' `indexToVertexList f v is = 
-  hideDups (MAP (\k. nextVertices f k v) is)`;;
-
 
 liz_add {
 liz_name = "hideDupsRec";
@@ -1203,22 +1158,6 @@ liz_thm = indexToVertexList;
 
 (* 7 Subdividing a Face *)
 
-let split_face = new_definition' 
-   `split_face (f:num list # bool) (ram1) ram2 newVs = 
-      (let vs = vertices f in
-       let f1 =  [ram1] #@#  (betwn vs ram1 ram2) #@# [ram2] in
-       let f2 =  [ram2] #@# (betwn vs ram2 ram1) #@# [ram1] in
-	 (Face (REVERSE newVs #@# f1) F), Face (f2 #@# newVs) F)`;;
-
-let split_list_face_n = new_definition' 
-   `split_list_face_n (f:(A) list) (ram1) ram2 newVs = 
-      (let f1 =  [ram1] #@#  (betwn f ram1 ram2) #@# [ram2] in
-       let f2 =  [ram2] #@# (betwn f ram2 ram1) #@# [ram1] in
-	 ( (REVERSE newVs #@# f1)),  (f2 #@# newVs))`;;
-
-
-let replacefacesAt = new_definition'
-  `replacefacesAt ns (f:(A) list # bool) fs Fs = mapAt ns (replace f fs) Fs`;;
 
 
 liz_add {
@@ -1249,9 +1188,6 @@ liz_holl = `makeFaceFinal`;
 liz_thm = makeFaceFinal;
 };;
 
-let heightsNewVertices = new_definition' 
-  `heightsNewVertices h1 h2 n = 
-       MAP (\i. MIN  (h1 + i + 1) (h2 + n -i)  ) (upt 0  n)`;;
 
 liz_add {
 liz_name = "heightsNewVertices";
@@ -1260,24 +1196,6 @@ liz_holl = `heightsNewVertices`;
 liz_thm = heightsNewVertices;
 };;
 
-let splitFace = new_definition'
-  `splitFace g ram1 ram2 oldF newVs = 
-     (let fs = faces g in
-      let n = countVertices g in
-      let Fs = faceListAt g in
-      let h = heights g in
-      let vs1 = betwn (vertices oldF) ram1 ram2 in
-      let vs2  = betwn (vertices oldF) ram2 ram1 in
-      let (f1,f2) = split_face oldF ram1 ram2 newVs in
-      let Fs = replacefacesAt vs1 oldF [f1] Fs in
-      let Fs = replacefacesAt vs2 oldF [f2] Fs in
-      let Fs = replacefacesAt [ram1] oldF [f2;f1] Fs in
-      let Fs = replacefacesAt [ram2] oldF [f1;f2] Fs in
-      let Fs = Fs #@# (REPLICATE (LENGTH (newVs)) [f1;f2]) in
-	  (f1,f2, 
-	   Graph ((replace oldF [f2] fs ) #@# [f1]) (n + LENGTH (newVs)) Fs 
-	     (h #@# (heightsNewVertices ( h #!# ram1) (h #!# ram2) (LENGTH (newVs))))
-	))`;;
 
 liz_add {
 liz_name = "splitFace";
@@ -1286,55 +1204,9 @@ liz_holl = `splitFace`;
 liz_thm = splitFace;
 };;
 
-let subdivFace0 = new_recursive_definition list_RECURSION
-  `subdivFace0 g f u n [] = makeFaceFinal f g /\
-    subdivFace0 g f u n (vo :: vos) = 
-      if (vo = NONE) then subdivFace0 g f u (SUC n) vos else
-	(let v = the vo in
-	   if (nextVertex f u = v /\ n = 0) then subdivFace0 g f v 0 vos
-	   else 
-	     (let ws = upt (countVertices g) (countVertices g + n) in
-	      let (f1,f2,g') = splitFace g u v f ws in
-		subdivFace0 g' f2 v 0 vos))`;;
 
-let subdivFace = new_definition' 
-  `subdivFace g f vos = subdivFace0 g f (the(HD vos)) 0 (TL vos)`;;
 
-(* second version, where makeFaceFinal is pulled out *)
 
-let subdivFace0_alt = new_recursive_definition list_RECURSION
-  `subdivFace0_alt g f u n [] = (f,g) /\
-    subdivFace0_alt g f u n (vo :: vos) = 
-      if (vo = NONE) then subdivFace0_alt g f u (SUC n) vos else
-	(let v = the vo in
-	   if (nextVertex f u = v /\ n = 0) then subdivFace0_alt g f v 0 vos
-	   else 
-	     (let ws = upt (countVertices g) (countVertices g + n) in
-	      let (f1,f2,g') = splitFace g u v f ws in
-		subdivFace0_alt g' f2 v 0 vos))`;;
-
-let subdivFaceFinal = new_definition' 
-  `subdivFaceFinal g f vos = 
-  (let (f,g) =subdivFace0_alt g f (the(HD vos)) 0 (TL vos)
-   in makeFaceFinal f g)`;;
-
-(* subdivFace = subdivFaceFinal *)
-
-(* Feb 4, 2014.
- yet another variant that preprocesses the list vos into triples (u,v,n) *)
-
-let subdivFace0_alt2 = new_recursive_definition list_RECURSION
-  `subdivFace0_alt2 g f n0 ([]:(num#num#num) list) = (f,g) /\
-  subdivFace0_alt2 g f n0 (uvn :: uvnos) = 
-    (let (u,v,n) = uvn in
-     let ws = upt n0 (n0+n) in
-     let (f1,f2,g') = splitFace g u v f ws in
-       subdivFace0_alt2 g' f2 (n+n0) uvnos)`;;
-
-let subdivFaceFinal2 = new_definition'
-  `subdivFaceFinal2 g f uvns = 
-  (let (f,g) = subdivFace0_alt2 g f (countVertices g) uvns in
-     makeFaceFinal f g)`;;
    
 liz_add {
 liz_name = "subdivFace_";
@@ -1363,57 +1235,6 @@ liz_holl = `RTranCl'`;
 liz_thm = RTranCl_ALT;
 };;
 
-(* 9. Plane Graph Enumeration  *)
-
-(* a and b are vertices on the face f.  True if a and b are not
-   equal and not adjacent, but connected by some "remote" edge *)
-
-let duplicateEdge = new_definition' `duplicateEdge g f a b <=>
-   (2 <= directedLength f a b /\ 2 <= directedLength f b a /\
-    b IN set_of_list (neighbors g a))`;;
-
-(* in practice, N = as defined below in containsDuplicateEdge.
-   We test for enumerators (a weakly increasing list of indices)
-   that are situated as v < w < w' with N w w' remote connection.
-  
-   N.B. The code states N w w'. That is, we never test for more
-   than double joins.  The predecessor v is examined to make sure
-   that there are no inserted vertices, as in v = w or w = w'.
-
-   There is no testing for triangles or quads with enclosed vertices.
-
-*)
-
-let containsUnacceptableEdgeSnd = new_recursive_definition list_RECURSION
-  `containsUnacceptableEdgeSnd N (v:num) [] = F /\
-    (containsUnacceptableEdgeSnd N v (w :: ws) = 
-  if (ws = []) then F else
-    (let w' = HD ws in
-     let ws' = TL ws in
-  if (v < w /\ w < w' /\ N w w') then T 
-  else containsUnacceptableEdgeSnd N w ws))`;;
-
-(* in practice, N = as defined below in containsDuplicateEdge.
-   We test for enumerators (a weakly increasing list of indices)
-   that are situated as v < w  with N v w remote connection.
-   This would create a double join. 
-
-   Note that the first call is containsUnacceptableEdge, then the
-   recursion continues with containsDuplicateEdge.
-
-*)
-  
-let containsUnacceptableEdge = new_recursive_definition list_RECURSION
-  `containsUnacceptableEdge N [] = F /\
-  containsUnacceptableEdge N (v :: vs) = 
-  if (vs = []) then F else
-    (let w = HD vs in
-     let ws = TL vs in
-       if ((v:num) < w /\ N v w) then T else containsUnacceptableEdgeSnd N v vs)`;;
-
-let containsDuplicateEdge = new_definition'
-  `containsDuplicateEdge g f v is = containsUnacceptableEdge
-    (\i j. duplicateEdge g f (nextVertices f i v ) (nextVertices f j v)) is`;;
 
 liz_add {
 liz_name = "maxGon";
@@ -1450,24 +1271,6 @@ liz_holl = `containsDuplicateEdge`;
 liz_thm = containsDuplicateEdge;
 };;
 
-let generatePolygon = new_definition' 
-  `generatePolygon n v (f:(num)list#bool) g = 
-  (let enumeration = enumerator n (LENGTH (vertices f)) in
-   let enumeration = FILTER (\is. ~(containsDuplicateEdge g f v is)) enumeration in
-   let vertexLists = MAP (\is. indexToVertexList f v is) enumeration in
-     MAP (\vs. subdivFace g f vs) vertexLists)`;;
-
-(* 1/2014 problem with this definition.  For there to be dart-uniqueness,
-   which is a property of good_lists, we must filter out the duplicate
-   edges.  So this doesn't work. *)
-
-(* deprecated: 
-let generatePolygon_relaxed = new_definition' 
-  `generatePolygon_relaxed n v (f:(num)list#bool) g = 
-  (let enumeration = enumerator n (LENGTH (vertices f)) in
-   let vertexLists = MAP (\is. indexToVertexList f v is) enumeration in
-     MAP (\vs. subdivFace g f vs) vertexLists)`;;
-*)
 
 liz_add {
 liz_name = "generatePolygon";
@@ -1485,67 +1288,6 @@ liz_thm = SEED;
 
 (* Plane1 *)
 
-let minimalFace = new_definition' 
-  `minimalFace = minimal_el (LENGTH o (vertices:num list # bool -> num list))`;;
-
-let minimalVertex = new_definition'
-  `minimalVertex g f = minimal_el (height g) (vertices (f:num list # bool))`;;
-
-let next_plane = new_definition'
-  `next_plane p g = 
-  (let fs = nonFinals g in
-     if (fs = []) then [] else
-       (let f = minimalFace fs in
-	let v = minimalVertex g f in
-	  (flatten (MAP (\i. generatePolygon i v f g) 
-		      (upt 3 (SUC (maxGon p))) ))))`;;
-
-(*
-let next_plane_relaxed = new_definition'
-  `next_plane_relaxed p g = 
-  (let fs = nonFinals g in
-     if (fs = []) then [] else
-       (let f = minimalFace fs in
-	let v = minimalVertex g f in
-	  (flatten (MAP (\i. generatePolygon_relaxed i v f g) 
-		      (upt 3 (SUC (maxGon p))) ))))`;;
-*)
-
-let PlaneGraphsP = new_definition'
-  `planeGraphsP p = 
-   { g | (Seed p,g) IN RTranCl (next_plane p)  /\ finalGraph g} `;;
-
-(* XX Complete_Lattices.thy 930--955 contains special syntax for UNION <Union>,... *)
-
-let PlaneGraphs = new_definition'
-  `PlaneGraphs = UNIONS (IMAGE planeGraphsP UNIV)`;;
-
-let planegraph = new_definition'
-  `planegraph g = (?p. 
-   (Seed p,g) IN RTranCl (next_plane p))`;;
-
-(* add parameter q for variable upper bound on polygon size. *)
-
-let planegraph_relaxed = new_definition'
-  `planegraph_relaxed g = (?p q. 
-   (Seed p,g) IN RTranCl (next_plane q))`;;
-
-let planegraphP = new_definition'
-  `planegraphP p g = ((Seed p,g) IN RTranCl (next_plane p))`;;
-
-let planegraph_PlaneGraphs = prove_by_refinement(
-  `!g. PlaneGraphs g <=> (planegraph g /\ finalGraph g)`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAKER_STRIP_TAC;
-  REWRITE_TAC[planegraph;PlaneGraphs];
-  REWRITE_TAC[UNIONS;IN_ELIM_THM];
-  REWRITE_TAC[IN_IMAGE;IN_UNIV];
-  REWRITE_TAC[MESON [] `(?u. (?x. u = planeGraphsP x) /\ g IN u) <=> (?x. g IN planeGraphsP x)`];
-  REWRITE_TAC[PlaneGraphsP;IN_ELIM_THM];
-  BY(MESON_TAC[])
-  ]);;
-  (* }}} *)
 
 liz_add {
 liz_name = "minimalFace";

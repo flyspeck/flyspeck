@@ -34,12 +34,252 @@ open Dpzgbyf;;  (* basic properties of planegraphs and seeds *)
 
 (* TO HERE *)
 
+1;;
 
+marked_list;;
+flag_list;;
+s_flag_list;;
 
-xxd
+let EVNAPDQ_concl = `!L N.
+  good_list L /\ normal_list L N ==>
+  is_normal (hypermap_of_list L) (loop_family_of_list N)`;;
+
+let loop_map_next_el = prove_by_refinement(
+  `!s. uniq s /\ ~(s = []) ==> loop_map (loop_of_list s) = next_el s`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[loop_of_list];
+  REWRITE_TAC[ (GSYM (CONJUNCT2 Hypermap.loop_tybij))];
+  REWRITE_TAC[Hypermap.loop_map];
+  INTRO_TAC (GSYM (CONJUNCT2 Hypermap.loop_tybij)) [`set_of_list s, next_el s`];
+  REWRITE_TAC[];
+  REWRITE_TAC[FINITE_SET_OF_LIST;IN_SET_OF_LIST];
+  ASM_SIMP_TAC[Seq2.next_el_permutes];
+  TYPIFY_GOAL_THEN `(?x. MEM x s /\ orbit_map (next_el s) x = set_of_list s)` (unlist REWRITE_TAC);
+    TYPIFY `HD s` EXISTS_TAC;
+    SUBCONJ_TAC;
+      MATCH_MP_TAC MEM_HD;
+      BY(ASM_REWRITE_TAC[]);
+    DISCH_TAC;
+    MATCH_MP_TAC Seq2.next_el_orbit;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[PAIR_EQ2];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let dart_of_loop_of_list = prove_by_refinement(
+  `!s. uniq s /\ ~(s = []) ==> dart_of_loop (loop_of_list s) = set_of_list s`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[loop_of_list];
+  REWRITE_TAC[ (GSYM (CONJUNCT2 Hypermap.loop_tybij))];
+  INTRO_TAC (GSYM (CONJUNCT2 Hypermap.loop_tybij)) [`set_of_list s, next_el s`];
+  REWRITE_TAC[];
+  REWRITE_TAC[FINITE_SET_OF_LIST;IN_SET_OF_LIST];
+  ASM_SIMP_TAC[Seq2.next_el_permutes];
+  TYPIFY_GOAL_THEN `(?x. MEM x s /\ orbit_map (next_el s) x = set_of_list s)` (unlist REWRITE_TAC);
+    TYPIFY `HD s` EXISTS_TAC;
+    SUBCONJ_TAC;
+      MATCH_MP_TAC MEM_HD;
+      BY(ASM_REWRITE_TAC[]);
+    DISCH_TAC;
+    MATCH_MP_TAC Seq2.next_el_orbit;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[PAIR_EQ2];
+  REWRITE_TAC[Hypermap.dart_of_loop];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let inverse_e_list_ext = prove_by_refinement(
+  `!L. good_list (L:((A)list)list) ==> inverse(e_list_ext L) = e_list_ext L`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC INVERSE_UNIQUE_o;
+  MATCH_MP_TAC (TAUT `a ==> a /\ a`);
+  FIRST_X_ASSUM MP_TAC;
+  REWRITE_TAC[List_hypermap.e_list_ext;good_list];
+  REWRITE_TAC[Hypermap.res;FUN_EQ_THM;I_THM;o_THM];
+  REWRITE_TAC[Hypermap.res;List_hypermap.darts_of_list;IN_SET_OF_LIST];
+  REWRITE_TAC[FORALL_PAIR_THM;EXISTS_PAIR_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT COND_CASES_TAC THEN ASM_REWRITE_TAC[List_hypermap.e_list];
+    BY(ASM_MESON_TAC[]);
+  FIRST_X_ASSUM_ST `~` MP_TAC THEN ASM_REWRITE_TAC[List_hypermap.e_list];
+  BY(ASM_MESON_TAC[])
+    ]);;
+  (* }}} *)
+
+let inverse_n_list_ext = prove_by_refinement(
+  `!L. good_list L ==> inverse(n_list_ext L) = f_list_ext L o e_list_ext L`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC List_hypermap.n_eq_e_fi;
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[good_list]);
+  GMATCH_SIMP_TAC PERMUTATION_INVERSE_COMPOSE;
+  GMATCH_SIMP_TAC PERMUTATION_INVERSE;
+  GMATCH_SIMP_TAC PERMUTES_INVERSE_INVERSE;
+  GMATCH_SIMP_TAC inverse_e_list_ext;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[PERMUTATION_PERMUTES];
+  TYPIFY `uniq (list_of_darts L)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[List_hypermap.good_list]);
+  TYPIFY `FINITE (darts_of_list L)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REWRITE_TAC[List_hypermap.darts_of_list;FINITE_SET_OF_LIST]);
+  BY(ASM_MESON_TAC[List_hypermap.f_list_ext_permutes_darts;List_hypermap.e_list_ext_permutes_darts])
+  ]);;
+  (* }}} *)
+
+let is_loop_of_list = prove_by_refinement(
+  `!L r. good_list L /\ uniq r /\ ~(r = []) /\ loop_list L r 
+   ==> is_loop (hypermap_of_list L) (loop_of_list r)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Hypermap.is_loop;Hypermap.in_dart_of_loop];
+  SIMP_TAC[dart_of_loop_of_list;loop_map_next_el];
+  REWRITE_TAC[IN_SET_OF_LIST;loop_list;GSYM Seq.allP;one_step_list];
+  REWRITE_TAC[Hypermap.one_step_contour];
+  REPEAT STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`x`]) THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM DISJ_CASES_TAC;
+    ASM_REWRITE_TAC[];
+    DISJ1_TAC;
+    ASM_SIMP_TAC[List_hypermap.components_hypermap_of_list];
+    INTRO_TAC f_list_ext_f_list [`L`;`x`];
+    ASM_REWRITE_TAC[IN_SET_OF_LIST;List_hypermap.darts_of_list];
+    BY(DISCH_THEN (unlist REWRITE_TAC));
+  ASM_REWRITE_TAC[];
+  DISJ2_TAC;
+  ASM_SIMP_TAC[List_hypermap.components_hypermap_of_list];
+  ASM_SIMP_TAC[inverse_n_list_ext];
+  REWRITE_TAC[o_THM];
+  GMATCH_SIMP_TAC Lp_gen_theory.e_list_ext_eq_e_list;
+  GMATCH_SIMP_TAC f_list_ext_f_list;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[List_hypermap.darts_of_list;IN_SET_OF_LIST];
+  MATCH_MP_TAC good_list_e_list;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let in_dart_loop_of_list = prove_by_refinement(
+  `!r x. uniq r /\ ~(r = []) ==> (x IN dart_of_loop (loop_of_list r) <=> MEM x r)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  BY(ASM_SIMP_TAC[dart_of_loop_of_list;IN_SET_OF_LIST])
+  ]);;
+  (* }}} *)
+
+let is_restricted_nonnil = prove_by_refinement(
+  `!L. good_list L /\ is_restricted (hypermap_of_list L) ==> ~(L=[])`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Hypermap.is_restricted];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `{}` MP_TAC);
+  ASM_REWRITE_TAC[NOT_IN_EMPTY;EXTENSION];
+  FIRST_X_ASSUM_ST `good_list` MP_TAC;
+  BY(ASM_SIMP_TAC[Wmlnymd.dart_hypermap_of_list;IN_SET_OF_LIST;List_hypermap.list_of_darts_nil;MEM])
+  ]);;
+  (* }}} *)
+
+let is_restricted_e_list_nondeg = prove_by_refinement(
+  `!L d. good_list L /\ is_restricted (hypermap_of_list L) /\ 
+    MEM d (list_of_darts L) ==> ~(e_list d = d)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Hypermap.is_restricted;Hypermap.is_edge_nondegenerate];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `edge_map` MP_TAC);
+  ASM_SIMP_TAC[Wmlnymd.dart_hypermap_of_list;IN_SET_OF_LIST];
+  REWRITE_TAC[NOT_FORALL_THM];
+  TYPIFY `d` EXISTS_TAC THEN ASM_REWRITE_TAC[];
+  ASM_SIMP_TAC[List_hypermap.components_hypermap_of_list];
+  BY(ASM_SIMP_TAC[Lp_gen_theory.e_list_ext_eq_e_list])
+  ]);;
+  (* }}} *)
+
+(* used to get at least two nodes on each contour loop in normal-list *)
+
+let is_restricted_node_f_list = prove_by_refinement(
+  `!L (d:A#A). good_list L /\ good_list_nodes L /\
+    is_restricted (hypermap_of_list L) /\
+    MEM d (list_of_darts L) ==> ~(FST (f_list L d) = FST d)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Hypermap.is_restricted;List_hypermap.f_list];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `dart` MP_TAC;
+  ASM_SIMP_TAC[Wmlnymd.dart_hypermap_of_list;IN_SET_OF_LIST];
+  REWRITE_TAC[NOT_FORALL_THM];
+  TYPIFY `d` EXISTS_TAC;
+  ASM_REWRITE_TAC[] THEN DISCH_TAC;
+  TYPIFY `next_el (find_face L d) d = d` ENOUGH_TO_SHOW_TAC;
+    DISCH_TAC;
+    INTRO_TAC next_el_refl [`d`;`find_face L d`];
+    ANTS_TAC;
+      ASM_REWRITE_TAC[];
+      CONJ2_TAC;
+        BY(ASM_MESON_TAC[List_hypermap.uniq_find_face;List_hypermap.good_list]);
+      BY(ASM_REWRITE_TAC[GSYM List_hypermap.dart_in_face]);
+    DISCH_TAC;
+    FIRST_X_ASSUM_ST `face` MP_TAC;
+    ASM_SIMP_TAC[List_hypermap.card_face_of_list];
+    REWRITE_TAC[Seq2.size1];
+    BY(ARITH_TAC);
+  FIRST_X_ASSUM_ST `simple_hypermap` MP_TAC;
+  REWRITE_TAC[Hypermap.simple_hypermap];
+  ASM_SIMP_TAC[Wmlnymd.dart_hypermap_of_list;IN_SET_OF_LIST];
+  REWRITE_TAC[EXTENSION;IN_INSERT;NOT_IN_EMPTY;IN_INTER];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `f_list L d IN node (hypermap_of_list L) d /\ f_list L d IN face (hypermap_of_list L) d` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[List_hypermap.f_list]);
+  REPLICATE_TAC 2 (FIRST_X_ASSUM kill);
+  ASM_SIMP_TAC[Wmlnymd.MEM_hypermap_of_list_node];
+  TYPIFY ` (face_map (hypermap_of_list L) d) IN (face (hypermap_of_list L) d)` (C SUBGOAL_THEN ASSUME_TAC);
+    ONCE_REWRITE_TAC[GSYM Rnsyjxm.face_face_map_eq];
+    BY(REWRITE_TAC[Hypermap.face_refl]);
+  nCONJ_TAC 2;
+    FIRST_X_ASSUM MP_TAC;
+    ASM_SIMP_TAC[List_hypermap.components_hypermap_of_list];
+    GMATCH_SIMP_TAC f_list_ext_f_list;
+    BY(ASM_REWRITE_TAC[IN_SET_OF_LIST;List_hypermap.darts_of_list]);
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    BY(ASM_REWRITE_TAC[List_hypermap.f_list]);
+  BY(ASM_MESON_TAC[List_hypermap.dart_in_face;List_hypermap.mem_f_list;List_hypermap.find_face_f_list;List_hypermap.good_list])
+  ]);;
+  (* }}} *)
+
+let normal_list_normal_is_loop = prove_by_refinement(
+  `!L N r. is_restricted (hypermap_of_list L) /\ 
+  good_list L /\ normal_list L N /\ r IN (loop_family_of_list N) ==>
+   is_loop (hypermap_of_list L) r`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[loop_family_of_list;IN_SET_OF_LIST;upper_case;MEM_MAP];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC is_loop_of_list;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `normal_list` MP_TAC;
+  REWRITE_TAC[normal_list];
+  REWRITE_TAC[GSYM Seq.allP];
+  BY(ASM_MESON_TAC[uniq_flatten_uniq])
+  ]);;
+  (* }}} *)
+
+Hypermap.is_normal;;
+normal_list;;
 
 (* SET ASIDE A BIT:::: *)
-
 
 (* was MEM_splitFace *)
 

@@ -15,7 +15,7 @@ module Tame_list  = struct
 open Hypermap;;
 open Tame_defs;;
 open Tame_concl;;
-open More_tame_concl;;
+open Tame_defs2;;
 
 let POWER_TO_ITER = Wrgcvdr_cizmrrh.POWER_TO_ITER;;
 
@@ -3275,7 +3275,7 @@ let enum_indexToVertexList = prove_by_refinement(
     enum_of_VertexList (FST f) v (indexToVertexList f v e) = e`,
   (* {{{ proof *)
   [
-  REWRITE_TAC[More_tame_concl.enum_of_VertexList;indexToVertexList];
+  REWRITE_TAC[Tame_defs2.enum_of_VertexList;indexToVertexList];
   REWRITE_TAC[show_hideDups];
   REWRITE_TAC[GSYM MAP_o];
   REPEAT WEAKER_STRIP_TAC;
@@ -3376,7 +3376,7 @@ let indexToVertexList_enum = prove_by_refinement(
     indexToVertexList f v (enum_of_VertexList (FST f) v vs) = vs`,
   (* {{{ proof *)
   [
-  REWRITE_TAC[More_tame_concl.enum_of_VertexList;indexToVertexList];
+  REWRITE_TAC[Tame_defs2.enum_of_VertexList;indexToVertexList];
   REWRITE_TAC[GSYM MAP_o];
   REPEAT WEAKER_STRIP_TAC;
   TYPIFY `MAP ((\k. nextVertices f k v) o (\u. indexf v u (FST f))) (showDups vs) = MAP I (showDups vs)` ENOUGH_TO_SHOW_TAC;
@@ -3629,6 +3629,143 @@ let iso_list_sym = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let map_good_list = prove_by_refinement(
+  `!x (phi:A->B). 
+    good_list x /\ inj_on phi    (elements_of_list x) ==>
+    good_list (MAP (MAP phi) x)
+  `,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[List_hypermap.good_list];
+  REWRITE_TAC[GSYM Seq.allP];
+  REPEAT WEAKER_STRIP_TAC;
+  nCONJ_TAC 1;
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM_ST `MEM` MP_TAC THEN ASM_REWRITE_TAC[];
+    REWRITE_TAC[MEM_EXISTS_EL];
+    REWRITE_TAC[NOT_EXISTS_THM];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM_ST `~` (C INTRO_TAC [`EL i x`]);
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[LENGTH_MAP;MEM_EL]);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM_ST `[] = u` MP_TAC THEN (ASM_SIMP_TAC[LENGTH_MAP;EL_MAP]);
+    GMATCH_SIMP_TAC EL_MAP;
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[LENGTH_MAP]);
+    BY(ASM_MESON_TAC [MAP_EQ_NIL]);
+  ASM_REWRITE_TAC[];
+  REPEAT (FIRST_X_ASSUM_ST `[]` kill);
+  COMMENT "uniq";
+  REWRITE_TAC[map_list_of_darts];
+  REWRITE_TAC[FORALL_PAIR_THM];
+  REWRITE_TAC[MEM_MAP];
+  REWRITE_TAC[EXISTS_PAIR_THM;PAIR_EQ];
+  CONJ2_TAC;
+    X_GENv_TAC "q1";
+    X_GENv_TAC "q2";
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [`(p1,p2)`]);
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[]);
+  REWRITE_TAC[GSYM Seq.map_MAP];
+  GMATCH_SIMP_TAC Seq.map_inj_in_uniq;
+  ASM_REWRITE_TAC[PAIR_EQ];
+  MATCH_MP_TAC inj_on_imp_inj_dart;
+  BY(ASM_REWRITE_TAC[])
+]);;
+  (* }}} *)
+
+let find_face_map = prove_by_refinement(
+  `!p1 p2 x. good_list x /\ inj_on phi (elements_of_list x) /\
+     MEM (p1,p2) (list_of_darts x) ==>
+    find_face (MAP (MAP phi) x) (phi p1,phi p2) = 
+    MAP (\d. phi(FST d),phi(SND d)) (find_face x (p1,p2))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC List_hypermap.find_face_eq;
+  INTRO_TAC map_good_list [`x`;`phi`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[List_hypermap.good_list]);
+    REWRITE_TAC[map_list_of_darts;MEM_MAP;EXISTS_PAIR_THM;PAIR_EQ];
+    BY(ASM_MESON_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  CONJ2_TAC;
+    REWRITE_TAC[MEM_MAP;EXISTS_PAIR_THM;PAIR_EQ];
+    GEXISTL_TAC [`p1`;`p2`];
+    BY(ASM_REWRITE_TAC[GSYM List_hypermap.dart_in_face]);
+  FIRST_X_ASSUM MP_TAC;
+  FIRST_ASSUM (MP_TAC o (MATCH_MP List_hypermap.mem_find_face));
+  REWRITE_TAC[List_hypermap.list_of_faces];
+  REWRITE_TAC[GSYM MAP_o];
+  TYPIFY `list_pairs o (MAP phi) = MAP (\d. phi (FST d),phi (SND d)) o list_pairs` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(MESON_TAC[GSYM map_list_pairs;FUN_EQ_THM;o_THM]);
+  REWRITE_TAC[MAP_o];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[GSYM Seq.map_MAP];
+  MATCH_MP_TAC Seq.map_f;
+  BY(ASM_MESON_TAC[Seq.map_MAP])
+  ]);;
+  (* }}} *)
+
+let hypermap_of_list_map = prove_by_refinement(
+  `!x (phi:A->B). good_list x /\ inj_on phi (elements_of_list x) ==>
+    iso (hypermap_of_list x) (hypermap_of_list (MAP (MAP phi) x))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC map_good_list [`x`;`phi`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  MATCH_MP_TAC Hypermap_iso.hyp_iso_imp_iso;
+  TYPIFY `(\ u. phi (FST u),phi (SND u))` EXISTS_TAC;
+  REWRITE_TAC[Hypermap_iso.hyp_iso_edge_face];
+  ASM_SIMP_TAC[List_hypermap.components_hypermap_of_list];
+  REWRITE_TAC[FORALL_PAIR_THM];
+  COMMENT "BIJ";
+  SUBCONJ_TAC;
+    BY(ASM_SIMP_TAC[BIJ_IMAGE_darts_of_list]);
+  DISCH_TAC;
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "0";
+  TYPIFY `phi p1,phi p2 IN darts_of_list (MAP (MAP phi) x)` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `BIJ` MP_TAC THEN REWRITE_TAC[BIJ;SURJ;FORALL_PAIR_THM];
+    BY(ASM_MESON_TAC[]);
+  REPEAT (GMATCH_SIMP_TAC Lp_gen_theory.e_list_ext_eq_e_list);
+  TYPIFY `MEM (p1,p2) (list_of_darts x) /\  MEM (phi p1,phi p2) (list_of_darts (MAP (MAP phi) x))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_REWRITE_TAC[GSYM IN_SET_OF_LIST;GSYM List_hypermap.darts_of_list]);
+  ASM_REWRITE_TAC[];
+  ASM_REWRITE_TAC[List_hypermap.e_list];
+  COMMENT "f_list";
+  REPEAT (GMATCH_SIMP_TAC f_list_ext_f_list);
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[ List_hypermap.f_list];
+  GMATCH_SIMP_TAC find_face_map;
+  ASM_REWRITE_TAC[];
+  TYPIFY `(phi p1,phi p2) = (\d. phi (FST d),phi (SND d)) (p1,p2)` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REWRITE_TAC[]);
+  GMATCH_SIMP_TAC next_el_MEM_map;
+  SUBCONJ_TAC;
+    MATCH_MP_TAC List_hypermap.uniq_find_face;
+    BY(RULE_ASSUM_TAC(REWRITE_RULE[List_hypermap.good_list]) THEN ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  CONJ_TAC;
+    BY(ASM_REWRITE_TAC[GSYM List_hypermap.dart_in_face]);
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (ASSUME_TAC o (MATCH_MP inj_on_imp_inj_dart));
+  FIRST_X_ASSUM (fun t -> MATCH_MP_TAC (REWRITE_RULE[TAUT `(a ==> b ==> c) <=> (a /\ b ==> c)`] t));
+  RULE_ASSUM_TAC (REWRITE_RULE[PAIR_EQ]) THEN ASM_REWRITE_TAC[];
+  RULE_ASSUM_TAC(REWRITE_RULE[List_hypermap.good_list]) THEN ASM_REWRITE_TAC[];
+  TYPIFY `find_face x u = find_face x (p1,p2) /\ find_face x v = find_face x (p1,p2)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[List_hypermap.mem_find_face_imp_faces_eq]);
+  BY(ASM_MESON_TAC[List_hypermap.dart_in_face])
+  ]);;
+  (* }}} *)
+
 let GNBEVVU = prove_by_refinement(
   `!L N L' N'. 
     good_list L /\ iso_list (L,N) (L',N') ==> 
@@ -3638,7 +3775,7 @@ let GNBEVVU = prove_by_refinement(
   REWRITE_TAC[iso_list];
   REPEAT WEAKER_STRIP_TAC;
   ASM_REWRITE_TAC[];
-  MATCH_MP_TAC Elllnyz.hypermap_of_list_map;
+  MATCH_MP_TAC (* Elllnyz. *) hypermap_of_list_map;
   BY(ASM_REWRITE_TAC[])
   ]);;
   (* }}} *)
@@ -3671,6 +3808,7 @@ let iso_list_uniq = prove_by_refinement(
   ]);;
   (* }}} *)
 
+
 let iso_list_good_list = prove_by_refinement(
   `!L L'. iso_list (L,[]) (L',[]) /\ 
     good_list L ==>
@@ -3680,7 +3818,7 @@ let iso_list_good_list = prove_by_refinement(
   REWRITE_TAC[iso_list;GSYM Seq.allP];
   REPEAT WEAKER_STRIP_TAC;
   ASM_REWRITE_TAC[];
-  MATCH_MP_TAC Elllnyz.map_good_list;
+  MATCH_MP_TAC (* Elllnyz. *) map_good_list;
   BY(ASM_REWRITE_TAC[])
   ]);;
   (* }}} *)
@@ -3961,6 +4099,7 @@ let e_list_fun = prove_by_refinement(
   ]);;
   (* }}} *)
 
+
 let f_list_map = prove_by_refinement(
   `!L phi x. good_list L /\ inj_on phi (elements_of_list L) /\
      MEM x (list_of_darts L) ==>
@@ -3972,7 +4111,7 @@ let f_list_map = prove_by_refinement(
   REPEAT WEAKER_STRIP_TAC;
   REWRITE_TAC[LET_THM];
   REWRITE_TAC[List_hypermap.f_list];
-  GMATCH_SIMP_TAC Elllnyz.find_face_map;
+  GMATCH_SIMP_TAC (* Elllnyz. *) find_face_map;
   ASM_REWRITE_TAC[];
   TYPIFY `(phi p1,phi p2) = (\d. phi (FST d),phi (SND d)) (p1,p2)` ((C SUBGOAL_THEN SUBST1_TAC));
     BY(REWRITE_TAC[]);
@@ -4170,7 +4309,7 @@ let hyp_iso_hypermap_of_list = prove_by_refinement(
   (* {{{ proof *)
   [
   REPEAT WEAKER_STRIP_TAC;
-  INTRO_TAC Elllnyz.map_good_list [`x`;`phi`];
+  INTRO_TAC (* Elllnyz. *) map_good_list [`x`;`phi`];
   ASM_REWRITE_TAC[];
   DISCH_TAC;
   REWRITE_TAC[Hypermap_iso.hyp_iso_edge_face];
@@ -4194,7 +4333,7 @@ let hyp_iso_hypermap_of_list = prove_by_refinement(
   REPEAT (GMATCH_SIMP_TAC f_list_ext_f_list);
   ASM_REWRITE_TAC[];
   REWRITE_TAC[ List_hypermap.f_list];
-  GMATCH_SIMP_TAC Elllnyz.find_face_map;
+  GMATCH_SIMP_TAC (* Elllnyz. *) find_face_map;
   ASM_REWRITE_TAC[];
   TYPIFY `(phi p1,phi p2) = (\d. phi (FST d),phi (SND d)) (p1,p2)` (C SUBGOAL_THEN SUBST1_TAC);
     BY(REWRITE_TAC[]);
@@ -4213,6 +4352,31 @@ let hyp_iso_hypermap_of_list = prove_by_refinement(
   TYPIFY `find_face x u = find_face x (p1,p2) /\ find_face x v = find_face x (p1,p2)` (C SUBGOAL_THEN ASSUME_TAC);
     BY(ASM_MESON_TAC[List_hypermap.mem_find_face_imp_faces_eq]);
   BY(ASM_MESON_TAC[List_hypermap.dart_in_face])
+  ]);;
+  (* }}} *)
+
+let dart_hypermap_of_list = prove_by_refinement(
+  `!(L:((A)list)list). good_list L ==> 
+   (dart(hypermap_of_list L) = set_of_list (list_of_darts (L)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC List_hypermap.components_hypermap_of_list [`L`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  BY(REWRITE_TAC[List_hypermap.darts_of_list])
+  ]);;
+  (* }}} *)
+
+let list_pairs_unique = prove_by_refinement(
+  `!f:(A)list d1 d2. uniq f /\ MEM d1 (list_pairs f) /\ MEM d2 (list_pairs f) /\
+     FST d1 = FST d2 ==> d1 = d2`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[FORALL_PAIR_THM;PAIR_EQ];
+  BY(ASM_MESON_TAC[List_hypermap.mem_list_pairs_explicit])
   ]);;
   (* }}} *)
 
@@ -4247,7 +4411,7 @@ let iso_list_normal_node = prove_by_refinement(
   DISCH_THEN GMATCH_SIMP_TAC;
   REWRITE_TAC[GSYM MAP_flatten];
   REWRITE_TAC[SET_OF_LIST_MAP];
-  ASM_SIMP_TAC[Wmlnymd.dart_hypermap_of_list];
+  ASM_SIMP_TAC[(* Wmlnymd. *) dart_hypermap_of_list];
   ASM_REWRITE_TAC[IN_SET_OF_LIST];
   SUBCONJ_TAC;
     FIRST_X_ASSUM_ST `all` MP_TAC;
@@ -4286,6 +4450,20 @@ let iso_list_normal = prove_by_refinement(
   (* }}} *)
 
 let XKDZKWV = iso_list_normal;;
+
+let planegraph_PlaneGraphs = prove_by_refinement(
+  `!g. PlaneGraphs g <=> (planegraph g /\ finalGraph g)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[planegraph;PlaneGraphs];
+  REWRITE_TAC[UNIONS;IN_ELIM_THM];
+  REWRITE_TAC[IN_IMAGE;IN_UNIV];
+  REWRITE_TAC[MESON [] `(?u. (?x. u = planeGraphsP x) /\ g IN u) <=> (?x. g IN planeGraphsP x)`];
+  REWRITE_TAC[PlaneGraphsP;IN_ELIM_THM];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
 
 
 end;;

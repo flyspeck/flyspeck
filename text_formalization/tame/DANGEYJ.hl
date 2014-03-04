@@ -1,0 +1,934 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Local Fan                                              *)
+(* Author: Hoang Le Truong                                        *)
+(* Date: 2012-04-01                                                           *)
+(* ========================================================================= *)
+
+
+(*
+remaining conclusions from appendix to Local Fan chapter
+*)
+
+
+module  Dangeyj= struct
+
+open Truong_tactic;;
+open Hypermap;;
+open Import_tame_classification;;
+open Auqtzyz;;
+open List_hypermap;;
+open Rxokskc;;
+
+
+let transform_list_power_rep=prove(`!j. (transform_list L x POWER j) (N,r)=ntrans L N r x j,rtrans L N r x j`,
+INDUCT_TAC
+THEN REWRITE_TAC[POWER;I_DEF;Tame_defs2.ntrans;Tame_defs2.rtrans]);;
+
+
+let not_mem_split_at_rec=prove(`!r l. ~(MEM ram1 r)==> split_at_rec ram1 l r= APPEND l r,[]`,
+LIST_INDUCT_TAC
+THENL[
+REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL];
+GEN_TAC
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;DE_MORGAN_THM]
+THEN RESA_TAC
+THEN THAYTHE_TAC 2[`APPEND l [h]`]
+THEN REWRITE_TAC[GSYM APPEND_ASSOC;APPEND]]);;
+
+
+let not_mem_split_at=prove(`!r:(A)list. ~(MEM ram1 r)==> split_at ram1 r=  r,[]`,
+REPEAT RESA_TAC
+THEN MRESA_TAC not_mem_split_at_rec[`ram1`;`r`;`[]:(A)list`]
+THEN ASM_REWRITE_TAC[Tame_defs.split_at;APPEND]);;
+
+
+let not_betwn=prove(`~(MEM ram1 r) /\ ~(MEM ram2 r) ==>betwn r ram1 ram2=r`,
+REWRITE_TAC[Tame_defs.betwn;LET_THM]
+THEN RESA_TAC
+THEN ASM_SIMP_TAC[not_mem_split_at;set_of_list;APPEND;SET_RULE`~(A IN {})`]);;
+
+
+let fst_fun=prove(`(\(a:A,b:B). a) c= FST c`,
+let lemma=prove(`
+!c e d. c=(e,d)
+==> (\(a:A,b:B). a) c= e`,
+REPEAT RESA_TAC) in
+MRESA_TAC lemma[`c`;`FST c`;`SND c`]);;
+
+
+
+let fst_snd_fun=prove(`(\(a:A,b:B). f a b ) c= f (FST c) (SND c)`,
+let lemma=prove(`
+!c:A#B e d. c=(e,d)
+==> (\(a:A,b:B). f a b ) c= f e d`,
+REPEAT RESA_TAC) in
+MRESA_TAC lemma[`f`;`c:A#B`;`FST (c:A#B)`;`SND (c:A#B)`]);;
+
+
+
+
+let not_in_mem_betwn=prove(`!r:(A)list r1:A r2:A. ~(MEM r1 r) /\ (MEM r2 r) /\ MEM x r ==> r2=x \/ MEM x (betwn r r2 r1)`,
+REPEAT RESA_TAC
+THEN REWRITE_TAC[Tame_defs.betwn;LET_THM]
+THEN ASM_SIMP_TAC[not_mem_split_at;set_of_list;APPEND;SET_RULE`~(A IN {})`]
+THEN MRESAL_TAC Tame_list.split_at_mem_snd[`r`;`r2`;`r1`;`[]:(A)list`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST]
+THEN MRESAL_TAC Tame_list.split_at_mem_fst[`r`;`r2`;`r1`;`[]:(A)list`][MEM;GSYM Tame_defs.split_at]
+THEN ASM_SIMP_TAC[not_mem_split_at;MEM_APPEND]
+THEN MRESA_TAC(SET_RULE`!a b. a=b\/ ~(a=b)`)[`r2`;`x`]
+THEN MRESAL_TAC Tame_list.split_at_both[`r`;`r2`;`x`;`[]:(A)list`][GSYM Tame_defs.split_at]);;
+
+
+let in_uniq_betwn=prove(`!r:(A)list r1:A. (MEM r1 r) /\ MEM x r/\ uniq r ==> r1=x \/ MEM x (betwn r r1 r1)`,
+REPEAT RESA_TAC
+THEN REWRITE_TAC[Tame_defs.betwn;LET_THM;fst_snd_fun;IN_SET_OF_LIST]
+THEN MRESAL_TAC Tame_list.split_at_snd_antirefl[`r`;`r1`;`[]:(A)list`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST]
+THEN MRESAL_TAC Tame_list.split_at_fst_antirefl[`r`;`r1`;`[]:(A)list`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM]
+THEN ASM_SIMP_TAC[not_mem_split_at;MEM_APPEND]
+THEN MRESA_TAC(SET_RULE`!a b. a=b\/ ~(a=b)`)[`r1`;`x`]
+THEN MRESAL_TAC Tame_list.split_at_both[`r`;`r1`;`x`;`[]:(A)list`][GSYM Tame_defs.split_at]);;
+
+
+let SND_SPLIT_SING=prove(`SND (split_at r1 [a])=[]`,
+SIMP_TAC[Tame_defs.split_at;Tame_defs.split_at_rec]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`a=r1`]);;
+
+
+let betwn_sing1=prove(`betwn [a] a r2= []`,
+REWRITE_TAC[Tame_defs.betwn;LET_THM;fst_snd_fun;IN_SET_OF_LIST;SND_SPLIT_SING;MEM]
+THEN SIMP_TAC[Tame_defs.split_at;Tame_defs.split_at_rec;APPEND]);;
+
+
+
+let snd_split_at_rec_const=prove(`!t u v. SND (split_at_rec r1 u t)=SND (split_at_rec r1 v t)`,
+LIST_INDUCT_TAC
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h=r1`]);;
+
+
+let SND_EMPTY_INDEXL= prove_by_refinement(`!r:(A)list. MEM r1 r /\ uniq r/\ SND (split_at r1 r) = []
+==> indexl r1 r = sizel r - 1 `,
+[LIST_INDUCT_TAC;
+
+REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL];
+
+
+REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq2.uniq]
+THEN RESA_TAC;
+
+REWRITE_TAC[Seq.index_head]
+THEN DICH_TAC 0
+THEN RESA_TAC
+THEN REWRITE_TAC[Seq2.size1]
+THEN ARITH_TAC;
+
+MRESA_TAC(SET_RULE`!r1 t h. MEM r1 t/\ ~MEM h t==> ~(r1=h)`)[`r1`;`t`;`h`]
+THEN DICH_TAC 1
+THEN ASM_REWRITE_TAC[APPEND]
+THEN MRESAL_TAC snd_split_at_rec_const[`r1`;`t`;`[h]`;`[]:(A)list`][GSYM Tame_defs.split_at]
+THEN STRIP_TAC
+THEN DICH_TAC 6
+THEN RESA_TAC
+THEN ASM_REWRITE_TAC[Seq2.index_cons;Seq.size_cons]
+THEN GSUBGOAL_THEN(`?x. MEM x t`)ASSUME_TAC;
+
+GEXISTS_TAC`r1`
+THEN ASM_REWRITE_TAC[];
+
+
+MRESA_TAC Tame_list.sizel0[`t`]
+THEN DICH_TAC 0
+THEN ARITH_TAC]);;
+
+
+
+let HD_FST_SPLIT_AT_REC=prove(`!t u. ~(u=[])==>  HD (FST (split_at_rec r1 u t))= HD u`,
+LIST_INDUCT_TAC
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h=r1`]
+THEN REPEAT RESA_TAC
+THEN THAYTHEL_TAC 2[`APPEND u [h]`][APPEND_EQ_NIL;HD_APPEND]);;
+
+
+let INDEXL_SND_EMPTY= prove_by_refinement(`!r:(A)list. MEM r1 r /\ uniq r/\  indexl r1 r = sizel r - 1 
+==>
+SND (split_at r1 r) = []`,
+[
+LIST_INDUCT_TAC;
+
+REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL];
+
+REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL];
+REWRITE_TAC[Seq.index_head;Seq2.uniq]
+THEN RESA_TAC;
+
+
+DICH_TAC 0
+THEN ASM_REWRITE_TAC[Seq2.index_cons;Seq.size_cons;ARITH_RULE`0= SUC a-1<=> a=0`;Seq.size0nil];
+
+MRESA_TAC(SET_RULE`!r1 t h. MEM r1 t/\ ~MEM h t==> ~(r1=h)`)[`r1`;`t`;`h`]
+THEN ASM_REWRITE_TAC[APPEND]
+THEN DICH_TAC 1
+THEN ASM_REWRITE_TAC[Seq2.index_cons;Seq.size_cons;Seq.size0nil]
+THEN GSUBGOAL_THEN(`?x. MEM x t`)ASSUME_TAC;
+
+GEXISTS_TAC`r1`
+THEN ASM_REWRITE_TAC[];
+
+MRESA_TAC Tame_list.sizel0[`t`]
+THEN STRIP_TAC
+THEN MRESA_TAC(ARITH_RULE`!a b. SUC a= SUC b-1/\ ~(b=0)==> a = b-1`)[`indexl r1 t`;`sizel t`]
+THEN DICH_TAC 8
+THEN RESA_TAC
+THEN MRESAL_TAC snd_split_at_rec_const[`r1`;`t`;`[h]`;`[]:(A)list`][GSYM Tame_defs.split_at]]);;
+
+
+let INDEXL_EQ_SND_EMPTY=prove(`!r:(A)list. MEM r1 r /\ uniq r
+==> (indexl r1 r = sizel r - 1 
+<=>
+SND (split_at r1 r) = [])`,
+REPEAT RESA_TAC
+THEN EQ_TAC
+THEN ASM_SIMP_TAC[INDEXL_SND_EMPTY;SND_EMPTY_INDEXL]);;
+
+
+
+
+let HD_BETWN1= prove_by_refinement(
+`!r:(A)list r1:A. MEM r1 r /\ uniq r /\ ~(r=[r1])==>HD (betwn r r1 r1) = next_el r  r1`,
+[
+
+REPEAT RESA_TAC
+THEN REWRITE_TAC[Tame_defs.betwn;LET_THM;fst_snd_fun;IN_SET_OF_LIST;Seq2.next_el]
+THEN MRESAL_TAC Tame_list.split_at_snd_antirefl[`r`;`r1`;`[]:(A)list`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST]
+THEN MRESAL_TAC Tame_list.split_at_fst_antirefl[`r`;`r1`;`[]:(A)list`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM]
+THEN ASM_SIMP_TAC[not_mem_split_at;MEM_APPEND;HD_APPEND]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`SND (split_at r1 r) = []`];
+
+
+
+MRESA_TAC SND_EMPTY_INDEXL[`r1`;`r`]
+THEN GSUBGOAL_THEN(`?x. MEM x r`)ASSUME_TAC;
+
+
+GEXISTS_TAC`r1`
+THEN ASM_REWRITE_TAC[];
+
+
+
+
+MRESAL_TAC Tame_list.sizel0[`r`][ARITH_RULE`~(a=0)<=> 0<a`]
+THEN ASM_SIMP_TAC[Seq2.head_HD]
+THEN ASM_TAC
+THEN GSPEC_TAC(`r`,`r`);
+
+
+
+LIST_INDUCT_TAC;
+
+
+
+REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL]
+;
+
+
+
+REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL]
+THEN REPEAT RESA_TAC;
+
+
+DICH_TAC (9-3)
+THEN ASM_REWRITE_TAC[];
+
+
+
+DICH_TAC (9-3)
+THEN ASM_REWRITE_TAC[];
+
+
+MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h= r1`];
+
+
+DICH_TAC(10-6)
+THEN RESA_TAC
+THEN DICH_TAC(10-3)
+THEN ASM_REWRITE_TAC[];
+
+
+
+REWRITE_TAC[APPEND]
+THEN MRESA_TAC NOT_CONS_NIL[`h`;`[]:(A)list`]
+THEN MRESAL_TAC HD_FST_SPLIT_AT_REC[`r1`;`t`;`[h]`][HD];
+
+
+
+
+MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h= r1`];
+
+
+DICH_TAC(10-6)
+THEN RESA_TAC
+THEN DICH_TAC(10-3)
+THEN ASM_REWRITE_TAC[];
+
+
+
+REWRITE_TAC[APPEND]
+THEN MRESA_TAC NOT_CONS_NIL[`h`;`[]:(A)list`]
+THEN MRESAL_TAC HD_FST_SPLIT_AT_REC[`r1`;`t`;`[h]`][HD]
+THEN MRESA_TAC INDEXL_EQ_SND_EMPTY[`r1`;`r`];
+
+
+
+MRESA_TAC INDEXL_EQ_SND_EMPTY[`r1`;`r`];
+
+
+
+DICH_TAC 2
+THEN STRIP_TAC
+THEN REMOVE_ASSUM_TAC
+THEN DICH_TAC 3
+THEN STRIP_TAC
+THEN REMOVE_ASSUM_TAC
+THEN ASM_TAC
+THEN GSPEC_TAC(`r`,`r`);
+
+
+
+LIST_INDUCT_TAC;
+
+
+
+REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL]
+;
+
+
+REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.nth;Seq2.uniq]
+THEN REPEAT RESA_TAC;
+
+
+
+ASM_REWRITE_TAC[Seq.nth;ARITH_RULE`a+1= SUC a`;Seq.index_head;Seq.nth0]
+THEN ONCE_REWRITE_TAC[SET_RULE`A=B<=>B=A`]
+THEN MATCH_MP_TAC Seq2.head_HD
+THEN MATCH_MP_TAC(ARITH_RULE`~(a=0)==> 0<a`)
+THEN ASM_REWRITE_TAC[Tame_list.sizel0;GSYM List_hypermap.mem_not_nil]
+;
+
+
+MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h= r1`];
+
+
+
+ASM_REWRITE_TAC[Seq.nth;ARITH_RULE`a+1= SUC a`;Seq.index_head;Seq.nth0]
+THEN ONCE_REWRITE_TAC[SET_RULE`A=B<=>B=A`]
+THEN MATCH_MP_TAC Seq2.head_HD
+THEN MATCH_MP_TAC(ARITH_RULE`~(a=0)==> 0<a`)
+THEN ASM_REWRITE_TAC[Tame_list.sizel0;GSYM List_hypermap.mem_not_nil]
+THEN DICH_TAC 1
+THEN ASM_REWRITE_TAC[Seq2.index_cons;Seq.size_cons;ARITH_RULE`0= SUC a-1<=> a=0`;Seq.size0nil]
+THEN ASM_REWRITE_TAC[Tame_list.sizel0;GSYM List_hypermap.mem_not_nil]
+THEN MRESA_TAC Tame_list.sizel0[`t`]
+;
+
+
+DICH_TAC (8-4)
+THEN ASM_REWRITE_TAC[APPEND]
+THEN DICH_TAC (7-4)
+THEN ASM_REWRITE_TAC[APPEND]
+THEN DICH_TAC (6-4)
+THEN ASM_REWRITE_TAC[APPEND]
+THEN MRESAL_TAC snd_split_at_rec_const[`r1`;`t`;`[h]`;`[]:(A)list`][GSYM Tame_defs.split_at]
+THEN REPEAT RESA_TAC
+THEN DICH_TAC 8
+THEN ASM_REWRITE_TAC[]
+THEN DICH_TAC (7-2)
+THEN ASM_REWRITE_TAC[Seq2.index_cons;Seq.size_cons;Seq.size0nil]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`t=[]`]
+;
+
+
+
+DICH_TAC (7-4)
+THEN ASM_REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL]
+;
+
+
+MRESAL_TAC Tame_list.sizel0[`t`][GSYM List_hypermap.mem_not_nil]
+THEN STRIP_TAC
+THEN MRESA_TAC(ARITH_RULE`!a b. ~(SUC a= SUC b-1)/\ ~(b=0)==> ~(a=b-1)`)[`indexl r1 t`;`sizel t`;]
+THEN RESA_TAC
+THEN REWRITE_TAC[ARITH_RULE`SUC a+1=SUC(a+1)`;Seq.nth]
+]);;
+
+let APPEND_FST_SPLIT=prove(`!l u v. (FST (split_at_rec r1 (APPEND u v) l)) =APPEND u (FST (split_at_rec r1 (v) l))`,
+LIST_INDUCT_TAC
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;APPEND]
+THEN MRESAL_TAC(SET_RULE`!A. A\/ ~A`)[`h=r1`][GSYM APPEND_ASSOC]);;
+
+
+
+let sym_fst_snd_in_betwn=prove(`!l:(A)list. MEM r2 l/\ ~(MEM r3 u) /\ MEM r3 (FST (split_at_rec r2 u l)) ==> MEM r2 (SND (split_at_rec r3 u l))`,
+LIST_INDUCT_TAC
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL]
+THEN RESA_TAC
+THEN DICH_TAC 0
+THEN RESA_TAC
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h=r3`]
+THEN MRESA_TAC snd_split_at_rec_const[`r3`;`t`;`APPEND u [h]`;`u`]
+THEN MATCH_DICH_TAC 5
+THEN ASM_REWRITE_TAC[]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h=r2`]
+THEN DICH_TAC (5-2)
+THEN RESA_TAC
+THEN MRESAL_TAC APPEND_FST_SPLIT[`r2`;`t`;`APPEND u [h]`;`[]:(A)list`][APPEND_NIL]
+THEN DICH_TAC 1
+THEN ASM_REWRITE_TAC[MEM_APPEND]
+THEN MRESAL_TAC APPEND_FST_SPLIT[`r2`;`t`;`u `;`[]:(A)list`][APPEND_NIL]
+THEN ASM_REWRITE_TAC[MEM_APPEND;Seq.mem_seq1]);;
+
+
+let sym_fst_snd_in_split=prove(`!l:(A)list. MEM r2 l /\ MEM r3 (FST (split_at r2 l)) ==> MEM r2 (SND (split_at r3  l))`,
+REPEAT RESA_TAC
+THEN MRESAL_TAC sym_fst_snd_in_betwn[`r2`;`r3`;`[]:(A)list`;`l`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM]);;
+
+
+let SND_TWO_SPLIT=prove(`!r u. uniq r/\ MEM r3  (SND (split_at_rec r1 u r)) ==> SND (split_at_rec r3 u (SND (split_at_rec r1 u r)))= SND (split_at_rec r3 u r)`,
+LIST_INDUCT_TAC
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.uniq]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h=r1`]
+THEN REPEAT RESA_TAC
+THENL[
+MRESA_TAC(SET_RULE`!a b t. ~MEM a t/\ MEM b t==> ~(a=b)`)[`r1`;`r3`;`t`]
+THEN MRESA_TAC snd_split_at_rec_const[`r3`;`t`;`u`;`APPEND u [r1]`];
+MRESA_TAC Tame_list.split_at_mem_snd[`t`;`r1`;`r3`;`(APPEND u [h])`]
+THEN MRESA_TAC(SET_RULE`!a b t. ~MEM a t/\ MEM b t==> ~(a=b)`)[`h`;`r3`;`t`]
+THEN THAYTHE_TAC 6[`APPEND u [h]`]
+THEN MRESA_TAC snd_split_at_rec_const[`r3`;`SND (split_at_rec r1 (APPEND u [h]) t)`;`u`;`APPEND u [h]`]]);;
+
+let split_at_rec_hd_fst=prove(`!l. HD l= a ==> FST (split_at_rec a u l)=u`,
+LIST_INDUCT_TAC
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.uniq;HD]
+THEN RESA_TAC);;
+
+
+
+
+let FST_SND_SYM_SPLIT= prove_by_refinement(`!t:(A)list. uniq t /\ MEM r2 t /\ MEM r3 t /\ MEM r3 (FST (split_at_rec r2 [] t))
+==> SND (split_at_rec r3 [] (FST (split_at_rec r2 [] t))) =
+ FST (split_at_rec r2 [] (SND (split_at_rec r3 [] t)))`,
+[
+LIST_INDUCT_TAC
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.uniq;HD;Tame_defs.betwn;LET_THM]
+THEN RESA_TAC
+THEN DICH_TAC 5
+THEN ASM_REWRITE_TAC[]
+THEN DICH_TAC 0
+THEN ASM_REWRITE_TAC[MEM]
+THEN MRESA_TAC(SET_RULE`!a b t. ~MEM a t/\ MEM b t==> ~(a=b)`)[`h`;`r2`;`t`];
+
+MRESAL_TAC APPEND_FST_SPLIT[`r2`;`t`;`APPEND [] [h]`;`[]:(A)list`][APPEND_NIL;APPEND]
+THEN MRESAL_TAC Tame_list.snd_split_at_hd[`h :: FST (split_at_rec r2 [] t)`;`r2`;`r2`;`[]:(A)list`][NOT_CONS_NIL;HD;TL];
+
+MRESAL_TAC APPEND_FST_SPLIT[`r2`;`t`;`APPEND [] [h]`;`[]:(A)list`][APPEND_NIL;APPEND;MEM]
+THEN MRESAL_TAC(SET_RULE`!A. A\/ ~A`)[`h=r3`][fst_snd_fun;IN_SET_OF_LIST];
+
+MRESAL_TAC Tame_list.snd_split_at_hd[`h :: FST (split_at_rec r2 [] t)`;`r2`;`r2`;`[]:(A)list`][NOT_CONS_NIL;HD;TL];
+
+RESA_TAC
+THEN ASM_REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.uniq;HD;Tame_defs.betwn;LET_THM]
+THEN MRESA_TAC snd_split_at_rec_const[`r3`;`(FST (split_at_rec r2 [] t))`;`[]:(A)list`;`APPEND [] [h]`]
+THEN RESA_TAC
+THEN MRESA_TAC snd_split_at_rec_const[`r3`;`t`;`[]:(A)list`;`[h]`]]);;
+
+
+
+let uniq_snd_split=prove(`!r:(A)list. uniq r ==> uniq (SND (split_at_rec r1 u r))`,
+LIST_INDUCT_TAC
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.uniq]
+THEN RESA_TAC
+THEN DICH_TAC 2
+THEN RESA_TAC
+THEN MRESAL_TAC(SET_RULE`!A. A\/ ~A`)[`h=r1`][fst_snd_fun;IN_SET_OF_LIST]
+THEN MRESA_TAC snd_split_at_rec_const[`r1`;`t`;`u:(A)list`;`APPEND u [h]`]
+THEN SYM_DICH_TAC 0
+THEN ASM_REWRITE_TAC[]);;
+
+
+
+let MEM_FST_FST_SPLIT=prove(`!r:(A)list. MEM r3 (FST (split_at r2 (FST (split_at r1 r))))
+==> MEM r3 (FST (split_at r2 r))`,
+LIST_INDUCT_TAC
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.uniq]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h=r1`]
+THEN REPEAT RESA_TAC
+THENL[
+DICH_TAC 0
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.uniq];
+DICH_TAC 0
+THEN REWRITE_TAC[APPEND]
+THEN MRESAL_TAC APPEND_FST_SPLIT[`r1`;`t`;`[h]`;`[]:(A)list`][APPEND_NIL;APPEND;Tame_defs.split_at_rec]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h=r2`]
+THEN MRESAL_TAC APPEND_FST_SPLIT[`r2`;`(FST (split_at_rec r1 [] t))`;`[h]`;`[]:(A)list`][APPEND_NIL;APPEND;Tame_defs.split_at_rec;MEM]
+THEN RESA_TAC
+THEN MRESAL_TAC APPEND_FST_SPLIT[`r2`;`t`;`[h]`;`[]:(A)list`][APPEND_NIL;APPEND;Tame_defs.split_at_rec;MEM]
+THEN DICH_TAC 6
+THEN ASM_REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.uniq]
+THEN RESA_TAC]);;
+
+
+let MEM_SND_FST_FST_SPLIT= prove_by_refinement(`!r:(A)list. MEM x (SND (split_at r3 (FST (split_at r2 (FST (split_at r1 r))))))
+ ==> MEM x (SND (split_at r3 (FST (split_at r2 r))))`,
+[
+LIST_INDUCT_TAC
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.uniq]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h=r1`]
+THEN REPEAT RESA_TAC;
+
+DICH_TAC 0
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.uniq];
+
+
+DICH_TAC 0
+THEN REWRITE_TAC[APPEND]
+THEN MRESAL_TAC APPEND_FST_SPLIT[`r1`;`t`;`[h]`;`[]:(A)list`][APPEND_NIL;APPEND;Tame_defs.split_at_rec]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h=r2`]
+THEN MRESAL_TAC APPEND_FST_SPLIT[`r2`;`(FST (split_at_rec r1 [] t))`;`[h]`;`[]:(A)list`][APPEND_NIL;APPEND;Tame_defs.split_at_rec;MEM]
+THEN MRESAL_TAC APPEND_FST_SPLIT[`r2`;`t`;`[h]`;`[]:(A)list`][APPEND_NIL;APPEND;Tame_defs.split_at_rec;MEM]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h=r3`];
+
+REWRITE_TAC[GSYM Tame_defs.split_at;MEM_FST_FST_SPLIT];
+
+MRESA_TAC snd_split_at_rec_const[`r3`;`(FST (split_at_rec r2 [] (FST (split_at_rec r1 [] t))))`;`[]:(A)list`;`[h]`]
+THEN SYM_DICH_TAC 0
+THEN STRIP_TAC
+THEN MRESA_TAC snd_split_at_rec_const[`r3`;`(FST (split_at_rec r2 [] t))`;`[]:(A)list`;`[h]`]
+THEN SYM_DICH_TAC 0;
+
+
+DICH_TAC 7
+THEN ASM_REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.uniq]
+THEN RESA_TAC]);;
+
+
+
+let MEM_SND_FST_FST_SPLIT2=prove(` !r:(A)list. uniq r/\ MEM r3 (SND (split_at r1 r)) /\ MEM x (FST (split_at r2 (FST (split_at r1 r))))
+ ==> MEM x (FST (split_at r2 (FST (split_at r3 r))))`,
+
+LIST_INDUCT_TAC
+THEN REWRITE_TAC
+[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.uniq]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h=r1`]
+THENL[
+REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.uniq];
+
+MRESAL_TAC snd_split_at_rec_const[`r1`;`t`;`[]:(A)list`;`[h]`][APPEND]
+THEN SYM_DICH_TAC 0
+THEN MRESAL_TAC APPEND_FST_SPLIT[`r1`;`t`;`[h]`;`[]:(A)list`][APPEND_NIL;APPEND;Tame_defs.split_at_rec]
+THEN MRESAL_TAC(SET_RULE`!A. A\/ ~A`)[`h=r2`][MEM]
+THEN MRESAL_TAC APPEND_FST_SPLIT[`r2`;`(FST (split_at_rec r1 [] t))`;`[h]`;`[]:(A)list`][APPEND_NIL;APPEND;Tame_defs.split_at_rec;MEM]
+THEN RESA_TAC
+THEN MRESA_TAC Tame_list.split_at_mem_snd[`t`;`r1`;`r3`;`[]:(A)list`]
+THEN MRESA_TAC(SET_RULE`!a b t. ~MEM a t/\ MEM b t==> ~(a=b)`)[`h`;`r3`;`t`]
+THEN MRESAL_TAC APPEND_FST_SPLIT[`r3`;`t`;`[h]`;`[]:(A)list`][APPEND_NIL;APPEND;Tame_defs.split_at_rec]
+THEN MRESAL_TAC APPEND_FST_SPLIT[`r2`;`(FST (split_at_rec r3 [] t))`;`[h]`;`[]:(A)list`][APPEND_NIL;APPEND;Tame_defs.split_at_rec;MEM]
+THEN DICH_TAC 12
+THEN ASM_REWRITE_TAC
+[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.uniq]
+THEN RESA_TAC]);;
+
+
+let BETWN_TWO_MEM= prove_by_refinement(`!r:(A)list. uniq r/\ MEM r1 r/\ MEM r2 r/\ MEM r3 (betwn r r1 r2) /\ HD (betwn r r1 r2)=r3 /\ MEM x (betwn (betwn r r1 r2) r3 r2) ==> MEM x (betwn r r3 r2)`,
+[ 
+RESA_TAC
+THEN REWRITE_TAC[Tame_defs.betwn;LET_THM;fst_snd_fun;IN_SET_OF_LIST;Seq2.next_el]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`MEM r2 (SND (split_at r1 r))`];
+
+MRESAL_TAC Tame_list.split_at_fst_antirefl[`SND (split_at r1 r)`;`r2`;`[]:(A)list`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM]
+THEN MRESAL_TAC Tame_list.split_at_mem_snd[`(FST (split_at r2 (SND (split_at r1 r))))`;`r3`;`r2`;`[]:(A)list`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM]
+THEN RESA_TAC
+THEN MRESA_TAC sym_fst_snd_in_split[`r2`;`r3`;`(SND (split_at r1 r))`]
+THEN MRESAL_TAC Tame_list.split_at_mem_fst[`(SND (split_at r1 r))`;`r2`;`r3`;`[]:(A)list`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM]
+THEN MRESAL_TAC SND_TWO_SPLIT[`r1`;`r3`;`r`;`[]:(A)list`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM]
+THEN DICH_TAC 2
+THEN RESA_TAC
+THEN MRESAL_TAC Tame_list.split_at_mem_fst[`(FST (split_at r2 (SND (split_at r1 r))))`;`r3`;`r2`;`[]:(A)list`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM]
+THEN MRESAL_TAC not_mem_split_at_rec[`r2`;`(FST (split_at r3 (FST (split_at r2 (SND (split_at r1 r))))))`;`[]:(A)list`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM]
+THEN MRESAL_TAC split_at_rec_hd_fst[`r3`;`[]:(A)list`;`(FST (split_at r2 (SND (split_at r1 r))))`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM;APPEND;APPEND_NIL]
+THEN MRESAL_TAC uniq_snd_split[`r1`;`[]:(A)list`;`r`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM]THEN MRESAL_TAC FST_SND_SYM_SPLIT[`r2`;`r3`;`SND (split_at r1 r)`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM;APPEND;APPEND_NIL]
+THEN DICH_TAC 8
+THEN ASM_REWRITE_TAC[APPEND_NIL];
+
+
+RESA_TAC
+THEN MRESAL_TAC Tame_list.split_at_fst_antirefl[`(FST (split_at r1 r))`;`r2`;`[]:(A)list`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM;APPEND;APPEND_NIL]
+THEN MRESAL_TAC Tame_list.split_at_mem_snd[`(APPEND (SND (split_at r1 r))
+      (FST (split_at r2 (FST (split_at r1 r)))))`;`r3`;`r2`;`[]:(A)list`][MEM_APPEND;GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM;APPEND;APPEND_NIL]
+THEN DICH_TAC 2
+THEN REWRITE_TAC[HD_APPEND]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`SND (split_at r1 r) = []`];
+
+DICH_TAC(5-2)
+THEN DICH_TAC(5-2)
+THEN ASM_REWRITE_TAC[APPEND]
+THEN STRIP_TAC
+THEN MRESAL_TAC Tame_list.split_at_mem_fst[`FST (split_at r1 r)`;`r2`;`r3`;`[]:(A)list`][MEM_APPEND;GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM;APPEND;APPEND_NIL]
+THEN MRESA_TAC sym_fst_snd_in_split[`r2`;`r3`;`r`]
+THEN STRIP_TAC
+THEN MRESAL_TAC split_at_rec_hd_fst[`r3`;`[]:(A)list`;`(FST (split_at r2 (FST (split_at r1 r))))`][MEM_APPEND;GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM;APPEND;APPEND_NIL]
+THEN REWRITE_TAC[Tame_defs.betwn;LET_THM;fst_snd_fun;IN_SET_OF_LIST;Seq2.next_el;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL]
+THEN REWRITE_TAC[Tame_defs.betwn;LET_THM;fst_snd_fun;IN_SET_OF_LIST;Seq2.next_el;GSYM Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL]
+THEN MRESA_TAC MEM_FST_FST_SPLIT[`r1`;`r3`;`r2`;`r`]
+THEN DICH_TAC 3
+THEN RESA_TAC
+THEN MRESAL_TAC Tame_list.split_at_mem_fst[`r`;`r2`;`r3`;`[]:(A)list`][MEM_APPEND;GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM;APPEND;APPEND_NIL]
+THEN MRESAL_TAC FST_SND_SYM_SPLIT[`r2`;`r3`;`r`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM;APPEND;APPEND_NIL
+]
+THEN SYM_DICH_TAC 0
+THEN ASM_REWRITE_TAC[MEM_SND_FST_FST_SPLIT];
+
+MRESAL_TAC split_at_rec_hd_fst[`r3`;`[]:(A)list`;`(APPEND (SND (split_at r1 r))
+      (FST (split_at r2 (FST (split_at r1 r)))))`][MEM_APPEND;GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM;APPEND;APPEND_NIL]
+THEN DICH_TAC(9-5)
+THEN ASM_REWRITE_TAC[HD_APPEND;APPEND]
+THEN REWRITE_TAC[Tame_defs.betwn;LET_THM;fst_snd_fun;IN_SET_OF_LIST;Seq2.next_el;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;MEM]
+THEN REWRITE_TAC[MEM_APPEND;GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM;APPEND;APPEND_NIL]
+THEN STRIP_TAC
+THEN MRESAL_TAC Tame_list.snd_split_at_hd[`SND (split_at r1 r)`;`r2`;`r2`;`[]:(A)list`][MEM_APPEND;GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM;APPEND;APPEND_NIL]
+THEN MRESA_TAC Tame_list.MEM_HD[`SND (split_at r1 r)`]
+THEN MRESAL_TAC SND_TWO_SPLIT[`r1`;`r3`;`r`;`[]:(A)list`][MEM_APPEND;GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM;APPEND;APPEND_NIL]
+THEN DICH_TAC 12
+THEN MRESAL_TAC CONS_HD_TL[`(SND (split_at r1 r))`][MEM;DE_MORGAN_THM]
+THEN RESA_TAC
+THEN REWRITE_TAC[APPEND]
+THEN REWRITE_TAC[Tame_defs.betwn;LET_THM;fst_snd_fun;IN_SET_OF_LIST;Seq2.next_el;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;MEM_APPEND]
+THEN RESA_TAC
+THEN MATCH_MP_TAC(SET_RULE`A==> B\/A`)
+THEN DICH_TAC 0
+THEN ASM_REWRITE_TAC[MEM_APPEND;GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM;APPEND;APPEND_NIL]
+THEN STRIP_TAC
+THEN MRESA_TAC MEM_SND_FST_FST_SPLIT2[`r1`;`x`;`r2`;`r3`;`r`]])
+;;
+
+
+
+let mem_imp_not_nil=prove(`!s x. MEM x s ==> ~(s = [])`,
+ASM_REWRITE_TAC[List_hypermap.mem_not_nil]
+THEN SET_TAC[]);;
+
+
+let HD_FST_SPLIT= prove(`!t:(A)list. ~(FST (split_at r2 t) = [])
+ ==> HD (FST (split_at r2 t)) = HD t`,
+LIST_INDUCT_TAC
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h=r2`]
+THEN MRESAL_TAC APPEND_FST_SPLIT[`r2`;`t`;`[h]`;`[]:(A)list`][APPEND_NIL;APPEND;Tame_defs.split_at_rec;HD]);;
+
+
+let HD_NTH_FST_SND_SPLIT= prove_by_refinement(`!r:(A)list. MEM r1 r /\ MEM r2 r /\ uniq r /\ ~(r1=r2) /\ MEM r2 (SND (split_at r1 r))
+/\ ~(FST (split_at r2 (SND (split_at r1 r))) = [])
+==> 
+HD (FST (split_at r2 (SND (split_at r1 r)))) = nth r1 r (indexl r1 r + 1)`,
+[
+LIST_INDUCT_TAC;
+
+REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL];
+
+REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.nth;Seq2.uniq]
+THEN REPEAT RESA_TAC;
+
+DICH_TAC 2
+THEN RESA_TAC;
+
+DICH_TAC 0
+THEN ASM_REWRITE_TAC[Seq.nth;ARITH_RULE`a+1= SUC a`;Seq.index_head;Seq.nth0]
+THEN MRESA_TAC mem_imp_not_nil[`t`;`r2`]
+THEN MRESAL_TAC Tame_list.sizel0[`t`][GSYM List_hypermap.mem_not_nil;ARITH_RULE`~(a=0)<=> 0<a`]
+THEN MRESAL_TAC Seq2.head_HD[`h`;`t`][GSYM Tame_defs.split_at;HD_FST_SPLIT];
+
+DICH_TAC 0
+THEN MRESA_TAC(SET_RULE`!a b t. ~MEM a t/\ MEM b t==> ~(a=b)`)[`h`;`r1`;`t`]
+THEN MRESAL_TAC snd_split_at_rec_const[`r1`;`t`;`[]:(A)list`;`[h]`][APPEND]
+THEN SYM_DICH_TAC 0
+THEN ASM_REWRITE_TAC[Seq.nth;ARITH_RULE`a+1= SUC a`;Seq.index_head;Seq.nth0;Seq2.index_cons]
+THEN DICH_TAC 1
+THEN ASM_REWRITE_TAC[]
+THEN MRESAL_TAC snd_split_at_rec_const[`r1`;`t`;`[]:(A)list`;`[h]`][APPEND]
+THEN SYM_DICH_TAC 0
+THEN STRIP_TAC 
+THEN MRESA_TAC Tame_list.split_at_mem_snd[`t`;`r1`;`h`;`[]:(A)list`];
+
+DICH_TAC 0
+THEN MRESA_TAC(SET_RULE`!a b t. ~MEM a t/\ MEM b t==> ~(a=b)`)[`h`;`r1`;`t`]
+THEN DICH_TAC 1
+THEN MRESAL_TAC snd_split_at_rec_const[`r1`;`t`;`[]:(A)list`;`[h]`][APPEND]
+THEN SYM_DICH_TAC 0
+THEN ASM_REWRITE_TAC[Seq.nth;ARITH_RULE`a+1= SUC a`;Seq.index_head;Seq.nth0;Seq2.index_cons]
+THEN REPEAT STRIP_TAC
+THEN DICH_TAC 8
+THEN ASM_REWRITE_TAC[Seq.nth;ARITH_RULE`a+1= SUC a`;Seq.index_head;Seq.nth0;Seq2.index_cons;Tame_defs.split_at]]);;
+
+
+let HD_SND_NTH_SPLIT_AT=prove(`!r:(A)list. ~(SND (split_at r1 r) = [])
+==> HD (SND (split_at r1 r)) = nth r1 r (indexl r1 r + 1)`,
+LIST_INDUCT_TAC
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.nth;Seq2.uniq]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`h=r1`]
+THEN ASM_SIMP_TAC[Seq.nth;ARITH_RULE`a+1= SUC a`;Seq.index_head;Seq.nth0; Seq2.head_HD]
+THEN STRIP_TAC
+THEN MRESAL_TAC Tame_list.sizel0[`t`][GSYM List_hypermap.mem_not_nil;ARITH_RULE`~(a=0)<=> 0<a`]
+THEN ASM_SIMP_TAC[Seq2.head_HD]
+THEN ASM_REWRITE_TAC[Seq.nth;ARITH_RULE`a+1= SUC a`;Seq.index_head;Seq.nth0;Seq2.index_cons]
+THEN DICH_TAC 1
+THEN MRESAL_TAC snd_split_at_rec_const[`r1`;`t`;`[]:(A)list`;`[h]`][APPEND]
+THEN SYM_DICH_TAC 0
+THEN ASM_REWRITE_TAC[Seq.nth;ARITH_RULE`SUC a=a+1`;Seq.index_head;Seq.nth0;Seq2.index_cons;GSYM Tame_defs.split_at]);;
+
+
+let FST_NOT_IMP_NOT_SLPLIT=prove(`~(FST (split_at r2 r )=[])
+==> ~(r=[])`,
+REWRITE_TAC[CONTRAPOS_THM]
+THEN RESA_TAC
+THEN REWRITE_TAC[MEM;Tame_defs.split_at;Tame_defs.split_at_rec;APPEND_NIL;Seq.nth;Seq2.uniq]);;
+
+
+let HD_FST_FST_SPLIT=prove(`!r. ~(FST (split_at r2 (FST (split_at r1 r))) = [])
+==>
+HD (FST (split_at r2 (FST (split_at r1 r)))) = headl r1 r`,
+REPEAT RESA_TAC
+THEN MRESA_TAC HD_FST_SPLIT[`r2`;`FST (split_at r1 r)`]
+THEN MRESA_TAC FST_NOT_IMP_NOT_SLPLIT[`r2`;`FST (split_at r1 r)`]
+THEN MRESA_TAC HD_FST_SPLIT[`r1`;`r`]
+THEN MRESA_TAC FST_NOT_IMP_NOT_SLPLIT[`r1`;`r`]
+THEN MRESAL_TAC Tame_list.sizel0[`r`][GSYM List_hypermap.mem_not_nil;ARITH_RULE`~(a=0)<=> 0<a`]
+THEN ASM_SIMP_TAC[Seq2.head_HD]);;
+
+
+
+let HD_BETWN2= prove_by_refinement(`!r:(A)list r1:A r2. MEM r1 r /\ MEM r2 r /\ ~(r1=r2) /\ uniq r/\ ~(betwn r r1 r2=[]) ==>HD (betwn r r1 r2) = next_el r  r1`,
+[
+
+REWRITE_TAC[Tame_defs.betwn;LET_THM;fst_snd_fun;IN_SET_OF_LIST;Seq2.next_el]
+THEN REPEAT RESA_TAC
+THEN MRESAL_TAC Tame_list.split_at_snd_antirefl[`r`;`r1`;`[]:(A)list`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST]
+THEN MRESAL_TAC Tame_list.split_at_fst_antirefl[`r`;`r1`;`[]:(A)list`][GSYM Tame_defs.split_at;fst_fun;fst_snd_fun;IN_SET_OF_LIST;MEM]
+THEN ASM_SIMP_TAC[not_mem_split_at;MEM_APPEND;HD_APPEND]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`MEM r2 (SND (split_at r1 r))`];
+
+MRESA_TAC mem_imp_not_nil[`(SND (split_at r1 r))`;`r2`]
+THEN MRESA_TAC INDEXL_EQ_SND_EMPTY[`r1`;`r`]
+THEN DICH_TAC(9-4)
+THEN RESA_TAC
+THEN MRESA_TAC HD_NTH_FST_SND_SPLIT[`r2`;`r1`;`r`];
+
+MRESA_TAC(SET_RULE`!A. ~A\/A`)[`(SND (split_at r1 r))=[]`];
+
+MRESA_TAC INDEXL_EQ_SND_EMPTY[`r1`;`r`]
+THEN DICH_TAC(9-4)
+THEN RESA_TAC
+THEN ASM_SIMP_TAC[HD_APPEND;HD_SND_NTH_SPLIT_AT];
+
+MRESA_TAC INDEXL_EQ_SND_EMPTY[`r1`;`r`]
+THEN DICH_TAC(9-4)
+THEN ASM_REWRITE_TAC[APPEND]
+THEN RESA_TAC
+THEN ASM_SIMP_TAC[HD_FST_FST_SPLIT]]);;
+
+
+let SPLIT_NORMAL_LIST_CASES= prove_by_refinement(`MEM x r/\ uniq r ==> MEM x (FST (split_normal_list L r f ram1 ram2))
+\/ MEM x (SND (split_normal_list L r f ram1 ram2))`,
+[
+REWRITE_TAC[Tame_defs2.split_normal_list;LET_THM;MEM_APPEND;]
+THEN REWRITE_TAC[Seq.mem_rev;Tame_list.lower_case;Seq2.mem_flatten;]
+THEN MRESA_TAC(SET_RULE`!A. ~A\/ A`)[`MEM ram1 r`];
+
+ASM_SIMP_TAC[Seq2.next_el_outside];
+
+MRESA_TAC(SET_RULE`!A. ~A\/ A`)[`MEM ram2 r`];
+
+ASM_SIMP_TAC[Seq2.next_el_outside;not_betwn];
+
+STRIP_TAC
+THEN MRESA_TAC Seq2.mem_next_el[`ram2`;`r`]
+THEN MRESAL_TAC not_in_mem_betwn[`x`;`r`;`ram1`;`(next_el r ram2)`][Seq.mem_seq1];
+
+MRESA_TAC(SET_RULE`!A. ~A\/ A`)[`MEM ram2 r`];
+
+STRIP_TAC
+THEN MRESA_TAC Seq2.mem_next_el[`ram1`;`r`]
+THEN MRESAL_TAC not_in_mem_betwn[`x`;`r`;`ram2`;`(next_el r ram1)`][Seq.mem_seq1];
+
+MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`next_el r ram1= ram1`];
+
+STRIP_TAC
+THEN MRESA_TAC Tame_list.next_el_refl[`ram1`;`r`]
+THEN DICH_TAC 2
+THEN RESA_TAC;
+
+MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`next_el r ram2= ram2`];
+
+STRIP_TAC
+THEN MRESA_TAC Tame_list.next_el_refl[`ram2`;`r`]
+THEN DICH_TAC 2
+THEN RESA_TAC;
+
+MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`ram1= ram2`];
+
+STRIP_TAC
+THEN MRESAL_TAC in_uniq_betwn[`x`;`r`;`ram1`][Seq.mem_seq1];
+
+
+MRESA_TAC(SET_RULE`!A. A\/ ~A`)[`r= [ram2]`];
+
+DICH_TAC(8-5)
+THEN ASM_REWRITE_TAC[Seq.mem_seq1]
+THEN RESA_TAC;
+
+MRESA_TAC HD_BETWN1[`r`;`ram2`]
+THEN MRESA_TAC Tame_list.not_betwn1[`ram2`;`ram2`;`r`]
+THEN MRESA_TAC mem_imp_not_nil[`betwn r ram2 ram2`;`x`]
+THEN MRESA_TAC Tame_list.MEM_HD[`betwn r ram2 ram2`]
+THEN MRESA_TAC not_in_mem_betwn[`x`;`(betwn r ram2 ram2)`;`ram2`;`next_el r ram2`;]
+THEN MRESA_TAC BETWN_TWO_MEM[`ram2`;`x`;`next_el r ram2`;`ram2`;`r`];
+
+STRIP_TAC
+THEN MRESAL_TAC Tame_list.betwn_cases[`r`;`ram1`;`x`;`ram2`][Seq.mem_seq1];
+
+MRESA_TAC mem_imp_not_nil[`(betwn r ram1 ram2)`;`x`]
+THEN MRESA_TAC HD_BETWN2[`r`;`ram1`;`ram2`]
+THEN MRESA_TAC Tame_list.not_betwn2[`ram1`;`ram2`;`r`]
+THEN MRESA_TAC Tame_list.MEM_HD[`betwn r ram1 ram2`]
+THEN MRESA_TAC not_in_mem_betwn[`x`;`(betwn r ram1 ram2)`;`ram2`;`next_el r ram1`;]
+THEN MRESA_TAC BETWN_TWO_MEM[`ram1`;`x`;`next_el r ram1`;`ram2`;`r`];
+
+MRESA_TAC mem_imp_not_nil[`(betwn r ram2 ram1)`;`x`]
+THEN MRESA_TAC HD_BETWN2[`r`;`ram2`;`ram1`]
+THEN MRESA_TAC Tame_list.not_betwn2[`ram2`;`ram1`;`r`]
+THEN MRESA_TAC Tame_list.MEM_HD[`betwn r ram2 ram1`]
+THEN MRESA_TAC not_in_mem_betwn[`x`;`(betwn r ram2 ram1)`;`ram1`;`next_el r ram2`;]
+THEN MRESA_TAC BETWN_TWO_MEM[`ram2`;`x`;`next_el r ram2`;`ram1`;`r`]]);;
+
+
+let AQIUNPP3_concl = 
+  `!L N r (x:A#A) i.
+    marked_list L N r x ==> 
+    marked_list L (ntrans L N r x i) (rtrans L N r x i) x`;;
+
+let DANGEYJ_concl = `!L N r (x:A#A) i j. marked_list L N r x /\ i <= j ==>
+  set_of_list (flatten (ntrans L N r x i)) SUBSET 
+  set_of_list (flatten (ntrans L N r x j))`;;
+
+let DANGEYJ= prove_by_refinement( (mk_imp(AQIUNPP3_concl,DANGEYJ_concl)),
+[
+STRIP_TAC
+THEN REPEAT GEN_TAC
+THEN GSPEC_TAC(`i`,`i`)
+THEN GSPEC_TAC(`j`,`j`)
+THEN REWRITE_TAC[SUBSET;UNIONS;Seq2.set_of_list_flatten;IN_ELIM_THM]
+THEN INDUCT_TAC;
+
+
+ASM_REWRITE_TAC[ARITH_RULE`i<=0<=> i=0`]
+THEN REPEAT RESA_TAC
+;
+
+
+REPEAT RESA_TAC
+THEN MRESA_TAC(ARITH_RULE`!i j. i<= SUC j==> i<=j\/ i=SUC j`)[`i`;`j`];
+
+
+THAYTHE_TAC 6[`i`]
+THEN GSUBGOAL_THEN`(?u. (?l. MEM l (ntrans L N r x i) /\ u = set_of_list l) /\ x' IN u)`ASSUME_TAC
+;
+
+
+
+GEXISTS_TAC`u`
+THEN ASM_REWRITE_TAC[]
+THEN GEXISTS_TAC`l`
+THEN ASM_REWRITE_TAC[];
+
+
+THAYTHE_TAC 1[`x'`]
+THEN ASM_REWRITE_TAC[Tame_defs2.ntrans;Tame_defs2.transform_list;COM_POWER;o_DEF]
+THEN THAYTHE_TAC 10[`L`;`N`;`r`;`x`;`j`]
+THEN DICH_ASM_TAC 0[Tame_defs2.marked_list;transform_list_power_rep]
+THEN REWRITE_TAC[Tame_defs2.transform_list;LET_THM]
+THEN MRESA_TAC(SET_RULE`!A. A\/ ~ A`)[`final_list L (rtrans L N r x j)`];
+
+
+
+
+
+GEXISTS_TAC`u'`
+THEN ASM_REWRITE_TAC[]
+THEN GEXISTS_TAC`l'`
+THEN ASM_REWRITE_TAC[]
+;
+
+
+
+MRESA_TAC(SET_RULE`!A. ~A\/ A`)[`l'=(rtrans L N r x j)`];
+
+
+
+GEXISTS_TAC`u'`
+THEN ASM_REWRITE_TAC[]
+THEN GEXISTS_TAC`l'`
+THEN ASM_REWRITE_TAC[MEM_APPEND]
+THEN MATCH_MP_TAC (SET_RULE`A==> A\/B`)
+THEN MATCH_MP_TAC Tame_list.MEM3_replace
+THEN ASM_REWRITE_TAC[MEM_APPEND]
+;
+
+
+
+GABBREV_TAC`f=(find_face L (l'y L (rtrans L N r x j) x))`
+THEN GABBREV_TAC`r1=(rtrans L N r x j)`
+THEN GABBREV_TAC`ram1=(l'y L r1 x)`
+THEN GABBREV_TAC`ram2=(prev_el r1 (l'z L (ntrans L N r x j) r1 x))`
+THEN DICH_TAC (25-9)
+THEN ASM_REWRITE_TAC[IN_SET_OF_LIST]
+THEN STRIP_TAC
+THEN DICH_ASM_TAC(25-11)[Tame_defs2.normal_list]
+THEN MRESA_TAC Tame_list.uniq_flatten_uniq[`(ntrans L N r x j)`;`r1`]
+THEN MRESA_TAC SPLIT_NORMAL_LIST_CASES[`x'`;`L`;`r1`;`f`;`ram1`;`ram2`]
+;
+
+
+
+GEXISTS_TAC`set_of_list (FST (split_normal_list L r1 f ram1 ram2))`
+THEN ASM_REWRITE_TAC[IN_SET_OF_LIST]
+THEN GEXISTS_TAC`(FST (split_normal_list L r1 f ram1 ram2))`
+THEN ASM_REWRITE_TAC[MEM_APPEND;Seq.mem_seq1];
+
+
+
+GEXISTS_TAC`set_of_list (SND (split_normal_list L r1 f ram1 ram2))`
+THEN ASM_REWRITE_TAC[IN_SET_OF_LIST]
+THEN GEXISTS_TAC`(SND (split_normal_list L r1 f ram1 ram2))`
+THEN ASM_REWRITE_TAC[MEM_APPEND;Seq.mem_seq1]
+THEN MATCH_MP_TAC(SET_RULE`A==> A\/ B`)
+THEN MATCH_MP_TAC Tame_list.MEM2_replace
+THEN ASM_REWRITE_TAC[MEM_APPEND;Seq.mem_seq1]
+;
+
+
+
+GEXISTS_TAC`u`
+THEN ASM_REWRITE_TAC[]
+THEN GEXISTS_TAC`l`
+THEN ASM_REWRITE_TAC[]
+THEN DICH_TAC 3
+THEN RESA_TAC]);;
+
+
+
+
+
+
+ end;;
+
+
+

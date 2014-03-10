@@ -78,7 +78,6 @@ let indexf = new_definition' `!s x y. indexf (x:A) y s =
   if (MEM x s /\ MEM y s) then (indexl y s + (sizel s - indexl x s)) MOD sizel s 
   else sizel s`;;
 
-
 let f_last = new_definition'
  `f_last L (s:(A#A)list) <=> (next_el s (LAST s) = f_list L (LAST s))`;;
 
@@ -89,10 +88,17 @@ let loop_list = new_definition'
   `loop_list L (s:(A#A)list) <=>
     (all (\x. MEM x (list_of_darts L) /\ one_step_list L x (next_el s x)) s)`;;
 
+(* March 9, 2014. Def. no good.  next_el requires uniq s
 let contour_list = new_definition'
   `contour_list L (s:(A#A) list) <=>
     (all (\x. MEM x (list_of_darts L) /\ 
        (x = LAST s \/ one_step_list L x (next_el s x))) s)`;;
+*)
+
+let contour_list = new_definition'
+  `contour_list L (s:(A#A) list) <=>
+    (all (\x. MEM x (list_of_darts L)) s /\ 
+     (!i. SUC i < sizel s ==> one_step_list L (EL i s) (EL (SUC i) s)))`;;
 
 let normal_list = new_definition'
   `normal_list L N <=>
@@ -119,6 +125,10 @@ let partition_into_atom0 = new_recursive_definition list_RECURSION
      else (if (n r = HD(HD acc)) 
            then partition_into_atom0 n ((r:: HD acc)::TL acc) rs
 	   else partition_into_atom0 n ([r]::acc) rs)`;;
+
+let partition_into_atom0r = new_definition' 
+  `partition_into_atom0r n acc (r:(A)list) = 
+  partition_into_atom0 n acc (rev r)`;;
      
 let partition_into_atom = new_definition' `partition_into_atom n r =
   partition_into_atom0 (n:A->A) [] (rev r)`;;
@@ -517,11 +527,24 @@ let l_p = new_definition' `!L N r (x:A#A). l'p L N r x =
 let l_z = new_definition' `!L N r (x:A#A). l'z L N r x =
   (f_list L POWER (SUC (l'p L N r x))) (l'y L r x)`;;
 
+
+(* changed March 9, 2014.
+   hypermap.hl defines hyp'q by an existence theorem and never establishes
+   its minimality.  To be compatible with hypermap.hl, we do the same here.
+
+   Then we prove a theorem about its range of values.
+
 let l_q = new_definition' `!L N r (x:A#A). l'q L N r x = 
   (let x' = find_list (parts L r) x in
    let z' = find_list (parts L r) (l'z L N r x) in
   min_num { q | l'm L r x < q /\ 
 		(next_el (parts L r) POWER (SUC q)) x' = z' })`;;
+
+*)
+
+let l_q = new_definition' `!L N r (x:A#A). l'q L N r x = 
+    hyp'q (hypermap_of_list L) (loop_family_of_list N) (loop_of_list r) x`;;
+
 
 let transform_list = new_definition' `!L N r (x:A#A).
   transform_list L x (N, r)  = 
@@ -555,17 +578,30 @@ let transform_count = new_definition'
 
 (* hyp'S: *)
 
+(* March 9, 2014.  
 let s_list = new_definition' `!L r (x:A#A). s_list L r x =
   (let r' = rotate_to r x in
      betwn r x (ITER (SUC (l'm L r x)) (next_el r') x))`;;
 
-(* feb 28 2014 HD p -> LAST p *)
+let s_list = new_definition' `!L r (x:A#A). s_list L r x =
+     betwn r x (ITER (SUC (l'm L r x)) (next_el r) x)`;;
+
+This has size l'm:  f^1 x... f^(m) x
+*)
+
+let s_list = new_definition' `!L r (d:A#A).
+     s_list L r d = 
+    MAP (\i. (f_list L POWER i) d) (iota 1  (l'm L r d))`;;
+
+
+(* feb 28 2014 HD p -> LAST p, mar 10 2014 ~(s=[]) *)
 
 let s_flag_list = new_definition' `!L N r (x:A#A).
      s_flag_list L N r x <=>
      (!u v.
           MEM u (final_dart_list L N) /\ MEM v (final_dart_list L N)
           ==> (?s. contour_list L s /\
+		   ~(s = []) /\
                    HD s = u /\
                    LAST s = v /\
                    set_of_list s SUBSET set_of_list (final_dart_list L N))) /\
@@ -577,13 +613,14 @@ let s_flag_list = new_definition' `!L N r (x:A#A).
           ~MEM y (s_list L r x)
           ==> MEM (e_list y) (cat (s_list L r x) (final_dart_list L N)))`;;
 
-(* was empty_flag_list, feb 28 2014 HD p -> LAST p *)
+(* was empty_flag_list, feb 28 2014 HD p -> LAST p, mar 10 2014 ~(s=[]) *)
 
 let flag_list = new_definition' `!L N.
      flag_list L N <=>
      (!(u:A#A) v.
           MEM u (final_dart_list L N) /\ MEM v (final_dart_list L N)
           ==> (?s. contour_list L s /\
+		   ~(s = []) /\
                    HD s = u /\
                    LAST s = v /\
                    set_of_list s SUBSET set_of_list (final_dart_list L N))) /\
@@ -645,7 +682,7 @@ let loop_choice = new_definition'
    let p = parts L r in
      (r,LAST (find_list p d)))`;;
 
-(* Feb 9, rotate_to w not x *)
+(* Feb 9, rotate_to w not x.  It puts ys and zs in increasing order. *)
 
 let triple_data = new_definition'
   `!g L N. triple_data g L N = 
@@ -763,5 +800,33 @@ let image_hideDups = new_definition
 
 let foldr2 = new_definition'
   `foldr2 (f:B->A->A) xs z = foldr f z xs`;;
+
+let split_condition_list = new_definition'
+  `split_condition_list L N r (d:A#A) <=>
+    is_restricted (hypermap_of_list L) /\
+    normal_list L N /\ 
+    MEM r N /\
+    ~(final_list L r) /\
+    MEM d r /\
+    LAST (find_list (parts L r) d) = d`;;
+
+let atom_list = new_definition'
+  `atom_list L r (d:A#A) = find_list (parts L r) d`;;
+
+let find_atom = new_definition'
+   `find_atom L N (d:A#A) = atom_list L (find_list N d) d`;;
+
+let good_graph = new_definition `good_graph g <=> 
+   good_list (fgraph g) /\
+   good_list_nodes (fgraph g) /\
+   finalGraph g /\ 
+   all uniq (fgraph g) /\
+   (!v. v IN vertices_set2 g
+     ==> facesAt g v = FILTER (\f. MEM v (  FST f)) (faces g)) /\
+   (vertices_set2 g = elements_of_list (fgraph g)) `;;
+
+let facesAt_list = new_definition 
+ `facesAt_list (L:((A)list)list) (v:A) =  FILTER (MEM v) L`;;
+
 
 end;;

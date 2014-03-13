@@ -29,11 +29,14 @@ open More_tame_concl;;
 
 (* was transform_list_assumption, transform_assumption *)
 
+(* defines constant lp_ineqs *)
+flyspeck_needs "../formal_lp/hypermap/ineqs/lp_ineqs.hl";;
+
 (* ............... NEW DEFS *)
 
 
-(* ..........  END NEW DEFS *)
-
+help_grep "INST_TYPE";;
+help "INST_TYPE";;
 
 
 
@@ -44,6 +47,300 @@ open More_tame_concl;;
 
 
 (* ... *)
+
+
+let iso_list_nilfamily = prove_by_refinement(
+  `!L L' N N'. iso_list (L,N) (L',N') ==> iso_list (L,[]) (L',[])`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[iso_list;MAP];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+(*
+let iso_list_cons = prove_by_refinement(
+  `!L n1 n1' L' n2 n2'. 
+   iso_list (L,(n1::n2)) (L',(n1' :: n2')) <=> P`,
+  (* {{{ proof *)
+  [
+  rt[iso_list]
+  rt[MAP;CONS_11]
+  st/r
+
+  ]);;
+  (* }}} *)
+*)
+
+iso_list_normal;;
+
+let iso_list_marked_rN = 0;;
+
+let iso_list_mem_rN = prove_by_refinement(
+  `!L N r x L' N' r' x'. good_list L' /\ MEM r N /\
+      iso_list (L,([x]:: r :: N)) (L',([x']::r' :: N')) ==>
+    MEM r' N'`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[iso_list;MAP;CONS_11];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC MEMf_MAP;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let iso_list_mem_xr = prove_by_refinement(
+  `!L N r x L' N' r' x'. good_list L' /\ MEM x r /\
+      iso_list (L,([x]:: r :: N)) (L',([x']::r' :: N')) ==>
+    MEM x' r'`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[iso_list;MAP;CONS_11];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[MEM_MAP];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let iso_list_cons = prove_by_refinement(
+  `!L N L' N' u u'. iso_list(L,(u::N)) (L',(u'::N')) ==>
+   iso_list(L,N) (L',N')`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[iso_list;MAP;CONS_11];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let elements_of_list_quotient_list = prove_by_refinement(
+  `!L N. 
+   normal_list L N /\
+     is_edge_nondegenerate (hypermap_of_list L) /\
+     good_list L /\
+     all uniq L ==>
+    elements_of_list (quotient_list L N) SUBSET
+   elements_of_list L`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[List_hypermap.mem_list_of_elements;List_hypermap.elements_of_list;SUBSET;IN_SET_OF_LIST];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `y` EXISTS_TAC;
+  MATCH_MP_TAC list_of_darts_quotient_darts;
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let inj_on_quotient_list = prove_by_refinement(
+  `!phi. normal_list L N /\
+         is_edge_nondegenerate (hypermap_of_list L) /\
+     good_list L /\
+     all uniq L /\
+   inj_on phi (elements_of_list L) ==>
+   inj_on phi (elements_of_list (quotient_list L N))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC inj_on_subset;
+  TYPIFY `elements_of_list L` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC elements_of_list_quotient_list;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+
+(* same as e_list_fun:
+let e_list_map = prove_by_refinement(
+  `!phi x.
+   (let nphi = (\u. phi (FST u),phi (SND u)) in
+                 e_list (nphi x) = nphi (e_list x))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[LET_THM];
+  BY(REWRITE_TAC[List_hypermap.e_list])
+  ]);;
+  (* }}} *)
+*)
+
+
+let inj_on_one_step_list = prove_by_refinement(
+  `!phi:A->B L h1 h2.
+       good_list L /\
+         inj_on phi (elements_of_list L) /\
+         MEM h1 (list_of_darts L) /\ 
+        MEM h2 (list_of_darts L) ==>
+     (let nphi = (\u. phi (FST u),phi (SND u)) in
+	  one_step_list (MAP (MAP phi) L) (nphi h1) (nphi h2) = 
+	    one_step_list L h1 h2)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LET_THM;FORALL_PAIR_THM];
+  REWRITE_TAC[one_step_list;REWRITE_RULE[LET_THM;FORALL_PAIR_THM] e_list_fun];
+  REWRITE_TAC[List_hypermap.e_list];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (GMATCH_SIMP_TAC (REWRITE_RULE[LET_THM;FORALL_PAIR_THM] f_list_map));
+  ASM_SIMP_TAC[List_hypermap.e_list];
+  TYPIFY `MEM (p2,p1) (list_of_darts L)` (C SUBGOAL_THEN ASSUME_TAC);
+    TYPIFY `(p2,p1) = e_list (p1,p2)` (C SUBGOAL_THEN SUBST1_TAC);
+      BY(REWRITE_TAC[List_hypermap.e_list]);
+    MATCH_MP_TAC good_list_e_list;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `MEM (f_list L (p1,p2)) (list_of_darts L) /\ MEM (f_list L (p2,p1)) (list_of_darts L)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[mem_f_list]);
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC (TAUT `((a <=> a') /\ (b <=> b')) ==> (a \/ b <=> a'  \/ b')`);
+  TYPIFY `!r1 r2 x.  r1,r2 = x ==> (phi:A->B) r1,phi r2 = phi (FST x),phi(SND x)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[FST;SND]);
+  TYPIFY `!r1 r2 x. MEM x (list_of_darts L) /\ MEM (r1,r2) (list_of_darts L) /\ phi r1,phi r2 = phi (FST x),phi(SND x) ==> (r1,r2) = x` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[REWRITE_RULE[GSYM PAIR_EQ] inj_on_imp_inj_dart;]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+(* not true. h may be outside domain of inj-on.
+let inj_on_list_of_darts = prove_by_refinement
+  `!phi:A->B L h.
+         good_list L /\
+         inj_on phi (elements_of_list L) ==>
+   ( MEM (phi (FST h),phi (SND h)) (list_of_darts (MAP (MAP phi) L)) <=>
+ MEM h (list_of_darts L) )`,
+*)
+
+let count_list_hd_dart = 0;;
+
+let contour_list_hd_dart = prove_by_refinement(
+  `!L h s. contour_list L (h::s) ==> MEM h (list_of_darts L)`,
+  (* {{{ proof *)
+  [
+  GEN_TAC THEN GEN_TAC;
+  LIST_INDUCT_TAC THEN REWRITE_TAC[contour_list_cons];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let inj_on_contour_list = prove_by_refinement(
+  `!phi:A->B L s.
+         good_list L /\
+         inj_on phi (elements_of_list L)
+         ==> (let nphi = (\u. phi (FST u),phi (SND u)) in
+              contour_list L s ==>
+		contour_list (MAP (MAP phi) L) (MAP nphi s)
+		  )`,
+  (* {{{ proof *)
+  [
+  GEN_TAC THEN GEN_TAC;
+  REWRITE_TAC[LET_THM];
+  LIST_INDUCT_TAC THEN REWRITE_TAC[MAP;contour_list_cons];
+  FIRST_X_ASSUM MP_TAC;
+  TYPIFY `t` (fun t -> SPEC_TAC (t,t));
+  LIST_INDUCT_TAC;
+    REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[MAP;contour_list_cons];
+    REWRITE_TAC[map_list_of_darts];
+    TYPIFY ` phi(FST h),phi (SND h) = (\h. phi(FST h),phi (SND h)) h` (C SUBGOAL_THEN SUBST1_TAC);
+      BY(REWRITE_TAC[]);
+    MATCH_MP_TAC MEMf_MAP;
+    BY(POP_ASSUM MP_TAC THEN REWRITE_TAC[MAP;contour_list_cons]);
+  ASM_REWRITE_TAC[MAP;contour_list_cons] THEN REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC inj_on_one_step_list [`phi`;`L`;`h`;`h'`];
+  ASM_REWRITE_TAC[LET_THM];
+  TYPIFY `MEM h' (list_of_darts L)` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM MP_TAC THEN REWRITE_TAC[contour_list_cons];
+    BY(MESON_TAC[contour_list_hd_dart]);
+  ASM_SIMP_TAC[];
+  DISCH_TAC;
+  REWRITE_TAC[map_list_of_darts];
+  TYPIFY ` phi(FST h),phi (SND h) = (\h. phi(FST h),phi (SND h)) h` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REWRITE_TAC[]);
+  MATCH_MP_TAC MEMf_MAP;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let inj_on_power = prove_by_refinement(
+  `!(phi:A->B) f g L r k d. 
+     MEM d r /\ (!x. MEM x r ==> MEM (f x) r) /\
+    inj_on phi (elements_of_list L) /\
+    (set_of_list r) SUBSET (darts_of_list L) ==>
+   (let nphi = (\u. phi (FST u),phi (SND u)) in
+      (!x. MEM x r ==> g (nphi d) = nphi (f d)) ==>
+      (g POWER k) (nphi d) = nphi ((f POWER k) d))`,
+  (* {{{ proof *)
+  [
+  rep 5 g
+  induct_tac
+  rt[POWER_0;I_THM;LET_THM]
+  rt[POWER;o_THM]
+  rt[LET_THM]
+xxd
+  ]);;
+  (* }}} *)
+
+let inj_on_l_m = prove_by_refinement(
+  `!(phi:A->B) L r d.
+         good_list L /\ good_list_nodes L /\
+      MEM d (list_of_darts L) /\
+      MEM d r /\
+      set_of_list r SUBSET (darts_of_list L) /\
+         inj_on phi (elements_of_list L)
+         ==> (let nphi = (\u. phi (FST u),phi (SND u)) in
+              l'm (MAP (MAP phi) L) (MAP nphi r) (nphi d) = l'm L r d)`,
+  (* {{{ proof *)
+  [
+  st/r
+  rt[LET_THM]
+  ASM_SIMP_TAC[Tame_defs2.l_m;hyp_m_min];
+  REWRITE_TAC[GSYM POWER_TO_ITER];
+  apterm
+  rt[EXTENSION;IN_ELIM_THM]
+  gv "k"
+  typ `!k. 
+
+xxd
+
+  ]);;
+  (* }}} *)
+
+final_list;;
+s_list;;
+s_flag_list;;
+
+let map_parts = prove_by_refinement(
+  `!phi L N. inj_on phi (elements_of_list L) ==>
+   (MAP (parts (MAP (MAP phi) L)) (MAP (MAP (\u. phi (FST u),phi (SND u))) N)) = MAP (MAP (MAP (\u. phi (FST u),phi (SND u)))) (MAP (parts L) N)`,
+     MAP (`,
+  (* {{{ proof *)
+  [
+  
+  #
+  ]);;
+  (* }}} *)
+
+let iso_list_quotient = prove_by_refinement(
+  `!L N L' N'. normal_list L N /\
+         is_edge_nondegenerate (hypermap_of_list L) /\
+     good_list L /\
+     all uniq L /\
+    iso_list (L,N) (L',N') ==> 
+    iso_list (quotient_list L N,[]) (quotient_list L' N',[])`,
+  (* {{{ proof *)
+  [
+  rt[iso_list;MAP]
+  st/r
+  typ `phi` ex
+  subconj
+  asimp[inj_on_quotient_list]  
+  dt
+  art[]
+  comment "expand out"
+  rt[quotient_list;upper_case]
+  ]);;
+  (* }}} *)
+
+marked_list;;
+iso_list;;
 
 let MEEIXJO = prove_by_refinement(
   `!L N L' N' r r' (x:A#A) (x':B#B).
@@ -56,6 +353,7 @@ let MEEIXJO = prove_by_refinement(
   ]);;
   (* }}} *)
 
+quotient_list;;
 marked_list;;
 
 1;;

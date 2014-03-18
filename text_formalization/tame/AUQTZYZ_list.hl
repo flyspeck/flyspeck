@@ -261,6 +261,25 @@ let e_list_pairs_rev = prove_by_refinement(
   ]);;
   (* }}} *)
 
+
+(*
+let e_list_pairs_rev2 = prove_by_refinement(
+    `!f r. uniq f /\ ~(f = []) /\ 
+    (!d. MEM d (list_pairs f) ==> MEM (e_list d) (list_pairs r)) /\
+    (!d. MEM d (list_pairs r) ==> MEM (e_list d) (list_pairs f)) /\
+    HD f = LAST r 
+   ==> r = rev f`,
+  (* {{{ proof *)
+  [
+  st/r
+  mmp e_list_pairs_rev
+  art[]
+  
+  ]);;
+  (* }}} *)
+*)
+
+
 (* DIHEDRAL IN A DAY *)
 
 (* MOVE THESE *)
@@ -1172,6 +1191,199 @@ let final_list_f_last = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let face_rep = prove_by_refinement(
+  `!L f. MEM f (list_of_faces L) ==> (?f0. list_pairs f0 = f /\
+      MEM f0 L /\ MAP FST f = f0)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[List_hypermap.list_of_faces;MEM_MAP];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `x` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[List_hypermap.list_pairs];
+  REWRITE_TAC[GSYM Seq.unzip1;lower_case];
+  MATCH_MP_TAC Seq.unzip1_zip;
+  BY(REWRITE_TAC[Seq.size_rot;arith `n:num <= n`])
+  ]);;
+  (* }}} *)
+
+let good_face_rep = prove_by_refinement(
+  `!L f. good_list L /\ 
+    good_list_nodes L /\
+    simple_hypermap (hypermap_of_list L) /\
+    MEM f (list_of_faces L) ==> 
+    (?f0. list_pairs f0 = f /\
+      MEM f0 L /\ MAP FST f = f0 /\ uniq f0 /\ ~(f0 = []))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC face_rep [`L`;`f`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `f0` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  SUBCONJ2_TAC;
+    FIRST_X_ASSUM_ST `good_list L` MP_TAC;
+    REWRITE_TAC[good_list];
+    REWRITE_TAC[GSYM Seq.allP];
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  FIRST_X_ASSUM_ST `simple_hypermap` MP_TAC;
+  ASM_SIMP_TAC[simple_hypermap_uniq];
+  BY(ASM_MESON_TAC[Seq.allP])
+  ]);;
+  (* }}} *)
+
+let parts_nil = prove_by_refinement(
+  `!L. parts L [] = []`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[partsr;partition_into_atom0r_cases])
+  ]);;
+  (* }}} *)
+
+let uniq_sing=prove(`uniq [x]`,
+		    REWRITE_TAC[Seq2.uniq;MEM]);;
+
+let parts1 = prove_by_refinement(
+  `!L h. parts L [h] = [[h]]`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC parts_pure;
+  BY(ASM_SIMP_TAC[MEM;NOT_CONS_NIL;uniq_sing;LAST_CLAUSES])
+  ]);;
+  (* }}} *)
+
+let parts_impure = prove_by_refinement(
+  `!L f.  (!x. MEM x f ==> 
+	     x = LAST f \/ ~(next_el f x = f_list L (e_list x))) /\ 
+    uniq f ==> parts L f = MAP (\x. [x]) f`,
+  (* {{{ proof *)
+  [
+  GEN_TAC THEN LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[parts_nil;MAP]);
+  REWRITE_TAC[MEM;MAP;LAST];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `t=[]` ASM_CASES_TAC;
+    BY(ASM_REWRITE_TAC[MAP;parts1]);
+  TYPIFY `parts L (h :: t) = parts L (cat [h] t)` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REWRITE_TAC[Seq.cat1s]);
+  GMATCH_SIMP_TAC parts_cat;
+  GEXISTL_TAC [`[h]`;`t`];
+  ASM_REWRITE_TAC[parts1;NOT_CONS_NIL];
+  REWRITE_TAC[Seq.cat1s;CONS_11];
+  FIRST_X_ASSUM GMATCH_SIMP_TAC;
+  FIRST_X_ASSUM_ST `uniq` MP_TAC;
+  REWRITE_TAC[Seq.uniq];
+  ASM_SIMP_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `LAST` MP_TAC THEN ASM_REWRITE_TAC[];
+  REWRITE_TAC[LAST];
+  REPEAT WEAKER_STRIP_TAC;
+  SUBCONJ2_TAC;
+    TYPIFY `h` EXISTS_TAC;
+    TYPIFY `~(h = LAST t)` ENOUGH_TO_SHOW_TAC;
+      BY(ASM_MESON_TAC[]);
+    BY(ASM_MESON_TAC[MEM_LAST]);
+  DISCH_TAC;
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `x = LAST t` ASM_CASES_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `next_el t x = next_el (h::t)x ` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[]);
+  ONCE_REWRITE_TAC[GSYM Seq.cat1s];
+  ONCE_REWRITE_TAC[EQ_SYM_EQ];
+  MATCH_MP_TAC next_el_cat2;
+  BY(ASM_REWRITE_TAC[Seq.cat1s;Seq.uniq])
+  ]);;
+  (* }}} *)
+
+let final_list_parts = prove_by_refinement(
+  `!L f. good_list L /\ all (\x. MEM x (list_of_darts L)) f /\
+    is_edge_nondegenerate (hypermap_of_list L) /\
+    final_list L f /\ uniq f ==> parts L f = MAP (\x. [x]) f`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[final_list;GSYM Seq.allP];
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC parts_impure;
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  BY(ASM_MESON_TAC[edge_nondeg_f_xor_ni])
+  ]);;
+  (* }}} *)
+
+let dih2k_card_face = prove_by_refinement(
+  `!k H x.  ~(k=0) /\ dih2k H k /\ x IN (dart H) ==>
+    CARD (face H x) = k`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `FINITE (dart H) /\ CARD (dart H) = 2 * k` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[node_map_and_darts];
+    BY(ASM_MESON_TAC[Localization.dih2k]);
+  TYPIFY `simple_hypermap H /\ face H x INTER IMAGE (node_map H) (face H x) = {}` ENOUGH_TO_SHOW_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC (GEN_ALL Lvducxu.DIH2K_FACE_SIMPLIZED) [`x`;`H`];
+    FIRST_X_ASSUM_ST `dih2k` MP_TAC THEN ASM_SIMP_TAC[REWRITE_RULE[LET_THM] Localization.dih2k];
+    BY(ASM_MESON_TAC[arith `2 * k = 2 * u <=> k = u`]);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[Lvducxu.DIH2K_IMP_SIMPLE_HYPERMAP2]);
+  INTRO_TAC DIH2K_IMP_PRE_SIMPLE_HYP2 [`H`;`k`];
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[EXTENSION;IN_INTER;NOT_IN_EMPTY];
+  REPEAT WEAKER_STRIP_TAC;
+  POP_ASSUM MP_TAC THEN REWRITE_TAC[IN_IMAGE];
+  REPEAT WEAKER_STRIP_TAC;
+  RULE_ASSUM_TAC (ONCE_REWRITE_RULE[EQ_SYM_EQ]);
+  FULL_EXPAND_TAC "x'";
+  TYPIFY `face H x = face H x''` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[lemma_face_identity]);
+  BY(ASM_MESON_TAC[SUBSET;lemma_face_subset])
+  ]);;
+  (* }}} *)
+
+let MEM_LAST_PARTS = prove_by_refinement(
+  `!L r.
+   uniq r /\ ~(r = []) ==>
+     MEM (LAST r) (LAST (parts L r))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `~(parts L r = [])` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[parts_nonnil]);
+  TYPIFY `all (\p. ~(p = [])) (parts L r)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[parts_all_nonnil]);
+  INTRO_TAC APPEND_BUTLAST_LAST [`parts L r`];
+  ASM_REWRITE_TAC[lower_case];
+  DISCH_TAC;
+  TYPIFY `flatten (cat (BUTLAST (parts L r)) [LAST (parts L r)]) = flatten (parts L r)` (C SUBGOAL_THEN MP_TAC);
+    BY(ASM_REWRITE_TAC[]);
+  POP_ASSUM kill;
+  ASM_SIMP_TAC[parts_flatten;Seq.flatten_cat];
+  REWRITE_TAC[Seq.flatten_cons;Seq.flatten0;Seq.cats0];
+  DISCH_TAC;
+  INTRO_TAC LAST_cat [`(flatten (BUTLAST (parts L r)))`; `(LAST (parts L r))`];
+  ANTS_TAC;
+    FIRST_X_ASSUM_ST `all` MP_TAC;
+    REWRITE_TAC[GSYM Seq.allP];
+    DISCH_THEN MATCH_MP_TAC;
+    MATCH_MP_TAC MEM_LAST;
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[];
+  DISCH_THEN SUBST1_TAC;
+  MATCH_MP_TAC MEM_LAST;
+  FIRST_X_ASSUM_ST `all` MP_TAC;
+  REWRITE_TAC[GSYM Seq.allP];
+  DISCH_THEN MATCH_MP_TAC;
+  MATCH_MP_TAC MEM_LAST;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+
+Auqtzyz.AUQTZYZ;;
 
 let AUQTZYZ_list = prove_by_refinement(
   `!L (f:(A#A)list).  good_list L /\ good_list_nodes L /\
@@ -1181,186 +1393,305 @@ let AUQTZYZ_list = prove_by_refinement(
        dih2k_list (quotient_list L [f;r]))`,
   (* {{{ proof *)
   [
-  st/r
-  abbrev `d = HD ( f)` 
-  typ `~(f = [])` sat
-  fxast `MEM` mp
-  rt[List_hypermap.list_of_faces]
-  rt[MEM_MAP]
-  st/r
-  fxast `list_parts` mp
-  art[]
-  rt[List_hypermap.list_pairs_empty]  
-  amt[good_list;Seq.allP]
-  typ `MEM d f` sat
-  amt[MEM_HD]
-  intro Auqtzyz.AUQTZYZ [`hypermap_of_list L`;`d`;`loop_of_face (hypermap_of_list L) d`]
-  asimp[dart_hypermap_of_list;IN_SET_OF_LIST]
-  typ `MEM d (list_of_darts L)` sat
-  gm List_hypermap.mem_find_face_nonempty
-  rt[List_hypermap.find_face]
-  conj
-  amt[good_list]
-  mmp List_hypermap.mem_find_list
- rt[Seq2.mem_flatten]
-  amt[]
-  art[]
-  st/r
-  abbrev `k = sizel f`
-  abbrev `n = CARD (dart_of_loop L2)`
-  abbrev `qH = quotient (hypermap_of_list L)      {loop_of_face (hypermap_of_list L) d, L2}`
-  typ `CARD (face (hypermap_of_list L) d) = k` sat
- asimp[List_hypermap.card_face_of_list]
-  intro  List_hypermap.find_face_eq [`L`;`d`;`f`]
-  asimp[]
-  amt[good_list]
-  typ `uniq (list_of_darts L) /\ uniq f` sat
-  amt[good_list;List_hypermap.uniq_face]
-  typ `!x. MEM x f ==> MEM x (list_of_darts L)` sat
-  rt[List_hypermap.list_of_darts_alt;Seq2.mem_flatten]
-  amt[]
-  typ `final_list L f` sat
-  mmp final_list_face
-  art[]
-    typ `dart_of_loop (loop_of_list f) = set_of_list f` sat
-  asimp[dart_of_loop_of_list]
-  typ `loop_of_face (hypermap_of_list L) d = loop_of_list f` sat
-  intro loop_of_face_list [`L`;`f`;`d`]
-  art[]
-  repeat (fxast `{x,y}` mp) then art[]
-  rep 2 dt
-  fxast `complement` kill
-  typ `~(k=0)` sat
-  fxast `CARD` kill
-  fexp "k"
-  art[Seq.size_eq0]
-  comment "1. pick out distinguished dart in second face"
-  typ `?d'. d' IN dart_of_loop L2 /\ d' IN node (hypermap_of_list L) d` sat
-  intro (GEN_ALL Wrgcvdr_cizmrrh.DIH_IMP_EVERY_NODE_INTER_FACE) [`k`;`qH`]
-  fxast `dih2k` mp
-  asimp[]
-  dt
-  typ `?a. a IN (dart_of_loop L2)` smp
-  mt[Hypermap.lemma_card_dart_of_loop;EXTENSION;NOT_IN_EMPTY]
-  st/r
-  fxa (C intro [ `atom (hypermap_of_list L) (loop_of_list f) d`;`atom (hypermap_of_list L) L2 a`])
-  rt[SUBSET;IN_INSERT;NOT_IN_EMPTY]
-  ants
-  fexp "qH"
-  strip/r then asimp[lemma_quotient;atoms_of_family;IN_ELIM_THM;IN_INSERT;NOT_IN_EMPTY;in_dart_of_loop]
-  amt[IN_SET_OF_LIST]
-  amt[]
-  st/r
-  typ `d':A#A->bool` (name "atm")
-  intro lemma_quotient [`hypermap_of_list L`;`{loop_of_list f,L2}`]
-  art[]
-  st/r
-  intro lemmaQF [`hypermap_of_list L`;`{loop_of_list f,L2}`;`L2`;`a`]
-  art[in_dart_of_loop;IN_INSERT]
-  rt[Auqtzyz.atoms_of_loop_rep]
-  rt[EXTENSION;IN_ELIM_THM]
-  dthen (C intro [`atm`])
-  art[]
-  st/r
-  typ `atom (hypermap_of_list L) L2 x = atm` sat
-  rep 2 (pop mp) then set[]
-  fexp "atm"
-  pop kill
-  fxa mp
-  fxa kill
-  rt[in_dart_of_loop]
-  typ `x` (name "d'")
-  dt
-  typ `d'` ex
-  art[]
-  mmp Hypermap.lemma_in_node3
-  typ `{loop_of_list f,L2}` ex
-  art[]
-  repeat (gm Hypermap.unique_atom_choice)
-  typ `loop_of_list f` ex
-  art[IN_INSERT;in_dart_of_loop;IN_SET_OF_LIST]
-  typ `L2` ex
-  art[]
-  rt[Hypermap.darts_of_family;IN_UNIONS;IN_ELIM_THM;IN_INSERT]
-  typ `dart_of_loop (loop_of_list f)` ex
-  amt[IN_SET_OF_LIST]
-  fxa mp
-  st/r
-  comment "end pick out distinguished dart"
-  abbrev `last_d' = head_of_atom (hypermap_of_list L) {loop_of_list f,L2} d'`
-  intro loop_of_list_surj2 [`L2`;`last_d'`]
-  art[]
-  intro change_to_margin [`hypermap_of_list L`;`{loop_of_list f,L2}`;`d'`;`L2`]
-  art[in_dart_of_loop;IN_INSERT]
-  st/r
-  intro Hypermap.lemma_atom_sub_loop [`hypermap_of_list L`;`L2`;`d'`]
-  fxast `tail_of_atom` kill
-  ants
-  art[in_dart_of_loop]
-  dt
-  typ `last_d' IN atom (hypermap_of_list L) L2 last_d'` sat
-  rt[atom_reflect]
-  typ `last_d' IN dart_of_loop L2` sat
-  rep 5 (fxa mp) then set[]
- fxast `LAST` mp
-  art[]
-  st/r
-  typ `r` ex
-  fexp "L2"
-  comment "end construction of d' and last_d'"
-  comment "normal list"
-  comment "all non nil"
-  typ `all (\s. ~(s = [])) [f;r]` sat
-  art[sym Seq.allP;MEM]
-  strip/r then art[] then pop mp then art[]
-  comment "uniq flatten"
-  typ `~(loop_of_list f = loop_of_list r)` sat
-  dt
-  intro dih2k_quotient_card_NF [`hypermap_of_list L`;`{loop_of_list f,loop_of_list r}`;`d`]
-  art[]
-  rt[SING]
-  dthen mp then ants
-  fxast `dih2k` mp then art[]
-  art[]
-  set[]
-  typ `uniq (flatten [f;r])` sat
-  art[Seq.flatten_cons;Seq.flatten0;Seq.cats0;Seq.cat_uniq]
-  rt[sym Seq.hasP;NOT_EXISTS_THM]
-  st/r
-  fxast `is_normal` mp  
-  rt[is_normal]
-  st/r
-  fxast `L = L'` (C intro [`loop_of_list f`;`loop_of_list r`;`x`])
-  asimp[IN_INSERT;in_dart_of_loop;in_dart_loop_of_list]
-  comment "loop_list"
-  intro is_normal_loop_list [`L`;`[f;r]`]
-  art[]
-  typ `all uniq [f;r]` sat
-  art[sym Seq.allP;MEM]
-  amt[]
-  typ `loop_family_of_list [f;r] = {loop_of_list f,loop_of_list r}` sat
-  rt[loop_family_of_list;upper_case;MAP;set_of_list]
-  art[]
-  dt
-  comment "is_normal_nodal"
-  intro is_normal_nodal [`L`;`[f;r]`]
-  art[]
-  dt
-  comment "f_last"
-  intro lemma_head_of_atom_via_restricted [`hypermap_of_list L`;`{loop_of_list f,loop_of_list r}`;`loop_of_list r`;`last_d'`]
-  art[IN_INSERT;in_dart_of_loop]
-  asimp[loop_map_next_el]  
-  gm face_map_list
-  art[]
-  rt[sym Seq.allP;MEM]
-  fexp "last_d'"
+  REPEAT WEAKER_STRIP_TAC;
+  TYPED_ABBREV_TAC `d = HD ( f)`;
+  TYPIFY `~(f = [])` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `MEM` MP_TAC;
+    REWRITE_TAC[List_hypermap.list_of_faces];
+    REWRITE_TAC[MEM_MAP];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM_ST `list_parts` MP_TAC;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[List_hypermap.list_pairs_empty];
+    BY(ASM_MESON_TAC[good_list;Seq.allP]);
+  TYPIFY `MEM d f` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[MEM_HD]);
+  INTRO_TAC Auqtzyz.AUQTZYZ [`hypermap_of_list L`;`d`;`loop_of_face (hypermap_of_list L) d`];
+  ASM_SIMP_TAC[dart_hypermap_of_list;IN_SET_OF_LIST];
+  TYPIFY `MEM d (list_of_darts L)` (C SUBGOAL_THEN ASSUME_TAC);
+    GMATCH_SIMP_TAC List_hypermap.mem_find_face_nonempty;
+    REWRITE_TAC[List_hypermap.find_face];
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[good_list]);
+    MATCH_MP_TAC List_hypermap.mem_find_list;
+    REWRITE_TAC[Seq2.mem_flatten];
+    BY(ASM_MESON_TAC[]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPED_ABBREV_TAC `k = sizel f`;
+  TYPED_ABBREV_TAC `n = CARD (dart_of_loop L2)`;
+  TYPED_ABBREV_TAC `qH = quotient (hypermap_of_list L)      {loop_of_face (hypermap_of_list L) d, L2}`;
+  TYPIFY `CARD (face (hypermap_of_list L) d) = k` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_SIMP_TAC[List_hypermap.card_face_of_list];
+    INTRO_TAC List_hypermap.find_face_eq [`L`;`d`;`f`];
+    ASM_SIMP_TAC[];
+    BY(ASM_MESON_TAC[good_list]);
+  TYPIFY `uniq (list_of_darts L) /\ uniq f` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[good_list;List_hypermap.uniq_face]);
+  TYPIFY `!x. MEM x f ==> MEM x (list_of_darts L)` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[List_hypermap.list_of_darts_alt;Seq2.mem_flatten];
+    BY(ASM_MESON_TAC[]);
+  TYPIFY `final_list L f` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC final_list_face;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `dart_of_loop (loop_of_list f) = set_of_list f` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[dart_of_loop_of_list]);
+  TYPIFY `loop_of_face (hypermap_of_list L) d = loop_of_list f` (C SUBGOAL_THEN ASSUME_TAC);
+    INTRO_TAC loop_of_face_list [`L`;`f`;`d`];
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT (FIRST_X_ASSUM_ST `{x,y}` MP_TAC) THEN ASM_REWRITE_TAC[];
+  REPLICATE_TAC 2 DISCH_TAC;
+  FIRST_X_ASSUM_ST `complement` kill;
+  TYPIFY `~(k=0)` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `CARD` kill;
+    FULL_EXPAND_TAC "k";
+    BY(ASM_REWRITE_TAC[Seq.size_eq0]);
+  COMMENT "1. pick out distinguished dart in second face";
+  TYPIFY `?d'. d' IN dart_of_loop L2 /\ d' IN node (hypermap_of_list L) d` (C SUBGOAL_THEN ASSUME_TAC);
+    INTRO_TAC (GEN_ALL Wrgcvdr_cizmrrh.DIH_IMP_EVERY_NODE_INTER_FACE) [`k`;`qH`];
+    FIRST_X_ASSUM_ST `dih2k` MP_TAC;
+    ASM_SIMP_TAC[];
+    DISCH_TAC;
+    TYPIFY `?a. a IN (dart_of_loop L2)` (C SUBGOAL_THEN MP_TAC);
+      BY(MESON_TAC[Hypermap.lemma_card_dart_of_loop;EXTENSION;NOT_IN_EMPTY]);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [ `atom (hypermap_of_list L) (loop_of_list f) d`;`atom (hypermap_of_list L) L2 a`]);
+    REWRITE_TAC[SUBSET;IN_INSERT;NOT_IN_EMPTY];
+    ANTS_TAC;
+      FULL_EXPAND_TAC "qH";
+      REPEAT STRIP_TAC THEN ASM_SIMP_TAC[lemma_quotient;atoms_of_family;IN_ELIM_THM;IN_INSERT;NOT_IN_EMPTY;in_dart_of_loop];
+        BY(ASM_MESON_TAC[IN_SET_OF_LIST]);
+      BY(ASM_MESON_TAC[]);
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `d':A#A->bool` (RENAME_TAC "atm");
+    INTRO_TAC lemma_quotient [`hypermap_of_list L`;`{loop_of_list f,L2}`];
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC lemmaQF [`hypermap_of_list L`;`{loop_of_list f,L2}`;`L2`;`a`];
+    ASM_REWRITE_TAC[in_dart_of_loop;IN_INSERT];
+    REWRITE_TAC[Auqtzyz.atoms_of_loop_rep];
+    REWRITE_TAC[EXTENSION;IN_ELIM_THM];
+    DISCH_THEN (C INTRO_TAC [`atm`]);
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `atom (hypermap_of_list L) L2 x = atm` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(REPLICATE_TAC 2 (POP_ASSUM MP_TAC) THEN SET_TAC[]);
+    FULL_EXPAND_TAC "atm";
+    POP_ASSUM kill;
+    FIRST_X_ASSUM MP_TAC;
+    FIRST_X_ASSUM kill;
+    REWRITE_TAC[in_dart_of_loop];
+    TYPIFY `x` (RENAME_TAC "d'");
+    DISCH_TAC;
+    TYPIFY `d'` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC Hypermap.lemma_in_node3;
+    TYPIFY `{loop_of_list f,L2}` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    REPEAT (GMATCH_SIMP_TAC Hypermap.unique_atom_choice);
+    TYPIFY `loop_of_list f` EXISTS_TAC;
+    ASM_REWRITE_TAC[IN_INSERT;in_dart_of_loop;IN_SET_OF_LIST];
+    TYPIFY `L2` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[Hypermap.darts_of_family;IN_UNIONS;IN_ELIM_THM;IN_INSERT];
+    TYPIFY `dart_of_loop (loop_of_list f)` EXISTS_TAC;
+    BY(ASM_MESON_TAC[IN_SET_OF_LIST]);
+  FIRST_X_ASSUM MP_TAC;
+  REPEAT WEAKER_STRIP_TAC;
+  COMMENT "end pick out distinguished dart";
+  TYPED_ABBREV_TAC `last_d' = head_of_atom (hypermap_of_list L) {loop_of_list f,L2} d'`;
+  INTRO_TAC loop_of_list_surj2 [`L2`;`last_d'`];
+  ASM_REWRITE_TAC[];
+  INTRO_TAC change_to_margin [`hypermap_of_list L`;`{loop_of_list f,L2}`;`d'`;`L2`];
+  ASM_REWRITE_TAC[in_dart_of_loop;IN_INSERT];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Hypermap.lemma_atom_sub_loop [`hypermap_of_list L`;`L2`;`d'`];
+  FIRST_X_ASSUM_ST `tail_of_atom` kill;
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[in_dart_of_loop]);
+  DISCH_TAC;
+  TYPIFY `last_d' IN atom (hypermap_of_list L) L2 last_d'` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REWRITE_TAC[atom_reflect]);
+  TYPIFY `last_d' IN dart_of_loop L2` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REPLICATE_TAC 5 (FIRST_X_ASSUM MP_TAC) THEN SET_TAC[]);
+  FIRST_X_ASSUM_ST `LAST` MP_TAC;
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `r` EXISTS_TAC;
+  FULL_EXPAND_TAC "L2";
+  COMMENT "end construction of d' and last_d'";
+  COMMENT "normal list";
+  COMMENT "all non nil";
+  TYPIFY `all (\s. ~(s = [])) [f;r]` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_REWRITE_TAC[GSYM Seq.allP;MEM];
+    BY(REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THEN POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[]);
+  COMMENT "uniq flatten";
+  TYPIFY `~(loop_of_list f = loop_of_list r)` (C SUBGOAL_THEN ASSUME_TAC);
+    DISCH_TAC;
+    INTRO_TAC dih2k_quotient_card_NF [`hypermap_of_list L`;`{loop_of_list f,loop_of_list r}`;`d`];
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[SING];
+    DISCH_THEN MP_TAC THEN ANTS_TAC;
+      BY(FIRST_X_ASSUM_ST `dih2k` MP_TAC THEN ASM_REWRITE_TAC[]);
+    ASM_REWRITE_TAC[];
+    BY(SET_TAC[]);
+  TYPIFY `uniq (flatten [f;r])` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_REWRITE_TAC[Seq.flatten_cons;Seq.flatten0;Seq.cats0;Seq.cat_uniq];
+    REWRITE_TAC[GSYM Seq.hasP;NOT_EXISTS_THM];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM_ST `is_normal` MP_TAC;
+    REWRITE_TAC[is_normal];
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM_ST `L = L'` (C INTRO_TAC [`loop_of_list f`;`loop_of_list r`;`x`]);
+    BY(ASM_SIMP_TAC[IN_INSERT;in_dart_of_loop;in_dart_loop_of_list]);
+  COMMENT "loop_list";
+  INTRO_TAC is_normal_loop_list [`L`;`[f;r]`];
+  ASM_REWRITE_TAC[];
+  TYPIFY `all uniq [f;r]` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_REWRITE_TAC[GSYM Seq.allP;MEM];
+    BY(ASM_MESON_TAC[]);
+  TYPIFY `loop_family_of_list [f;r] = {loop_of_list f,loop_of_list r}` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REWRITE_TAC[loop_family_of_list;upper_case;MAP;set_of_list]);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  COMMENT "is_normal_nodal";
+  INTRO_TAC is_normal_nodal [`L`;`[f;r]`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  COMMENT "f_last";
+  INTRO_TAC Hypermap.value_loop_map_of_head_of_atom [`hypermap_of_list L`;`{loop_of_list f,loop_of_list r}`;`loop_of_list r`;`d'`];
+  ASM_REWRITE_TAC[IN_INSERT;in_dart_of_loop];
+  ASM_SIMP_TAC[loop_map_next_el];
+  GMATCH_SIMP_TAC face_map_list;
+  ASM_REWRITE_TAC[];
+  FULL_EXPAND_TAC "last_d'";
+  TYPIFY `MEM (LAST r) r` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC MEM_LAST;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `MEM (LAST r) (list_of_darts L)` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `loop_list` MP_TAC;
+    REWRITE_TAC[GSYM Seq.allP;loop_list;MEM];
+    BY(POP_ASSUM MP_TAC THEN MESON_TAC[]);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    REWRITE_TAC[normal_list];
+    ASM_REWRITE_TAC[];
+    ASM_REWRITE_TAC[GSYM Seq.allP;MEM];
+    REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[];
+      MATCH_MP_TAC final_list_f_last;
+      BY(ASM_REWRITE_TAC[]);
+    REWRITE_TAC[f_last];
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_TAC;
+  COMMENT "dih2k";
+  REWRITE_TAC[dih2k_list;quotient_list;core_list];
+  INTRO_TAC good_face_rep [`L`;`f`];
+  ANTS_TAC;
+    FIRST_X_ASSUM_ST `is_restricted` MP_TAC;
+    BY(ASM_SIMP_TAC[is_restricted]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `f0` EXISTS_TAC;
+  ASM_REWRITE_TAC[upper_case;MAP;CONS_11];
+  TYPED_ABBREV_TAC `r0 = MAP (\x. FST (HD x)) (parts L r)`;
+  REWRITE_TAC[lower_case];
+  SUBCONJ_TAC;
+    GMATCH_SIMP_TAC final_list_parts;
+    ASM_REWRITE_TAC[];
+    nCONJ_TAC 1;
+      BY(FIRST_X_ASSUM_ST `is_restricted` MP_TAC THEN MESON_TAC[is_restricted]);
+    nCONJ_TAC 2;
+      REWRITE_TAC[upper_case;GSYM MAP_o];
+      FULL_EXPAND_TAC "f0";
+      MATCH_MP_TAC MAP_EQ;
+      BY(REWRITE_TAC[lower_case;GSYM Seq.allP;HD;o_THM]);
+    POP_ASSUM SUBST1_TAC;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[List_hypermap.list_of_darts_alt];
+    REWRITE_TAC[GSYM Seq.allP;Seq2.mem_flatten];
+    FIRST_X_ASSUM_ST `MEM f (list_of_faces L)` MP_TAC;
+    BY(MESON_TAC[]);
+  DISCH_TAC;
+  MATCH_MP_TAC e_list_pairs_rev;
+  (ASM_REWRITE_TAC[]);
+  COMMENT "LAST 3 subgoals. e_list_pairs_rev";
+  TYPIFY `is_edge_nondegenerate (hypermap_of_list L) /\ all uniq L` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `is_restricted` MP_TAC;
+    BY(ASM_MESON_TAC[is_restricted;simple_hypermap_uniq]);
+  COMMENT "1. size subgoal";
+  SUBCONJ_TAC;
+    FULL_EXPAND_TAC "r0";
+    FULL_EXPAND_TAC "f0";
+    REWRITE_TAC[lower_case;Seq.size_map];
+    REPEAT (GMATCH_SIMP_TAC (GSYM card_atoms_of_loop));
+    CONJ_TAC;
+      TYPIFY `[f;r]` EXISTS_TAC;
+      BY(ASM_REWRITE_TAC[MEM]);
+    CONJ_TAC;
+      TYPIFY `[f;r]` EXISTS_TAC;
+      BY(ASM_REWRITE_TAC[MEM]);
+    REPEAT (GMATCH_SIMP_TAC (GSYM Hypermap.lemmaQF));
+    TYPIFY `{loop_of_list f,loop_of_list r}` EXISTS_TAC;
+    ASM_REWRITE_TAC[IN_ELIM_THM;IN_INSERT;in_dart_of_loop];
+    TYPIFY `LAST r` EXISTS_TAC;
+    ASM_SIMP_TAC[in_dart_loop_of_list];
+    GEXISTL_TAC [`{loop_of_list f,loop_of_list r}`;`d`];
+    ASM_SIMP_TAC[IN_ELIM_THM;IN_INSERT;in_dart_of_loop;in_dart_loop_of_list;IN_SET_OF_LIST];
+    INTRO_TAC dih2k_card_face [`k`;`qH`];
+    DISCH_THEN (REPEAT o GMATCH_SIMP_TAC);
+    FIRST_X_ASSUM_ST `dih2k` MP_TAC THEN ASM_SIMP_TAC[];
+    FULL_EXPAND_TAC "qH";
+    DISCH_TAC;
+    ASM_SIMP_TAC[lemma_quotient];
+    INTRO_TAC lemma_in_quotient [`hypermap_of_list L`;`{loop_of_list f,loop_of_list r}`];
+    DISCH_THEN (REPEAT o GMATCH_SIMP_TAC);
+    BY(ASM_SIMP_TAC[IN_INSERT;in_dart_of_loop;in_dart_loop_of_list]);
+  DISCH_TAC;
+  COMMENT "3. HD-LAST";
+  SUBCONJ2_TAC;
+    FIRST_X_ASSUM_ST `map` kill;
+    FULL_EXPAND_TAC "f0";
+    FULL_EXPAND_TAC "r0";
+    GMATCH_SIMP_TAC HD_MAP;
+    ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC LAST_MAP;
+    SUBCONJ_TAC;
+      POP_ASSUM MP_TAC;
+      REWRITE_TAC[Seq.size_map;lower_case];
+      REWRITE_TAC[GSYM Seq.size_eq0];
+      DISCH_THEN (SUBST1_TAC o GSYM);
+      BY(ASM_REWRITE_TAC[Seq.size_eq0]);
+    DISCH_TAC;
+    TYPIFY `MEM (LAST (parts L r)) (parts L r)` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(POP_ASSUM MP_TAC THEN SIMP_TAC[MEM_LAST]);
+    INTRO_TAC parts_fst [`L`;`[f;r]`;`r`;`LAST (parts L r)`;`LAST r`];
+    ASM_SIMP_TAC[MEM];
+    ANTS_TAC;
+      MATCH_MP_TAC MEM_LAST_PARTS;
+      BY(ASM_REWRITE_TAC[]);
+    DISCH_THEN (SUBST1_TAC o GSYM);
+    FIRST_X_ASSUM_ST `head_of_atom` MP_TAC;
+    DISCH_THEN (fun t -> REPEAT (POP_ASSUM MP_TAC) THEN SUBST1_TAC (GSYM t));
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `head_of_atom (hypermap_of_list L) {loop_of_list f,loop_of_list r} d'  IN (node (hypermap_of_list L) d')` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[lemma_atom_sub_node;SUBSET]);
+    TYPIFY `node (hypermap_of_list L) d = node (hypermap_of_list L) d'` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[lemma_node_identity]);
+    ONCE_REWRITE_TAC[EQ_SYM_EQ];
+    INTRO_TAC List_hypermap.fst_node_hypermap_of_list [`L`];
+    ASM_REWRITE_TAC[];
+    DISCH_THEN MATCH_MP_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  (COMMENT "2. e_list sym")
 
-....
 
-  comment "dih2k"
   ]);;
   (* }}} *)
 
+card_atoms_of_loop;;
+e_list_pairs_rev;;
+loop_list;;
 normal_list;;
 f_last;;
 bb 3;;

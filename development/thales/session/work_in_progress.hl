@@ -24,24 +24,24 @@ open Hypermap;;
 
 
 let newvertex = new_definition'
-  `newvertex_v2 L r (x:A#A) =
+  `newvertex L r (x:A#A) =
     (let f = find_face L x in
       let f' = rotate_to f x in
 	MAP FST (filter (\d. ~MEM d r) f'))`;;
 
 let newvertex_prepped = new_definition'
-  `newvertex_prepped_v2 L (N:((num#num)list)list) r x <=>
+  `newvertex_prepped L (N:((num#num)list)list) r x <=>
   (final_list L r \/
       let n = sizel (undup (MAP FST (flatten N))) in
-      let news = newvertex_v2 L r x in
+      let news = newvertex L r x in
 	news = iota n (sizel news))`;;
 
 let generatePolygon_reduction = new_definition'
-  `generatePolygon_reduction_v2 <=> (!L:((num)list)list N N' g p fs f v k r x.  
+  `generatePolygon_reduction <=> (!L:((num)list)list N N' g p fs f v k r x.  
       good_list L /\
       good_list_nodes L /\
       is_restricted (hypermap_of_list L) /\
-      newvertex_prepped_v2 L N r x /\
+      newvertex_prepped L N r x /\
       match_quotient_list g L N /\ 
       ~(finalGraph g) /\
       planegraph g /\
@@ -77,11 +77,11 @@ let next_g_exists = prove_by_refinement(
      let x = SND rx in
      let  k = transform_count L N r x in
      let  N' = ntrans L N r x k in
-      (generatePolygon_reduction_v2 /\
+      (generatePolygon_reduction /\
 	 good_list L /\
 	 good_list_nodes L /\
 	 is_restricted (hypermap_of_list L) /\
-          newvertex_prepped_v2 L N r x /\
+          newvertex_prepped L N r x /\
           match_quotient_list g L N /\
           ~finalGraph g /\
           planegraph g /\
@@ -103,7 +103,7 @@ let next_g_exists = prove_by_refinement(
   REPEAT LET_TAC;
   REWRITE_TAC[RIGHT_EXISTS_IMP_THM];
   REPEAT WEAKER_STRIP_TAC;
-  FIRST_X_ASSUM_ST `generatePolygon_reduction_v2` MP_TAC THEN REWRITE_TAC[generatePolygon_reduction];
+  FIRST_X_ASSUM_ST `generatePolygon_reduction` MP_TAC THEN REWRITE_TAC[generatePolygon_reduction];
   DISCH_THEN (C INTRO_TAC [`L`;`N`;`N'`;`g`;`p`;`fs`;`f`;`v`;`k`;`r`;`x`]);
   ASM_REWRITE_TAC[];
   SUBANTS_TAC;
@@ -115,7 +115,7 @@ let next_g_exists = prove_by_refinement(
   ]);;
   (* }}} *)
 
-new_specification ["next_g_v2";"next_gon_v2"]
+new_specification ["next_g";"next_gon"]
   (REWRITE_RULE[SKOLEM_THM] next_g_exists);;
 
 (* ............... END NEW DEFS *)
@@ -138,7 +138,7 @@ let oldvertex = prove_by_refinement(
 let set_of_list_newvertex = prove_by_refinement(
   `!L r x. good_list L /\ 
     MEM x (list_of_darts L) ==>
-    set_of_list (newvertex_v2 L r x) = 
+    set_of_list (newvertex L r x) = 
     IMAGE FST { t | MEM t (find_face L x) /\ ~MEM t r}`,
   (* {{{ proof *)
   [
@@ -162,7 +162,7 @@ let oldnew_vertex_disjoint = prove_by_refinement(
     transform_assumption_v2 L /\
     marked_list L N r x 
     ==>
-    set_of_list (MAP FST (flatten N)) INTER set_of_list (newvertex_v2 L r x)
+    set_of_list (MAP FST (flatten N)) INTER set_of_list (newvertex L r x)
     = {}`,
   (* {{{ proof *)
   [
@@ -306,7 +306,7 @@ let vertices_normal_list = prove_by_refinement(
   (* }}} *)
 
 (* was card_vertices_set2 *)
-let card_vertices_set2 = 0;;
+(* let card_vertices_set2 = 0;; *)
 
 let card_vertices_normal_list = prove_by_refinement(
   `!g L N. good_list L /\ normal_list L N /\
@@ -399,7 +399,7 @@ let newvertex_uniq = prove_by_refinement(
     good_list L /\
     good_list_nodes L /\
     all uniq L
-  ==> uniq (newvertex_v2 L r x)`,
+  ==> uniq (newvertex L r x)`,
   (* {{{ proof *)
   [
   REWRITE_TAC[newvertex;LET_THM];
@@ -451,9 +451,9 @@ let map_newvertex = prove_by_refinement(
     MEM x (list_of_darts L) /\
     (set_of_list r SUBSET (darts_of_list L)) /\
     inj_on phi (elements_of_list L) ==>
-    newvertex_v2 (MAP (MAP phi) L) 
+    newvertex (MAP (MAP phi) L) 
     (MAP (\x. (phi (FST x)), (phi (SND x))) r)  (phi (FST x), phi (SND x)) 
-      = MAP phi (newvertex_v2 L r x)`,
+      = MAP phi (newvertex L r x)`,
   (* {{{ proof *)
   [
   REWRITE_TAC[newvertex];
@@ -659,7 +659,7 @@ let iso_list_newvertex_lemma = prove_by_refinement(
     (?L' N' r' x'. 
          iso_list (L,([x]::r::N)) (L',([x']::r'::N')) /\
 	 match_quotient_list g L' N' /\
-	 newvertex_prepped_v2 L' N' r' x')
+	 newvertex_prepped L' N' r' x')
     `,
   (* {{{ proof *)
   [
@@ -671,7 +671,7 @@ let iso_list_newvertex_lemma = prove_by_refinement(
   DISCH_TAC;
   REWRITE_TAC[iso_list];
   TYPED_ABBREV_TAC `s1 = set_of_list (MAP FST (flatten N))`;
-  TYPED_ABBREV_TAC `s2 = set_of_list (newvertex_v2 L r x)`;
+  TYPED_ABBREV_TAC `s2 = set_of_list (newvertex L r x)`;
   TYPED_ABBREV_TAC `s3 = elements_of_list L DIFF (s1 UNION s2)`;
   TYPIFY `s1 INTER s3 = {} /\ s2 INTER s3 = {}` (C SUBGOAL_THEN ASSUME_TAC);
     BY(POP_ASSUM MP_TAC THEN SET_TAC[]);
@@ -698,7 +698,7 @@ let iso_list_newvertex_lemma = prove_by_refinement(
   TYPED_ABBREV_TAC `fs1 = (I:num->num)`;
   TYPED_ABBREV_TAC `n = CARD s1`;
   COMMENT "redo here";
-  TYPIFY `?fs2. BIJ fs2 s2 (set_of_list (iota n (CARD s2))) /\ iota n (CARD s2) =  MAP fs2 (newvertex_v2 L r x)` (C SUBGOAL_THEN ASSUME_TAC);
+  TYPIFY `?fs2. BIJ fs2 s2 (set_of_list (iota n (CARD s2))) /\ iota n (CARD s2) =  MAP fs2 (newvertex L r x)` (C SUBGOAL_THEN ASSUME_TAC);
     FULL_EXPAND_TAC "s2";
     MATCH_MP_TAC uniq_bij_map;
     REWRITE_TAC[Seq.size_iota;Seq.iota_uniq];
@@ -782,9 +782,9 @@ let iso_list_newvertex_lemma = prove_by_refinement(
       GMATCH_SIMP_TAC (GSYM Seq2.card_set_of_list_uniq);
       REWRITE_TAC[Seq.undup_uniq];
       BY(REWRITE_TAC[Seq2.set_of_list_undup]);
-    TYPIFY `newvertex_v2 (MAP (MAP f) L) (MAP nf r) (nf x) = MAP fs2 (newvertex_v2 L r x)` ENOUGH_TO_SHOW_TAC;
+    TYPIFY `newvertex (MAP (MAP f) L) (MAP nf r) (nf x) = MAP fs2 (newvertex L r x)` ENOUGH_TO_SHOW_TAC;
       DISCH_THEN SUBST1_TAC;
-      FIRST_X_ASSUM_ST `newvertex_v2` (SUBST1_TAC o GSYM);
+      FIRST_X_ASSUM_ST `newvertex` (SUBST1_TAC o GSYM);
       REWRITE_TAC[Seq.size_iota];
       REWRITE_TAC[GSYM MAP_flatten;GSYM MAP_o;FST_o_FST];
       FULL_EXPAND_TAC "nf" THEN REWRITE_TAC[FST_o_FST];
@@ -803,7 +803,7 @@ let iso_list_newvertex_lemma = prove_by_refinement(
       BY(ASM_MESON_TAC[I_THM]);
     INTRO_TAC map_newvertex [`f`;`L`;`r`;`x`];
     FULL_EXPAND_TAC "nf";
-    TYPIFY `MAP fs2 (newvertex_v2 L r x) = MAP f (newvertex_v2 L r x)` (C SUBGOAL_THEN SUBST1_TAC);
+    TYPIFY `MAP fs2 (newvertex L r x) = MAP f (newvertex L r x)` (C SUBGOAL_THEN SUBST1_TAC);
       MATCH_MP_TAC MAP_EQ;
       REWRITE_TAC[lower_case;GSYM Seq.allP];
       REWRITE_TAC[GSYM IN_SET_OF_LIST];
@@ -954,7 +954,7 @@ let UYOUIXG = prove_by_refinement(
     REWRITE_TAC[List_hypermap.list_of_darts_alt;Seq.mem_undup;Seq2.mem_flatten];
     TYPIFY `f` EXISTS_TAC THEN ASM_REWRITE_TAC[];
     BY(ASM_SIMP_TAC[ MEM_HD]);
-  INTRO_TAC AUQTZYZ_list [`L`;`f`];
+  INTRO_TAC Auqtzyz_list.AUQTZYZ_list [`L`;`f`];
   ANTS_TAC;
     BY(ASM_REWRITE_TAC[]);
   REPEAT WEAKER_STRIP_TAC;
@@ -1124,18 +1124,123 @@ let enumerator_nil = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let subdivFace0_alt_mem = prove_by_refinement(
+  `!vs g f r n.  MEM f (faces g) ==> 
+    (let fg' = subdivFace0_alt g f r n vs in
+       MEM (FST fg') (faces (SND fg')))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LET_THM];
+  LIST_INDUCT_TAC THEN ASM_SIMP_TAC[subdivFace0_alt];
+  REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  LET_TAC;
+  LET_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT LET_TAC;
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  INTRO_TAC MEM_splitFace2 [`g`;`r`;`v`;`f`;`ws`];
+  ASM_REWRITE_TAC[];
+  LET_TAC;
+  BY(REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let filter_replace = prove_by_refinement(
+  `!fs P f xs. ~(P f) /\ all (\x. ~(P x)) xs ==>
+    filter P (replace f xs fs) =  (filter P fs)`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[replace;Seq.filter_nil;lower_case];
+  REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+    ASM_REWRITE_TAC[filter_rec;Seq.filter_cat];
+    TYPIFY `filter P xs = []` ENOUGH_TO_SHOW_TAC;
+      DISCH_THEN SUBST1_TAC;
+      BY(REWRITE_TAC[Seq.cat0s]);
+    TYPIFY `~(has P xs)` ENOUGH_TO_SHOW_TAC;
+      BY(MESON_TAC[Seq.has_filter]);
+    REWRITE_TAC[GSYM Seq.hasP];
+    BY(ASM_MESON_TAC[Seq.allP]);
+  REWRITE_TAC[filter_rec];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[CONS_11];
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let splitFace_finals = prove_by_refinement(
+  `!g r v f ws. ~SND f ==>
+    finals (SND (SND (splitFace g r v f ws))) = finals g`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[splitFace;finals];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT LET_TAC;
+  REWRITE_TAC[faces_graph];
+  FIRST_X_ASSUM_ST `split_face` MP_TAC THEN ONCE_REWRITE_TAC[PAIR_EQ2];
+  REWRITE_TAC[];
+  REWRITE_TAC[split_face];
+  REPEAT LET_TAC;
+  REWRITE_TAC[];
+  REWRITE_TAC[lower_case];
+  REPEAT WEAKER_STRIP_TAC THEN FULL_EXPAND_TAC "f1" THEN FULL_EXPAND_TAC "f2";
+  REWRITE_TAC[Seq.filter_cat];
+  REWRITE_TAC[FACE];
+  REWRITE_TAC[filter_rec;Seq.cats0];
+  GMATCH_SIMP_TAC filter_replace;
+  ASM_REWRITE_TAC[GSYM Seq.allP;MEM];
+  REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[];
+  BY(FIRST_X_ASSUM MP_TAC THEN ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let subdivFace0_alt_final = prove_by_refinement(
+  `!vs g f r n. MEM f (faces g) /\ ~SND f ==>
+     (finals g) =  (finals (SND (subdivFace0_alt g f r n vs)))`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC then rt[subdivFace0_alt]
+  st/r
+  repeat LET_TAC
+  condcase then art[]
+  fxa mmp
+  art[]
+  condcase then art[]
+  fxa mmp
+  art[]
+  typ `finals g = finals g'` s1
+  fxast `splitFace` mp
+  ort[PAIR_EQ2]
+  rt[]
+  st/r
+  fxa mp then ort[PAIR_EQ2] then rt[] then st/r then fexp "g'"
+  amt[splitFace_finals]
+  fxa mmp
+
+xxd
+  ]);;
+  (* }}} *)
+
+
 let generatePolygon_mono = prove_by_refinement(
   `!i v g f fs g' p.
     planegraph g /\
     ~finalGraph g /\
-    fs = nonFinals g /\
-    f = minimalFace fs /\
-    v = minimalVertex g f /\
+    nonFinals g = fs /\
+    minimalFace fs = f /\
+    minimalVertex g f = v /\
     // p = foldr maxn 0 (MAP sizel L) /\
     // 3 <= i /\
     // i <= maxGon p /\
     MEM g' (generatePolygon i v f g) ==>
-    sizel (nonFinals g) < sizel (nonFinals g')
+    sizel (finals g) < sizel (finals g')
     `,
   (* {{{ proof *)
   [
@@ -1144,9 +1249,11 @@ let generatePolygon_mono = prove_by_refinement(
   art[]
   gm subdivFaceFinal_eq
   rt[indexToVertexList_nil]
-  conj
+  subconj
   mmp enumerator_nil
-
+  fxast `MEM` mp
+  mt[MEM_FILTER]
+  rt[subdivFaceFinal]
   ]);;
   (* }}} *)
 

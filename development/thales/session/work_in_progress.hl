@@ -1769,6 +1769,7 @@ let max_finals_g_exists = prove_by_refinement(
    (?g' L' N'.  
       match_quotient_list g' L' N' /\
       normal_list L' N' /\
+      all uniq (quotient_list L' N') /\
       ~(N' = []) /\
       iso_list (L,[]) (L',[]) /\
         planegraphP p g' /\
@@ -1778,6 +1779,7 @@ let max_finals_g_exists = prove_by_refinement(
    (!g'' L'' N''.
       match_quotient_list g'' L'' N'' /\
       normal_list L'' N'' /\
+      all uniq (quotient_list L'' N'') /\
       ~(N'' = []) /\
       iso_list (L,[]) (L'',[]) /\
         planegraphP p g'' /\
@@ -1788,7 +1790,7 @@ let max_finals_g_exists = prove_by_refinement(
   (* {{{ proof *)
   [
   REPEAT WEAKER_STRIP_TAC;
-  TYPED_ABBREV_TAC `S = IMAGE (\ u. sizel (finals (FST u))) { (g',L',N') | match_quotient_list g' L' N' /\     normal_list L' N' /\     ~(N' = []) /\     iso_list (L,[]) (L',[]) /\     planegraphP p g' /\     vertices_set2 g' = elements_of_list (fgraph g') /\     (!v. v IN vertices_set2 g'          ==> facesAt g' v = FILTER (\f. MEM v (FST f)) (faces g'))}`;
+  TYPED_ABBREV_TAC `S = IMAGE (\ u. sizel (finals (FST u))) { (g',L',N') | match_quotient_list g' L' N' /\     normal_list L' N' /\  all uniq (quotient_list L' N') /\    ~(N' = []) /\     iso_list (L,[]) (L',[]) /\     planegraphP p g' /\     vertices_set2 g' = elements_of_list (fgraph g') /\     (!v. v IN vertices_set2 g'          ==> facesAt g' v = FILTER (\f. MEM v (FST f)) (faces g'))}`;
   INTRO_TAC Rogers.NUM_FINITE_IMP_MAX_EXISTS [`S`];
   TYPIFY `FINITE S /\ ~(S = {})` ENOUGH_TO_SHOW_TAC;
     SIMP_TAC[];
@@ -1861,6 +1863,12 @@ let max_finals_g_exists = prove_by_refinement(
   GEXISTL_TAC [`g'`;`L'`;`N'`];
   ASM_REWRITE_TAC[];
   FULL_EXPAND_TAC "g'";
+  COMMENT "add all uniq quot";
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `IMAGE` kill;
+    FIRST_X_ASSUM_ST `match_quotient_list` MP_TAC;
+    REWRITE_TAC[match_quotient_list];
+    BY(ASM_MESON_TAC[ all_uniq_seed]);
   nCONJ_TAC 4;
     REPEAT WEAKER_STRIP_TAC;
     MATCH_MP_TAC good_facesAt_seed;
@@ -1894,30 +1902,41 @@ let planegraph_P = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let HKBGWJI = prove_by_refinement(
+  `!L N r x g.
+    is_restricted (hypermap_of_list L) /\
+    normal_list L N /\
+    ~(finalGraph g) /\
+    all uniq (quotient_list L N) /\
+    all (\v. sizel (filter (MEM v) (quotient_list L N)) > 1) 
+       (flatten (quotient_list L N)) /\
+    flag_list L N /\
+    match_quotient_list g L N /\
+    (r,x) = loop_choice g L N ==>
+  marked_list L N r x`,
+  (* {{{ proof *)
+  [
+  rt[marked_list;LET_THM]
+  st/r then art[]
+  pop mp then rt[loop_choice] then repeat LET_TAC
+  rt[PAIR_EQ]
+  st/r
+  fexp "r'"
+xxd...
+  ]);;
+  (* }}} *)
 
-SPEC1_TAC;;
-REBIND_TAC;;
-planegraphP;;
-good_graph;;
-planegraph;;
-normal_list_size_bound;;
-finalGraph;;
-core;;
-fgraph;;
-finals;;
 generatePolygon_reduction;;
-match_quotient_list;;
-(* least n *)
-(* then induction on n *)
-faces;;
-fgraph;;
-finals;;
-xxd
+minimalFace;;
+marked_list;;
+flag_list;;
+s_flag_list;;
+loop_choice;;
 
 let restricted_hypermaps_are_planegraphs_reduction1 = prove_by_refinement(
-  `generatePolygon_reduction_v2  
-  //  (!L. good_list L /\ good_list_nodes L ==>
-  //	   transform_assumption_v2 L) 
+  `generatePolygon_reduction_v2  /\
+    (!(L:((num)list)list). good_list L /\ good_list_nodes L ==>
+  	   transform_assumption_v2 L) 
   ==>
     restricted_hypermaps_are_planegraphs`,
   (* {{{ proof *)
@@ -1937,7 +1956,48 @@ let restricted_hypermaps_are_planegraphs_reduction1 = prove_by_refinement(
   typ `fgraph g' = quotient_list L' N'` sat
   amt[match_quotient_list]
   art[]
-
+  nconj 0
+  amt[]
+  TYPIFY `good_list L'` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[iso_list_good_list]);
+  TYPIFY `iso_list (L',[]) (L,[])` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[iso_list_sym_nil]);
+  TYPIFY `is_restricted (hypermap_of_list L')` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[iso_list_restricted]);
+  TYPIFY `good_list_nodes L'` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[iso_list_good_list_nodes]);
+  typ `is_edge_nondegenerate (hypermap_of_list L')` sat
+  amt[is_restricted] 
+  typ `all uniq L'` sat
+  amt[is_restricted;simple_hypermap_uniq]
+  nconj 2
+  mmp good_list_quotient
+  art[]  
+  art[]
+  nconj 1
+  mmp good_list_nodes_quotient  
+  art[]
+  art[]
+  intro restricted_match_finalGraph [`g'`;`L'`;`N'`]
+  art[]
+  dthen gm
+  gm GNBEVVU
+  conj
+  amt[]
+  contr
+  comment "now construct next step"
+  fxast `generatePolygon_reduction_v2` mp
+  rt[generatePolygon_reduction]
+  dt
+  abbrev `rx = loop_choice g' L' N'`
+  intro iso_list_newvertex_lemma [`L'`;`N'`;`FST rx`;`SND rx`;`g'`]
+  subants
+  art[]
+  subconj
+  fxa mmp
+  art[]
+  dt
+  .... xxd need HKBGWJI to continue.
   ]);;
   (* }}} *)
 

@@ -44,14 +44,16 @@ let newvertex_prepped = new_definition'
       let news = newvertex L r x in
 	news = iota n (sizel news))`;;
 
-(* 2014-04-07 planegraph -> planegraphP p, p-> p - 3 *)
+(* 2014-04-07 planegraph -> planegraphP p, p-> p - 3,
+   2014-04-09 remove planegraphP from concl, add marked_list hyp. *)
 
 let generatePolygon_reduction = new_definition'
-  `generatePolygon_reduction_v2 <=> (!L:((num)list)list N N' g p fs f v k r x.  
+  `generatePolygon_reduction_v3 <=> (!L:((num)list)list N N' g p fs f v k r x.  
       good_list L /\
       good_list_nodes L /\
       is_restricted (hypermap_of_list L) /\
       newvertex_prepped L N r x /\
+      marked_list L N r x /\
       match_quotient_list g L N /\ 
       ~(finalGraph g) /\
       planegraphP p g /\
@@ -68,7 +70,7 @@ let generatePolygon_reduction = new_definition'
     ==>
       (?g' i. 
 	 match_quotient_list g' L N' /\
-	 planegraphP p g' /\
+	 // planegraphP p g' /\
 	 3 <= i /\ i <= maxGon p /\
 	 (!v. v IN vertices_set2 g'
               ==> facesAt g' v = FILTER (\f. MEM v (FST f)) (faces g')) /\
@@ -87,11 +89,12 @@ let next_g_exists = prove_by_refinement(
      let x = SND rx in
      let  k = transform_count L N r x in
      let  N' = ntrans L N r x k in
-      (generatePolygon_reduction_v2 /\
+      (generatePolygon_reduction_v3 /\
 	 good_list L /\
 	 good_list_nodes L /\
 	 is_restricted (hypermap_of_list L) /\
           newvertex_prepped L N r x /\
+	  marked_list L N r x /\
           match_quotient_list g L N /\
           ~finalGraph g /\
           planegraphP p g /\
@@ -99,7 +102,7 @@ let next_g_exists = prove_by_refinement(
                ==> facesAt g v = FILTER (\f. MEM v (FST f)) (faces g)) /\
           vertices_set2 g = elements_of_list (fgraph g) ==>
       (match_quotient_list next_g L N' /\
-                   planegraphP p next_g /\
+                  // planegraphP p next_g /\
                    3 <= next_gon /\
                    next_gon <= maxGon p /\
                    (!v. v IN vertices_set2 next_g
@@ -113,7 +116,7 @@ let next_g_exists = prove_by_refinement(
   REPEAT LET_TAC;
   REWRITE_TAC[RIGHT_EXISTS_IMP_THM];
   REPEAT WEAKER_STRIP_TAC;
-  FIRST_X_ASSUM_ST `generatePolygon_reduction_v2` MP_TAC THEN REWRITE_TAC[generatePolygon_reduction];
+  FIRST_X_ASSUM_ST `generatePolygon_reduction_v3` MP_TAC THEN REWRITE_TAC[generatePolygon_reduction];
   DISCH_THEN (C INTRO_TAC [`L`;`N`;`N'`;`g`;`p`;`fs`;`f`;`v`;`k`;`r`;`x`]);
   ASM_REWRITE_TAC[];
   SUBANTS_TAC;
@@ -125,10 +128,378 @@ let next_g_exists = prove_by_refinement(
   ]);;
   (* }}} *)
 
-new_specification ["next_g_v2";"next_gon_v2"]
+new_specification ["next_g_v3";"next_gon_v3"]
   (REWRITE_RULE[SKOLEM_THM] next_g_exists);;
 
 (* ............... END NEW DEFS *)
+
+let mem_enumAppend = prove_by_refinement(
+  `!iss nmax a u. MEM a iss /\ LAST a <= u /\ u <= nmax ==>
+    MEM (cat a [u]) (enumAppend nmax iss)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[enumAppend;Seq2.mem_flatten;MEM_MAP];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `MAP (\n. APPEND a [n]) (upt (LAST a) (SUC nmax))` EXISTS_TAC;
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  REWRITE_TAC[MEM_MAP;Tame_defs.upt;lower_case];
+  TYPIFY `u` EXISTS_TAC;
+  REWRITE_TAC[];
+  REWRITE_TAC[Seq.mem_iota];
+  ASM_REWRITE_TAC[];
+  BY(ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let hd_cat = prove_by_refinement(
+  `!a b. ~(a=[])==> HD (cat a b) = HD a`,
+  (* {{{ proof *)
+  [
+  BY(LIST_INDUCT_TAC THEN REWRITE_TAC[NOT_CONS_NIL;HD;Seq.cat_cons])
+  ]);;
+  (* }}} *)
+
+let hd_rcons = prove_by_refinement(
+  `!t h. HD (rcons t h) = if (t=[]) then h else HD t`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC THEN COND_CASES_TAC THEN ASM_REWRITE_TAC[Seq.rcons;HD];
+  REWRITE_TAC[GSYM Seq.cats1];
+  BY(MATCH_MP_TAC hd_cat THEN ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let el_rcons = prove_by_refinement(
+  `!t h i. i < sizel t ==> EL i (rcons t h) = EL i t`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[GSYM Seq.cats1];
+  INTRO_TAC Seq2.EL_nth [`h`];
+  DISCH_THEN (REPEAT o GMATCH_SIMP_TAC);
+  ASM_REWRITE_TAC[Seq.nth_cat;Seq.size_cat];
+  BY(ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let el_rcons_size = prove_by_refinement(
+  `!t h. EL (sizel t) (rcons t h) = h`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[GSYM Seq.cats1];
+  INTRO_TAC Seq2.EL_nth [`h`];
+  DISCH_THEN (REPEAT o GMATCH_SIMP_TAC);
+  ASM_REWRITE_TAC[Seq.nth_cat;Seq.size_cat;arith `~(t:num < t)`;arith `n - n = 0`];
+  CONJ_TAC;
+    BY(REWRITE_TAC[Seq2.size1] THEN ARITH_TAC);
+  REWRITE_TAC[Seq.nth0];
+  GMATCH_SIMP_TAC Seq2.head_HD;
+  REWRITE_TAC[HD;Seq2.size1];
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let mem_enumAppend_pow = prove_by_refinement(
+  `!us k iss nmax a. MEM a iss /\ LAST a <= HD us /\ LAST us <= nmax /\
+    (!i. SUC i < sizel us ==> EL i us <= EL (SUC i) us) /\ sizel us = k /\
+      ~(k=0) ==>
+      MEM (cat a us) ((enumAppend nmax POWER k) iss)`,
+  (* {{{ proof *)
+  [
+  MATCH_MP_TAC LISTR_INDUCT;
+  CONJ_TAC;
+    REWRITE_TAC[Seq.size;LENGTH];
+    BY(MESON_TAC[]);
+  REWRITE_TAC[Seq.size_rcons];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `?k'. SUC k' = k` (C SUBGOAL_THEN MP_TAC);
+    TYPIFY `PRE k` EXISTS_TAC;
+    BY(REPLICATE_TAC 2 (POP_ASSUM MP_TAC) THEN ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  FULL_EXPAND_TAC "k";
+  TYPIFY `k' =0` ASM_CASES_TAC;
+    ASM_REWRITE_TAC[arith `SUC 0 = 1`];
+    REWRITE_TAC[POWER_1];
+    TYPIFY `sizel t = 0` (C SUBGOAL_THEN MP_TAC);
+      BY(ASM_TAC THEN ARITH_TAC);
+    REWRITE_TAC[Seq.size_eq0];
+    DISCH_TAC THEN REPEAT (FIRST_X_ASSUM_ST `rcons` MP_TAC) THEN ASM_REWRITE_TAC[Seq.rcons;HD;LAST] THEN REPEAT WEAKER_STRIP_TAC;
+    MATCH_MP_TAC mem_enumAppend;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[Hypermap.COM_POWER];
+  RULE_ASSUM_TAC(REWRITE_RULE[LAST_rcons;arith `SUC i = SUC j <=> i = j`;arith `SUC i < SUC j <=> i < j`]);
+  TYPIFY `~(t = [])` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REWRITE_TAC[GSYM Seq.size_eq0] THEN ASM_REWRITE_TAC[]);
+  TYPIFY `LAST (a:num list) <= HD t` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `HD` MP_TAC;
+    BY(ASM_REWRITE_TAC[hd_rcons]);
+  TYPIFY `LAST t <= h:num` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM (C INTRO_TAC [`PRE (sizel t)`]);
+    ASM_REWRITE_TAC[];
+    ANTS_TAC;
+      BY(ASM_TAC THEN ARITH_TAC);
+    TYPIFY `SUC (PRE k') = sizel t` (C SUBGOAL_THEN SUBST1_TAC);
+      BY(ASM_TAC THEN ARITH_TAC);
+    REWRITE_TAC[el_rcons_size];
+    GMATCH_SIMP_TAC el_rcons;
+    CONJ_TAC;
+      BY(ASM_TAC THEN ARITH_TAC);
+    TYPIFY `PRE k' = sizel t - 1` (C SUBGOAL_THEN SUBST1_TAC);
+      BY(ASM_TAC THEN ARITH_TAC);
+    REWRITE_TAC[Seq.size] THEN GMATCH_SIMP_TAC (GSYM LAST_EL);
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `MEM (cat a t) ((enumAppend nmax POWER k') iss)` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    ASM_REWRITE_TAC[];
+    CONJ2_TAC;
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM (C INTRO_TAC [`i`]);
+      ASM_REWRITE_TAC[];
+      SUBANTS_TAC;
+        BY(POP_ASSUM MP_TAC THEN ARITH_TAC);
+      DISCH_TAC;
+      REPEAT (GMATCH_SIMP_TAC el_rcons);
+      BY(ASM_REWRITE_TAC[]);
+    BY(ASM_TAC THEN ARITH_TAC);
+  ONCE_REWRITE_TAC[o_THM];
+  REWRITE_TAC[GSYM Seq.rcons_cat];
+  REWRITE_TAC[GSYM Seq.cats1];
+  MATCH_MP_TAC mem_enumAppend;
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC LAST_cat;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let LAST_TL = prove_by_refinement(
+  `!xs. 2 <= sizel xs ==> LAST xs = LAST (TL xs)`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[];
+    BY(REWRITE_TAC[Seq.size;LENGTH;arith `~(2 <= 0)`]);
+  REWRITE_TAC[TL;LAST;Seq.size_cons;arith `2 <= SUC n <=> ~(n=0)`;Seq.size_eq0];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let BUTLAST_NIL = prove_by_refinement(
+  `!xs. 1 < sizel xs ==> ~(BUTLAST xs = [])`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[Seq.size;LENGTH;BUTLAST];
+    BY(ARITH_TAC);
+  REWRITE_TAC[lower_case;arith `1 < SUC n <=> ~(n=0)`;GSYM Seq.size_eq0;Seq.size_cons];
+  DISCH_TAC THEN ASM_REWRITE_TAC[Seq.size_cons];
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let size_tail = prove_by_refinement(
+  `!xs. ~(sizel xs = 0) ==> sizel (TL xs) = sizel xs  - 1`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN SIMP_TAC[Seq.size_eq0;TL;Seq.size_cons];
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let rcons_butlast = prove_by_refinement(
+  `!xs. ~(xs = []) ==> (xs = rcons (butlast xs) (LAST xs))`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[];
+  REWRITE_TAC[LAST;Seq2.butlast];
+  REPEAT WEAKER_STRIP_TAC THEN COND_CASES_TAC THEN ASM_REWRITE_TAC[Seq2.butlast];
+    BY(REWRITE_TAC[Seq.rcons]);
+  INTRO_TAC list_CASES [`t`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[Seq2.butlast];
+  REWRITE_TAC[Seq.rcons];
+  REWRITE_TAC[CONS_11];
+  TYPIFY `t'=[]` ASM_CASES_TAC THEN ASM_REWRITE_TAC[LAST;Seq2.butlast;Seq.rcons];
+  BY(FIRST_X_ASSUM_ST `rcons` MP_TAC THEN ASM_REWRITE_TAC[LAST])
+  ]);;
+  (* }}} *)
+
+let EL_BUTLAST = prove_by_refinement(
+  `!xs i. SUC i < sizel xs ==> EL i (BUTLAST xs) = EL i xs`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[BUTLAST;Seq.size_cons];
+  REPEAT WEAKER_STRIP_TAC THEN COND_CASES_TAC THEN ASM_REWRITE_TAC[Seq2.size1;Seq.size_cons];
+    BY(ASM_MESON_TAC[Seq.size_eq0;arith `~(SUC i < SUC 0)`]);
+  REWRITE_TAC[EL_CONS];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let f_mono_pair = prove_by_refinement(
+  `!(f:num->num) n. (!i. SUC i < n ==> f i <= f (SUC i)) ==>
+    (!j i. i <= j /\ j < n ==> f i <= f j )`,
+  (* {{{ proof *)
+  [
+  REPEAT GEN_TAC;
+  DISCH_TAC;
+  INDUCT_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `i = 0` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_TAC THEN ARITH_TAC);
+    BY(ASM_REWRITE_TAC[] THEN ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `i = SUC j` ASM_CASES_TAC;
+    BY(ASM_REWRITE_TAC[] THEN ARITH_TAC);
+  MATCH_MP_TAC LE_TRANS;
+  TYPIFY `f j` EXISTS_TAC;
+  CONJ_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_TAC THEN ARITH_TAC);
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let mem_enumerator = prove_by_refinement(
+  `!xs inner outer.  
+    sizel xs = inner /\ 3 <= inner /\ HD xs = 0 /\ LAST xs = outer - 1 /\
+      (!i. SUC i < sizel xs ==> EL i xs <= EL (SUC i) xs) /\
+      EL (inner - 2) xs <= outer - 2 ==> MEM xs (enumerator inner outer)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[enumerator;LET_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[MEM_MAP];
+  TYPIFY `BUTLAST (TL xs)` EXISTS_TAC;
+  CONJ2_TAC;
+    FIRST_X_ASSUM_ST `LAST` (SUBST1_TAC o GSYM);
+    TYPIFY `LAST xs  = LAST (TL xs)` (C SUBGOAL_THEN SUBST1_TAC);
+      MATCH_MP_TAC LAST_TL;
+      BY(ASM_TAC THEN ARITH_TAC);
+    GMATCH_SIMP_TAC APPEND_BUTLAST_LAST;
+    REWRITE_TAC[APPEND_SING];
+    FIRST_X_ASSUM_ST `0` (SUBST1_TAC o GSYM);
+    GMATCH_SIMP_TAC (GSYM CONS_HD_TL);
+    TYPIFY `sizel xs = LENGTH xs` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(REWRITE_TAC[Seq.size]);
+    TYPIFY `~(sizel xs = 0) /\ ~(LENGTH (TL xs) = 0)` (C SUBGOAL_THEN ASSUME_TAC);
+      GMATCH_SIMP_TAC LENGTH_TL;
+      REWRITE_TAC[GSYM Seq.size_eq0];
+      BY(ASM_TAC THEN ARITH_TAC);
+    BY(ASM_MESON_TAC[Seq.size_eq0;Seq.size]);
+  TYPIFY `inner = 3` ASM_CASES_TAC;
+    ASM_REWRITE_TAC[arith `n - n = 0`;POWER_0;I_THM];
+    INTRO_TAC Basics.LENGTH3 [`xs`];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[Seq.size]);
+    DISCH_THEN SUBST1_TAC;
+    REWRITE_TAC[TL;BUTLAST;NOT_CONS_NIL];
+    REWRITE_TAC[enumBase];
+    REWRITE_TAC[MEM_MAP];
+    REWRITE_TAC[CONS_11];
+    TYPIFY `EL 1 xs` EXISTS_TAC;
+    REWRITE_TAC[Tame_list.upt0;Seq.mem_iota];
+    REWRITE_TAC[arith `0 <= n`];
+    FIRST_X_ASSUM_ST `EL` MP_TAC THEN ASM_REWRITE_TAC[arith ` 3 - 2 = 1`];
+    BY(ARITH_TAC);
+  TYPIFY `sizel (BUTLAST (TL xs)) = inner - 2` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_REWRITE_TAC[GSYM Seq2.butlast_BUTLAST;Seq2.size_butlast];
+    GMATCH_SIMP_TAC size_tail;
+    BY(ASM_TAC THEN ARITH_TAC);
+  INTRO_TAC CONS_HD_TL [`BUTLAST (TL xs)`];
+  SUBANTS_TAC;
+    REWRITE_TAC[GSYM Seq.size_eq0];
+    BY(ASM_TAC THEN ARITH_TAC);
+  DISCH_TAC;
+  DISCH_THEN SUBST1_TAC;
+  ONCE_REWRITE_TAC[GSYM Seq.cat1s];
+  MATCH_MP_TAC mem_enumAppend_pow;
+  nCONJ_TAC 5;
+    BY(ASM_TAC THEN ARITH_TAC);
+  nCONJ_TAC 4;
+    GMATCH_SIMP_TAC size_tail;
+    BY(ASM_TAC THEN ARITH_TAC);
+  ASM_REWRITE_TAC[LAST];
+  REWRITE_TAC[GSYM EL];
+  REWRITE_TAC[RIGHT_AND_FORALL_THM];
+  GEN_TAC;
+  TYPIFY `SUC i < inner - 3 ==> SUC (SUC i) < sizel (TL xs) /\ SUC (SUC (SUC i)) < sizel (TL xs)` (C SUBGOAL_THEN ASSUME_TAC);
+    DISCH_TAC;
+    REPEAT (GMATCH_SIMP_TAC size_tail);
+    ASM_REWRITE_TAC[];
+    BY(POP_ASSUM MP_TAC THEN ARITH_TAC);
+  ASM_SIMP_TAC[EL_BUTLAST];
+  REPEAT (GMATCH_SIMP_TAC EL_BUTLAST);
+  POP_ASSUM kill;
+  TYPIFY_GOAL_THEN `SUC (SUC 0) < sizel (TL xs) /\  SUC 0 < sizel (TL xs)` (unlist REWRITE_TAC);
+    REPEAT (GMATCH_SIMP_TAC size_tail);
+    ASM_REWRITE_TAC[];
+    BY(REPEAT (FIRST_X_ASSUM_ST `3` MP_TAC) THEN ARITH_TAC);
+  GMATCH_SIMP_TAC (GSYM LAST_TL);
+  CONJ_TAC;
+    ASM_REWRITE_TAC[];
+    BY(REPEAT (FIRST_X_ASSUM_ST `3` MP_TAC) THEN ARITH_TAC);
+  GMATCH_SIMP_TAC LAST_EL;
+  ASM_REWRITE_TAC[];
+  ASM_REWRITE_TAC[lower_case];
+  GMATCH_SIMP_TAC EL_BUTLAST;
+  CONJ_TAC;
+    GMATCH_SIMP_TAC size_tail;
+    BY(ASM_REWRITE_TAC[] THEN REPEAT (FIRST_X_ASSUM_ST `3` MP_TAC) THEN ARITH_TAC);
+  REWRITE_TAC[EL_TL];
+  NUM_REDUCE_TAC;
+  REWRITE_TAC[arith `n + 1 = SUC n`];
+  TYPIFY `SUC (inner - 2 - 1) = inner - 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(FIRST_X_ASSUM_ST `3 <= inner` MP_TAC THEN ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    REWRITE_TAC[enumBase;MEM_MAP;Tame_list.upt0;Seq.mem_iota;CONS_11];
+    TYPIFY `EL 1 xs` EXISTS_TAC;
+    REWRITE_TAC[arith `0 <= n`];
+    TYPIFY `EL 1 xs <= outer - 2` ENOUGH_TO_SHOW_TAC;
+      BY(ARITH_TAC);
+    INTRO_TAC f_mono_pair [`\i. EL i xs`;`sizel xs`];
+    ASM_REWRITE_TAC[];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[]);
+    DISCH_THEN (C INTRO_TAC [`inner-2`;`1`]);
+    ASM_REWRITE_TAC[];
+    ANTS_TAC;
+      BY(FIRST_X_ASSUM_ST `3 <= inner` MP_TAC THEN ARITH_TAC);
+    BY(FIRST_X_ASSUM_ST `EL (inner-2)` MP_TAC THEN ARITH_TAC);
+  CONJ_TAC;
+    TYPIFY `2 = SUC 1` (C SUBGOAL_THEN SUBST1_TAC);
+      BY(ARITH_TAC);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    ASM_REWRITE_TAC[];
+    BY(FIRST_X_ASSUM_ST `3 <= inner` MP_TAC THEN ARITH_TAC);
+  DISCH_TAC;
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  ASM_REWRITE_TAC[];
+  BY(FIRST_X_ASSUM MP_TAC THEN ARITH_TAC)
+   ]);;
+  (* }}} *)
+
+let iota_enumerator = prove_by_refinement(
+  `!l. 3 <= l ==> MEM (iota 0 l) (enumerator (l) l)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC mem_enumerator;
+  ASM_REWRITE_TAC[Seq.size_iota];
+  REWRITE_TAC[GSYM EL];
+  REWRITE_TAC[RIGHT_AND_FORALL_THM;LEFT_AND_FORALL_THM];
+  GEN_TAC;
+  GMATCH_SIMP_TAC LAST_EL;
+  REWRITE_TAC[GSYM Seq.size_eq0;Seq.size_iota];
+  ASM_SIMP_TAC[el_iota;arith `SUC i < l ==> i < l`;arith `3 <= l ==> 0 < l`];
+  REWRITE_TAC[GSYM Seq.size;Seq.size_iota];
+  ASM_SIMP_TAC[el_iota;arith `3 <= l ==> l - 1 < l`;arith `3<=l ==> l-2 < l`];
+  BY(ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
 
 let oldvertex = prove_by_refinement(
   `!L N g.
@@ -1902,11 +2273,136 @@ let planegraph_P = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let mem_minimalVertex = prove_by_refinement(
+  `!g f. ~(FST f=[]) ==> MEM (minimalVertex g f) (FST f)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[minimalVertex];
+  BY(MESON_TAC[mem_minimal_el])
+  ]);;
+  (* }}} *)
+
+let minimalFace_face = prove_by_refinement(
+  `!g. ~finalGraph g ==> MEM (minimalFace(nonFinals g)) (faces g)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Dpzgbyf.mem_minimalFace_nonFinals [`g`];
+  SUBANTS_TAC;
+    BY(ASM_MESON_TAC[finalGraph]);
+  REWRITE_TAC[nonFinals;MEM_FILTER];
+  BY(SIMP_TAC[])
+  ]);;
+  (* }}} *)
+
+let minimalFace_nonnil = prove_by_refinement(
+  `!g L N.
+    good_list L /\
+    is_edge_nondegenerate (hypermap_of_list L) /\
+    all uniq L /\
+    normal_list L N /\
+    match_quotient_list g L N /\ ~finalGraph g ==>
+    ~(FST (minimalFace (nonFinals g)) = [])`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[match_quotient_list];
+  REWRITE_TAC[fgraph];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC minimalFace_face [`g`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY `MEM (FST (minimalFace (nonFinals g))) (quotient_list L N)` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `quotient_list` (SUBST1_TAC o GSYM);
+    BY(ASM_MESON_TAC[MEM_MAP]);
+  POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[];
+  TYPIFY `good_list (quotient_list L N)` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC good_list_quotient;
+    BY(ASM_REWRITE_TAC[]);
+  POP_ASSUM MP_TAC;
+  REWRITE_TAC[good_list];
+  REWRITE_TAC[GSYM Seq.allP];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let next_el_list_pairs_eq = prove_by_refinement(
+  `!x s. uniq s /\ MEM x s ==> MEM (x, next_el s x) (list_pairs s)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[List_hypermap.list_pairs];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_ASSUM (ASSUME_TAC o MATCH_MP Seq.nth_index);
+  REWRITE_TAC[GSYM Seq.index_mem];
+  TYPIFY `sizel (zip s (rot 1 s)) = sizel s` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REWRITE_TAC[Seq.size_zip;Seq.size_rot;Ssrnat.minnn]);
+  TYPIFY `indexl (x,next_el s x) (zip s (rot 1 s)) = indexl x s` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN SUBST1_TAC;
+    BY(ASM_REWRITE_TAC[Seq.index_mem]);
+  TYPIFY `EL (indexl x s) (zip s (rot 1 s)) = (x,next_el s x)` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN (SUBST1_TAC o GSYM);
+    MATCH_MP_TAC index_el;
+    BY(ASM_MESON_TAC[List_hypermap.uniq_list_pairs;List_hypermap.list_pairs;Seq.index_mem]);
+  GMATCH_SIMP_TAC Seq2.EL_nth;
+  TYPIFY `x,x` EXISTS_TAC;
+  GMATCH_SIMP_TAC Seq.nth_zip;
+  REWRITE_TAC[PAIR_EQ];
+  ASM_REWRITE_TAC[Seq.size_rot];
+  GMATCH_SIMP_TAC Seq2.next_el_alt;
+  BY(TYPIFY `x` EXISTS_TAC THEN ASM_REWRITE_TAC[Seq.index_mem])
+  ]);;
+  (* }}} *)
+
+
+let not_containsDuplicateEdge_iota = prove_by_refinement(
+  `!g f v. ~containsDuplicateEdge g f v (iota 0 (sizel (FST f)))`,
+  (* {{{ proof *)
+  [
+  rt[containsDuplicateEdge]
+  rt[containsUnacceptableEdge]
+  ...
+  ]);;
+  (* }}} *)
+
+containsUnacceptableEdge;;
+
+let iota_generatePolygon = prove_by_refinement(
+  `!g f v n. 
+  (let vs = indexToVertexList f v (iota 0 (sizel (FST f))) in
+    MEM (subdivFace g f vs) (generatePolygon (SUC (sizel (FST f))) v f g))`,
+  (* {{{ proof *)
+  [
+  st/r then rt[generatePolygon]
+  repeat LET_TAC
+  rt[ETA_AX]
+  mmp MEMf_MAP
+  fexp "vertexLists"
+  fexp "vs"
+  rt[ETA_AX]
+  mmp MEMf_MAP
+  fexp "enumeration'"
+  rt[MEM_FILTER]
+  fexp "enumeration"
+  ...
+  ]);;
+  (* }}} *)
+
+generatePolygon;;
+next_plane;;
+
+(* we put ~final_list L r into the hypotheses.
+   If ~finalGraph g /\ final_list L r, then we
+  produce a matched list using a trivial_enumeration on generatePolygon
+  enumeration
+*)
+
 let HKBGWJI = prove_by_refinement(
   `!L N r x g.
+    good_list L /\
+    good_list_nodes L /\
     is_restricted (hypermap_of_list L) /\
     normal_list L N /\
     ~(finalGraph g) /\
+    ~final_list L r /\
     all uniq (quotient_list L N) /\
     all (\v. sizel (filter (MEM v) (quotient_list L N)) > 1) 
        (flatten (quotient_list L N)) /\
@@ -1922,9 +2418,38 @@ let HKBGWJI = prove_by_refinement(
   rt[PAIR_EQ]
   st/r
   fexp "r'"
+  intro Dpzgbyf.mem_minimalFace_nonFinals [`g`]
+  art[]
+  subants
+  amt[finalGraph]
+  st/r
+  intro mem_minimalVertex [`g`;`f`]
+  typ `    is_edge_nondegenerate (hypermap_of_list L) /\     all uniq L` sat
+  conj
+  amt[is_restricted]
+  amt[is_restricted;simple_hypermap_uniq]
+   subants
+  amt[minimalFace_nonnil]
+  art[]
+  st/r  
+  fxast `nextVertex` mp
+  asimp[nextVertex_next_el]
+  dt
+  intro next_el_list_pairs_eq [`v`;`FST f`]
+  art[]
+  fxast `LAST` (assume o sym)
+  art[]
+
+  typ `~*
+
 xxd...
   ]);;
   (* }}} *)
+
+flag_list;;
+upt0;;
+planegraphP;;
+next_plane;;
 
 generatePolygon_reduction;;
 minimalFace;;
@@ -1934,7 +2459,7 @@ s_flag_list;;
 loop_choice;;
 
 let restricted_hypermaps_are_planegraphs_reduction1 = prove_by_refinement(
-  `generatePolygon_reduction_v2  /\
+  `generatePolygon_reduction_v3  /\
     (!(L:((num)list)list). good_list L /\ good_list_nodes L ==>
   	   transform_assumption_v2 L) 
   ==>
@@ -1986,7 +2511,7 @@ let restricted_hypermaps_are_planegraphs_reduction1 = prove_by_refinement(
   amt[]
   contr
   comment "now construct next step"
-  fxast `generatePolygon_reduction_v2` mp
+  fxast `generatePolygon_reduction_v3` mp
   rt[generatePolygon_reduction]
   dt
   abbrev `rx = loop_choice g' L' N'`

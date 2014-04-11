@@ -501,6 +501,396 @@ let iota_enumerator = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let dart_neighbors = prove_by_refinement(
+  `!g w v. 
+    all (uniq) (fgraph g) /\
+   (!v. v IN vertices_set2 g
+              ==> facesAt g v = FILTER (\f. MEM v (FST f)) (faces g)) /\
+         vertices_set2 g = elements_of_list (fgraph g) ==>
+    (v IN (vertices_set2 g) /\
+	      w IN set_of_list (neighbors g v) <=>
+    MEM (v,w) (list_of_darts (fgraph g)))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[IN_SET_OF_LIST;neighbors;MEM_MAP];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[EQ_EXPAND];
+  CONJ_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    POP_ASSUM MP_TAC;
+    GMATCH_SIMP_TAC nextVertex_next_el;
+    POP_ASSUM MP_TAC;
+    FIRST_X_ASSUM_ST `FILTER` GMATCH_SIMP_TAC;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[MEM_FILTER];
+    SIMP_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC next_el_list_pairs_eq [`v`;`FST x`];
+    ASM_REWRITE_TAC[];
+    ANTS_TAC;
+      FIRST_X_ASSUM_ST `uniq` MP_TAC THEN REWRITE_TAC[GSYM Seq.allP;fgraph;MEM_MAP];
+      DISCH_THEN MATCH_MP_TAC;
+      BY(ASM_MESON_TAC[]);
+    DISCH_TAC;
+    MATCH_MP_TAC List_hypermap.dart_in_darts;
+    REWRITE_TAC[fgraph;MEM_MAP];
+    BY(ASM_MESON_TAC[]);
+  TYPIFY` MEM v (list_of_elements (fgraph g))` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[List_hypermap.mem_list_of_elements];
+    BY(ASM_MESON_TAC[]);
+  SUBCONJ_TAC;
+    BY(ASM_REWRITE_TAC[List_hypermap.elements_of_list;IN_SET_OF_LIST]);
+  DISCH_TAC;
+  FIRST_X_ASSUM_ST `list_of_darts` MP_TAC;
+  REWRITE_TAC[Rxokskc.MEM_LIST_DARTS];
+  ASM_SIMP_TAC[];
+  REWRITE_TAC[MEM_FILTER;fgraph;MEM_MAP];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `(=)` (ASSUME_TAC o GSYM);
+  FULL_EXPAND_TAC "x";
+  TYPIFY `x'` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[List_hypermap.mem_list_pairs_exists]);
+  DISCH_TAC;
+  ASM_SIMP_TAC[nextVertex_next_el];
+  MATCH_MP_TAC List_hypermap.mem_list_pairs_explicit;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `all` MP_TAC THEN REWRITE_TAC[fgraph;GSYM Seq.allP];
+  DISCH_THEN MATCH_MP_TAC;
+  MATCH_MP_TAC MEMf_MAP;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let card_le_size = prove_by_refinement(
+  `!s. CARD (set_of_list s) <= sizel s`,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  TYPIFY `CARD (set_of_list s) = CARD (set_of_list (undup s))` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REWRITE_TAC[Seq2.set_of_list_undup]);
+  GMATCH_SIMP_TAC Seq2.card_set_of_list_uniq;
+  REWRITE_TAC[Seq.undup_uniq];
+  BY(REWRITE_TAC[Seq.size_undup])
+  ]);;
+  (* }}} *)
+
+let betwn_nil = prove_by_refinement(
+  `!f a b. uniq f /\ ~(a = b) /\ MEM a f /\ MEM b f ==>
+    (betwn f a b = [] <=> b = next_el f a)`,
+  (* {{{ proof *)
+  [
+  SIMP_TAC[GSYM Seq.size_eq0;size_betwn];
+  REWRITE_TAC[EQ_EXPAND];
+  REPEAT STRIP_TAC;
+    TYPIFY `~(indexf a b f = 0)` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[indexf0]);
+    TYPIFY `indexf a b f = 1` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_TAC THEN ARITH_TAC);
+    BY(ASM_MESON_TAC[indexf1]);
+  TYPIFY `indexf a b f = 1` ENOUGH_TO_SHOW_TAC;
+    BY(ARITH_TAC);
+  MATCH_MP_TAC next_el_indexf;
+  ASM_REWRITE_TAC[];
+  TYPIFY `CARD (set_of_list f) > 1` ENOUGH_TO_SHOW_TAC;
+    BY(MESON_TAC[card_le_size;arith `c > 1 /\ c <= s ==> 1 < s`]);
+  MATCH_MP_TAC Counting_spheres.TWO_IMP_HAS_SIZE_GE_2;
+  ASM_REWRITE_TAC[IN_SET_OF_LIST;FINITE_SET_OF_LIST];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let directedLength_next = prove_by_refinement(
+  `!f a b. uniq (FST f) /\ MEM a (FST f) /\ MEM b (FST f) ==>
+    (2 <= directedLength f a b /\ 2 <= directedLength f b a <=>
+    ~(a = b) /\ ~(b = next_el (FST f) a) /\ ~(a = next_el (FST f) b))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[directedLength];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `a = b` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+    BY(ARITH_TAC);
+  REWRITE_TAC[arith `2 <= l + 1 <=> ~(l = 0)`];
+  REWRITE_TAC[GSYM Seq.size;Seq.size_eq0];
+  BY(ASM_SIMP_TAC[betwn_nil])
+  ]);;
+  (* }}} *)
+
+let duplicateEdge_next = prove_by_refinement(
+  `!g f v w. uniq (FST f) /\ MEM v (FST f) /\ MEM w (FST f) /\
+      MEM (FST f) (fgraph g) /\
+       all (uniq) (fgraph g) /\
+   (!v. v IN vertices_set2 g
+              ==> facesAt g v = FILTER (\f. MEM v (FST f)) (faces g)) /\
+         vertices_set2 g = elements_of_list (fgraph g)
+    ==>
+    (duplicateEdge g f v w <=>
+       ~(v=w) /\ ~(w = next_el (FST f) v) /\ ~(v = next_el (FST f) w) /\
+    MEM (v,w) (list_of_darts (fgraph g))       
+    )`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[duplicateEdge];
+  REWRITE_TAC[CONJ_ASSOC];
+  GMATCH_SIMP_TAC directedLength_next;
+  ASM_REWRITE_TAC[];
+  TYPIFY `v=w` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  TYPIFY `~(w=next_el (FST f) v)` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  TYPIFY `~(v=next_el (FST f) w)` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  INTRO_TAC dart_neighbors [`g`;`w`;`v`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN (SUBST1_TAC o GSYM);
+  TYPIFY `w IN set_of_list (neighbors g v)` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  REWRITE_TAC[List_hypermap.elements_of_list;IN_SET_OF_LIST];
+  REWRITE_TAC[List_hypermap.list_of_elements;Seq.mem_undup];
+  BY(ASM_MESON_TAC[Seq2.mem_flatten])
+  ]);;
+  (* }}} *)
+
+let containsUnacceptableEdgeSnd_explicit = prove_by_refinement(
+  `!N e v. (!i. SUC i < sizel e ==> (EL i e <= EL (SUC i) e)) /\
+     (~(e=[]) ==> ((v < HD e) <=> ~(v = HD e))) ==>
+    (containsUnacceptableEdgeSnd N v e <=> 
+    (2 <= sizel e /\ 
+       (((~(v = HD e) /\ ~(HD e = EL 1 e) /\ N (HD e) (EL 1 e))) \/
+    (?i. SUC (SUC i) < sizel e /\ ~(EL i e = EL (SUC i) e) /\
+      ~(EL (SUC i) e = EL (SUC (SUC i)) e) /\ N (EL (SUC i) e) (EL (SUC (SUC i)) e)))))`,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  LIST_INDUCT_TAC THEN REWRITE_TAC[containsUnacceptableEdgeSnd];
+    BY(REWRITE_TAC[Seq.size;LENGTH;arith `~(2 <= 0)`]);
+  REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[Seq2.size1;arith `~(2 <= 1)`];
+  REWRITE_TAC[LET_THM;HD;EL;TL;Seq.size_cons];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[EL];
+    ASM_REWRITE_TAC[arith `2 <= SUC n <=> ~(n = 0)`;Seq.size_eq0];
+    DISJ1_TAC;
+    BY(ASM_SIMP_TAC[EL;arith `1 = SUC 0`;TL;arith `h < u:num ==> ~(h = u)`]);
+  RULE_ASSUM_TAC (REWRITE_RULE[NOT_CONS_NIL;HD]);
+  FIRST_X_ASSUM GMATCH_SIMP_TAC;
+  ASM_REWRITE_TAC[];
+  nCONJ_TAC 1;
+    FIRST_X_ASSUM (C INTRO_TAC [`0`]);
+    ASM_REWRITE_TAC[EL;HD;TL;Seq.size_cons;arith `SUC 0 < SUC n <=> ~(n=0)`;Seq.size_eq0];
+    BY(ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  SUBCONJ_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [`SUC i`]);
+    BY(ASM_REWRITE_TAC[EL;TL;Seq.size_cons;arith `SUC n < SUC m <=> n < m`]);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  COMMENT "size1";
+  TYPIFY `sizel t  = 1` ASM_CASES_TAC;
+    ASM_REWRITE_TAC[arith `~(2 <= 1)`;arith `2 <= SUC 1`;arith `~(SUC (SUC i) < SUC 1)`];
+    ASM_REWRITE_TAC[arith `1 = SUC 0`;EL;TL;HD];
+    REPEAT WEAKER_STRIP_TAC;
+    BY(FIRST_X_ASSUM_ST ` ( /\ )` MP_TAC THEN ASM_REWRITE_TAC[]);
+  TYPIFY `2 <= sizel t` (C SUBGOAL_THEN ASSUME_TAC);
+    TYPIFY `~(sizel t = 0)` (C SUBGOAL_THEN MP_TAC);
+      BY(ASM_REWRITE_TAC[Seq.size_eq0]);
+    BY(POP_ASSUM MP_TAC THEN ARITH_TAC);
+  TYPIFY `2 <= SUC (sizel t)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(POP_ASSUM MP_TAC THEN ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  TYPIFY `~(h = HD t) /\ ~(HD t = EL 1 t) /\ N (HD t) (EL 1 t)` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+    DISJ2_TAC;
+    TYPIFY `0` EXISTS_TAC;
+    POP_ASSUM MP_TAC;
+    ASM_SIMP_TAC[EL;TL;HD;arith `1 = SUC 0`];
+    DISCH_TAC;
+    BY(REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN ARITH_TAC);
+  TYPIFY `(?i. SUC (SUC i) < sizel t /\      ~(EL i t = EL (SUC i) t) /\      ~(EL (SUC i) t = EL (SUC (SUC i)) t) /\      N (EL (SUC i) t) (EL (SUC (SUC i)) t))` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+    POP_ASSUM MP_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    DISJ2_TAC;
+    TYPIFY `SUC i` EXISTS_TAC;
+    REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN ASM_SIMP_TAC[EL;TL;HD];
+    BY(POP_ASSUM MP_TAC THEN ARITH_TAC);
+  REWRITE_TAC[DE_MORGAN_THM];
+  CONJ_TAC;
+    FIRST_X_ASSUM_ST `a /\ N h (HD t)` MP_TAC;
+    BY(ASM_SIMP_TAC[DE_MORGAN_THM;EL;TL;arith `1 = SUC 0`;HD]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `i=0` ASM_CASES_TAC;
+    POP_ASSUM (ASSUME_TAC o GSYM);
+    FULL_EXPAND_TAC "i";
+    FIRST_X_ASSUM_ST `N (HD t) (EL 1 t)` MP_TAC THEN REWRITE_TAC[];
+    BY(REPLICATE_TAC 5 (POP_ASSUM MP_TAC) THEN ASM_SIMP_TAC[arith `1 = SUC 0`;HD;TL;EL]);
+  TYPIFY `?j. i = SUC j` (C SUBGOAL_THEN MP_TAC);
+    TYPIFY `PRE i` EXISTS_TAC;
+    BY(POP_ASSUM MP_TAC THEN ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  POP_ASSUM (ASSUME_TAC o GSYM);
+  FULL_EXPAND_TAC "i";
+  FIRST_X_ASSUM_ST `?i. P i` MP_TAC THEN REWRITE_TAC[];
+  TYPIFY `j` EXISTS_TAC;
+  REPLICATE_TAC 5 (POP_ASSUM MP_TAC) THEN ASM_SIMP_TAC[HD;TL;EL];
+  BY(POP_ASSUM MP_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let containsUnacceptableEdge_explicit = prove_by_refinement(
+  `!N e. (!i. SUC i < sizel e ==> (EL i e <= EL (SUC i) e)) ==>
+    (containsUnacceptableEdge N e <=> 
+    (2 <= sizel e /\ 
+       ((~(HD e = EL 1 e) /\ N (HD e) (EL 1 e)) \/
+    (?i. SUC (SUC i) < sizel e /\ ~(EL i e = EL (SUC i) e) /\
+      ~(EL (SUC i) e = EL (SUC (SUC i)) e) /\ N (EL (SUC i) e) (EL (SUC (SUC i)) e))))) `,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  LIST_INDUCT_TAC THEN REWRITE_TAC[containsUnacceptableEdge];
+    BY(REWRITE_TAC[Seq.size;LENGTH;arith `~(SUC i < 0)`;arith `~(2 <= 0)`]);
+  REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[Seq2.size1;arith `~(2 <= 1)`];
+  REWRITE_TAC[LET_THM;HD;EL;TL;Seq.size_cons];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+    CONJ_TAC;
+      BY(REPLICATE_TAC 2 (POP_ASSUM MP_TAC) THEN REWRITE_TAC[GSYM Seq.size_eq0] THEN ARITH_TAC);
+    DISJ1_TAC;
+    ASM_REWRITE_TAC[arith `1 = SUC 0`;EL;TL;HD];
+    BY(POP_ASSUM MP_TAC THEN ARITH_TAC);
+  GMATCH_SIMP_TAC containsUnacceptableEdgeSnd_explicit;
+  nCONJ_TAC 0;
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [ `SUC i`]);
+    BY(ASM_SIMP_TAC[EL;TL;HD;Seq.size_cons;arith `SUC m < SUC n <=> m < n`]);
+  ASM_REWRITE_TAC[];
+  SUBCONJ_TAC;
+    POP_ASSUM kill;
+    FIRST_X_ASSUM (C INTRO_TAC [`0`]);
+    ASM_SIMP_TAC[EL;TL;HD;Seq.size_cons;arith `SUC 0 < SUC n <=> ~(n=0)`;Seq.size_eq0];
+    BY(ARITH_TAC);
+  DISCH_TAC;
+  TYPIFY `~(2 <= SUC (sizel t))` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+    TYPIFY_GOAL_THEN `~(2 <= sizel t)` (unlist REWRITE_TAC);
+    BY(POP_ASSUM MP_TAC THEN ARITH_TAC);
+  RULE_ASSUM_TAC (REWRITE_RULE[]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `~(2 <= sizel t)` ASM_CASES_TAC;
+    TYPIFY `sizel t = 1` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(REPLICATE_TAC 2 (POP_ASSUM MP_TAC) THEN ARITH_TAC);
+    ASM_REWRITE_TAC[arith `~(SUC (SUC i) < SUC 1)`];
+    ASM_SIMP_TAC[arith `1 = SUC 0`;EL;HD;TL];
+    BY(ASM_MESON_TAC[]);
+  RULE_ASSUM_TAC (REWRITE_RULE[]);
+  ASM_REWRITE_TAC[];
+  (FIRST_X_ASSUM_ST `containsUnacceptableEdge` kill);
+  TYPIFY `~(h = HD t) /\ ~(HD t = EL 1 t) /\ N (HD t) (EL 1 t)` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+    DISJ2_TAC;
+    TYPIFY `0` EXISTS_TAC;
+    POP_ASSUM MP_TAC;
+    ASM_SIMP_TAC[EL;TL;HD;arith `1=SUC 0`];
+    BY(POP_ASSUM MP_TAC THEN ARITH_TAC);
+  TYPIFY ` ~(h = EL 1 (h :: t)) /\ N h (EL 1 (h :: t))` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+    POP_ASSUM MP_TAC;
+    ASM_SIMP_TAC[arith `1 = SUC 0`;EL;TL;HD];
+    BY(ASM_MESON_TAC[]);
+  REWRITE_TAC[EQ_EXPAND];
+  REPEAT STRIP_TAC;
+    TYPIFY `SUC i` EXISTS_TAC;
+    BY(REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN ASM_SIMP_TAC[EL;TL;HD;arith `SUC m < SUC n <=> m < n`]);
+  TYPIFY `i=0` ASM_CASES_TAC;
+    POP_ASSUM (ASSUME_TAC o GSYM);
+    FULL_EXPAND_TAC "i";
+    REPLICATE_TAC 10 (POP_ASSUM MP_TAC) THEN ASM_SIMP_TAC[arith `1 = SUC 0`;HD;TL;EL];
+    BY(ASM_MESON_TAC[]);
+  TYPIFY `?j. SUC j = i` (C SUBGOAL_THEN MP_TAC);
+    TYPIFY `PRE i` EXISTS_TAC;
+    BY(POP_ASSUM MP_TAC THEN ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  FULL_EXPAND_TAC "i";
+  TYPIFY `j` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  BY(REPLICATE_TAC 10 (POP_ASSUM MP_TAC) THEN ASM_SIMP_TAC[HD;TL;EL;arith `SUC m < SUC n <=> m < n`])
+  ]);;
+  (* }}} *)
+
+xxd
+
+let containsUnacceptableEdge_2 = prove_by_refinement(
+  `!g f e v vs. 
+
+    (!i. SUC i < sizel e ==> (EL i e <= EL (SUC i) e)) /\
+    vs = indexToVertexList f v e /\
+      MEM (FST f) (fgraph g) /\
+       all (uniq) (fgraph g) /\
+   (!v. v IN vertices_set2 g
+              ==> facesAt g v = FILTER (\f. MEM v (FST f)) (faces g)) /\
+         vertices_set2 g = elements_of_list (fgraph g)
+  ==>
+    (containsUnacceptableEdge
+           (\i j.
+                duplicateEdge g f (nextVertices f i v) (nextVertices f j v))
+           e <=> X )`,
+  (* {{{ proof *)
+  [
+  #
+  ]);;
+  (* }}} *)
+
+
+let containsDuplicateEdge = prove_by_refinement(
+  `!N e v vs. (!i. SUC i < sizel e ==> (EL i e <= EL (SUC i) e)) /\
+  vs = indexToVertexList f v e ==>
+    (~containsDuplicateEdge g f v e = X)`,
+  (* {{{ proof *)
+  [
+  rt[containsDuplicateEdge]
+
+  ]);;
+  (* }}} *)
+
+
+let enumeration_vertex_list = prove_by_refinement(
+  `!n v f g vs vs'.
+    vs' = MAP the (filter (isSome) vs) /\
+    HD vs' = v /\
+    isSome (HD vs) /\
+    isSome (LAST vs) /\
+    uniq (FST f) /\
+    MEM v (FST f) /\
+    image_hideDups vs /\
+    all (\t. MEM (the t) (FST f)) (filter isSome vs) /\
+    (!i. SUC i < sizel vs' ==> indexf v (EL i vs') (FST f) < indexf v (EL (SUC i) vs') (FST f)) /\
+    (!i. let d = (the (EL i vs),the (EL (SUC i) vs)) in
+       isSome (EL i vs) /\ isSome (EL (SUC i) vs) /\
+       SUC i < sizel vs /\ MEM d (list_of_darts (fgraph g)) ==>
+	 MEM d (list_pairs (FST f)))
+    ==>
+    (?e. MEM e (enumerator n (LENGTH (FST f))) /\
+       ~containsDuplicateEdge g f v e /\
+       vs = indexToVertexList f v e)`,
+
+  (* {{{ proof *)
+  [
+  st/r
+  abbrev `e = enum_of_VertexList (FST f) v vs` 
+  typ `e` ex
+  nconj 2
+  fexp "e"
+  gm indexToVertexList_enum
+  art[]
+  art[]
+  conj2
+  rt[containsDuplicateEdge]
+  fexp "e"
+  rt[enum_of_VertexList]
+
+  ...
+  ]);;
+  (* }}} *)
+
+good_graph;;
+neighbors;;
+nextVertices;;
+duplicateEdge;;
+containsUnacceptableEdge;;
+showDups;;
+image_hideDups;;
+
 let oldvertex = prove_by_refinement(
   `!L N g.
     good_list L /\
@@ -2352,6 +2742,7 @@ let next_el_list_pairs_eq = prove_by_refinement(
   ]);;
   (* }}} *)
 
+xxd
 
 let not_containsDuplicateEdge_iota = prove_by_refinement(
   `!g f v. ~containsDuplicateEdge g f v (iota 0 (sizel (FST f)))`,

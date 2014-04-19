@@ -1090,6 +1090,110 @@ let last_filter = prove_by_refinement(
   ]);;
   (* }}} *)
 
+(* added April 19, 2014 *)
+
+let showDups0_bound = prove_by_refinement(
+  `!vs u v f r k.  
+    k < sizel vs /\
+    indexf v u f <= r /\
+   (!i. i <= k /\ 
+    isSome (EL i vs) ==>indexf v (the (EL i vs)) f <= r) ==>
+    (!i. i <= k ==> indexf v (EL i (showDups0 u vs)) f <= r)`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[Seq.size;LENGTH;arith `~(k < 0)`]);
+  REWRITE_TAC[Seq.size_cons];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[showDups0];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+    INTRO_TAC num_CASES [`i`];
+    DISCH_THEN DISJ_CASES_TAC;
+      BY(ASM_REWRITE_TAC[HD;EL;TL]);
+    ASM_REWRITE_TAC[];
+    POP_ASSUM MP_TAC THEN (ONCE_REWRITE_TAC[EQ_SYM_EQ]) THEN REPEAT WEAKER_STRIP_TAC THEN FULL_EXPAND_TAC "i";
+    REWRITE_TAC[EL;TL];
+    FIRST_X_ASSUM (C INTRO_TAC [`u`;`v`;`f`;`r`;`n`]);
+    ASM_REWRITE_TAC[];
+    ANTS_TAC;
+      CONJ_TAC;
+        BY(ASM_TAC THEN ARITH_TAC);
+      REPEAT WEAKER_STRIP_TAC;
+      FIRST_X_ASSUM (C INTRO_TAC [`SUC i`]);
+      REWRITE_TAC[EL;TL];
+      DISCH_THEN MATCH_MP_TAC;
+      ASM_REWRITE_TAC[];
+      BY(ASM_TAC THEN ARITH_TAC);
+    DISCH_THEN MATCH_MP_TAC;
+    BY(ARITH_TAC);
+  INTRO_TAC num_CASES [`i`];
+  DISCH_THEN DISJ_CASES_TAC;
+    ASM_REWRITE_TAC[EL;HD];
+    FIRST_X_ASSUM (C INTRO_TAC [`0`]);
+    REWRITE_TAC[EL;HD];
+    DISCH_THEN MATCH_MP_TAC;
+    ASM_REWRITE_TAC[not_isSome_NONE];
+    BY(ARITH_TAC);
+  POP_ASSUM MP_TAC THEN ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN REPEAT WEAKER_STRIP_TAC THEN FULL_EXPAND_TAC "i";
+  REWRITE_TAC[EL;TL];
+  FIRST_X_ASSUM (C INTRO_TAC [`the h`;`v`;`f`;`r`;`n`]);
+  ANTS_TAC;
+    SUBCONJ_TAC;
+      BY(ASM_TAC THEN ARITH_TAC);
+    DISCH_TAC;
+    CONJ_TAC;
+      FIRST_X_ASSUM (C INTRO_TAC [`0`]);
+      BY(ASM_REWRITE_TAC[arith `0 <= k`;EL;HD;not_isSome_NONE]);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [`SUC i`]);
+    ASM_SIMP_TAC[EL;TL];
+    DISCH_THEN MATCH_MP_TAC;
+    BY(ASM_TAC THEN ARITH_TAC);
+  DISCH_THEN MATCH_MP_TAC;
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let enum_bound = prove_by_refinement(
+  `!vs v f r k.  
+    k < sizel vs /\
+    (~(vs = []) ==> (isSome (HD vs))) /\
+   (!i. i <= k /\ 
+    isSome (EL i vs) ==>indexf v (the (EL i vs)) f <= r) ==>
+    (!i. i <= k ==> EL i (enum_of_VertexList f v vs) <= r)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[enum_of_VertexList];
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[Seq.size;LENGTH;arith `~(k < 0)`]);
+  REWRITE_TAC[Seq.size_cons;EL;HD;TL;showDups;NOT_CONS_NIL];
+  REWRITE_TAC[not_isSome_NONE];
+  REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC EL_MAP;
+  REWRITE_TAC[lower_case];
+  REWRITE_TAC[size_showDups0];
+  CONJ_TAC;
+    BY(ASM_TAC THEN REWRITE_TAC[Seq.size_cons] THEN ARITH_TAC);
+  INTRO_TAC showDups0_bound [`h::t`;`the h`;`v`;`f`;`r`;`i`];
+  ANTS_TAC;
+    REWRITE_TAC[Seq.size_cons];
+    SUBCONJ_TAC;
+      BY(ASM_TAC THEN ARITH_TAC);
+    DISCH_TAC;
+    CONJ_TAC;
+      FIRST_X_ASSUM (C INTRO_TAC [`0`]);
+      BY(ASM_SIMP_TAC[arith `0 <= k`;EL;HD]);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    CONJ_TAC;
+      BY(ASM_TAC THEN ARITH_TAC);
+    BY(ASM_MESON_TAC[not_isSome_NONE]);
+  DISCH_THEN MATCH_MP_TAC;
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+(* use enum_bound instead of this.
 let el_showDups0_le = prove_by_refinement(
   `!vs vs' f v i.
     0 < i /\
@@ -1104,10 +1208,9 @@ let el_showDups0_le = prove_by_refinement(
   mt[arith `~( 0 < i /\ i <= 0)`]
   rt[showDups0;Seq.size_cons]
   st/r
-  xxd
+  ...
   ]);;
   (* }}} *)
-
 
 let el_from_last_enum_le = prove_by_refinement(
   `!vs vs' f v i. 0 < i /\ i <= sizel vs /\ i <= sizel vs' /\ 
@@ -1120,10 +1223,13 @@ let el_from_last_enum_le = prove_by_refinement(
   rt[Seq.size;LENGTH;arith `~(i < 0)`]
   rt[Seq.size_cons;showDups]
   st/r then 
-xxd
+  ...
   ]);;
   (* }}} *)
+*)
 
+(* April 19, 2014.
+   almost done with this. *)
 
 let enum_of_VertexList_enumerator = prove_by_refinement(
   `!vs vs' f (v:A) inner outer.
@@ -1175,40 +1281,59 @@ let enum_of_VertexList_enumerator = prove_by_refinement(
     GMATCH_SIMP_TAC el_enum_of_vertex_list;
     ASM_REWRITE_TAC[];
     BY(ASM_TAC THEN ARITH_TAC);
-  (DISCH_TAC)
-    mmp (arith `2 <= out /\ a < out - 1 ==> a <= out - 2`)
+  (DISCH_TAC);
+  comment "last step"
+  comment "restarting here"
+  intro enum_bound [`vs`;`v`;`f`;`outer - 2`;`inner- 2`]
   art[]
-    fxast `indexf` mp
-  fxa (sub1 o sym)
-  dthen (sub1 o sym)
-    typ `~(vs = [])` sat
-  asimp[sym Seq.size_eq0;arith `3 <= i ==> ~(i=0)`]
-  typ `~(filter isSome vs = [])` sat
-  rt[List_hypermap.mem_not_nil]
-  typ `HD vs` ex
-  rt[Seq.mem_filter]
-  art[Ssrbool.isSome]
-  fxast `SOME v` (sub1 o sym)
-  asimp[MEM_HD]
-  intro last_filter [`isSome:(A)option -> bool`;`vs`]
-  art[]  
-  dthen (sub1 o sym)
-  typ `LAST vs' = the (LAST (filter isSome vs))` smp
-  art[]
-  gm LAST_MAP
-  art[]
-  dthen (sub1 o sym)
-  fxa (C intro [`sizel vs' - 2`])
-  typ  `SUC (sizel vs'  - 2) = sizel vs' - 1 /\ SUC (sizel vs' - 2) < sizel vs'` sat
-  fxast `2 <= sizel vs'` mp then ARITH_TAC
-  pop mp then simp[]
-  dt
-  gm LAST_EL
+  ants  
   conj
-  art[]
-  art[MAP_EQ_NIL]   
-  rt[lower_case]
-  mmp (arith `e <= i2:num ==> (i2 < l ==> e < l)`)
+  fxast `3` mp then ARITH_TAC
+  rt[Ssrbool.isSome]
+  st/r
+  intro f_mono_lt_pair [`\i. indexf v (EL i vs') f`;`sizel vs'`]
+  rt[]
+  ants
+  amt[]
+  dt
+
+xxd
+
+  comment "older potential way to do it"
+  MATCH_MP_TAC (arith `2 <= out /\ a < out - 1 ==> a <= out - 2`);
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `indexf` MP_TAC;
+  FIRST_X_ASSUM (SUBST1_TAC o GSYM);
+  DISCH_THEN (SUBST1_TAC o GSYM);
+  TYPIFY `~(vs = [])` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[GSYM Seq.size_eq0;arith `3 <= i ==> ~(i=0)`]);
+  TYPIFY `~(filter isSome vs = [])` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[List_hypermap.mem_not_nil];
+    TYPIFY `HD vs` EXISTS_TAC;
+    REWRITE_TAC[Seq.mem_filter];
+    ASM_REWRITE_TAC[Ssrbool.isSome];
+    FIRST_X_ASSUM_ST `SOME v` (SUBST1_TAC o GSYM);
+    BY(ASM_SIMP_TAC[MEM_HD]);
+  INTRO_TAC last_filter [`isSome:(A)option -> bool`;`vs`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN (SUBST1_TAC o GSYM);
+  TYPIFY `LAST vs' = the (LAST (filter isSome vs))` (C SUBGOAL_THEN MP_TAC);
+    ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC LAST_MAP;
+    BY(ASM_REWRITE_TAC[]);
+  DISCH_THEN (SUBST1_TAC o GSYM);
+  FIRST_X_ASSUM (C INTRO_TAC [`sizel vs' - 2`]);
+  TYPIFY `SUC (sizel vs'  - 2) = sizel vs' - 1 /\ SUC (sizel vs' - 2) < sizel vs'` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(FIRST_X_ASSUM_ST `2 <= sizel vs'` MP_TAC THEN ARITH_TAC);
+  POP_ASSUM MP_TAC THEN SIMP_TAC[];
+  DISCH_TAC;
+  GMATCH_SIMP_TAC LAST_EL;
+  CONJ_TAC;
+    ASM_REWRITE_TAC[];
+    BY(ASM_REWRITE_TAC[MAP_EQ_NIL]);
+  REWRITE_TAC[lower_case];
+  (MATCH_MP_TAC (arith `e <= i2:num ==> (i2 < l ==> e < l)`))
+
 
 xxd...need a lemma to this effect.
 

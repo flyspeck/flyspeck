@@ -1735,18 +1735,10 @@ let unadj_alt = prove_by_refinement(
 let enumeration_vertex_list = prove_by_refinement(
   `!v f g vs vs'.
     MAP the (filter (isSome) vs) = vs' /\
-//    HD vs' = v /\
     3 <= sizel vs /\
-//    2 <= sizel (FST f) /\
     HD vs = SOME v /\
-//    isSome (HD vs) /\
     isSome (LAST vs) /\
-//    2 <= sizel (MAP the (filter isSome vs)) /\
-//    indexf v (the (LAST vs)) (FST f) = sizel (FST f) - 1 /\
       prev_el (FST f) v = the (LAST vs) /\
-//    uniq (FST f) /\
-//    MEM v (FST f) /\
-//    image_hideDups vs /\
     MEM (FST f) (fgraph g) /\
     all uniq (fgraph g) /\
     (!v. v IN vertices_set2 g
@@ -1765,86 +1757,341 @@ let enumeration_vertex_list = prove_by_refinement(
        vs = indexToVertexList f v e)`,
   (* {{{ proof *)
   [
-  st/r
-  mmp enumeration_vertex_list_lemma
-  typ `vs'` ex  
-  art[]
-  pop kill
-  rt[image_hideDups]
-  typ `~(vs = [])` sat
-  asimp[arith `3 <= s ==> ~(s = 0)`;sym Seq.size_eq0]
-  art[Ssrbool.isSome]
-  typ `uniq (FST f)` sat
-  fxast `all uniq` mp
-  rt[sym Seq.allP] then amt[]
-  nconj 0
-  fexp "vs'"
-  fxast `HD` mp
-  intro list_CASES [`vs`] then art[]
-  st then art[Seq.filter_cons;HD]
-  dthen sub1
-  rt[Ssrbool.isSome;MAP;HD;the_some]
-  art[]
-  nconj 3
-  fxast `all` mp then rt[sym Seq.allP]
-  dthen mmp
-  typ `v = the (SOME v)` s1
-  rt[the_some]
-  mmp MEMf_MAP
-  rt[Seq.mem_filter]
-  amt[Ssrbool.isSome;MEM_HD]
-  art[]
-  typ `MEM (LAST vs) vs` sat
-  asimp[MEM_LAST]
-  nconj 2
-  fxast `the (LAST vs)` (sub1 o sym)
-  mmp indexf_prev
-  art[]
-  gm Seq2.next_prev_id
-  art[]
-  asimp[Seq2.mem_prev_el]
-  art[]
-  nconj 2
-  rt[unadj_alt]
-  st/r
-  typ `~(EL i vs' = EL (SUC i) vs')` ets
-  fexp "vs'"
-  rt[]
-  repeat (gm EL_MAP)
-  asimp[the_inj]
-  rep 2 (pop mp) then rt[lower_case] then ARITH_TAC
-  typ `sizel vs' = sizel (filter isSome vs)` sat
-  fexp "vs'"
-  rt[lower_case;Seq.size_map]
-  amt[ (arith `a < b:num ==> ~(a = b)`)]
-  art[]
-  rt[arith `2 <= n <=> 1 < n`]
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC enumeration_vertex_list_lemma;
+  TYPIFY `vs'` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  POP_ASSUM kill;
+  REWRITE_TAC[image_hideDups];
+  TYPIFY `~(vs = [])` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[arith `3 <= s ==> ~(s = 0)`;GSYM Seq.size_eq0]);
+  ASM_REWRITE_TAC[Ssrbool.isSome];
+  TYPIFY `uniq (FST f)` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `all uniq` MP_TAC;
+    BY(REWRITE_TAC[GSYM Seq.allP] THEN ASM_MESON_TAC[]);
+  nCONJ_TAC 0;
+    FULL_EXPAND_TAC "vs'";
+    FIRST_X_ASSUM_ST `HD` MP_TAC;
+    INTRO_TAC list_CASES [`vs`] THEN ASM_REWRITE_TAC[];
+    WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[Seq.filter_cons;HD];
+    DISCH_THEN SUBST1_TAC;
+    BY(REWRITE_TAC[Ssrbool.isSome;MAP;HD;the_some]);
+  ASM_REWRITE_TAC[];
+  nCONJ_TAC 3;
+    FIRST_X_ASSUM_ST `all` MP_TAC THEN REWRITE_TAC[GSYM Seq.allP];
+    DISCH_THEN MATCH_MP_TAC;
+    TYPIFY `v = the (SOME v)` (C SUBGOAL_THEN SUBST1_TAC);
+      BY(REWRITE_TAC[the_some]);
+    MATCH_MP_TAC MEMf_MAP;
+    REWRITE_TAC[Seq.mem_filter];
+    BY(ASM_MESON_TAC[Ssrbool.isSome;MEM_HD]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `MEM (LAST vs) vs` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[MEM_LAST]);
+  nCONJ_TAC 2;
+    FIRST_X_ASSUM_ST `the (LAST vs)` (SUBST1_TAC o GSYM);
+    MATCH_MP_TAC indexf_prev;
+    ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC Seq2.next_prev_id;
+    ASM_REWRITE_TAC[];
+    BY(ASM_SIMP_TAC[Seq2.mem_prev_el]);
+  ASM_REWRITE_TAC[];
+  nCONJ_TAC 2;
+    REWRITE_TAC[unadj_alt];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `~(EL i vs' = EL (SUC i) vs')` ENOUGH_TO_SHOW_TAC;
+      FULL_EXPAND_TAC "vs'";
+      REWRITE_TAC[];
+      REPEAT (GMATCH_SIMP_TAC EL_MAP);
+      ASM_SIMP_TAC[the_inj];
+      BY(REPLICATE_TAC 2 (POP_ASSUM MP_TAC) THEN REWRITE_TAC[lower_case] THEN ARITH_TAC);
+    TYPIFY `sizel vs' = sizel (filter isSome vs)` (C SUBGOAL_THEN ASSUME_TAC);
+      FULL_EXPAND_TAC "vs'";
+      BY(REWRITE_TAC[lower_case;Seq.size_map]);
+    BY(ASM_MESON_TAC[ (arith `a < b:num ==> ~(a = b)`)]);
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[arith `2 <= n <=> 1 < n`];
+  INTRO_TAC filter_el [`vs`;`isSome:(num)option->bool`;`filter isSome vs`;`0`;`sizel vs - 1`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[EL;Ssrbool.isSome];
+    REWRITE_TAC[Seq.size];
+    GMATCH_SIMP_TAC (GSYM LAST_EL);
+    ONCE_REWRITE_TAC[EQ_SYM_EQ];
+    ASM_REWRITE_TAC[GSYM Seq.size_eq0;lower_case];
+    BY(FIRST_X_ASSUM_ST `3` MP_TAC THEN ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  SUBCONJ2_TAC;
+    FULL_EXPAND_TAC "vs'";
+    REWRITE_TAC[Seq.size_map;lower_case];
+    BY(REPLICATE_TAC 5 (POP_ASSUM MP_TAC) THEN ARITH_TAC);
+  DISCH_TAC;
+  (GMATCH_SIMP_TAC sizel_gt_1);
+  GEXISTL_TAC [`the (EL 0 vs)`;`the (EL (sizel vs  - 1) vs)`];
+  FIRST_X_ASSUM_ST `all` MP_TAC;
+  REWRITE_TAC[GSYM Seq.allP;MEM_MAP];
+  DISCH_THEN (REPEAT o GMATCH_SIMP_TAC);
+  TYPIFY `(!(u:(num)option) xs. MEM u xs ==> (?x. MEM x xs /\ the u = the x))` (C SUBGOAL_THEN MP_TAC);
+    BY(MESON_TAC[]);
+  DISCH_THEN (REPEAT o GMATCH_SIMP_TAC);
+  REWRITE_TAC[Seq.mem_filter];
+  REPEAT (GMATCH_SIMP_TAC mem_el_index);
+  TYPIFY `EL (sizel vs - 1) vs = LAST vs` (C SUBGOAL_THEN ASSUME_TAC);
+    GMATCH_SIMP_TAC ( LAST_EL);
+    BY(ASM_REWRITE_TAC[lower_case]);
+  nCONJ_TAC 4;
+    GMATCH_SIMP_TAC the_inj;
+    CONJ_TAC;
+      POP_ASSUM MP_TAC THEN SIMP_TAC[EL];
+      BY(ASM_REWRITE_TAC[Ssrbool.isSome]);
+    POP_ASSUM kill;
+    INTRO_TAC f_mono_lt_pair [`\i. indexf v (EL i vs') (FST f)`;`sizel vs'`];
+    ASM_REWRITE_TAC[];
+    DISCH_THEN (C INTRO_TAC [`s`;`r`]);
+    ASM_REWRITE_TAC[];
+    FULL_EXPAND_TAC "vs'";
+    ASM_REWRITE_TAC[lower_case;Seq.size_map];
+    REWRITE_TAC[upper_case];
+    REPEAT (GMATCH_SIMP_TAC EL_MAP);
+    ASM_REWRITE_TAC[lower_case];
+    CONJ_TAC;
+      BY(REPLICATE_TAC 5 (POP_ASSUM MP_TAC) THEN ARITH_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM_ST `indexf` MP_TAC THEN ASM_REWRITE_TAC[];
+    BY(ARITH_TAC);
+  REPLICATE_TAC 2 (FIRST_X_ASSUM_ST `filter` kill);
+  ASM_REWRITE_TAC[];
+  ASM_REWRITE_TAC[EL;Ssrbool.isSome];
+  BY(FIRST_X_ASSUM_ST `3` MP_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
 
-  repeat (gm sizel_gt_1)  
-  subconj
+let generatePolygon_criteria = prove_by_refinement(
+  `!v f g vs vs'.
+         MAP the (filter isSome vs) = vs' /\
+         3 <= sizel vs /\
+         HD vs = SOME v /\
+         isSome (LAST vs) /\
+         prev_el (FST f) v = the (LAST vs) /\
+         MEM (FST f) (fgraph g) /\
+         all uniq (fgraph g) /\
+         (!v. v IN vertices_set2 g
+              ==> facesAt g v = FILTER (\f. MEM v (FST f)) (faces g)) /\
+         vertices_set2 g = elements_of_list (fgraph g) /\
+         all (\t. MEM t (FST f)) (MAP the (filter isSome vs)) /\
+         (!i. SUC i < sizel vs'
+              ==> indexf v (EL i vs') (FST f) <
+                  indexf v (EL (SUC i) vs') (FST f)) /\
+         (!i. (let d = the (EL i vs),the (EL (SUC i) vs) in
+              isSome (EL i vs) /\
+              isSome (EL (SUC i) vs) /\
+              SUC i < sizel vs /\
+              MEM d (list_of_darts (fgraph g))
+              ==> MEM d (list_pairs (FST f))))
+         ==> (MEM (subdivFace g f vs) (generatePolygon (sizel vs) v f g) )`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC enumeration_vertex_list [`v`;`f`;`g`;`vs`;`vs'`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[generatePolygon;GSYM filter_FILTER];
+  REPEAT LET_TAC;
+  REWRITE_TAC[ MEM_MAP];
+  FULL_EXPAND_TAC "vertexLists";
+  REWRITE_TAC[MEM_MAP];
+  FULL_EXPAND_TAC "enumeration'";
+  REWRITE_TAC[Seq.mem_filter];
+  TYPIFY `vs` EXISTS_TAC;
+  REWRITE_TAC[];
+  TYPIFY `e` EXISTS_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
 
-  #
+let size_rotate_to = prove_by_refinement(
+  `!vs v. MEM v vs /\ uniq vs ==> sizel (rotate_to vs v) = sizel vs`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_SIMP_TAC[Pwssrat.rotate_rot_indexl];
+  BY(REWRITE_TAC[Seq.size_rot])
+  ]);;
+  (* }}} *)
+
+let hd_rotate_to = prove_by_refinement(
+  `!vs v. HD (rotate_to vs v) = v`,
+  (* {{{ proof *)
+  [
+    BY(LIST_INDUCT_TAC THEN REWRITE_TAC[rotate_to;HD])
+  ]);;
+  (* }}} *)
+
+let next_el_el = prove_by_refinement(
+  `!xs i. uniq xs /\ SUC i < sizel xs ==> 
+    next_el xs (EL i xs) = EL (SUC i) xs`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Seq2.next_el] THEN REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC;
+    POP_ASSUM MP_TAC THEN GMATCH_SIMP_TAC index_el;
+    BY(ASM_SIMP_TAC[arith `(SUC i < n ==> i < n) /\ (SUC i < n ==> ~(i = n - 1))`]);
+  GMATCH_SIMP_TAC index_el;
+  GMATCH_SIMP_TAC (GSYM Seq2.EL_nth);
+  ASM_REWRITE_TAC[arith `i+1 = SUC i`];
+  BY(ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let all_some_generatePolygon = prove_by_refinement(
+  `!v f g vs.
+      MAP SOME (rotate_to (FST f) v) = vs /\
+      3 <= sizel (FST f) /\
+      MEM v (FST f) /\
+      MEM (FST f) (fgraph g) /\
+      all uniq (fgraph g) /\
+      (!v. v IN vertices_set2 g
+              ==> facesAt g v = FILTER (\f. MEM v (FST f)) (faces g)) /\
+      vertices_set2 g = elements_of_list (fgraph g) 
+	  ==>
+	 MEM (subdivFace g f vs) (generatePolygon (sizel vs) v f g) 
+	  `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC generatePolygon_criteria;
+  TYPED_ABBREV_TAC `vs' = rotate_to (FST f) v`;
+  TYPIFY `vs'` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  nCONJ_TAC 0;
+    FULL_EXPAND_TAC "vs'";
+    FULL_EXPAND_TAC "vs";
+    REWRITE_TAC[lower_case;Seq.filter_map;Seq.preim];
+    REWRITE_TAC[upper_case;GSYM MAP_o];
+    TYPIFY `the o SOME = (I:num->num)` (C SUBGOAL_THEN SUBST1_TAC);
+      BY(REWRITE_TAC[FUN_EQ_THM;I_THM;o_THM;the_some]);
+    REWRITE_TAC[MAP_I;I_THM];
+    REWRITE_TAC[lower_case;Seq.all_filterP];
+    BY(REWRITE_TAC[GSYM Seq.allP;Ssrbool.isSome]);
+  TYPIFY `uniq (FST f)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Seq.allP]);
+  TYPIFY `sizel vs = sizel (FST f)` (C SUBGOAL_THEN ASSUME_TAC);
+    FULL_EXPAND_TAC "vs";
+    REWRITE_TAC[lower_case;Seq.size_map];
+    FIRST_X_ASSUM_ST `MAP` kill;
+    FULL_EXPAND_TAC "vs'";
+    BY(ASM_SIMP_TAC[size_rotate_to]);
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `MAP` MP_TAC;
+  DISCH_THEN BURY_TAC;
+  TYPIFY `~(vs' = [])` (C SUBGOAL_THEN ASSUME_TAC);
+    FULL_EXPAND_TAC "vs'";
+    REWRITE_TAC[GSYM Seq.size_eq0];
+    ASM_SIMP_TAC[size_rotate_to];
+    BY(FIRST_X_ASSUM_ST `3` MP_TAC THEN ARITH_TAC);
+  TYPIFY `HD vs' =  v` (C SUBGOAL_THEN ASSUME_TAC);
+    FULL_EXPAND_TAC "vs'";
+    BY(REWRITE_TAC[hd_rotate_to]);
+  nCONJ_TAC 0;
+    FULL_EXPAND_TAC "vs";
+    GMATCH_SIMP_TAC HD_MAP;
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `~(vs = [])` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_REWRITE_TAC[GSYM Seq.size_eq0];
+    BY(ASM_SIMP_TAC[arith `3 <= n ==> ~(n=0)`]);
+  TYPIFY `MEM (LAST vs) vs` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[MEM_LAST]);
+  nCONJ_TAC 2;
+    FULL_EXPAND_TAC "vs'";
+    ASM_SIMP_TAC[Pwssrat.rotate_rot_indexl];
+    BY(REWRITE_TAC[GSYM Seq.allP;Seq.mem_rot]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `!u. MEM u vs ==> isSome u` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    POP_ASSUM MP_TAC;
+    FULL_EXPAND_TAC "vs";
+    BY(MESON_TAC[MEM_MAP;Ssrbool.isSome]);
+  nCONJ_TAC 0;
+    BY(ASM_SIMP_TAC[]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `uniq vs'` (C SUBGOAL_THEN ASSUME_TAC);
+    FULL_EXPAND_TAC "vs'";
+    BY(ASM_SIMP_TAC[Pwssrat.rotate_rot_indexl;Seq.rot_uniq]);
+  nCONJ_TAC 0;
+    TYPIFY `prev_el (FST f) v = prev_el (vs') v` (C SUBGOAL_THEN SUBST1_TAC);
+      FULL_EXPAND_TAC "vs'";
+      ASM_SIMP_TAC[Pwssrat.rotate_rot_indexl];
+      BY(ASM_SIMP_TAC[ Seq2.prev_el_rot_eq]);
+    FULL_EXPAND_TAC "v";
+    GMATCH_SIMP_TAC Seq2.prev_el_hd;
+    TYPIFY `LAST vs'` EXISTS_TAC;
+    GMATCH_SIMP_TAC last_LAST;
+    ASM_REWRITE_TAC[Seq.size_eq0;arith `0 < n <=> ~(n=0)`];
+    FULL_EXPAND_TAC "vs";
+    GMATCH_SIMP_TAC LAST_MAP;
+    BY(ASM_REWRITE_TAC[the_some]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `!i. i < sizel vs' ==> indexf v (EL i vs') (FST f) = i` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `indexf v (EL i vs') (FST f) = indexf v (EL i vs') vs'` (C SUBGOAL_THEN SUBST1_TAC);
+      FULL_EXPAND_TAC "vs'";
+      ASM_SIMP_TAC[Pwssrat.rotate_rot_indexl];
+      INTRO_TAC (GSYM indexf_rotn) [`indexl v (FST f)`;`v`];
+      DISCH_THEN GMATCH_SIMP_TAC;
+      ASM_REWRITE_TAC[];
+      INTRO_TAC (GSYM Seq.mem_rot) [`indexl v (FST f)`;`FST f`];
+      DISCH_THEN (unlist ONCE_REWRITE_TAC);
+      GMATCH_SIMP_TAC mem_el_index;
+      POP_ASSUM MP_TAC;
+      BY(ASM_SIMP_TAC[Pwssrat.rotate_rot_indexl;Seq.index_size]);
+    FULL_EXPAND_TAC "v";
+    GMATCH_SIMP_TAC indexf_hd;
+    GMATCH_SIMP_TAC mem_el_index;
+    ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC index_el;
+    BY(ASM_REWRITE_TAC[]);
+  nCONJ_TAC 0;
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM_ST `indexf` (REPEAT o GMATCH_SIMP_TAC);
+    BY(POP_ASSUM MP_TAC THEN ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  COMMENT "last case";
+  GEN_TAC;
+  REWRITE_TAC[LET_THM] THEN REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `!i. i < sizel vs ==> the (EL i  vs) = EL i vs'` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    FULL_EXPAND_TAC "vs";
+    GMATCH_SIMP_TAC EL_MAP;
+    REWRITE_TAC[the_some];
+    BY(POP_ASSUM MP_TAC THEN SIMP_TAC[lower_case;Seq.size_map]);
+  POP_ASSUM (REPEAT o GMATCH_SIMP_TAC);
+  ASM_SIMP_TAC[arith `SUC i < n ==> i < n`];
+  TYPIFY_GOAL_THEN `!d. MEM d (list_pairs (FST f)) <=> MEM d (list_pairs vs')` (unlist REWRITE_TAC);
+    GEN_TAC;
+    FULL_EXPAND_TAC "vs'";
+    ASM_SIMP_TAC[Pwssrat.rotate_rot_indexl];
+    REWRITE_TAC[GSYM List_hypermap.rot_list_pairs];
+    BY(REWRITE_TAC[Seq.mem_rot]);
+  TYPIFY `sizel vs' = sizel vs` (C SUBGOAL_THEN ASSUME_TAC);
+    FULL_EXPAND_TAC "vs";
+    BY(REWRITE_TAC[lower_case;Seq.size_map]);
+  TYPIFY `EL (SUC i) vs' = next_el vs' (EL i vs')` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN SUBST1_TAC;
+    MATCH_MP_TAC next_el_list_pairs_eq;
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC MEM_EL;
+    BY(ASM_SIMP_TAC[lower_case;arith `SUC i < n ==> i < n`]);
+  GMATCH_SIMP_TAC next_el_el;
+  BY(ASM_REWRITE_TAC[])
   ]);;
   (* }}} *)
 
 
-(* next: conditions on vs. st. *)
-
-  `XX ==> MEM (subdivFace g f vs) (generatePolgon n v f g)`;;
-
+(* xxd *)
 (* if vs = full face, then MEM subdiv generatePolygon,
      and subdivFace = mk1face final on g. *)
 
-generatePolygon;;
-next_plane;;
-planegraph;;
-good_graph;;
-neighbors;;
-nextVertices;;
-duplicateEdge;;
-containsUnacceptableEdge;;
-showDups;;
-image_hideDups;;
 
 let oldvertex = prove_by_refinement(
   `!L N g.
@@ -3697,7 +3944,7 @@ let next_el_list_pairs_eq = prove_by_refinement(
   ]);;
   (* }}} *)
 
-xxd
+(* replaced with all_some_generatePolygon:
 
 let not_containsDuplicateEdge_iota = prove_by_refinement(
   `!g f v. ~containsDuplicateEdge g f v (iota 0 (sizel (FST f)))`,
@@ -3732,8 +3979,9 @@ let iota_generatePolygon = prove_by_refinement(
   ]);;
   (* }}} *)
 
-generatePolygon;;
-next_plane;;
+*)
+
+xxd
 
 (* we put ~final_list L r into the hypotheses.
    If ~finalGraph g /\ final_list L r, then we

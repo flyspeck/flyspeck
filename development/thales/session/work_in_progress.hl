@@ -2087,11 +2087,233 @@ let all_some_generatePolygon = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let mem_rotate_to = prove_by_refinement(
+  `!vs v. MEM v (rotate_to vs v)`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[rotate_to;MEM])
+  ]);;
+  (* }}} *)
 
-(* xxd *)
+let tl_drop = prove_by_refinement(
+  `!xs. ~(xs = []) ==> TL xs = dropl 1 xs`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[];
+  REWRITE_TAC[TL];
+  BY(REWRITE_TAC[arith `1=SUC 0`;Seq.drop_cons;Seq.drop0])
+  ]);;
+  (* }}} *)
+
+let drop_eq_nil = prove_by_refinement(
+  `!s i. dropl i s = [] <=>  sizel s <= i`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[Seq.drop];
+    BY(REWRITE_TAC[Seq.size;LENGTH] THEN ARITH_TAC);
+  REWRITE_TAC[Seq.size_cons];
+  INDUCT_TAC THEN REWRITE_TAC[Seq.drop0;NOT_CONS_NIL];
+    BY(ARITH_TAC);
+  ASM_REWRITE_TAC[Seq.drop];
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let hd_drop = prove_by_refinement(
+  `!xs i. i < sizel xs ==> HD (dropl i xs) = EL i xs`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[Seq.size;LENGTH;arith `~(i < 0)`]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC num_CASES [`i`] THEN REWRITE_TAC[Seq.size_cons];
+  REPEAT STRIP_TAC;
+    BY(ASM_REWRITE_TAC[Seq.drop0;EL;HD]);
+  ASM_REWRITE_TAC[EL;Seq.drop;TL];
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(ASM_TAC THEN REWRITE_TAC[Seq.size_cons] THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let el_drop = prove_by_refinement(
+  `!xs i j. i + j < sizel xs ==> EL j (dropl i xs) = EL (j+i) xs`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[Seq.size;LENGTH;arith `~(i < 0)`]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC num_CASES [`i`] THEN REWRITE_TAC[Seq.size_cons];
+  REPEAT STRIP_TAC;
+    BY(ASM_REWRITE_TAC[Seq.drop0;EL;HD;arith `j+0=j`]);
+  ASM_REWRITE_TAC[EL;Seq.drop;TL;arith `j + SUC n = SUC (j + n)`];
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(ASM_TAC THEN REWRITE_TAC[Seq.size_cons] THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let mem_rotate_to2 = prove_by_refinement(
+  `!vs v u. MEM v vs /\ uniq vs ==> (MEM u vs <=> MEM u (rotate_to vs v))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_SIMP_TAC[Pwssrat.rotate_rot_indexl];
+  BY(REWRITE_TAC[Seq.mem_rot])
+  ]);;
+  (* }}} *)
+
+let rotate_subdivFace0_alt = prove_by_refinement(
+  `!k vs v f g.
+         0 < k /\ k <= sizel (FST f) /\
+         dropl (sizel (FST f) - k) (MAP SOME (rotate_to (FST f) v)) = vs /\
+         3 <= sizel (FST f) /\
+         MEM v (FST f) /\
+         MEM (FST f) (fgraph g) /\
+         all uniq (fgraph g) 
+        ==>
+     (f,g) = subdivFace0_alt g f (the (HD vs)) 0 (TL vs)`,
+  (* {{{ proof *)
+  [
+  INDUCT_TAC;
+    BY(REWRITE_TAC[arith `~(0 < 0)`]);
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  TYPED_ABBREV_TAC `rs = MAP SOME (rotate_to (FST f) v)`;
+  TYPIFY `uniq (FST f)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Seq.allP]);
+  TYPIFY `sizel rs = sizel (FST f)` (C SUBGOAL_THEN ASSUME_TAC);
+    FULL_EXPAND_TAC "rs";
+    REWRITE_TAC[lower_case;Seq.size_map];
+    BY(ASM_SIMP_TAC[size_rotate_to]);
+  INTRO_TAC (GSYM num_CASES) [`k`];
+  REPEAT STRIP_TAC THEN FULL_EXPAND_TAC "k";
+    TYPIFY `TL vs = []` ENOUGH_TO_SHOW_TAC;
+      BY(DISCH_TAC THEN ASM_REWRITE_TAC[subdivFace0_alt]);
+    FULL_EXPAND_TAC "vs";
+    GMATCH_SIMP_TAC tl_drop;
+    REWRITE_TAC[drop_drop];
+    ASM_REWRITE_TAC[drop_eq_nil];
+    BY(FIRST_X_ASSUM_ST `3` MP_TAC THEN ARITH_TAC);
+  TYPIFY `TL vs = dropl (sizel (FST f) - (SUC n)) rs` (C SUBGOAL_THEN ASSUME_TAC);
+    GMATCH_SIMP_TAC tl_drop;
+    FULL_EXPAND_TAC "vs";
+    REWRITE_TAC[drop_drop];
+    ASM_REWRITE_TAC[drop_eq_nil];
+    ASM_SIMP_TAC[arith `3 <= n ==> ~(n <= n - SUC (SUC i))`];
+    REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+    FIRST_X_ASSUM_ST `3` MP_TAC;
+    FIRST_X_ASSUM_ST `SUC (SUC n) <= m` MP_TAC;
+    BY(ARITH_TAC);
+  ASM_REWRITE_TAC[];
+  TYPED_ABBREV_TAC `vs' = dropl (sizel (FST f) - SUC n) rs`;
+  FIRST_X_ASSUM (C INTRO_TAC [`vs'`;`v`;`f`;`g`]);
+  ASM_REWRITE_TAC[];
+  ANTS_TAC;
+    BY(FIRST_X_ASSUM_ST `SUC (SUC n) <= m` MP_TAC THEN ARITH_TAC);
+  DISCH_TAC;
+  INTRO_TAC (list_CASES) [`vs'`];
+  REPEAT STRIP_TAC;
+    BY(ASM_REWRITE_TAC[subdivFace0_alt]);
+  POP_ASSUM (ASSUME_TAC o GSYM) THEN FULL_EXPAND_TAC "vs'";
+  (REWRITE_TAC[subdivFace0_alt]);
+  TYPIFY `isSome h /\ nextVertex f (the (HD vs)) = the h` ENOUGH_TO_SHOW_TAC;
+    SIMP_TAC[not_isSome_NONE];
+    REWRITE_TAC[LET_THM];
+    DISCH_TAC;
+    BY(ASM_REWRITE_TAC[HD;TL]);
+  GMATCH_SIMP_TAC nextVertex_next_el;
+  TYPIFY `HD (TL vs) = h` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_REWRITE_TAC[HD]);
+  FULL_EXPAND_TAC "h";
+  REWRITE_TAC[GSYM EL];
+  FULL_EXPAND_TAC "vs";
+  REPEAT (GMATCH_SIMP_TAC el_drop);
+  TYPIFY `!i. i < sizel (FST f) ==> EL i rs = SOME (EL i (rotate_to (FST f) v))` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT WEAKER_STRIP_TAC;
+    REPLICATE_TAC 4 (FIRST_X_ASSUM_ST `HD` kill);
+    FULL_EXPAND_TAC "rs";
+    GMATCH_SIMP_TAC EL_MAP;
+    BY(ASM_SIMP_TAC[lower_case;size_rotate_to]);
+  FIRST_X_ASSUM (REPEAT o GMATCH_SIMP_TAC);
+  ASM_REWRITE_TAC[the_some;Ssrbool.isSome];
+  REPLICATE_TAC 5 (POP_ASSUM kill);
+  TYPIFY `MEM (EL (0 + sizel (FST f) - SUC (SUC n)) (rotate_to (FST f) v)) (rotate_to (FST f) v)` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC MEM_EL;
+    ASM_SIMP_TAC[lower_case;size_rotate_to];
+    BY(ASM_TAC THEN ARITH_TAC);
+  FIRST_ASSUM MP_TAC;
+  GMATCH_SIMP_TAC (GSYM mem_rotate_to2);
+  ASM_SIMP_TAC[];
+  TYPIFY `next_el (FST f) = next_el (rotate_to (FST f) v)` (C SUBGOAL_THEN SUBST1_TAC);
+    REWRITE_TAC[FUN_EQ_THM];
+    ASM_SIMP_TAC[Pwssrat.rotate_rot_indexl];
+    BY(ASM_SIMP_TAC[Seq2.next_el_rot_eq]);
+  DISCH_TAC;
+  GMATCH_SIMP_TAC next_el_el;
+  REWRITE_TAC[];
+  ASM_SIMP_TAC[size_rotate_to];
+  REWRITE_TAC[arith `SUC (0 + n) = SUC 0 + n`];
+  ASM_SIMP_TAC[Pwssrat.rotate_rot_indexl;Seq.rot_uniq];
+  BY(FIRST_X_ASSUM_ST `SUC (SUC n) <= m` MP_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let rotate_subdivFaceFinal = prove_by_refinement(
+  `!vs v f g. (MAP SOME (rotate_to (FST f) v)) = vs /\
+         3 <= sizel (FST f) /\
+         MEM v (FST f) /\
+         MEM (FST f) (fgraph g) /\
+         all uniq (fgraph g)
+         ==> 
+   subdivFaceFinal g f vs = makeFaceFinal f g`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[subdivFaceFinal];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT LET_TAC;
+  POP_ASSUM MP_TAC;
+  GMATCH_SIMP_TAC (GSYM rotate_subdivFace0_alt);
+  SIMP_TAC[PAIR_EQ];
+  GEXISTL_TAC [`sizel (FST f)`;`v`];
+  ASM_REWRITE_TAC[];
+  BY(ASM_SIMP_TAC[arith `3 <= n ==> 0 < n`;arith `n <= n:num`;arith `n - n = 0`;Seq.drop0])
+  ]);;
+  (* }}} *)
+
+let mem_makeFaceFinal_generatePolygon = prove_by_refinement(
+  `!f g v. 3 <= sizel (FST f) /\ MEM v (FST f) /\
+         MEM (FST f) (fgraph g) /\
+         all uniq (fgraph g) /\
+  (!v. v IN vertices_set2 g
+      ==> facesAt g v = FILTER (\f. MEM v (FST f)) (faces g)) /\
+ vertices_set2 g = elements_of_list (fgraph g)
+    
+  ==>
+    MEM (makeFaceFinal f g) (generatePolygon (sizel (FST f)) v f g)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPED_ABBREV_TAC `vs = MAP SOME (rotate_to (FST f) v)`;
+  INTRO_TAC (GSYM rotate_subdivFaceFinal) [`vs`;`v`;`f`;`g`];
+  ASM_SIMP_TAC[];
+  DISCH_THEN kill;
+  GMATCH_SIMP_TAC (GSYM subdivFaceFinal_eq);
+  ONCE_REWRITE_TAC[EQ_SYM_EQ];
+  TYPIFY `uniq (FST f)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Seq.allP]);
+  TYPIFY `sizel vs = sizel (FST f)` (C SUBGOAL_THEN ASSUME_TAC);
+    FULL_EXPAND_TAC "vs";
+    REWRITE_TAC[Seq.size_map;lower_case];
+    BY(ASM_SIMP_TAC[ size_rotate_to]);
+  ASM_SIMP_TAC[GSYM Seq.size_eq0];
+  ASM_SIMP_TAC[arith `3 <= n ==> ~(n=0)`];
+  FIRST_ASSUM (SUBST1_TAC o GSYM);
+  MATCH_MP_TAC all_some_generatePolygon;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
 (* if vs = full face, then MEM subdiv generatePolygon,
      and subdivFace = mk1face final on g. *)
-
 
 let oldvertex = prove_by_refinement(
   `!L N g.

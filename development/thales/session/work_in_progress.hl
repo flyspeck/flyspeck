@@ -4167,6 +4167,7 @@ let next_el_list_pairs_eq = prove_by_refinement(
   (* }}} *)
 
 (* replaced with all_some_generatePolygon:
+  and mem_makeFaceFinal_generatePolygon
 
 let not_containsDuplicateEdge_iota = prove_by_refinement(
   `!g f v. ~containsDuplicateEdge g f v (iota 0 (sizel (FST f)))`,
@@ -4203,7 +4204,45 @@ let iota_generatePolygon = prove_by_refinement(
 
 *)
 
-xxd
+let flag_list_s_flag_list = prove_by_refinement(
+  `!L N r x. flag_list L N ==> s_flag_list L N r x`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[flag_list;s_flag_list];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Seq.mem_cat];
+  DISJ2_TAC;
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let nonFinals_fgraph = prove_by_refinement(
+  `!f g. MEM f (nonFinals g) ==> MEM (FST f) (fgraph g)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[nonFinals;lower_case;Seq.mem_filter;faces;fgraph];
+  REWRITE_TAC[upper_case];
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC MEMf_MAP;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let final_dart_list_final_list = prove_by_refinement(
+  `!L N d. uniq (flatten N) /\
+    MEM d (final_dart_list L N) ==> final_list L (find_list N d)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[final_dart_list;Seq2.mem_flatten;Seq.mem_filter];
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC find_list_uniq;
+  TYPIFY `l` EXISTS_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
 
 (* we put ~final_list L r into the hypotheses.
    If ~finalGraph g /\ final_list L r, then we
@@ -4228,60 +4267,636 @@ let HKBGWJI = prove_by_refinement(
   marked_list L N r x`,
   (* {{{ proof *)
   [
-  rt[marked_list;LET_THM]
-  st/r then art[]
-  pop mp then rt[loop_choice] then repeat LET_TAC
-  rt[PAIR_EQ]
-  st/r
-  fexp "r'"
-  intro Dpzgbyf.mem_minimalFace_nonFinals [`g`]
-  art[]
-  subants
-  amt[finalGraph]
-  st/r
-  intro mem_minimalVertex [`g`;`f`]
-  typ `    is_edge_nondegenerate (hypermap_of_list L) /\     all uniq L` sat
-  conj
-  amt[is_restricted]
-  amt[is_restricted;simple_hypermap_uniq]
-   subants
-  amt[minimalFace_nonnil]
-  art[]
-  st/r  
-  fxast `nextVertex` mp
-  asimp[nextVertex_next_el]
-  dt
-  intro next_el_list_pairs_eq [`v`;`FST f`]
-  art[]
-  fxast `LAST` (assume o sym)
-  art[]
-
-  typ `~*
-
-xxd...
+  REWRITE_TAC[marked_list;LET_THM];
+  REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[];
+  ASM_SIMP_TAC[flag_list_s_flag_list];
+  POP_ASSUM MP_TAC THEN REWRITE_TAC[loop_choice] THEN REPEAT LET_TAC;
+  REWRITE_TAC[PAIR_EQ];
+  REPEAT WEAKER_STRIP_TAC;
+  FULL_EXPAND_TAC "r'";
+  INTRO_TAC Dpzgbyf.mem_minimalFace_nonFinals [`g`];
+  ASM_REWRITE_TAC[];
+  SUBANTS_TAC;
+    BY(ASM_MESON_TAC[finalGraph]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC mem_minimalVertex [`g`;`f`];
+  TYPIFY `    is_edge_nondegenerate (hypermap_of_list L) /\     all uniq L` (C SUBGOAL_THEN ASSUME_TAC);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[is_restricted]);
+    BY(ASM_MESON_TAC[is_restricted;simple_hypermap_uniq]);
+  SUBANTS_TAC;
+    BY(ASM_MESON_TAC[minimalFace_nonnil]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `nextVertex` MP_TAC;
+  ASM_SIMP_TAC[nextVertex_next_el];
+  DISCH_TAC;
+  INTRO_TAC next_el_list_pairs_eq [`v`;`FST f`];
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `LAST` (ASSUME_TAC o GSYM);
+  ASM_REWRITE_TAC[];
+  TYPIFY `all uniq (fgraph g)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[match_quotient_list]);
+  TYPIFY `MEM (FST f) (fgraph g)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[nonFinals_fgraph]);
+  TYPIFY `uniq (FST f)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Seq.allP]);
+  ASM_REWRITE_TAC[] THEN DISCH_TAC;
+  FULL_EXPAND_TAC "p";
+  TYPIFY `MEM d (list_of_darts (fgraph g))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Rxokskc.MEM_LIST_DARTS]);
+  TYPIFY `MEM d (list_of_darts (quotient_list L N))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[match_quotient_list]);
+  FIRST_ASSUM MP_TAC;
+  GMATCH_SIMP_TAC mem_list_of_darts_quotient THEN ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `uniq r' /\ ~(r' = [])` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[normal_list_uniq_nonnil]);
+  TYPIFY `MEM (LAST p) r' /\ uniq (flatten N)` (C SUBGOAL_THEN MP_TAC);
+    CONJ_TAC;
+      INTRO_TAC parts_flatten [`L`;`r'`];
+      ASM_REWRITE_TAC[];
+      DISCH_THEN (SUBST1_TAC o GSYM);
+      REWRITE_TAC[Seq2.mem_flatten];
+      TYPIFY `p` EXISTS_TAC;
+      ASM_REWRITE_TAC[];
+      MATCH_MP_TAC MEM_LAST;
+      BY(ASM_MESON_TAC[parts_uniq_nonnil]);
+    BY(ASM_MESON_TAC[normal_list]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `r = r'` (C SUBGOAL_THEN ASSUME_TAC);
+    FIRST_X_ASSUM_ST `x = x` kill;
+    FULL_EXPAND_TAC "r";
+    MATCH_MP_TAC find_list_uniq;
+    BY(ASM_REWRITE_TAC[]);
+  FULL_EXPAND_TAC "r'";
+  ASM_REWRITE_TAC[];
+  TYPIFY `uniq p /\ ~(p = [])` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[parts_uniq_nonnil]);
+  TYPIFY `MEM (LAST p) p` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[MEM_LAST]);
+  FIRST_X_ASSUM_ST `d = LAST p` (ASSUME_TAC o GSYM);
+  FULL_EXPAND_TAC "d";
+  TYPIFY `find_list (parts L r) (LAST p) = p` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC find_list_uniq;
+    ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC parts_flatten;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT (FIRST_X_ASSUM_ST `x = x` kill);
+  TYPIFY `LAST p = x` (C SUBGOAL_THEN ASSUME_TAC);
+    FULL_EXPAND_TAC "x";
+    BY(ASM_REWRITE_TAC[]);
+  FULL_EXPAND_TAC "x";
+  ASM_REWRITE_TAC[];
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[normal_list_parts_next_last]);
+  DISCH_TAC;
+  COMMENT "last subgoal";
+  MATCH_MP_TAC final_dart_list_final_list;
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `flag_list` MP_TAC THEN REWRITE_TAC[flag_list] THEN REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(ASM_MESON_TAC[])
   ]);;
   (* }}} *)
 
-flag_list;;
-upt0;;
-planegraphP;;
-next_plane;;
+let loop_choice_props = prove_by_refinement(
+  `!L N r x g f v.
+    good_list L /\
+    good_list_nodes L /\
+    is_restricted (hypermap_of_list L) /\
+    normal_list L N /\
+    ~(finalGraph g) /\
+    all uniq (quotient_list L N) /\
+    match_quotient_list g L N /\
+    minimalFace (nonFinals g) = f /\
+    minimalVertex g f = v /\
+    (r,x) = loop_choice g L N ==>
+    (MEM r N /\
+    MEM x r /\
+    MEM x (list_of_darts (fgraph g)) /\
+    (v,next_el (FST f) v) = x)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[marked_list;LET_THM];
+  REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[];
+  ASM_SIMP_TAC[flag_list_s_flag_list];
+  POP_ASSUM MP_TAC THEN REWRITE_TAC[loop_choice] THEN REPEAT LET_TAC;
+  REWRITE_TAC[PAIR_EQ];
+  REPEAT WEAKER_STRIP_TAC;
+  FULL_EXPAND_TAC "r'";
+  INTRO_TAC Dpzgbyf.mem_minimalFace_nonFinals [`g`];
+  ASM_REWRITE_TAC[];
+  SUBANTS_TAC;
+    BY(ASM_MESON_TAC[finalGraph]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC mem_minimalVertex [`g`;`f`];
+  TYPIFY `    is_edge_nondegenerate (hypermap_of_list L) /\     all uniq L` (C SUBGOAL_THEN ASSUME_TAC);
+    CONJ_TAC;
+      BY(ASM_MESON_TAC[is_restricted]);
+    BY(ASM_MESON_TAC[is_restricted;simple_hypermap_uniq]);
+  SUBANTS_TAC;
+    BY(ASM_MESON_TAC[minimalFace_nonnil]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `f = f'` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[]);
+  FULL_EXPAND_TAC "f'";
+  TYPIFY `v = v'` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[]);
+  FULL_EXPAND_TAC "v'";
+  FIRST_X_ASSUM_ST `nextVertex` MP_TAC;
+  ASM_SIMP_TAC[nextVertex_next_el];
+  DISCH_TAC;
+  INTRO_TAC next_el_list_pairs_eq [`v`;`FST f`];
+  ASM_REWRITE_TAC[];
+  TYPIFY `all uniq (fgraph g)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[match_quotient_list]);
+  TYPIFY `MEM (FST f) (fgraph g)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[nonFinals_fgraph]);
+  TYPIFY `uniq (FST f)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Seq.allP]);
+  ASM_REWRITE_TAC[] THEN DISCH_TAC;
+  FULL_EXPAND_TAC "p";
+  TYPIFY `MEM d (list_of_darts (fgraph g))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Rxokskc.MEM_LIST_DARTS]);
+  TYPIFY `MEM d (list_of_darts (quotient_list L N))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[match_quotient_list]);
+  FIRST_ASSUM MP_TAC;
+  GMATCH_SIMP_TAC mem_list_of_darts_quotient THEN ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `uniq r' /\ ~(r' = [])` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[normal_list_uniq_nonnil]);
+  TYPIFY `MEM (LAST p) r' /\ uniq (flatten N)` (C SUBGOAL_THEN MP_TAC);
+    CONJ_TAC;
+      INTRO_TAC parts_flatten [`L`;`r'`];
+      ASM_REWRITE_TAC[];
+      DISCH_THEN (SUBST1_TAC o GSYM);
+      REWRITE_TAC[Seq2.mem_flatten];
+      TYPIFY `p` EXISTS_TAC;
+      ASM_REWRITE_TAC[];
+      MATCH_MP_TAC MEM_LAST;
+      BY(ASM_MESON_TAC[parts_uniq_nonnil]);
+    BY(ASM_MESON_TAC[normal_list]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `r = r'` (C SUBGOAL_THEN ASSUME_TAC);
+    REPEAT (FIRST_X_ASSUM_ST `x = x` kill);
+    FULL_EXPAND_TAC "r";
+    MATCH_MP_TAC find_list_uniq;
+    BY(ASM_REWRITE_TAC[]);
+  FULL_EXPAND_TAC "r'";
+  ASM_REWRITE_TAC[];
+  TYPIFY `uniq p /\ ~(p = [])` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[parts_uniq_nonnil]);
+  TYPIFY `MEM (LAST p) p` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[MEM_LAST]);
+  FIRST_X_ASSUM_ST `d = LAST p` (ASSUME_TAC o GSYM);
+  FULL_EXPAND_TAC "d";
+  TYPIFY `find_list (parts L r) (LAST p) = p` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC find_list_uniq;
+    ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC parts_flatten;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT (FIRST_X_ASSUM_ST `x = x` kill);
+  TYPIFY `LAST p = x` (C SUBGOAL_THEN ASSUME_TAC);
+    BY((ASM_REWRITE_TAC[]));
+  FULL_EXPAND_TAC "x";
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
 
-generatePolygon_reduction;;
-minimalFace;;
-marked_list;;
-flag_list;;
-s_flag_list;;
-loop_choice;;
+let RTranCl_trans = prove_by_refinement(
+  `!suc (g0:A) g1 g2. g0,g1 IN RTranCl suc /\ MEM g2 (suc g1) ==>
+    g0,g2 IN RTranCl suc`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[RTranCl;CURRY_DEF;UNCURRY_DEF;IN;RTC_REFL];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC RTC_RULES [`(\ (x:A) (y:A). MEM y (suc x))`];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  TYPIFY `g1` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  MATCH_MP_TAC RTC_INC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let planegraphP_trans = prove_by_refinement(
+  `!g g' p. planegraphP p g /\
+    
+    MEM g' (next_plane p g) ==>
+    planegraphP p g'`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[planegraphP];
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC RTranCl_trans;
+  TYPIFY `g` EXISTS_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let makeFaceFinal_planegraphP = prove_by_refinement(
+  `!f g p v. planegraphP p g /\
+    ~(finalGraph g) /\
+    minimalFace (nonFinals g) = f /\
+    minimalVertex g f = v /\
+    3 <= sizel (FST f) /\
+    sizel (FST f) <= p + 3 /\
+    MEM v (FST f) /\
+    MEM (FST f) (fgraph g) /\
+    all uniq (fgraph g) /\
+    (!v. v IN vertices_set2 g
+     ==> facesAt g v = FILTER (\f. MEM v (FST f)) (faces g)) /\
+    vertices_set2 g = elements_of_list (fgraph g) 
+    ==> planegraphP p (makeFaceFinal f g)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[finalGraph];
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC planegraphP_trans;
+  TYPIFY `g` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[next_plane];
+  REPEAT LET_TAC;
+  TYPIFY `f = f'` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[]);
+  FULL_EXPAND_TAC "f'";
+  TYPIFY `v = v'` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[]);
+  FULL_EXPAND_TAC "v'";
+  ASM_REWRITE_TAC[Seq2.mem_flatten];
+  TYPIFY `generatePolygon (sizel (FST f)) v f g` EXISTS_TAC;
+  REWRITE_TAC[MEM_MAP];
+  CONJ_TAC;
+    TYPIFY `sizel (FST f)` EXISTS_TAC;
+    REWRITE_TAC[Tame_defs.upt;Seq.mem_iota];
+    TYPIFY `3 + SUC (maxGon p) - 3 = p+4` (C SUBGOAL_THEN SUBST1_TAC);
+      REWRITE_TAC[maxGon];
+      BY(ARITH_TAC);
+    BY(ASM_SIMP_TAC[arith `n <= p+3 ==> n < p+4`]);
+  MATCH_MP_TAC mem_makeFaceFinal_generatePolygon;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let faceListAt_makeFaceFinal = prove_by_refinement(
+  `!g f. faceListAt (makeFaceFinal f g) = 
+     MAP (makeFaceFinalFaceList f) (faceListAt g)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[makeFaceFinal;FACE_LIST_AT];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  BY(REWRITE_TAC[ETA_AX])
+  ]);;
+  (* }}} *)
+
+let faces_makeFaceFinal = prove_by_refinement(
+  `!g f. faces (makeFaceFinal f g) = makeFaceFinalFaceList f (faces g)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[makeFaceFinal;FACE_LIST_AT;faces_graph]
+  ]);;
+  (* }}} *)
+
+let fst_setFinal = prove_by_refinement(
+  `!f. FST(setFinal f) = FST f`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[setFinal_ALT;FACE])
+  ]);;
+  (* }}} *)
+
+let filter_non_mem_setFinal = prove_by_refinement(
+  `!vs v f. ~MEM v (FST f) ==>
+    filter (\f. MEM v (FST f)) (replace f [setFinal f] vs) = 
+      filter (\f. MEM v (FST f)) vs`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC;
+    BY((REWRITE_TAC[replace;Seq.filter_nil]));
+  REWRITE_TAC[replace;Seq.filter_cons;APPEND_SING];
+  REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+    BY(ASM_REWRITE_TAC[Seq.filter_cons;fst_setFinal]);
+  REWRITE_TAC[Seq.filter_cons];
+  BY(ASM_SIMP_TAC[])
+  ]);;
+  (* }}} *)
+
+let mem_fst_setFinal = prove_by_refinement(
+  `!vs v f. filter (\f. MEM v  (FST f))
+     
+    (replace f [setFinal f] vs) = 
+   replace f [setFinal f] (filter (\f. MEM v (FST f)) vs)
+    `,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC;
+    BY((REWRITE_TAC[replace;Seq.filter_nil]));
+  REWRITE_TAC[replace;Seq.filter_cons];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[APPEND_SING];
+  COND_CASES_TAC;
+    ASM_REWRITE_TAC[];
+    REWRITE_TAC[MAP;Seq.filter_cons;fst_setFinal];
+    COND_CASES_TAC THEN ASM_REWRITE_TAC[replace;APPEND_SING];
+    FIRST_X_ASSUM_ST `setFinal` ((unlist REWRITE_TAC ) o GSYM);
+    BY(ASM_SIMP_TAC[filter_non_mem_setFinal]);
+  REWRITE_TAC[Seq.filter_cons];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+  BY(ASM_REWRITE_TAC[replace])
+  ]);;
+  (* }}} *)
+
+let sizel_faceListAt_seed = prove_by_refinement(
+  `!p. sizel (faceListAt (Seed p)) = countVertices (Seed p)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[SEED;graphl;LET_THM;FACE_LIST_AT;countVertices];
+  BY(REWRITE_TAC[upper_case;LENGTH_REPLICATE])
+  ]);;
+  (* }}} *)
+
+let countVertices_makeFaceFinal = prove_by_refinement(
+  `!g f. countVertices (makeFaceFinal f g) = countVertices g`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[makeFaceFinal;countVertices])
+  ]);;
+  (* }}} *)
+
+let size_list_update = prove_by_refinement(
+  `!xs i v. sizel (list_update xs i v) = sizel xs`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[list_update];
+  BY(REPEAT WEAKER_STRIP_TAC THEN COND_CASES_TAC THEN ASM_REWRITE_TAC[Seq.size_cons])
+  ]);;
+  (* }}} *)
+
+let size_replacefacesAt = prove_by_refinement(
+  `!ns f fs Fs. sizel (replacefacesAt ns f fs Fs) = sizel Fs`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[replacefacesAt;mapAt];
+  LIST_INDUCT_TAC THEN ASM_REWRITE_TAC[mapAt];
+  REPEAT WEAKER_STRIP_TAC;
+  BY(COND_CASES_TAC THEN ASM_REWRITE_TAC[size_list_update])
+  ]);;
+  (* }}} *)
+
+let sizel_faceListAt = prove_by_refinement(
+  `!g. planegraph g ==>
+    sizel (faceListAt g) = countVertices g`,
+  (* {{{ proof *)
+  [
+  MATCH_MP_TAC Dpzgbyf.planegraph_induct;
+  REWRITE_TAC[sizel_faceListAt_seed];
+  REPEAT GEN_TAC;
+  REPEAT LET_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  POP_ASSUM (MP_TAC o (MATCH_MP Dpzgbyf.MEM_generatePolygon));
+  REWRITE_TAC[subdivFace];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM SUBST1_TAC;
+  INTRO_TAC Dpzgbyf.subdivFace0_induct [`\g. sizel (faceListAt g) = countVertices g`];
+  REWRITE_TAC[IMP_IMP_THM];
+  DISCH_THEN MATCH_MP_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[faceListAt_makeFaceFinal;countVertices_makeFaceFinal];
+  CONJ_TAC;
+    BY(REWRITE_TAC[lower_case;Seq.size_map]);
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[splitFace];
+  REPEAT LET_TAC;
+  POP_ASSUM MP_TAC THEN REPEAT LET_TAC;
+  REWRITE_TAC[PAIR_EQ];
+  REPEAT WEAKER_STRIP_TAC;
+  FULL_EXPAND_TAC "g''";
+  REWRITE_TAC[countVertices;FACE_LIST_AT];
+  POP_ASSUM kill;
+  FULL_EXPAND_TAC "Fs'''''";
+  REWRITE_TAC[lower_case;Seq.size_cat];
+  FULL_EXPAND_TAC "Fs''''";
+  MATCH_MP_TAC (arith `a = a' /\ b = b' ==> (a + b = a' + b':num)`);
+  CONJ2_TAC;
+    BY(REWRITE_TAC[upper_case;LENGTH_REPLICATE]);
+  FULL_EXPAND_TAC "n'";
+  REPEAT (FIRST_X_ASSUM_ST `x=x` kill);
+  FIRST_X_ASSUM_ST `sizel Fs = countVertices g'` (SUBST1_TAC o GSYM);
+  REWRITE_TAC[size_replacefacesAt];
+  FULL_EXPAND_TAC "Fs'''";
+  REWRITE_TAC[size_replacefacesAt];
+  FULL_EXPAND_TAC "Fs''";
+  REWRITE_TAC[size_replacefacesAt];
+  FULL_EXPAND_TAC "Fs'";
+  BY(REWRITE_TAC[size_replacefacesAt])
+  ]);;
+  (* }}} *)
+
+let vertices_set2_countVertices = prove_by_refinement(
+  `!g v. v < countVertices g <=> v IN vertices_set2 g`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[vertices_set2;IN_SET_OF_LIST;vertices_graph;upt0;Seq.mem_iota];
+  BY(ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let facesAt_filter_makeFaceFinal = prove_by_refinement(
+  `!g g' f. 
+   makeFaceFinal f g = g' /\
+    planegraph g /\
+   (!v. v IN vertices_set2 g
+     ==> facesAt g v = FILTER (\f. MEM v (FST f)) (faces g))
+  ==>
+   (!v. v IN vertices_set2 g'
+     ==> facesAt g' v = FILTER (\f. MEM v (FST f)) (faces g'))
+`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[facesAt];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `v IN vertices_set2 g` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[vertices_set2_makeFaceFinal]);
+  FULL_EXPAND_TAC "g'";
+  REWRITE_TAC[faceListAt_makeFaceFinal;faces_makeFaceFinal];
+  GMATCH_SIMP_TAC EL_MAP;
+  FIRST_X_ASSUM GMATCH_SIMP_TAC;
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[makeFaceFinalFaceList];
+  REWRITE_TAC[lower_case];
+  REWRITE_TAC[mem_fst_setFinal];
+  GMATCH_SIMP_TAC sizel_faceListAt;
+  ASM_REWRITE_TAC[];
+  BY(ASM_REWRITE_TAC[vertices_set2_countVertices])
+  ]);;
+  (* }}} *)
+
+let mem_minimalFace_fgraph = prove_by_refinement(
+  `!g. 
+    ~(finalGraph g) ==>
+    MEM (FST (minimalFace (nonFinals g))) (fgraph g)
+     `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  POP_ASSUM (MP_TAC o MATCH_MP minimalFace_face);
+  REWRITE_TAC[fgraph];
+  BY(MESON_TAC[MEM_MAP])
+  ]);;
+  (* }}} *)
+
+let map_size_list_of_faces = prove_by_refinement(
+  `!L. MAP sizel (list_of_faces L) = MAP sizel L`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[List_hypermap.list_of_faces];
+  REWRITE_TAC[GSYM MAP_o];
+  GEN_TAC;
+  MATCH_MP_TAC MAP_EQ;
+  BY(REWRITE_TAC[lower_case;GSYM Seq.allP;o_THM;List_hypermap.size_list_pairs])
+  ]);;
+  (* }}} *)
+
+let foldr_size_max = prove_by_refinement(
+  `!xs x. MEM x xs ==> sizel x <= foldr maxn 0 (MAP sizel xs)`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[MAP;Seq.foldr;MEM];
+  REWRITE_TAC[Ssrnat.leq_maxr];
+  BY(ASM_MESON_TAC[arith `x:num <= x`])
+  ]);;
+  (* }}} *)
+
+let is_restricted_size_face2 = prove_by_refinement(
+  `!L f. good_list L /\
+  is_restricted (hypermap_of_list L) /\
+    MEM f (list_of_faces L) ==>
+    3 <= sizel f /\ sizel f <= foldr maxn 0 (MAP sizel L)`,
+  (* {{{ proof *)
+  [
+  ONCE_REWRITE_TAC[GSYM map_size_list_of_faces];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC is_restricted_size_face [`L`;`f`];
+  ASM_SIMP_TAC[];
+  DISCH_TAC;
+  MATCH_MP_TAC foldr_size_max;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let mem_makeFaceFinal_planeGraphP_etc = prove_by_refinement(
+  `!g L N p.  
+    ~finalGraph g /\
+    all uniq (fgraph g) /\
+    good_list L /\
+    normal_list L N /\
+    ~(N=[]) /\
+    planegraphP p g /\
+    foldr maxn 0 (MAP sizel L) - 3 = p /\
+    match_quotient_list g L N /\
+    is_restricted (hypermap_of_list L) /\
+    all uniq (quotient_list L N) /\
+    final_list L (FST (loop_choice g L N)) /\
+    good_list L /\
+    good_list_nodes L /\
+    vertices_set2 g = elements_of_list (fgraph g) /\
+          (!v. v IN vertices_set2 g
+               ==> facesAt g v = FILTER (\f. MEM v (FST f)) (faces g))
+    ==> (?g'. 
+	   match_quotient_list g' L N /\
+	   planegraphP p g' /\
+	   vertices_set2 g' = elements_of_list (fgraph g') /\
+          (!v. v IN vertices_set2 g'
+               ==> facesAt g' v = FILTER (\f. MEM v (FST f)) (faces g')) /\
+	  sizel (finals g) < sizel (finals g'))`,
+
+  (* {{{ proof *)
+  [
+  st/r
+  abbrev `rx = loop_choice g L N`
+  abbrev `f = minimalFace (nonFinals g)`
+  typ `MEM (FST f) (fgraph g)` sat
+  amt[mem_minimalFace_fgraph]
+  typ `makeFaceFinal f g` ex
+  abbrev `v = minimalVertex (g) f`
+  intro loop_choice_props [`L`;`N`;`FST rx`;`SND rx`;`g`;`f`;`v`]
+  art[]
+  st/r
+     typ `is_edge_nondegenerate (hypermap_of_list L)` sat
+  amt[is_restricted]
+  typ `all uniq L` sat
+  amt[simple_hypermap_all_uniq;is_restricted]
+  intro final_list_rot [`L`;`FST rx`;`SND rx`]
+  art[]
+  subants
+  conj
+  amt[normal_list_uniq_nonnil]
+  mmp list_of_darts_quotient_darts
+  typ `N` ex
+  art[]
+  amt[match_quotient_list]
+  st/r
+  typ `sizel (FST rx) = sizel (find_face L (SND rx))` sat
+  pop (sub1 o sym) then rt[Seq.size_rot]
+  typ `MEM (find_face L (SND rx)) (list_of_faces L)` sat
+  asimp[List_hypermap.mem_find_face]
+  abbrev `f' = find_face L (SND rx)` 
+  intro is_restricted_size_face2 [`L`;`f'`]
+  art[]
+  dt
+  intro Dpzgbyf.planegraph_all_nonempty  [`g`]
+  ants
+  mmp Dpzgbyf.DPZGBYF
+  amt[planegraph_P]
+  dt
+  typ `~(FST f = [])` sat
+  amt[Seq.allP]
+  typ `MEM v (FST f)` sat
+  fexp "v"
+  mmp mem_minimalVertex
+  art[]
+
+
+  (* need size bounds in terms of FST f, not f' *)
+  nconj 1
+  mmp makeFaceFinal_planegraphP
+  typ `v` ex then art[]
+
+
+xxd
+
+  nconj 3
+  mmp facesAt_filter_makeFaceFinal
+  exl [`g`;`f`]
+
+  rt[vertices_set2_makeFaceFinal]
+  art[fgraph_makeFaceFinal]
+
+
+  xxd
+  ]);;
+  (* }}} *)
+
+fgraph;;
+faces;;
+HKBGWJI;;
+xxd
 
 let restricted_hypermaps_are_planegraphs_reduction1 = prove_by_refinement(
   `generatePolygon_reduction_v3  /\
     (!(L:((num)list)list). good_list L /\ good_list_nodes L ==>
-  	   transform_assumption_v2 L) 
+  	   transform_assumption_v2 L) // AQ
   ==>
     restricted_hypermaps_are_planegraphs`,
   (* {{{ proof *)
   [
+
   rt[restricted_hypermaps_are_planegraphs;planegraph_PlaneGraphs]
   st/r
   rt[good_graph;planegraph_P]
@@ -4326,11 +4941,18 @@ let restricted_hypermaps_are_planegraphs_reduction1 = prove_by_refinement(
   conj
   amt[]
   contr
+  comment "do finalList L' r case"
+
+...
+
   comment "now construct next step"
-  fxast `generatePolygon_reduction_v3` mp
-  rt[generatePolygon_reduction]
+(*  fxast `generatePolygon_reduction_v3` mp
+  rt[generatePolygon_reduction] *)
   dt
   abbrev `rx = loop_choice g' L' N'`
+  abbrev `r = FST rx`
+  abbrev `x = SND rx`
+
   intro iso_list_newvertex_lemma [`L'`;`N'`;`FST rx`;`SND rx`;`g'`]
   subants
   art[]
@@ -4338,12 +4960,18 @@ let restricted_hypermaps_are_planegraphs_reduction1 = prove_by_refinement(
   fxa mmp
   art[]
   dt
-  .... xxd need HKBGWJI to continue.
+  mmp HKBGWJI
+  typ `g'` ex
+  art[]
+
+
+
   ]);;
   (* }}} *)
 
-
-
+mem_makeFaceFinal_generatePolygon;;
+transform_assumption;;
+iso_list_newvertex_lemma;;
 finalGraph;;
 good_graph;;
 normal_list_size_bound;;

@@ -1,0 +1,237 @@
+(* Bigint module, April 28, 2014 *)
+
+
+Module Bigint = struct
+
+
+open Big_int;;
+
+let big = "big_arithmetic";;
+
+let big_var = mk_var(big,bool_ty);;
+
+let is_big t = is_const t && ( dest_const t = (big,bool_ty));;
+
+is_var `big_arithmetic` or failwith "bigization variable already in use";;
+
+let is_big_axiom th = 
+  hyp th = [] && is_big (concl th);;
+
+
+let mk_bigize_thm = 
+  let pseudo_thm = prove (`(\(x:bool). x) T`,MESON_TAC[]) in
+  let abs_rep,rep_abs = Hol.new_basic_type_definition 
+    "big_arith_bool8" ("sbigize8","bigize8") (pseudo_thm) in
+  let rep_abs' = MESON[rep_abs] `~(!r. bigize8 (sbigize8 r) = r)` in
+  let bigize = new_basic_definition (mk_eq (big_var,snd (dest_comb (concl rep_abs')))) in
+  let big_thm = UNDISCH (MESON[rep_abs';bigize] `big_arithmetic ==> r`) in
+  let rvar = `r:bool` in
+  let mk_dthm t = INST [(t,rvar)] big_thm in
+    fun t -> 
+      let th = mk_dthm t in 
+	th;;
+
+let bigization_axiom = 
+  let t = mk_const (big,[]) in
+  let ax = axioms() in
+  let found = filter (fun u -> t = concl u && hyp u = []) ax in
+    fun () ->
+      if (not(found=[])) then hd found else Hol.new_axiom t;;
+
+let use_sbigization = 
+  try
+    let _ = Sys.getenv "FLYSPECK_SERIALIZATION" in
+      true
+ with Not_found -> false;;
+
+let mk_big_thm t = 
+  let _ = use_sbigization or failwith "mk_big_thm" in
+  let d = bigization_axiom() in
+    PROVE_HYP d (mk_bigize_thm t);;
+
+new_constant("bigint_of_int",`:int->bigint`);;
+
+new_constant("int_of_bigint",`:bigint->int`);;
+
+let bigint_add = new_definition  
+  `bigint_add x y = bigint_of_int (int_of_bigint x + int_of_bigint y)`;;
+
+let bigint_sub = new_definition  
+  `bigint_sub x y = bigint_of_int (int_of_bigint x - int_of_bigint y)`;;
+
+let bigint_mul = new_definition  
+  `bigint_mul x y = bigint_of_int (int_of_bigint x * int_of_bigint y)`;;
+
+let bigint_le = new_definition  
+  `bigint_le x y =  (int_of_bigint x <= int_of_bigint y)`;;
+
+let bigint_lt = new_definition  
+  `bigint_lt x y =  (int_of_bigint x < int_of_bigint y)`;;
+
+let bigint_minus = new_definition
+  `bigint_minus x = bigint_of_int (-- (int_of_bigint x))`;;
+
+let BIGINT_MINUS_CONV =
+  let minus =  `bigint_minus` in
+    fun tm1 ->
+      let t1 = dest_bigint tm1 in
+	mk_big_thm (mk_eq (mk_comb(minus,tm1), (mk_bigint (minus_big_int t1))))
+  ;;
+
+let BIGINT_ADD_CONV =
+  let big_op = mk_binop `bigint_add` in
+    fun tm1 tm2 ->
+      let t1 = dest_bigint tm1 in
+      let t2 = dest_bigint tm2 in
+	mk_big_thm (mk_eq ((big_op tm1 tm2), (mk_bigint (add_big_int t1 t2))))
+  ;;
+
+let BIGINT_SUB_CONV =
+  let big_op = mk_binop `bigint_sub` in
+    fun tm1 tm2 ->
+      let t1 = dest_bigint tm1 in
+      let t2 = dest_bigint tm2 in
+	mk_big_thm (mk_eq ((big_op tm1 tm2), (mk_bigint (sub_big_int t1 t2))))
+  ;;
+
+let BIGINT_MUL_CONV =
+  let big_op = mk_binop `bigint_mul` in
+    fun tm1 tm2 ->
+      let t1 = dest_bigint tm1 in
+      let t2 = dest_bigint tm2 in
+	mk_big_thm (mk_eq ((big_op tm1 tm2), (mk_bigint (mult_big_int t1 t2))))
+  ;;
+
+let BIGINT_LT_CONV = 
+  let big_relation = `bigint_lt` in
+    fun tm1 tm2 ->
+      let t1 = dest_bigint tm1 in
+      let t2 = dest_bigint tm2 in
+      let lt = lt_big_int t1 t2 in
+      let tm = mk_comb(mk_comb (big_relation,tm1),tm2) in
+	mk_big_thm (if lt then tm else mk_neg tm);;
+
+(*
+let BIGINT_LE_CONV = 
+  let big_relation = `bigint_le` in
+    fun tm1 tm2 ->
+      let t1 = dest_bigint tm1 in
+      let t2 = dest_bigint tm2 in
+      let lt = le_big_int t1 t2 in
+      let tm = mk_comb(mk_comb (big_relation,tm1),tm2) in
+	mk_big_thm (if lt then tm else mk_neg tm);;
+*)
+
+let int_of_bigint  = 
+  let int_of = `int_of_num` in
+  let int_neg = `int_neg` in
+    fun tm ->
+      let t = Big_int (dest_bigint tm) in
+      let u = sign_num t in
+      let a = mk_comb (int_of,mk_numeral (abs_num t)) in
+	if u >= 0 then a else mk_comb (int_neg,a) ;;
+
+let is_int_neg   =
+  let int_neg = `int_neg` in
+    fun tm ->
+      try 
+	let (v,_) = dest_comb tm in
+	  (v = int_neg)
+      with Failure _ -> false;;
+
+let is_int_of_num = 
+    fun tm ->
+      try
+	let (v,_) = dest_comb tm in
+	  (v = int_neg)
+      with Failure _ -> false
+
+let bigint_of_int = 
+  let int_of_num = `int_of_num` in
+  fun tm ->
+  let u = is_int_neg tm in
+  let tm' = if u then snd(dest_comb tm) else tm in
+  let (i,n') = dest_comb tm' in
+  let _ = i = int_of_num or failwith "bigint_of_int" in
+  let t = if u then minus_num(dest_numeral n') else dest_numeral(n') in
+    mk_bigint (big_int_of_num t);;
+    
+let INT_OF_BIGINT_BCONV = 
+  let op = `int_of_bigint` in
+    fun tm ->
+      let a = int_of_bigint tm in
+	mk_big_thm (mk_eq (mk_comb(op,tm),a));;
+
+let INT_OF_BIGINT_ICONV = 
+  let op = `int_of_bigint` in
+    fun tm ->
+      let a = bigint_of_int tm in
+	mk_big_thm (mk_eq (mk_comb(op,a),tm));;
+
+let int_of_bigint_bigint_of_int = 
+  mk_big_thm `!x y. int_of_bigint x = y <=> x = bigint_of_int y`;;
+
+ end;;
+
+(*
+module Some_tests = struct
+
+let t1 =  `int_neg (int_of_num 33)`;;
+bigint_of_int `(int_of_num 33)`;;
+
+
+
+  let tm1 = mk_bigint (big_int_of_int 88787807778888);;
+  let nm1 =  (rhs(concl(BIGINT_MINUS_CONV tm1)));;
+  INT_OF_BIGINT_BCONV tm1;;
+  INT_OF_BIGINT_BCONV nm1;;
+
+  let rx = `88787807778888 * 88787807778888`;;
+
+
+
+let b1 = big_int_of_int 88787807778888;;
+
+BIGINT_MUL_CONV tm1 tm1;;
+NUM_REDUCE_CONV rx;;
+
+let rec test k = 
+  if (k <= 0) then () else 
+  (NUM_REDUCE_CONV rx; test (k-1));;
+
+let rec test2 k = 
+  if (k <= 0) then () else 
+  (BIGINT_MUL_CONV tm1 tm1; test2 (k-1));;
+
+let rec test3 k = 
+  if (k <= 0) then () else 
+  (mult_big_int b1 b1; test3 (k-1));;
+
+
+time test3 1000;;
+repeat;;
+help "NUM_CONV";;
+
+let base = 0.00068;;
+
+let hol_light_bigint = 0.012/. base;;
+
+let native_hol = 17.4 /. base;;
+
+let solv256_hol = 1.316 /. base;;
+
+
+    
+ 
+;; (* do conversion, return thm *) 
+
+
+
+let tm1 = mk_bigint  (big_int_of_int 88787807778888);;
+let tm2 = mk_bigint (big_int_of_int 1119870999898988);;
+
+ (BIGINT_MINUS_CONV tm2);;
+
+
+end;;
+*)

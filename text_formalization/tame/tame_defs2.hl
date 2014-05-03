@@ -846,6 +846,70 @@ let good_graph = new_definition `good_graph g <=>
 let facesAt_list = new_definition 
  `facesAt_list (L:((A)list)list) (v:A) =  FILTER (MEM v) L`;;
 
+(* added 2014-05-04 *)
+
+let restricted_hypermaps_are_planegraphs = new_definition
+  `restricted_hypermaps_are_planegraphs <=>
+  (!Ln:((num)list)list. 
+  good_list Ln /\ good_list_nodes Ln /\
+  is_restricted (hypermap_of_list Ln) ==>
+  (?gn. PlaneGraphs gn /\ 
+     good_graph gn /\
+     iso (hypermap_of_list Ln) (hypermap_of_list (fgraph gn))))`;;
+
+let newvertex = new_definition'
+  `newvertex L r (x:A#A) =
+    (let f = find_face L x in
+      let f' = rotate_to f x in
+	MAP FST (filter (\d. ~MEM d r) f'))`;;
+
+let newvertex_prepped = new_definition'
+  `newvertex_prepped L (N:((num#num)list)list) r x <=>
+  (final_list L r \/
+      let n = sizel (undup (MAP FST (flatten N))) in
+      let news = newvertex L r x in
+	news = iota n (sizel news))`;;
+
+let contour_list_connected = new_definition'
+  `contour_list_connected_v2 L X (u:A#A) v  = 
+    (?s. (~(s = []) /\ HD s = u /\ LAST s = v /\  contour_list L s /\
+	set_of_list s SUBSET X))`;;
+
+(* 2014-04-07 planegraph -> planegraphP p, p-> p - 3,
+   2014-04-09 remove planegraphP from concl, add marked_list hyp. 
+   2014-05-04, added ~final_list L r to hyp. *)
+
+let generatePolygon_reduction = new_definition'
+  `generatePolygon_reduction_v4 <=> (!L:((num)list)list N N' g p fs f v k r x.  
+      good_list L /\
+      good_list_nodes L /\
+      is_restricted (hypermap_of_list L) /\
+      newvertex_prepped L N r x /\
+      marked_list L N r x /\
+      ~final_list L r /\
+      match_quotient_list g L N /\ 
+      ~(finalGraph g) /\
+      planegraphP p g /\
+      (!v. v IN vertices_set2 g
+              ==> facesAt g v = FILTER (\f. MEM v (FST f)) (faces g)) /\
+      vertices_set2 g = elements_of_list (fgraph g) /\
+      p = foldr maxn 0 (MAP sizel L) -3 /\
+      fs = nonFinals g /\
+      f = minimalFace fs /\
+      v = minimalVertex g f /\
+      (r,x) = loop_choice g L N   /\
+      k = transform_count L N r x /\
+      N' = ntrans L N r x k 
+    ==>
+      (?g' i. 
+	 match_quotient_list g' L N' /\
+	 // planegraphP p g' /\
+	 3 <= i /\ i <= maxGon p /\
+	 (!v. v IN vertices_set2 g'
+              ==> facesAt g' v = FILTER (\f. MEM v (FST f)) (faces g')) /\
+         vertices_set2 g' = elements_of_list (fgraph g') /\
+       MEM g' (generatePolygon i v f g)
+  ))`;;
 
 
 end;;

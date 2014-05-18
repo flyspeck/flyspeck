@@ -97,6 +97,18 @@ let core_split_normal_list_concl = `!L N r x.
        core L f2 = cat (cat [FST z'] (cat (betwn vs (FST z') (FST y)) [FST y])) newVs)
 `;;
 
+let LET_PAIR = prove_by_refinement(
+  `!f Q.
+  (let (f1,f2) = f in Q f1 f2) <=> (let f1 = FST f in let f2 = SND f in Q f1 f2)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT LET_TAC;
+  ASM_TAC THEN REWRITE_TAC[];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
 let split_normal_list_split_list = prove_by_refinement(
   `!L N r x b. 
     good_list L /\ good_list_nodes L /\ marked_list L N r x /\
@@ -1123,6 +1135,138 @@ let elements_of_list_ntrans = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let newvertex_prepped_transform_lemma = prove_by_refinement(
+  `!L N r x.
+    elements_of_list (quotient_list L N) =  0 .. PRE(sizel (undup (MAP FST (flatten N)))) /\
+    r_rtrans_eq L N r x /\
+    transform_assumption_v2 L /\
+    is_restricted (hypermap_of_list L) /\
+    good_list L /\
+    good_list_nodes L /\
+    marked_list L N r x /\
+    ~final_list L r /\
+    newvertex_prepped L N r x ==>
+    sizel (undup (MAP FST (flatten (ntrans L N r x 1)))) =
+    sizel (undup (MAP FST (flatten N))) +
+    sizel (MAP FST (filter (\d. ~MEM d r) (rtrans L N r x 1)))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC elements_of_list_ntrans [`L`;`N`;`r`;`x`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  FIRST_X_ASSUM_ST `newvertex_prepped` MP_TAC;
+  ASM_REWRITE_TAC[newvertex_prepped];
+  REPEAT (LET_TAC ORELSE (FIRST_X_ASSUM_ST `LET_END` MP_TAC));
+  TYPED_ABBREV_TAC `n' = sizel (undup (MAP FST (flatten (ntrans L N r x 1))))`;
+  TYPED_ABBREV_TAC `w = next_el (find_face L x) x `;
+  TYPED_ABBREV_TAC `fw = rotate_to (find_face L x) w`;
+  TYPED_ABBREV_TAC `b = MAP FST (filter (\d. ~MEM d r) (rtrans L N r x 1))`;
+  TYPIFY `MAP FST (cat (filter (\d. ~MEM d r) (rtrans L N r x 1)) (filter (\d. ~MEM d (rtrans L N r x 1)) fw)) = MAP FST (filter (\d. ~MEM d r) fw)` (C SUBGOAL_THEN MP_TAC);
+    BY(ASM_MESON_TAC[face_diff_r]);
+  REPEAT (FIRST_X_ASSUM_ST `newvertex` MP_TAC) THEN (REPEAT (GMATCH_SIMP_TAC (REWRITE_RULE[LET_THM] newvertex_alt)));
+  ASM_REWRITE_TAC[];
+  TYPIFY `uniq (find_face L x) /\ MEM x r /\ MEM x (find_face L x) /\ MEM x (rtrans L N r x 1)` (C SUBGOAL_THEN ASSUME_TAC) THEN ASM_REWRITE_TAC[];
+    nCONJ_TAC 0;
+      BY(ASM_MESON_TAC[List_hypermap.uniq_find_face;good_list]);
+    nCONJ_TAC 1;
+      BY(ASM_MESON_TAC[marked_list]);
+    nCONJ_TAC 2;
+      BY(ASM_MESON_TAC[marked_x_find_face]);
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC Aq7.AQ7;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  REPEAT (FIRST_X_ASSUM_ST `sizel` MP_TAC);
+  REWRITE_TAC[GSYM sizel_undup_card];
+  INTRO_TAC Lebhirj.LEBHIRJ [`L`;`N`;`ntrans L N r x 1`;`r`;`rtrans L N r x 1`;`x`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY `b = []` ASM_CASES_TAC;
+    POP_ASSUM (ASSUME_TAC o GSYM) THEN FULL_EXPAND_TAC "b";
+    REWRITE_TAC[Seq.size_nil;arith `m + 0 = m`];
+    FIRST_X_ASSUM_ST `MAP` MP_TAC THEN REWRITE_TAC[GSYM Seq.map_MAP;Seq.map_cat] THEN ASM_REWRITE_TAC[Seq.map_MAP];
+    BY(SIMP_TAC[set_of_list;UNION_EMPTY]);
+  COMMENT "now b is nonnil";
+  TYPED_ABBREV_TAC `l = sizel b`;
+  TYPED_ABBREV_TAC `vs' = MAP FST (filter (\d. ~MEM d (rtrans L N r x 1)) fw)`;
+  INTRO_TAC Seq.take_size_cat [`l`;`b`; `vs'`];
+  ASM_REWRITE_TAC[];
+  TYPIFY `news` (RENAME_TAC "vs");
+  TYPIFY `l <= sizel vs` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_REWRITE_TAC[];
+    FULL_EXPAND_TAC "l";
+    FULL_EXPAND_TAC "vs";
+    FIRST_X_ASSUM_ST `cat` (SUBST1_TAC o GSYM);
+    ASM_REWRITE_TAC[Seq.size_cat];
+    ASM_REWRITE_TAC[Seq.size_cat;lower_case;Seq.map_cat];
+    ASM_REWRITE_TAC[Seq.map_MAP];
+    BY(ARITH_TAC);
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `take` MP_TAC;
+  FIRST_X_ASSUM_ST `cat` MP_TAC;
+  ASM_REWRITE_TAC[Seq.size_cat;lower_case;Seq.map_cat];
+  ASM_REWRITE_TAC[Seq.map_MAP];
+  DISCH_TAC;
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `iota` MP_TAC THEN ASM_SIMP_TAC[] THEN DISCH_TAC;
+  TYPIFY `take l (iota n (sizel vs)) = b` (C SUBGOAL_THEN MP_TAC);
+    BY(ASM_MESON_TAC[]);
+  GMATCH_SIMP_TAC take_iota;
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  TYPIFY `uniq b` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Seq.iota_uniq]);
+  TYPIFY `sizel b = CARD (set_of_list b)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Seq2.card_set_of_list_uniq]);
+  TYPED_ABBREV_TAC `M' = set_of_list (MAP FST (flatten (ntrans L N r x 1)))`;
+  TYPED_ABBREV_TAC `M = set_of_list (MAP FST (flatten N))`;
+  TYPED_ABBREV_TAC `B = set_of_list (MAP FST (filter (\d. ~MEM d r) (rtrans L N r x 1)))`;
+  TYPIFY `M UNION B = M' /\ M INTER B = {}` ENOUGH_TO_SHOW_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    INTRO_TAC CARD_UNION_GEN [`M`;`B`];
+    SUBANTS_TAC;
+      BY(ASM_MESON_TAC[FINITE_SET_OF_LIST]);
+    ASM_REWRITE_TAC[CARD_CLAUSES];
+    TYPIFY `CARD B = sizel b` ENOUGH_TO_SHOW_TAC;
+      BY(REPEAT (FIRST_X_ASSUM_ST `sizel b = l` MP_TAC) THEN ARITH_TAC);
+    BY(ASM_MESON_TAC[]);
+  COMMENT "now inter and union";
+  REPEAT (FIRST_X_ASSUM_ST `elements_of_list` MP_TAC) THEN REPEAT (GMATCH_SIMP_TAC quotient_list_elements);
+  ASM_REWRITE_TAC[];
+  nCONJ_TAC 0;
+    BY(ASM_MESON_TAC[Aq8.AQ_normal_list]);
+  nCONJ_TAC 1;
+    BY(ASM_MESON_TAC[marked_list]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  CONJ_TAC;
+    TYPIFY `B = set_of_list b` (C SUBGOAL_THEN MP_TAC);
+      BY(ASM_MESON_TAC[]);
+    BY(SET_TAC[]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `B = set_of_list b` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(ASM_MESON_TAC[]);
+  FULL_EXPAND_TAC "b";
+  REWRITE_TAC[EXTENSION;IN_INTER;IN_NUMSEG;NOT_IN_EMPTY;set_of_list_iota_alt;IN_ELIM_THM];
+  GEN_TAC;
+  TYPIFY `~(n = 0)` ENOUGH_TO_SHOW_TAC;
+    BY(ARITH_TAC);
+  FULL_EXPAND_TAC "n";
+  FULL_EXPAND_TAC "M";
+  GMATCH_SIMP_TAC CARD_EQ_0;
+  REWRITE_TAC[FINITE_SET_OF_LIST];
+  REWRITE_TAC[SET_OF_LIST_EQ_EMPTY];
+  REWRITE_TAC[MAP_EQ_NIL];
+  MATCH_MP_TAC Aq4.nil_flatten;
+  CONJ2_TAC;
+    BY(ASM_MESON_TAC[marked_list;normal_list]);
+  BY(ASM_MESON_TAC[marked_list;Dangeyj.mem_imp_not_nil])
+  ]);;
+  (* }}} *)
+
+(*
 let newvertex_prepped_transform = prove_by_refinement(
   `!L N r x.
     elements_of_list (quotient_list L N) =  0 .. PRE(sizel (undup (MAP FST (flatten N)))) /\
@@ -1257,6 +1401,382 @@ let newvertex_prepped_transform = prove_by_refinement(
   BY(ASM_MESON_TAC[marked_list;Dangeyj.mem_imp_not_nil])
   ]);;
   (* }}} *)
+*)
+
+let newvertex_prepped_transform = prove_by_refinement(
+  `!L N r x.
+    elements_of_list (quotient_list L N) =  0 .. PRE(sizel (undup (MAP FST (flatten N)))) /\
+    r_rtrans_eq L N r x /\
+    transform_assumption_v2 L /\
+    is_restricted (hypermap_of_list L) /\
+    good_list L /\
+    good_list_nodes L /\
+    marked_list L N r x /\
+    newvertex_prepped L N r x ==>
+    newvertex_prepped L (ntrans L N r x 1) (rtrans L N r x 1) x`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC elements_of_list_ntrans [`L`;`N`;`r`;`x`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  FIRST_ASSUM_ST `newvertex_prepped` MP_TAC;
+  REWRITE_TAC[newvertex_prepped];
+  REPEAT (LET_TAC ORELSE (FIRST_X_ASSUM_ST `LET_END` MP_TAC));
+  TYPIFY `final_list L r` ASM_CASES_TAC THEN ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+    BY(ASM_SIMP_TAC[rtrans_final_prop]);
+  TYPIFY `final_list L (rtrans L N r x 1)` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  TYPIFY `n'` (RENAME_TAC "m");
+  TYPIFY `n` (RENAME_TAC "m'");
+  TYPIFY `news'` (RENAME_TAC "vs");
+  TYPIFY `news` (RENAME_TAC "vs'");
+  TYPIFY `?b. m' = m + sizel (b) /\ vs = cat b vs'` ENOUGH_TO_SHOW_TAC;
+    REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[];
+    MATCH_MP_TAC iota_m_cat;
+    FIRST_ASSUM (SUBST1_TAC o GSYM);
+    BY(ASM_MESON_TAC[Seq.size_cat]);
+  TYPED_ABBREV_TAC `w = next_el (find_face L x) x `;
+  TYPED_ABBREV_TAC `fw = rotate_to (find_face L x) w`;
+  TYPED_ABBREV_TAC `b = MAP FST (filter (\d. ~MEM d r) (rtrans L N r x 1))`;
+  TYPIFY `b` EXISTS_TAC;
+  TYPIFY `MAP FST (cat (filter (\d. ~MEM d r) (rtrans L N r x 1)) (filter (\d. ~MEM d (rtrans L N r x 1)) fw)) = MAP FST (filter (\d. ~MEM d r) fw)` (C SUBGOAL_THEN MP_TAC);
+    BY(ASM_MESON_TAC[face_diff_r]);
+  REPEAT (FIRST_X_ASSUM_ST `newvertex` MP_TAC) THEN (REPEAT (GMATCH_SIMP_TAC (REWRITE_RULE[LET_THM] newvertex_alt)));
+  ASM_REWRITE_TAC[];
+  TYPIFY `uniq (find_face L x) /\ MEM x r /\ MEM x (find_face L x) /\ MEM x (rtrans L N r x 1)` (C SUBGOAL_THEN ASSUME_TAC) THEN ASM_REWRITE_TAC[];
+    nCONJ_TAC 0;
+      BY(ASM_MESON_TAC[List_hypermap.uniq_find_face;good_list]);
+    nCONJ_TAC 1;
+      BY(ASM_MESON_TAC[marked_list]);
+    nCONJ_TAC 2;
+      BY(ASM_MESON_TAC[marked_x_find_face]);
+    ASM_REWRITE_TAC[];
+    MATCH_MP_TAC Aq7.AQ7;
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  SUBCONJ2_TAC;
+    BY(ASM_MESON_TAC[Seq.map_MAP;Seq.map_cat]);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  INTRO_TAC newvertex_prepped_transform_lemma [`L`;`N`;`r`;`x`];
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let undup_eq_nil = prove_by_refinement(
+  `!x. undup x = [] <=> x = []`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC [Seq2.undup;NOT_CONS_NIL];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[NOT_CONS_NIL];
+  BY(ASM_MESON_TAC[Dangeyj.mem_imp_not_nil])
+  ]);;
+  (* }}} *)
+
+let elements_of_list_vertices_set2 = prove_by_refinement(
+  `!L N r x g.
+    marked_list L N r x /\
+    elements_of_list (quotient_list L N) =  0 .. PRE(sizel (undup (MAP FST (flatten N)))) /\
+    // match_quotient_list g L N /\ 
+    fgraph g = quotient_list L N /\
+    countVertices g = sizel (undup (MAP FST (flatten N)))
+   ==>
+      vertices_set2 g = elements_of_list (fgraph g)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_REWRITE_TAC[];
+  ASM_REWRITE_TAC[EXTENSION;IN_NUMSEG;GSYM vertices_set2_countVertices];
+  GEN_TAC;
+  TYPIFY `~(sizel (undup (MAP FST (flatten N))) = 0)` ENOUGH_TO_SHOW_TAC;
+    BY(ARITH_TAC);
+  REWRITE_TAC[Seq.size_eq0;undup_eq_nil;MAP_EQ_NIL];
+  MATCH_MP_TAC Aq4.nil_flatten;
+  CONJ2_TAC;
+    BY(ASM_MESON_TAC[marked_list;normal_list]);
+  BY(ASM_MESON_TAC[marked_list;Dangeyj.mem_imp_not_nil])
+  ]);;
+  (* }}} *)
+
+let undup_undup = prove_by_refinement(
+  `!s. undup (undup s) = undup s`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC Seq.undup_id;
+  BY(REWRITE_TAC[Seq.undup_uniq])
+  ]);;
+  (* }}} *)
+
+let elements_of_list_vertices_set2_converse = prove_by_refinement(
+  `!L N r x g.
+    good_list L /\ 
+    marked_list L N r x /\
+    fgraph g = quotient_list L N /\
+    vertices_set2 g = elements_of_list (fgraph g) 
+    ==>
+    countVertices g = sizel (undup (MAP FST (flatten N))) /\
+    elements_of_list (quotient_list L N) =  0 .. PRE(sizel (undup (MAP FST (flatten N))))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `normal_list L N` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[marked_list]);
+  ASM_TAC THEN ASM_REWRITE_TAC[EXTENSION;IN_NUMSEG;GSYM vertices_set2_countVertices];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `~(sizel (undup (MAP FST (flatten N))) = 0)` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[Seq.size_eq0;undup_eq_nil;MAP_EQ_NIL];
+    MATCH_MP_TAC Aq4.nil_flatten;
+    CONJ2_TAC;
+      BY(ASM_MESON_TAC[marked_list;normal_list]);
+    BY(ASM_MESON_TAC[marked_list;Dangeyj.mem_imp_not_nil]);
+  INTRO_TAC quotient_list_elements [`L`;`N`] THEN ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  FIRST_X_ASSUM_ST `countVertices` MP_TAC THEN ASM_REWRITE_TAC[];
+  TYPED_ABBREV_TAC `fn = MAP FST (flatten N)`;
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `countVertices g = sizel (undup fn)` ENOUGH_TO_SHOW_TAC;
+    DISCH_TAC;
+    FIRST_X_ASSUM_ST `IN` MP_TAC;
+    ASM_REWRITE_TAC[];
+    DISCH_THEN (ASSUME_TAC o GSYM);
+    ASM_REWRITE_TAC[];
+    REPEAT WEAKER_STRIP_TAC;
+    BY(ASM_TAC THEN ARITH_TAC);
+  TYPIFY `CARD (set_of_list (iota 0 (countVertices g))) = CARD (set_of_list (undup fn))` ENOUGH_TO_SHOW_TAC;
+    REWRITE_TAC[sizel_undup_card;undup_undup];
+    GMATCH_SIMP_TAC Seq.undup_id;
+    BY(REWRITE_TAC[Seq.iota_uniq;Seq.size_iota]);
+  AP_TERM_TAC;
+  POP_ASSUM MP_TAC;
+  BY(REWRITE_TAC[EXTENSION;IN_SET_OF_LIST;Seq.mem_undup;Seq.mem_iota;arith `0 <= x /\ 0+n = n`])
+  ]);;
+  (* }}} *)
+
+let splitFace_countVertices = prove_by_refinement(
+  `!g u v f ws.
+    countVertices (SND (SND (splitFace g u v f ws))) = countVertices g + sizel ws`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[splitFace];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT LET_TAC;
+  BY(REWRITE_TAC[countVertices;lower_case])
+  ]);;
+  (* }}} *)
+
+let fgraph_splitFace = prove_by_refinement(
+  `!g u v h ws.
+    (let (f1,f2) = split_face h u v ws in
+       fgraph (SND (SND (splitFace g u v h ws))) = 
+	      MAP FST (cat (replace h [f2] (faces g)) [f1]))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[splitFace];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT LET_TAC;
+  REWRITE_TAC[fgraph_graph];
+  BY(REWRITE_TAC[lower_case])
+  ]);;
+  (* }}} *)
+
+let splitFace_good_vertices_set2 = prove_by_refinement(
+  `!L N r x N' fw w g' g u v f ws.
+    r_rtrans_eq L N r x /\
+    transform_assumption_v2 L /\
+    is_restricted (hypermap_of_list L) /\
+    good_list L /\
+    good_list_nodes L /\
+    marked_list L N r x /\
+    newvertex_prepped L N r x /\
+    fgraph g = quotient_list L N /\
+    ~(final_list L r) /\
+    ntrans L N r x 1 = N' /\
+    next_el (find_face L x) x = w /\
+    rotate_to (find_face L x) w = fw /\
+    SND (SND (splitFace g u v f ws)) = g' /\
+    fgraph g' = quotient_list L N' /\
+    sizel ws = sizel  (betwn (find_face L x) (l'y L r x) (l'z L N r x)) /\
+    vertices_set2 g = elements_of_list (fgraph g)
+    ==> vertices_set2 g' = elements_of_list (fgraph g')`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC elements_of_list_vertices_set2;
+  GEXISTL_TAC [`L`;`N'`;`rtrans L N r x 1`;`x`];
+  ASM_REWRITE_TAC[];
+  nCONJ_TAC 0;
+    INTRO_TAC AQIUNPP3 [`L`;`1`;`N`;`r`;`x`];
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `normal_list L N` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[marked_list]);
+  INTRO_TAC elements_of_list_vertices_set2_converse [`L`;`N`;`r`;`x`;`g`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  nCONJ_TAC 0;
+    INTRO_TAC elements_of_list_ntrans [`L`;`N`;`r`;`x`];
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[];
+  FULL_EXPAND_TAC "g'";
+  REWRITE_TAC[splitFace_countVertices];
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC (GSYM rtrans_diff_r);
+  ASM_REWRITE_TAC[];
+  INTRO_TAC newvertex_prepped_transform_lemma [`L`;`N`;`r`;`x`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN SUBST1_TAC;
+  BY(REWRITE_TAC[lower_case;Seq.size_map])
+  ]);;
+  (* }}} *)
+
+let ntrans1 = prove_by_refinement(
+  `!L N r x.
+   (
+     let y = l'y L r x in
+     let (f1,f2) = split_normal_list L r (find_face L y) y (prev_el r (l'z L N r x)) in
+       ~final_list L r ==> ntrans L N r x 1 = cat (replace r [f2] N) [f1])`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[LET_PAIR];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT LET_TAC;
+  REWRITE_TAC[ntrans;POWER_1;transform_list];
+  REPEAT LET_TAC;
+  SIMP_TAC[];
+  FULL_EXPAND_TAC "N'";
+  FULL_EXPAND_TAC "split";
+  ASM_REWRITE_TAC [lower_case];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let map_replace = prove_by_refinement(
+  `!ys f x xs. 
+    (!y. MEM y ys /\ f x = f y ==> x = y) ==>
+    MAP f (replace x xs ys) = replace (f x) (MAP f xs) (MAP f ys)`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[replace;MAP]);
+  REWRITE_TAC[MAP;replace];
+  REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+    BY(REWRITE_TAC[MAP_APPEND]);
+  REWRITE_TAC[MAP];
+  COND_CASES_TAC;
+    BY(ASM_MESON_TAC[MEM]);
+  REWRITE_TAC[CONS_11];
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(ASM_MESON_TAC[MEM])
+  ]);;
+  (* }}} *)
+
+let fgraph_quotient_list_transform = prove_by_refinement(
+    `!L N r x g N' h fw g' w  y z z' f newVs.
+    r_rtrans_eq L N r x /\
+    transform_assumption_v2 L /\
+    is_restricted (hypermap_of_list L) /\
+    good_list L /\
+    good_list_nodes L /\
+    marked_list L N r x /\
+    newvertex_prepped L N r x /\
+    fgraph g = quotient_list L N /\
+    ~(final_list L r) /\
+    ntrans L N r x 1 = N' /\
+    core L r = FST h /\
+    MEM h (faces g) /\
+    next_el (find_face L x) x = w /\
+    rotate_to (find_face L x) w = fw /\
+    SND (SND (splitFace g (FST y) (FST z') h newVs)) = g' /\
+    (let (f1,f2) = split_normal_list L r f y z' in
+       core L f1 = cat (rev newVs) (cat [FST y] (cat (betwn (FST h) (FST y) (FST z')) [FST z'])) /\
+       core L f2 = cat (cat [FST z'] (cat (betwn (FST h) (FST z') (FST y)) [FST y])) newVs) /\
+    sizel newVs = sizel  (betwn (find_face L x) (l'y L r x) (l'z L N r x)) /\
+    vertices_set2 g = elements_of_list (fgraph g) /\
+    l'y L r x = y /\
+    l'z L N r x = z /\
+    prev_el r z = z' /\
+    find_face L y = f /\
+    MAP FST (betwn f y z) = newVs
+    ==> fgraph g' = quotient_list L N' 
+ `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPED_ABBREV_TAC `h1 = FST (splitFace g (FST y) (FST z') h newVs)`;
+  TYPED_ABBREV_TAC `h2 = FST (SND (splitFace g (FST y) (FST z') h newVs))`;
+  INTRO_TAC splitFace_split_face [`g`;`FST y`;`FST z'`;`h`;`newVs`;`h1`;`h2`;`g'`];
+  SUBANTS_TAC;
+    ONCE_REWRITE_TAC[PAIR_EQ2];
+    ASM_REWRITE_TAC[];
+    ONCE_REWRITE_TAC[PAIR_EQ2];
+    BY(ASM_REWRITE_TAC[]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC split_normal_list_split_list [`L`;`N`;`r`;`x`;`SND h`];
+  ASM_REWRITE_TAC[LET_PAIR];
+  ASM_REWRITE_TAC[LET_THM];
+  TYPED_ABBREV_TAC `f1 = (FST (split_normal_list L r f y z'))`;
+  TYPED_ABBREV_TAC `f2 = (SND (split_normal_list L r f y z'))`;
+  SUBANTS_TAC;
+    FIRST_X_ASSUM_ST `LET_END` MP_TAC THEN ASM_REWRITE_TAC[LET_PAIR];
+    BY(ASM_REWRITE_TAC[LET_THM]);
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `LET_END` kill;
+  REWRITE_TAC[quotient_list_core];
+  FIRST_X_ASSUM_ST `split_face` MP_TAC THEN ONCE_REWRITE_TAC[PAIR_EQ2];
+  REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC fgraph_splitFace [`g`;`FST y`;`FST z'`;`h`;`newVs`];
+  REWRITE_TAC[LET_PAIR];
+  ASM_REWRITE_TAC[LET_THM];
+  DISCH_THEN SUBST1_TAC;
+  FULL_EXPAND_TAC "N'";
+  INTRO_TAC ntrans1 [`L`;`N`;`r`;`x`];
+  ASM_REWRITE_TAC[LET_PAIR];
+  ASM_SIMP_TAC[LET_THM];
+  DISCH_THEN kill;
+  REWRITE_TAC[lower_case;Seq.map_cat;Seq.map];
+  REPEAT (FIRST_X_ASSUM_ST `core L f = u` (MP_TAC o GSYM)) THEN REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `Face` MP_TAC THEN ONCE_REWRITE_TAC[PAIR_EQ] THEN REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[vertices_face_FST];
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[Seq.map_MAP];
+  TYPIFY `MAP FST (replace h [Face (core L f2) F] (faces g)) = replace (FST h) [core L f2] (MAP FST (faces g)) /\ MAP (core L) (replace r [f2] N) = replace (core L r) [core L f2] (MAP (core L) N)` ENOUGH_TO_SHOW_TAC;
+    DISCH_THEN (unlist REWRITE_TAC);
+    ASM_REWRITE_TAC[];
+    AP_TERM_TAC;
+    ASM_REWRITE_TAC[GSYM fgraph];
+    BY(REWRITE_TAC[quotient_list_core]);
+  REPEAT (GMATCH_SIMP_TAC map_replace);
+  ASM_REWRITE_TAC[MAP;vertices_face_FST];
+  INTRO_TAC List_hypermap.good_list_uniq [`quotient_list L N`];
+  SUBANTS_TAC;
+    MATCH_MP_TAC good_list_quotient;
+    ASM_SIMP_TAC[is_restricted_all_uniq];
+    BY(ASM_MESON_TAC[marked_list;is_restricted]);
+  REPEAT WEAKER_STRIP_TAC;
+  POP_ASSUM MP_TAC THEN REWRITE_TAC[quotient_list_core];
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `MEM r N` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_MESON_TAC[marked_list]);
+    BY(ASM_MESON_TAC[Aq8.uniq_imp_inj]);
+  DISCH_TAC;
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `uniq (MAP FST (faces g))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_REWRITE_TAC[GSYM fgraph;quotient_list_core]);
+  FIRST_X_ASSUM (ASSUME_TAC o MATCH_MP Aq8.uniq_imp_inj);
+  POP_ASSUM MATCH_MP_TAC;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+
+(* ------------------------------------------------------------ *)
+(*  OLDER STUFF *)
+(* ------------------------------------------------------------ *)
+
 
 
 let subdivFace0_alt_next_el_k = prove_by_refinement(

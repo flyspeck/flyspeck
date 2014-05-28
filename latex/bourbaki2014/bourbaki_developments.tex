@@ -1,0 +1,862 @@
+% Bourbaki talk.
+% Developments in Formal Proofs
+% Author Thomas C. Hales
+% File created May 12, 2014.
+
+
+\documentclass[brochure,english,12pt]{bourbaki}
+\usepackage[matrix,arrow]{xy}
+\usepackage{amssymb,amsfonts,amsmath,footnote}
+\usepackage[francais]{babel}
+\usepackage{MnSymbol}
+\usepackage{url}
+\usepackage{listings}
+%\usepackage{pxfonts}
+\addressindent 100mm
+
+
+
+\date{June 2014}
+\bbkannee{6x\`eme ann\'ee, 2013-2014}
+\bbknumero{10xx}
+\title{Developments in Formal Proofs}
+\author{Thomas C. HALES}
+\address{University of Pittsburgh\\
+Department of Mathematics\\
+Pittsburgh, PA 15260-2341\\
+U.S.A.\\}
+\email{hales@pitt.edu}
+
+% sectioning.
+\theoremstyle{plain}
+\newtheorem{example}[equation]{Example}
+\newtheorem{definition}[equation]{Definition}
+\newtheorem{theorem}[equation]{Theorem}
+\newtheorem{lemma}[equation]{Lemma}
+\newtheorem{corollary}[equation]{Corollary}
+
+
+% Math notation.
+\def\op#1{{\operatorname{#1}}}
+%\newcommand{\ring}[1]{\mathbb{#1}}
+\def\ring#1{{\mathbb{#1}}}
+
+
+\def\AD{\ring{A}}
+%general
+\def\b{\backslash }
+%\def\mass{{\mathbf\mu}}
+\def\card{\op{card}}
+\def\a{{\scriptsize\text{ani}}}
+\def\good{{\scriptsize\text{good}}}
+\def\diamond{{\blacklozenge}}
+\def\SO{{\mathbf {SO}}}
+\def\OO{{\mathbf O}}
+\def\st{{\text{st}}}
+
+
+%frak
+\def\so{\mathfrak{so}}
+\def\sp{\mathfrak{sp}}
+\def\gl{\mathfrak{gl}}
+\def\sl{\mathfrak{sl}}
+\def\g{\mathfrak{g}}
+\def\t{\mathfrak{t}}
+\def\cc{\mathfrak{c}}
+\def\DIV{{\mathfrak{D}}}
+\def\RDIV{{\mathfrak{R}}}
+
+
+%mathcal
+\def\A{{\mathcal A}}
+\def\T{{\mathcal T}}
+\def\M{{\mathcal M}}
+\def\P{{\mathcal P}}
+\def\O{{\mathcal O}}
+\def\tA{{\tilde{\mathcal A}}}
+\def\tP{{\tilde{\mathcal P}}}
+\def\tM{{\tilde{\mathcal M}}}
+\def\tU{{\tilde{\mathcal U}}}
+
+
+
+
+
+
+\begin{document}
+
+
+
+\maketitle
+
+
+
+{
+
+\narrower{\it Si la math\'ematique formalis\'ee \'etait
+aussi simple que le jeu
+d'\'echecs, \ldots il n'y aurait plus qu'\`a r\'ediger nos d\'emonstrations dans ce
+language, comme l'auteur d'un trait\'e d'\'echecs \'ecrit dans sa notation.\ldots
+Mais les choses sont loins d'\^etre aussi faciles, et point n'est besoin d'une
+longue pratique pour s'appercevoir qu'un tel projet est absolument irr\'ealisable.
+ -- N. Bourbaki, 1966} % page 5. T. d. Ensembles.
+
+
+
+
+}
+
+\bigskip
+
+
+
+A proof assistant is interactive computer software that humans use to prepare scripts of mathematical proofs.
+These proof scripts can be parsed and verified, directly from
+the fundamental rules of logic and the foundational axioms of mathematics.  
+The
+technology underlying proof assistants and formal proofs has been under development for decades and grew out
+of efforts in the early twentieth century to place mathematics on solid foundations.
+Various proof assistants have been built upon various mathematical foundations, including
+Zermelo-Fraenkel set theory (Mizar), Higher Order Logic (HOL), and dependent type theory (Coq).
+A {\it formal proof} is one that has been verified from first principles (generally by computer).  
+
+
+This report
+will focus on three proof particular assistants -- HOL, Coq, and Mizar -- and one recent technological advance for each of them.
+The HOL Light proof assistant illustrates the design of a highly reliable system.
+The Coq proof assistant will be used to show how advanced mathematics can be developed.  In particular, we will
+discuss the formal proof in Coq of the Odd Order theorem in group theory.
+Finally, we will turn to the the Mizar proof assistant to describe recent advances in the automation of formal proofs.
+
+%\subsection{origins of the fundamental lemma (FL)}\label{sec:origin}
+
+
+
+
+
+\section{Building a trustworthy system with HOL Light}
+
+\def\bool{\op{bool}}
+\def\Fun{\op{Fun}}
+
+HOL Light is a lightweight implementation of a foundational system
+based on Higher Order Logic (HOL).  Because it is such a lightweight system,
+it is a natural system to use for explorations of the reliability of formal proof assistants.
+
+
+
+\subsection{Naive type theory}
+
+
+
+The foundational system of mathematics, HOL, that we describe in this section is based
+on a $\lambda$-calculus with a simple type theory.  This subsection describes a simple type theory in
+naive terms.  
+
+A salient feature of set theory is that it is so amorphous; everything is a set:
+ordered pairs are sets, elements of sets are sets,
+and functions between sets are sets.
+Thus, it is a meaningful in set theory to ask bizarre questions such as whether 
+a Turing machine is a minimal surface.  In type theory,
+the very syntax of the language prohibits such questions.
+
+Naively, a simple type system is a countable collection of disjoint nonempty sets called types.
+\footnote{We restrict our attention to a simple type theory; for dependent type theory, see [cite].}
+The collection of types satisfies a closure property: for every two types $A$ and $B$,
+there  is a further type, denoted $A\to B$, that can be naively identified with the set of functions from
+$A$ to $B$.  
+
+In addition to types, there are terms, which are naively thought of as elements of types.
+Each term $x$ has a unique type $A$.  This relationship between a term and its type is denoted $x:A$.
+In particular, $f:A\to B$ denotes a term $f$ of type $A\to B$.
+
+There are variables that range over types called {\it type variables}, and another
+collection of variables that run over terms.
+
+
+\subsection{models of HOL}
+
+The naive interpretation of types as sets can be be made precise.
+We build a model of HOL in Zermelo-Fraenkel-Choice (ZFC) set theory, to see that HOL is consistent assuming that ZFC is.
+In this section, we review this routine exercise in model theory.  
+At the same time, we will give some indications of the structure of HOL Light.
+See Appendix XX for details of the design of HOL Light.
+
+%The interpretations we construct will map every type of HOL to a nonempty set and every
+%term of HOL to an element of a set.
+
+%For mathematicians with a background in ZFC, it can be very helpful at first to think of the
+%set of
+%types of HOL as a countable collection of nonempty sets and the terms
+%as elements of those nonempty sets.
+
+\subsubsection{an interpretation of types as sets, terms as elements of sets}
+
+The interpretation
+of variable-free types as sets is recursively defined.  We use a superscript $M$ to mark the interpretation
+of a type as a set.  Specifically, the types in HOL are generated by
+the boolean type $\bool$ (which we interpret as a set $\bool^M=\{\downvdash ,\upvdash \}$ 
+of cardinality two with labeled elements representing true and false),
+the infinite type $I$ (which we interpret as a countably infinite set $I^M$),
+and then recursively for any two variable-free types $A$ and $B$, the type $A\to B$ is interpreted
+as the set $\Fun(A,B)^M$ of all functions from $A^M$ to $B^M$.
+We can arrange that the sets interpreting these types are all disjoint.
+
+%The interpretation extends to types with variables in the usual way by 
+%parametrizing the interpretation over an valuation $v$ of variables to variables-free types.
+%To interpret terms, we will also parametrize the interpretation $M$ by extending $v$ to
+%include an
+%valuation of term variables (of type $A$) to elements of the set $A^{M,v}$.
+
+In summary so far,
+we fix an interpretation $M$, determining a countable collection $\T =\{A^M\}$ of nonempty sets in 
+ZFC.  
+%HOL has two kinds of variables: type variables which appear in types and term variables
+%which are terms.  
+We now extend our interpretation $M$ to a valuation $v=(M,v_1,v_2)$, where $v_1$ is a function
+from the set of type variables in HOL to $\T$, and $v_2$ is a function from the set of term
+variables in HOL to $\bigcup\T$.
+%We do this in the usual way by parameterizing the interpretation over an valuation $v$ that
+%handles the variables.
+%The valuation
+%$v$  has two parts.  The first part of $v$ is a mapping
+%from the set of type variables to $\T$; 
+%and the second part is a mapping from the set of term variables to
+%the union  $\bigcup\T$.
+The valuation $v$ extends recursively to give a mapping that assigns
+a set $A^{v}\in \T$ to every type $A$.  We require $v_2$ to be chosen so that whenever $x$ is a term variable of type $A$,
+then $x^{v_2} \in A^v$.  The valuation $v$ extends recursively to give a mapping on all terms:
+\[
+t\mapsto t^v \in A^v \in \T, \quad \text{for all } t:A.
+\]
+
+For example,
+for every type $A$,
+there is a HOL term $(=)$ of type $A\to (A\to \bool)$ representing equality for that type. 
+This term is interpreted
+as the function in $\Fun(A,\Fun(A,\bool))^{v}$ that
+takes $a\in A^{v}$ to the delta function $\delta_a$ supported at $a$; 
+(where the support of the function is the preimage of $\downvdash$).\footnote{The convention in HOL is to curry functions: using the bijection
+$X^{Y \times Z} = (X^Z)^Y$ to write a function whose domain is a product as a function
+of a single argument taking values in a function space. In particular, 
+equality is a curried function of type $\A\to (A \to\bool)$
+rather than a relation on $A\times A$.}
+%If $f$ has type $A\to B$ and $x$ has type $A$, there is a term
+%$f(x)$, which can be interpreted as the value of the function $f^{v}\in \Fun(A,B)^{v}$ 
+%at $x^{v}\in A^{v}$.
+%If $x$ is a variable of type $A$, 
+%and if $p$ is a term of type $B$, there is a term 
+%$\lambda x.~ p$ of type $A\to B$, which can be interpreted as a function in
+%$\Fun(A,B)^{v}$, defined to map $a\in A^{v}$ to the element $p^{v[a/x]}\in B^{v}$, where
+%$v[a/x]$ is the modification of the valuation $v$ that sends $x$ to $a$, and that remains
+%otherwise the same.
+
+
+\subsubsection{sequents}
+
+A {\it sequent} is a pair $(L,t)$, traditionally written $L\vdash t$, where $L$ is a finite set of terms
+called the {\it assumptions}, and $t$ is a term called the {\it conclusion}.  The
+terms of $L$ and $t$ all have type $\bool$.   If $L$ is empty, it is omitted from the
+notation.  A {\it theorem} in HOL is a sequent that is generated from the mathematical axioms
+and rules of logic.  
+
+\begin{theorem} HOL is consistent.
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+We give the proof in ZFC.  Here, HOL is treated purely syntactically as a set of strings in 
+a formal language.
+
+If $L$ is a finite set of boolean terms, and if $v$ is a valuation extending $M$,  
+write $L^{v}$ for the corresponding set of elements of the set $\bool^M$.
+We say a sequent $L \vdash t$ is {\it logically valid}
+if for every valuation $v$ for which every element of $L^{v}$ is $\downvdash \in \bool^M$, we also have
+$t^{v}=\downvdash $ in $\bool^M$.
+
+We run through the rules of logic of HOL one by one and check that each one preserves
+validity.  For example, the reflexive law of equality in HOL states that for any term $t$
+of any type $A$, we have a theorem $\vdash t = t$.  By the interpretation of equality described above, under
+any valuation $v$, this equality is interpreted as the value in $\bool^M$ of the delta function: 
+$\delta_{t^{v}}(t^{v})$, which is $\downvdash $.  Hence the reflexive law preserves validity.
+The other rules (transitivity of equality, and so forth) are checked similarly.
+
+We may well-order
+ each set in the collection $\T$. In what follows, we 
+assume that this
+has been done.  HOL posits a choice operator of type $(A\to\bool)\to A$ for every type $A$.  The well-ordering  
+allows us to 
+interpret HOL's choice operator, as a functional
+in $\Fun(\Fun(A,\bool),A)^{v}$, 
+which maps a function $f\in \Fun(A,\bool)^{v}$ with nonempty support to
+the minimal element of its support.
+
+We run through the mathematical axioms of HOL and check their validity. 
+There are only three.  The {\it axiom
+of infinity} positing the existence of an infinite type $I$
+is logically valid by our requirement to interpret $I$ as a countably infinite set.  The {\it axiom of
+choice} is logically valid by the well-ordering we have placed on the sets $A^M$.  The {\it axiom
+of extensionality} also holds in this model, because it holds for sets.
+Thus, every axiom is logically valid.  
+Since all axioms are logically valid and every rule of inference
+preserves validity, every theorem is logically valid.
+
+There is a boolean constant $\op{\tt FALSE}$ in HOL.
+An easy calculation based on its definition gives that $\op{\tt FALSE}^v = \upvdash$ for every valuation $v$
+extending the interpretation $M$.  Hence,
+$\vdash \op{\tt FALSE}$ is not a logically valid sequent, and hence not a theorem.
+This proves HOL consistent.
+\end{proof}
+
+\subsection{Computer implementation}
+
+The bare consistency proof is just the beginning.  We can push matters  much further when
+the logic is implemented in computer code.
+
+The HOL Light system is implemented in the Objective Caml programming language, which is one of the many dialects of the ML
+language.  The language ML (an acronym for Meta Language) was originally designed as a
+meta language to automate mathematical proof commands [cite Gordon].  It is significant that the development
+of the ML language and the development of proof assistants have progressed hand in hand, with many
+of the same researchers participating in language design and formal proofs.  
+The result is a programming language that can stand up to intense mathematical scrutiny.
+
+This dual development of ML and proof assistants\footnote{HOL is a descendant of the original LCF theorem prover that
+spurred the development of ML} also means that there are striking parallels between
+the syntax of ML and the syntax of HOL.    Table XX shows a few examples.
+
+\begin{lstlisting}[keepspaces=true,stringstyle=\tt,basicstyle=\small,frame=single,framesep=8pt,mathescape,morekeywords={type,let,and,in},columns=flexible,caption={Ocaml syntax compared with HOL syntax}]
+Ocaml                          versus    HOL
+3:int                                    3:num
+[0;1;2;3]                                [0;1;2;3]  
+let x = 3 and y = 4 in x + y             let x = 3 and y = 4 in x + y
+map (fun x -> x + 1) [0;1;2]             map (\x. x + 1) [0;1;2]
+\end{lstlisting}
+
+In ML as in HOL every term has a type and explicit functions $f:A\to B$ are required to convert from data of one type $A$ to another $B$.
+One of Milner's key ideas in the design of ML was to have an abstract datatype representing theorems.
+The strict type system of the language ML prevents the construction of any theorems except through
+a carefully secured kernel that decrees the axioms and rules of inference.  In a formal proof in HOL, 
+every theorem -- no matter how long or how complex -- is checked exhaustively by the kernel.
+
+\subsection{Verification of the code that implements HOL Light}
+
+The code in the kernel that decrees the rules of HOL is of critical importance.  
+Even a minor bug in the kernel might be exploited to create an inconsistent system.  Fortunately,
+there are good reasons to believe that the kernel does not have a single bug.
+
+1.  The kernel is remarkably small.  It takes fewer than 1000 lines of computer code to express
+all of the kernel functions, including the type system, the term constructors, sequents, the rules of inference,
+the axioms, and theorems.  For example, it only takes seven lines of computer code to describe the datatypes
+for HOL types, terms, and theorems.
+
+\begin{lstlisting}[keepspaces=true,stringstyle=\tt,basicstyle=\small,frame=single,framesep=8pt,mathescape,morekeywords={type},columns=flexible,caption={Code from the kernel of HOL Light}]
+  type hol_type = Tyvar of string
+                | Tyapp of string *  hol_type list
+
+  type term = Var of string * hol_type
+            | Const of string * hol_type
+            | Comb of term * term
+            | Abs of term * term
+
+  type thm = Sequent of (term list * term)
+\end{lstlisting}
+
+2.  The code has been written in a clean, readable style and has been scrutinized by many computer scientists,
+logicians, and mathematicians (including me).
+
+3.  The correctness of the kernel has been formally verified, using the HOL Light proof assistant itself (extended by a large
+cardinal) [cite].  Specifically,
+a model of HOL can be built inside HOL itself\footnote{A large cardinal axiom 
+ gives the existence of a large type corresponding to the set $\bigcup\T$ that we used above in the construction of a model.
+By G\"odel, we do not expect to construct a model of HOL in HOL without an axiom to strengthen the system.} along the same
+lines as the model of HOL in ZFC described above.  
+
+This formal verification of HOL in HOL goes  further than the construction of a model.
+It also verifies that the code implementing the logic is bug free.  The code verification is based on the 
+parallels mentioned above between the meta language and HOL itself, allowing the Ocaml source code for the HOL kernel to be
+translated back into HOL.
+
+4.  As independent corroboration, the correctness proof of the kernel of HOL Light 
+has been automatically translated into the HOL-Zero and HOL4 assistants
+and reverified there.
+
+
+The proof of HOL in HOL removes practical doubts about the correctness of the kernel, but there
+are vulnerabilities.  In particular, the semantics of Ocaml are not formally defined, making it impossible to write formal proofs in
+HOL about its own implementation language.
+As Harrison puts it elsewhere, ``the final jump from an abstract function inside the logic to a 
+concrete implementation in a serious programming language which {\it appears to correspond to it} is a glaring leap of faith.'' 
+[cite reflection 1995].  
+
+
+
+\subsection{on down to Machine Code}
+
+The formal verification of HOL in HOL does not settle the issue of trust.  
+The reliability of the proof assistant ultimately
+rests on the entire computer environment in which the software operates, including the semantics of programming languages,
+compilers, operating systems, and hardware.  These are serious concerns.
+
+
+ The current working goal of researchers is to create an unbroken formally verified chain extended from the
+HOL Light kernel all the way down to machine code.  Most of the links have been forged, but parts of the chain
+are still unsecured.  
+\footnote{We mention the project led by X. Leroy that has constructed a formally verified C compiler. Another remarkable
+project that has led to the full formal verification of an operating system.  In this survey article,
+we focus on the work done on formal verification related to the ML programming language, because it fits more closely
+with our narrative of building a trustworthy system in HOL.}
+
+To bypass Ocaml and its lack of formal semantics, researchers have developed to CakeML, which
+is a dialect of ML with mathematically rigorous operational semantics.  According to the designers, ``Our overal goal for CakeML
+is to provide the most secure system possible for running verified software and other programs that require a high-assurance
+platform.'' [Sec 12. CakeML].  
+
+Harrison's formal proof of HOL in HOL has been extended in the following ways.  1.  Support has been added for 
+HOL Light kernel functions that extend the system, by adding new definitions, types, and axioms.
+2.  The ML code implementing the kernel of HOL Light is generated automatically from the HOL4 specification of the kernel with
+an automatically generated theorem asserting that the generated code conforms to the specification, according to the operational
+semantics of ML.
+There are future plans -- already in the works --
+to give a fully verified theorem prover in ML that runs on a fully verified ML runtime.
+
+
+
+\bigskip
+
+
+\subsection{disclaimers}
+
+At the conclusion of this section, we make the usual disclaimers.
+Without exception, all physical devices are prone to failure.  Soft errors (typically 
+caused by alpha particle interactions between memory and its environment) 
+produce a steady
+stream of errors depending on complex factors such as hardware architecture and
+the elevation above sea level at which the
+calculation is performed.  A formal proof in HOL of the correctness of HOL carries
+the evident dangers of self-justification.  Finally, proofs of correctness are made relative to 
+mathematically precise idealized descriptions of things rather than the things
+in themselves.
+
+Notwithstanding all these disclaimers,  formalized mathematics reduces defect rates
+in mathematical proofs to levels that are simply not possible by any other available process.
+In particular, formalized mathematics can now claim to be orders of magnitude more reliable than 
+traditionally refereed papers.  
+
+
+In the previous section, we discussed the construction of a reliable proof assistant.  In the next section,
+we turn to a different proof assistant, Coq, and look at the formalization of group theory.
+We warn the reader that the Coq system, and its underlying logic -- Calculus of Inductive Constructions, 
+are significantly different from the HOL system in the previous section.
+
+
+\section{Advanced Developments in Coq: The Feit-Thompson Theorem}
+
+
+Feit and Thompson published their famous theorem in 1963.
+
+\begin{theorem}[The Odd Order Theorem, Feit-Thompson (FT)]  All finite groups of odd order are solvable.
+\end{theorem}
+
+\begin{lstlisting}[keepspaces=true,stringstyle=\tt,basicstyle=\small,frame=single,framesep=8pt,mathescape,morekeywords={Theorem},columns=flexible]
+Theorem Feit_Thompson (gT : finGroup Type) (G : {group gT}) :
+  odd #|G| -> solvable G.
+\end{lstlisting}
+
+Solomon writes this about the significance of the Odd Order theorem, ``This short sentence and its long proof
+were a moment in the evolution of finite group theory analogous to the emergence of fish onto dry
+land.  Nothing like it had happened before; nothing quite like it has happened since.''
+
+The Feit-Thompson paper broke through various barriers that cleared the way for a 
+remarkably fruitful massive research collaboration that eventually led to the classification
+of finite simple groups.  Significantly, the  255 page Feit-Thompson result
+started an avalanche of long complex proofs related to the classification, 
+culminating in the 1221 page classification of quasithin groups by Aschbacher and Smith.
+% references at https://en.wikipedia.org/wiki/Quasithin_group. 
+
+
+Background material for the proof appears in
+textbooks {\it Finite Groups} by Gorenstein, and {\it Finite  Group Theory} by Aschbacher, and 
+{\it Character Theory of finite groups} by Isaacs.
+The necessary background includes a basic graduate-level understanding of rings, modules, linear and multilinear algebra (including 
+direct sums, tensor
+products  and determinants);
+fields, algebraic closures, and basic Galois theory; the structure theorems of Sylow and Hall; Jordan-H\"older;
+Wedderburn's structure theorem for semisimple algebras; representation theory with Schur's lemma, Maschke's theorem,
+and Jacobson density (for finite groups); and character theory including Frobenius reciprocity, and orthogonality. 
+
+I will not say much about the actual proof of the 
+Feit-Thompson theorem.\footnote{I was a student of some of the great Cambridge group theorists at the peak of
+the classification era, but Thompson's influence pushed me towards modular forms and Conway towards sphere packings,
+leaving me as a failed finite group theorist.}  We have now had
+more than 
+50 years to assimilate the ideas of the proof.  There are numerous surveys of the proof [Goren, p 450], [Glauber,] [Thompson, ICM],
+[Soloman, ].
+The original proof of Feit and Thompson was later reworked  and simplified in two books cite[XXX].
+
+In very brief terms, the proof starts by assuming a minimal counterexample to the theorem.  This
+counterexample will be a finite simple group $G$ of odd order in which every proper subgroup is solvable.
+Each maximal subgroup of $G$ is $p$-local; that is, the normalizer of a nontrivial subgroup
+of $G$ of $p$-power order, for some prime $p$.  A major part of the proof of FT consists in establishing
+restrictions on the structure of the maximal subgroups and their embeddings into $G$.
+In the special case when $G$ is a $CN$-group (a group whose centralizers of non-identity elements are all nilpotent),
+the maximal subgroups are {\it Frobenius groups}.  A Frobenius group is
+a nontrivial semidirect product $K\rtimes H$, where $H$ is disjoint from its conjugates, and $H$ is its own normalizer [Gor, Th. 7.7].
+Back in general case, the strategy is to prove that as many of the maximal subgroups as possible are as close as possible to
+being Frobenius groups.  This strategy encounters many exceptions and detours, but eventually the local
+analysis shows that the maximal subgroups are mostly rather Frobenius-like. 
+This can be made precise [Loc An. Sec 16].
+
+% Frobenius : http://ssr2.msr-inria.inria.fr/~jenkins/current/frobenius.html
+
+A second major portion of the proof is uses the complex character theory of $G$ to obtain inequalities over the real numbers
+that restrict and ultimately eliminate all possibilities for $G$. 
+
+A final part of the proof uses generators and relations to remove a special case in which there
+are maximal subgroups isomorphic to the group of all permutations of a finite field $\ring{F}$
+of the form $x \mapsto a\, \sigma (x) + b$, where $\sigma$ is a field automorphism, $b\in\ring{F}$,
+and $a$ is an element $\ring{F}$ of norm $1$.
+
+
+
+
+
+\subsection{Formal verification}
+
+
+The Feit-Thompson theorem has been formally verified in the Coq proof assistant by a team led by Georges Gonthier.
+[Gont-FT].  This is an extraordinary milestone in the history of formal proofs.
+What is particularly significant about the formalization itself?
+
+1. Although the Feit-Thompson theorem itself has never been seriously questioned,
+ the premature announcement of the classification of finite simple groups drew sustained criticism.
+ Gorenstein wrote, ``In February 1981, the classification of the finite simple groups was
+completed'' [cite G, page 1]; and yet essential work on the classification
+continued for decades after that date [cite Aschbacher, Smith; Aschbacher's survey Notices.].
+This formalization project plants a flag in the middle of those squabbles and provides a
+methodology for conflict resolution that is beyond reproach.
+
+% http://www.ams.org/notices/200407/fea-aschbacher.pdf
+
+
+2. Traditional methods of refereeing mathematical research become strained, when
+proofs are unusually long or computer assisted.  There is a wiki page listing numerous proofs
+in mathematics that set records for length.
+According to the list,
+long papers cluster in certain areas
+such as finite group theory related to the classification, 
+the Langlands program and representation theory of Lie groups,
+and graph theory.  Feit-Thompson, the four-color theorem (Gonthier's previous formalization
+project), and the Kepler conjecture are all on that list. 
+These three recent formalization projects send a clear defiant message  to mathematicians:
+no matter how long or how complex your mathematical proofs may be, we can formalize them.
+%\footnote{%The is a popular list of 100 well-known
+%mathematical theorems
+%that Wiedijk has used as benchmarks for formalization.  They range in difficult from the trivial (the 
+%formula for the sum
+%of an arithmetic series) to deep (Wiles's proof Fermat's Last theorem).
+%89\% of them have been formalized.  
+%For future formalization projects, the wiki's list of 27 long
+%proofs would be a good place to start.} 
+
+Absolutely no technological barriers 
+prevent the formalization of large parts of the mathematical corpus.  The issues now
+are how to make the technology more efficient, cost effective, and user friendly.
+
+% Reference http://www.cs.ru.nl/F.Wiedijk/100/
+
+
+\subsection{a constructive proof of FT}
+
+The formal proof of the FT theorem is based on the second-generation proof described in
+two books cited above [cite Glaube] [cite Peter].
+If we were to translate the formal proof of Feit-Thompson back into a humanly readable book, 
+the most notable difference would be that the original proof uses classical logic,
+but the formal proof uses constructive logic.  In particular, a constructive proof avoids
+ the law of excluded middle $\phi\lor \neg \phi$ and proofs by contradiction.
+
+Several different strategies were used to translate the proof from book form to
+constructive computer proof.
+
+1.  Often, mathematicians use proof by contradiction when a direct proof
+would work equally well.  
+``Let $G$ be the finite group of minimal order that is a counterexample'' gets
+replaced with an induction on the order of the group, and so forth.
+
+2. In [Peter], the character theory of finite groups relies heavily on 
+vector spaces over $\ring{C}$ and complex conjugation.  In the constructive formal proof, the corresponding
+vector spaces over an algebraic clousure $\bar{\ring{Q}}$ are used.  An algebraic closure of $\ring{Q}$ 
+is obtained as the union of an increasing tower of  
+number fields $\ring{Q}(\alpha_i)$, for $i=0,\ldots$, each  an explicitly constructed splitting field
+over the preceding one.
+Complex conjugation is replaced with
+conjugation with respect to a maximal real subfield of $\bar{\ring{Q}}$, also constructed
+as an explicit union of real subfields of finite degree over $\ring{Q}$.
+
+3.  Some constructions are justified by the decision procdure for the first-order theory
+of algebraically closed fields~\cite{XX}.  
+For example, the socle of a module is defined as the sum of its
+simple submodules.  This decision procedure gives a constructive test for the simplicity of a submodule,
+leading to a constructive definition of the socle  (for a finitely generated 
+$k[G]$-module where $G$ is a finite group and $k$ is an algebraically closed field).  
+
+On a related note, the construction of a simple submodule of a given module $M$ requires choice;
+by confining attention to modules that are countable as sets, countable choice suffices, which 
+is provable in Coq from the well-foundedness of the natural numbers.
+
+
+4.  Various intermediate results in FT use classical logic, but the use of classical
+logic is eliminated from the final statement of the Feit-Thompson theorem.  The wedding of constructive and
+classical logics is 
+seemlessly arranged
+through a predicate $\op{\it classically}~\phi$ that marks every result proved by classical logic.
+The definition of $\op{\it classically}~\phi$ is
+\[
+\op{classically}~\phi : Prop := \forall {b:\bool}, (\phi\to b) \to b,
+\]
+which is essentially the usual double negation translation of a classical formula into
+constructive logic.  The definition of {\it classically} works in such a way that $\phi$ may
+be used as an assumption in the proof of any boolean goal $b$.  Specifically, matching a goal
+with $\op{\it classically}~\phi$ reduces the goal $b$ to subgoal $\phi\to b$, whereby the assumption
+$\phi$ is introduced.
+
+5.  Function extensionality does not hold in Coq; that is, it is not provable in Coq
+that two functions are equal, if they are provably equal on every input.  This creates various
+complications in Coq.  There are no general quotient types in Coq: types corresponding
+to the set of classes on a type under an equivalence relation.  Instead, Coq introduces {\it setoids} 
+(that is, a set together 
+with an equivalence relation on that set) without passing to the quotient.  Unfortunately, setoids carry a certain
+overhead, which was not acceptable in the FT proof, which makes ubiquitous use of quotient
+groups $G/N$.   
+
+To allow for genuiune quotients, the FT theorem is developed in the context of {\it finite types} with {\it decidable equality};
+(that is, the type is equipped with boolean procedure that decides whether any two elements of that type are equal).
+In this context, function extensionality holds and genuine quotients groups can be formed.
+
+
+6.  For all its advantages, at times the type theory of Coq is best forgotten.  In particular,
+in arguments involving a finite number of finite groups, there would be excessive overhead in
+assigning a separate type, a separate binary operation on each group, 
+and writing explicit homomorphisms embedding subgroups into groups.
+ For such arguments, the finitely many finite groups are
+often considered via Cayley as subgroups of a larger ambient finite group giving them a common binary
+operation and type.  These ambient group arguments are one of the biggest stylistic differences
+between the Coq proof and the original.
+
+
+\subsubsection{A library of abstract algebra}
+
+Most of the work in developing the proof of the Feit-Thompson theorem went into development of the libraries in
+abstract algebra and the related computer infrastructure.  The libraries include all the formalization of all
+of the necessary background material described at the beginning of this section, from ....xxd
+
+
+
+
+XX The tricks of SSReflect, canonical hints, etc.  Absuses of notation.
+
+
+
+\section{Automating Formalization}
+
+1. We can use whatever wreckless methods we want to search for proofs, as unsound as we want,
+provided we pass them through our carefully secured kernel that checks.
+So it is an engineering task -- algorithms, machine learning, AI.
+
+XX Write this section.
+
+
+\section{Final Remarks}
+
+The aim of this report has been to describe some of the recent developments in formal proofs.
+Space and time do not permit a comprehensive survey, but in this final section, I briefly mention
+a few other projects.
+
+
+\subsection{Homotopy Type Theory}
+
+My report will be directly followed by a report by Thierry Coquand on dependent types and
+the univalence axiom, so I will be brief in my remarks on homotopy type theory.
+
+Homotopy type theory (HoTT) is a foundational system for mathematics that includes
+dependent type theory, the univalence axiom, and higher inductive types.  
+Introductions to homotopy type theory can be found in the [HoTT Book] and the survey [Bulletin], [Awodey], etc.
+For models of HoTT, see [Kap.Lums.VV].
+
+It goes without saying that as mathematicians, we construct the ground on which we stand;
+the foundations of mathematics are of choosing, subject
+to only mild constraints such as plausible consistency, expressive power, and a community of users.
+In particular, nothing but our own limited imaginations prevents us from relocating the
+foundations much closer to home.
+
+By being a foundational system that is close to the actual practice of homotopy theory,
+HoTT makes the formalization of this branch of mathematics a walk in the park.
+In the last two years many new formal proofs and constructions have been obtained: 
+loop spaces, computations of various
+fundamental groups of spheres, the Freudenthal suspension theorem,
+construction of Eilenberg-Mac Lane spaces, and the Blakers-Massey theorem,
+Formalization of these results in other systems would have been much more labor intensive.
+A new line of research, synthetic homotopy theory, develops homotopy theory on HoTT foundations.
+% See Licata https://github.com/dlicata335/hott-agda, homotopy directory.
+
+\begin{lstlisting}[keepspaces=true,stringstyle=\tt,basicstyle=\small,frame=single,framesep=8pt,mathescape,morekeywords={Definition,Lemma,Proof,Defined},columns=flexible,caption={Construction of classifying spaces as the type of a torsor in Univalent foundations.  The proof that the classifying space $BG$ is connected. --D. Grayson.}]
+Definition ClassifyingSpace G := pointedType (Torsor G) (trivialTorsor G).
+Definition E := PointedTorsor.
+Definition B := ClassifyingSpace.
+Definition $\pi$ {G:gr} := underlyingTorsor : E G -> B G.
+
+Lemma isconnBG (G:gr) : isconnected (B G).
+Proof. intros. apply (base_connected (trivialTorsor _)).
+  intros X. apply (squash_to_prop (torsor_nonempty X)). { apply propproperty. }
+  intros x. apply hinhpr. exact (torsor_eqweq_to_path (triviality_isomorphism X x)). 
+Defined.
+\end{lstlisting}
+% https://github.com/UniMath/UniMath/blob/master/UniMath/Ktheory/GroupAction.v
+
+I challenge any other system to pass from the foundations of math to classifying spaces so directly and elegantly.
+
+
+
+
+\subsection{Bourbaki on Formalization}
+
+Over the past generation, the mantle for Bourbaki-style mathematics has  passed to the formal proof community, in the way it
+ deliberates carefully on matters of notation and terminology, finds
+appropriate level of generalization of concepts and abstractions, and
+situates different branches of mathematics within a coherent framework.
+
+The opening quote claims that formalized mathematics is absolutely unrealizable.
+This is correct in the strict sense that no human artefact is absolutely trustworthy.
+
+Nevertheless,  technological barriers hindering formalization have fallen one
+after another.  Bourbaki objected that formal proofs are too long (``{\it la moindre d\'emonstration \ldots
+exigerait d\'ej\`a des centaines de signes}''). Today, computers verifications that
+check the millions of inferences are routine.
+
+Bourbaki argues that it would be a burden to forego the convenience of abuses of notation.
+As Gonthier has convincingly shown, 
+many abuses of notation can actually be described by precise rules and implemented as algorithms,
+making the term {\it abuse of notation} really something of a misnomer, and
+allowing mathematicians to work formally with with customary notation.
+Finally, Bourbaki gives the utility of metamathemaical arguments and abbreviations as an argument against formalization.
+The trend over the past decades has been to move more and more features out of the metatheory and into the theory, and to
+rework metamathematical argument as reasoning in higher-order logic.  In particular, it is now
+standard to treat abbreviations and definitions as part of the logic itself.
+
+\subsection{Conclusion}
+
+This report has described three major projects in the world of formal proofs:
+developing trustworthy systems with HOL, formalizing advanced mathematical theorems
+in Coq, and using sledgehammers to increase automation.  
+We might anticipate that these developments might some day be available within a single proof assistant
+that will be used routinely by mathematicians.
+
+
+\section{Appendix. HOL Light axioms}
+
+Give a summary.
+
+
+\section{Appendix. Showcase of Formally verified theorems}
+
+\subsection{Some examples of formalization projects}
+
+This section gives a brief overview of some of the theorems that have been sucessfully formalized
+in various proof assistants.  The purpose of these examples is to showcase the range
+of what can be obtained by current technologies.
+
+
+The four color theorem assserts that every planar map can be colored with a palette of four colors in such a way that adjacent
+countries are painted different colors.
+
+Starting in joint work with B. Werner and then eventually continuing on his own,
+Georges Gonthier obtained a complete formal verification of the four-color theorem in 2003 in
+the Coq proof assistant.
+
+\begin{lstlisting}[keepspaces=true,stringstyle=\tt,basicstyle=\small,frame=single,framesep=8pt,morekeywords={Variable,Theorem,Proof,Qed},columns=flexible,caption={Four-color theorem in Coq}]
+Variable R : real_model. 
+Theorem four_color : (m : (map R))
+     (simple_map m) -> (map_colorable (4) m). 
+Proof.
+    Exact (compactness_extension four_color_finite). 
+Qed.
+\end{lstlisting}
+
+
+The elementary proof of Erd\"os and Selberg was formalized in \cite{XX}.  Later the analytic proof of Hadamard and de la Val\'ee Poussin
+was formalized \cite{XX}.
+
+\begin{lstlisting}[keepspaces=true,stringstyle=\tt,basicstyle=\small,frame=single,framesep=8pt,mathescape,morekeywords={theorem,fixes,assumes,defines,shows,Variable,Theorem,Proof,Qed},columns=flexible,caption={The prime number theorem}]
+  ((\n. &(CARD {p | prime p /\ p <= n}) / (&n / log(&n)))
+    ---> &1) sequentially
+\end{lstlisting}
+
+\begin{lstlisting}[keepspaces=true,stringstyle=\tt,basicstyle=\small,frame=single,framesep=8pt,mathescape,morekeywords={theorem,fixes,assumes,defines,shows,Variable,Theorem,Proof,Qed},columns=flexible,caption={Brouwer fixed point formula}]
+  $\forall$ f:real^N->real^N s. 
+  compact s $\land$ 
+  convex s $\land$
+  ~(s = {}) $\land$
+  f continuous_on s $\land$
+  IMAGE f s SUBSET s
+  $\Longrightarrow$ $\exists$x. x IN s /\ f x = x
+\end{lstlisting}
+
+The formalization of the central limit theorem was carried out earlier this year.
+
+\begin{lstlisting}[keepspaces=true,stringstyle=\tt,basicstyle=\small,frame=single,framesep=8pt,mathescape,morekeywords={theorem,fixes,assumes,defines,shows,Variable,Theorem,Proof,Qed},columns=flexible,caption={The central limit theorem in Isabelle}]
+theorem (in prob_space) central_limit_theorem:
+  fixes 
+    X :: "nat $\Rightarrow$ 'a $\Rightarrow$ real" and
+    $\mu$ :: "real measure" and
+    $\sigma$ :: real and
+    S :: "nat $\Rightarrow$ 'a $\Rightarrow$ real"
+  assumes
+    X_indep: "indep_vars ($\lambda$i. borel) X UNIV" and
+    X_integrable: "$\bigwedge$n. integrable M (X n)" and
+    X_mean_0: "$\bigwedge$n. expectation (X n) = 0" and
+    $\sigma$_pos: "$\sigma$ > 0" and
+    X_square_integrable: "$\bigwedge$n. integrable M ($\lambda$x. (X n x)$^2$)" and
+    X_variance: "$\bigwedge$n. variance (X n) = $\sigma^2$" and
+    X_distrib: "$\bigwedge$n. distr M borel (X n) = $\mu$"
+  defines
+    "S n $\equiv$ $\lambda$x. $\Sigma\,$i<n. X i x"
+  shows
+    "weak_conv_m ($\lambda$n. distr M borel ($\lambda$x. S n x / sqrt (n * $\sigma^2$))) 
+        (density lborel standard_normal_density)"
+\end{lstlisting}
+
+% https://github.com/avigad/isabelle/blob/master/Analysis/Central_Limit_Theorem.thy
+% https://github.com/avigad/isabelle/blob/master/Analysis/Central_Limit_Theorem.thy
+
+
+The Kepler conjecture asserts that no packing of congruent balls in $\ring{R}^3$ can have density greater than
+the face-centered cubic packing.  The Kepler conjecture is now a theorem.  The proof relies on many computer
+calculations.  The noncomputer parts of the proof (as well as many of the computer parts of the proof) of the Kepler conjecture 
+have been formalized in HOL Light.  This formalization has been a large collaborative effort.
+
+\begin{lstlisting}[keepspaces=true,stringstyle=\tt,basicstyle=\small,frame=single,framesep=8pt,framextopmargin=10pt,mathescape,morekeywords={Variable,Theorem,Proof,Qed},columns=flexible,caption={The formal proof of the Kepler conjecture in HOL Light}]
+    linear_programming_results $\land$      
+    import_tame_classification $\land$      
+    the_nonlinear_inequalities $\land$
+    restricted_hypermaps_are_planegraphs    
+    $\Longrightarrow$ the_kepler_conjecture
+\end{lstlisting}
+
+
+None of the work described in this report represents my own research, except for contributions to the
+proof and formalization of the Kepler conjecture.  I would like to thank the many people who helped me
+during the preparation of this report.
+
+Acknowledgements.  (XX Add XX)
+%I wish to thank Harrison, Mahboubi, Gonthier, Nipkow, Avigad, Urban...
+
+
+\raggedright
+\bibliographystyle{plain} %plainnat
+\bibliography{/Users/thomashales/Desktop/googlecode/flyspeck/latex/bibliography/all}
+
+
+References: Bourbaki - Sets.
+
+Aschbacher, Michael (2000), Finite Group Theory, Cambridge University Press.
+
+
+\end{document}

@@ -694,28 +694,154 @@ As technology has developed, computers have become capable of providing
 more and more of the low-level reasoning.   This section describes some of
 the most promising technologies in this field.
 
-Before getting intot he details, we point out that these search algorithms
+Before getting intot he details, we point out that proof search algorithms
 are based on fundamentally different design considerations than the proof
 assistants themselves.  As we explained in Section XX, it is a matter of
 immense importance for the underlying logic of the proof assistant to be sound
 and for the implementation in code to be free of bugs.  
 
 By contrast, proof search algorithms should be allowed to use whatever
-wreckless methods they please, with the understanding that their results must
-eventually verified by  the proof assistant before being admitted as part of
+reckless methods they please, with the understanding that their results must
+eventually be verified by  the proof assistant before being admitted as part of
 formal proof.  In particular, the soundness or completeness of these algorithms
 is not a necessity.  It is more important to have fast algorithms with a high
 success rate.  Our algorithms may make extensive use of
-experimentation, statistical methods, machine learning, and artificial intelligence.
+experimentation, statistical methods, and machine learning.
 
 
 
-\subsection{First-order theorem provers and Vampire}
+\subsection{First-order theorem provers}
+
+% Give Herbrand.
 
 
-XX Write this section.
+A {\it first order formula with equality in the predicate calculus} is a formula built
+from variables $x,y,\ldots$, logical operations $\neg, \land, \Rightarrow,\ldots$, $n$-ary function symbols $f,g\ldots$, 
+ $n$-ary predicate symbols $P, Q,\ldots$  and quantified variables $\forall x, \exists y,\ldots$,
+according to syntactic rules that I will not spell out here.     For example,
+\[
+((\exists x.~P(x)) \Rightarrow (\forall y. Q(y))) \Leftrightarrow (\forall x\forall y.~P(x)\Rightarrow Q(y))
+\]
+is a first-order formula.
+In contrast to higher-order logics discussed earlier, in a first-order formula,
+quantifiers over function symbols and predicate symbols are not allowed.
+The equality predicate  symbol $(=)$ is treated differently from other relation symbols.  Equality is required to have the
+standard interpretation, but other relation symbols are uninterpreted.
+
+We are interested in algorithms that are {\it refutation complete}; that is, algorithms that given an
+the input of an unsatisfiable first-order formula, output a proof of its unsatisfiability.  A refutation complete
+algorithm can also produce proofs of logically valid formulas, by refuting the negation of the formula.
+
+One of the great success stories in algorithmic logic in recent decades has been the development of
+powerful first-order theorem provers and their implementation in software.   Refuting unsatisfiable formulas
+ is something that can be done really well.  
+There is an annual competition (CASC) among first-order theorem provers.  In recent years, the {\it Vampire} 
+theorem prover developed has
+dominated the competition, with other strong contenders such as the {\it Spass} and {\it E} theorem provers.  
+The competition
+problems in the LTB division can contain millions of premises.
+% See our "trophies" at www.vprover.org.
+
+
+The first-order formula is first preprocessed according to well-established rules that preserve satisfiability
+(prenex form, skolemization of variables, conjunctive normal form).  After preprocessing, quantifiers appear
+as a single universally quantified block and can be omitted from the notation.  What remains is a 
+formula in conjunctive normal form
+\[
+C_1 \land C_2 \land \cdots \land C_n,
+\]
+where each {\it clause} $C_i$ is a disjunction of {\it literals} (a predicate symbol applied to terms or its negation).
+We can replace with conjunctive normal form with the set of clauses $\{C_1,\ldots,C_n\}$, dropping the conjunction
+symbol from notation.
+
+What has been understood for a long time are rules of inference ({\it resolution}  together with
+special inferences that dealing with equality) that are refutation complete.  The algorithm design challenge is to
+find efficient ways to manage and contain the vast explosion of the number of clauses that result by repeated
+application of the inference rules.  Poorly designed algorithms quickly exhaust available memory before
+a refutation is found.
+
+Vampire uses various strategies to restrict the number of clauses.  The algorithm
+depends on an well-founded partial ordering on the set of terms  that drives the direction of the 
+ inference rules.  
+A set $S$ of clauses
+is {\it saturated} with respect to a set of inference rules if the application of an inference rule to clauses in the set
+yields another clause in the set.  A clause in $S$ is {\it redundant} if it is a logical consequence of smaller clauses
+in $S$ (with respect to the ordering).  
+The algorithm repeatedly updates a set of clauses that is saturated
+modulo redundancy, aggressively removing redundant clauses, and giving strong preferential
+treatment to the inference rules (called simplifying inferences) that do not increase the cardinality of the set of clauses,
+according to the maxim
+ ``apply simplifying inferences eagerly; apply generating inferences lazilly.'' [Vamp].
+
 
 \subsection{Hammers}
+
+There are some automated theorem provers based on higher-order logic [Peter Andrews, Paulson],
+but the most prevalent practice is to translate problems in higher-order logic into first-order logic,
+solve them with a first-order theorem prover, 
+then translate the answers back into higher-order logic.\footnote{There are many
+issues that come up in translating formulas in higher-order logic into first-order logic that I will not
+discuss here.  In particular, some of the procedures might not be logically sound.}
+
+An early example of translating proofs in this way is Harrison's MESON (based on model elimination), 
+which follows this approach
+to automated much of the elementary logical reasoning in HOL Light.  In using MESON, the human
+is required to supply all the relevant mathematical theorems, and MESON provides the logical
+glue that combines the given theorems to prove a desired goal.   
+
+Long ago, it was possible for a human expert to remember the names of all the theorems in the libraries
+of the proof assistant, and to type out the name of every needed theorem on every occasion of its use.
+Over time, large  mathematical libraries of formally proved theorems have been developed.  It is no longer
+a reasonable request to ask the human to remember and type the names of all the theorems that are relevant
+for a proof.  
+This practice is still widespread; but it is a practice that must come to an end.
+
+Larry Paulson had the audacious idea that when trying to give a formal proof 
+of a goal\footnote{in formal proof terminology, the goal is the statement to be proved}, we should
+ship the goal together with all of the libraries of tens of thousands of theorems to a first-order theorem prover
+and let first-order theorem prover figure out which of many theorems to use in the proof.  
+The method is called a {\it sledgehammer}  for its ability to deliver a powerful blow and its complete lack of finesse.
+
+Actually, Paulson's approach was better engineered than what I have described.  Rather than ship tens of thousands
+of theorems the first-order theorem prover, 
+he first applied an automated heuristic procedure that selects a few hundred theorems
+deemed to be the most relevant.  For example, to prove a new trig identity, we might select other
+trig identities as likely to be relevant.  This initial filtering of the libraries of theorems can dramatically
+improve the success rate of the procedure.  When the first-order theorem prover is successful, it finds
+a proof of the theorem and a (now small) list of theorems that are required in the proof.  
+The small list of relevant theorems is shipped back to the proof assistant, which uses them to automatically
+reconstruct a formal proof.
+
+Various studies have been made of the success rates of the sledgehammer.   The technology continues to improve.
+(Cite XX).
+In the Isabelle/HOL proof assistant, depending on the library....  In the Mizar proof assistant, the sledgehammer
+works X\%.  In the HOL Light proof assistant, XX.
+
+\subsection{Learning}
+
+J. Urban has been calling for Machine Learning and other methods of Artificial Intelligence
+to the formalization of mathematics.\footnote{To summarize Urban's thesis: the big data approach to solving
+challenging problems in AI is now  an established part of corporate
+culture, and represents an enormous opportunity.}
+We now have large libraries of formal proofs in proofs assistants such
+as Mizar, Isabelle, Coq, and HOL Light.  
+Let's turn those libraries into training sets for machine learning algorithms.
+
+In concrete terms, we may apply machine learning to improve the sledgehammer success rate.
+As we mentioned, the sledgehammer uses an automated heuristic procedure that selects a few hundred
+theorems from a vast library of theorems that are deemed to be the most relevant.   
+Urban and Kalizyk have developed machine-learning methods for premise-selection.
+
+
+
+
+%In some cases, the automated proofs are different from the human proofs.  For example,
+%in HOL Light, a theorem states that the convex hull of any three points in $\ring{R}^3$ is a null set.
+%The human proof gives this as  corollary of a more general theorem that the convex hull of a finite set
+%is a null set if the cardinality of the set is no more than the dimension.  The ATP proof uses
+% a theorem stating that the affine hull of three points in $\ring{R}^3$ is a null set, which is a shorter
+%proof because it avoids the issue of cardinality.
+
 
 
 
@@ -772,7 +898,6 @@ I challenge any other system to pass from the foundations of math to classifying
 
 
 
-
 \subsection{Bourbaki on Formalization}
 
 Over the past generation, the mantle for Bourbaki-style mathematics has  passed to the formal proof community, in the way it
@@ -781,30 +906,39 @@ appropriate level of generalization of concepts and abstractions, and
 situates different branches of mathematics within a coherent framework.
 
 The opening quote claims that formalized mathematics is absolutely unrealizable.
-This is correct in the strict sense that no human artefact is absolutely trustworthy.
+Bourbaki objected that formal proofs are too long (``{\it la moindre d\'emonstration \ldots
+exigerait d\'ej\`a des centaines de signes}''), that it would be a burden to forego 
+the convenience of abuses of notation, and that they do not leave room for useful metamathematical
+arguments and conventional abbreviations.
 
+Bourbaki is correct in the strict sense that no human artefact is absolutely trustworthy and that
+the standards of formalized mathematics develop in a historical process.
 Nevertheless,  technological barriers hindering formalization have fallen one
-after another.  Bourbaki objected that formal proofs are too long (``{\it la moindre d\'emonstration \ldots
-exigerait d\'ej\`a des centaines de signes}''). Today, computers verifications that
+after another.  Today, computers verifications that
 check the millions of inferences are routine.
-
-Bourbaki argues that it would be a burden to forego the convenience of abuses of notation.
 As Gonthier has convincingly shown, 
 many abuses of notation can actually be described by precise rules and implemented as algorithms,
 making the term {\it abuse of notation} really something of a misnomer, and
 allowing mathematicians to work formally with with customary notation.
-Finally, Bourbaki gives the utility of metamathemaical arguments and abbreviations as an argument against formalization.
-The trend over the past decades has been to move more and more features out of the metatheory and into the theory, and to
+Finally, the 
+trend over the past decades has been to move more and more features out of the metatheory and into the theory, and to
 rework metamathematical argument as reasoning in higher-order logic.  In particular, it is now
-standard to treat abbreviations and definitions as part of the logic itself.
+standard to treat abbreviations and definitions as part of the logic itself rather than metatheory.
 
-\subsection{Conclusion}
+\subsection{Future Work}
 
 This report has described three major projects in the world of formal proofs:
 developing trustworthy systems with HOL, formalizing advanced mathematical theorems
-in Coq, and using sledgehammers to increase automation.  
-We might anticipate that these developments might some day be available within a single proof assistant
-that will be used routinely by mathematicians.
+in Coq, and using sledgehammers to increase automation.   
+Other recent research has been developing  the automatic translation of mathematical prose in English
+into a computer readable form with semantic content.  See [Ganasalingam1,2].
+
+We are still far from having an automated mathematical journal referee system, but close enough
+to propose this as a realistic research program.
+As these technology develops, we may anticipate the day when the precise statements of mathematical
+theorems may be extracted from the prose.  Once sufficiently many statements from the proof 
+can similarly be extracted, proof automation will take over, filling in the remaining details, to produce
+a formal proof from mathematical prose.  
 
 
 \section{Appendix. HOL Light axioms}

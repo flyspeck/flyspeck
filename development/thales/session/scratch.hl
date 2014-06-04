@@ -1,6 +1,11 @@
 
 
-  #print_length 100;;
+  #print_length 30;;
+
+(* reset goalstate *)
+loadt "tactics.ml";;
+rflyspeck_needs "general/hol_pervasives.hl";;
+(* then local build stuff *)
 
 flyspeck_dir;;
 loadt "..//formal_lp/hypermap/ssreflect/list_hypermap_iso-compiled.hl";;
@@ -8,12 +13,20 @@ loadt "../formal_ineqs/../formal_lp/hypermap/computations/more_theory-compiled.h
 loadt "../formal_ineqs/../formal_lp/hypermap/computations/list_hypermap_computations.hl";;
 loadt "../formal_ineqs/../formal_lp/hypermap/main/prove_flyspeck_lp.hl";;
 loadt "../formal_ineqs/../formal_lp/hypermap/verify_all.hl";;
+rflyspeck_needs "tame/tactic.hl";;
+
+ISPECL;;
+let ISPECL_BAK = ISPECL;;
+let ISPECL u v = 
+  try ISPECL_BAK u v
+  with _ -> (print_thm v; map print_term u; failwith "ispecl");;
 
 let verify_one() =
   let _ = Verify_all.init_ineqs() in
   let files = Verify_all.get_certificate_files_with_prefix !Verify_all.cert_dir "easy_std_20" in
     map Verify_all.verify_file files;;
 
+flyspeck_needs "general/sphere.hl";;
 
 let vresult = verify_one();;
 verify_one;;
@@ -230,7 +243,7 @@ rflyspeck_needs "jordan/real_ext.hl";;
 rflyspeck_needs "jordan/taylor_atn.hl";;
 rflyspeck_needs "jordan/parse_ext_override_interface.hl";;
 flyspeck_needs "jordan/flyspeck_constants.hl";;
-flyspeck_needs "general/print_types.hl";;
+rflyspeck_needs "general/print_types.hl";;
 flyspeck_needs "general/theorem_digest.hl";;
 flyspeck_needs "general/serialization.hl";;
 flyspeck_needs "packing/OXLZLEZ.hl";;
@@ -311,7 +324,7 @@ rflyspeck_needs "nonlinear/optimize.hl";;
 rflyspeck_needs "general/flyspeck_lib.hl";;
 rflyspeck_needs   "nonlinear/function_list.hl";;
 rflyspeck_needs "nonlinear/auto_lib.hl";;
-rflyspeck_needs "nonlinear/scripts.hl";;
+flyspeck_needs "nonlinear/scripts.hl";;
 
 Scripts.execute_interval_all false;;
 Scripts.execute_cfsqp();;
@@ -4110,7 +4123,7 @@ Str.regexp;;
 Str.regexp;;
 
 #load "str.cma";;
-needs "general/hol_pervasives.hl";;
+reneeds "general/hol_pervasives.hl";;
 needs "general/theorem_digest.hl";;
 needs "general/prove_by_refinement.hl";;
 needs "general/serialization.hl";;
@@ -4895,54 +4908,273 @@ help_flag 'd' "insert";;
 
 
 
+open Terminal;;
 
-strip_abs;;
+let ineqm = new_definition'
+  `ineqm xs ab f = ineq (MAP2 (\ x ab. (FST ab,x,SND ab)) xs ab) f`;;
 
+let subat = new_recursive_definition list_RECURSION 
+  `subat (i:num) (y:A) ([]:(A)list) = ([]:(A)list) /\
+   subat i (y:A) (x::xs) = if i = 0 then y ::  xs else x :: (subat (i-1) y xs)`;;
 
-let admissible2_list_admissible2 = prove_by_refinement(
-  `!g w. good_graph g /\ admissible2_list w (fgraph g) ==> 
-     admissible2 (w o FST) g`,
+let subat_rules = prove_by_refinement(
+  `(!i (y:A). subat i y [] = []) /\
+    (!x xs (y:A). subat 0 y (x::xs) = y :: xs) /\
+    (!i x xs (y:A). subat (SUC i) y (x::xs) = x :: (subat i) y xs)`,
   (* {{{ proof *)
   [
-  REWRITE_TAC[admissible2_list;admissible2];
-  REPEAT WEAKER_STRIP_TAC;
-  FIRST_X_ASSUM (C INTRO_TAC [`v`]);
-  ANTS_TAC;
-    CONJ_TAC;
-      BY(ASM_MESON_TAC[good_graph]);
-    GMATCH_SIMP_TAC Wmlnymd.except_list_except;
-    BY(ASM_REWRITE_TAC[]);
-  ASM_SIMP_TAC[Wmlnymd.tri_list_tri;Wmlnymd.quad_list_quad];
-  GMATCH_SIMP_TAC (GSYM Wmlnymd.facesAt2_list);
-  ASM_REWRITE_TAC[Seq.map_MAP;GSYM MAP_o];
-  MATCH_MP_TAC (TAUT `(a = b) ==> (a ==> b)`);
-  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
-  BY(REWRITE_TAC[FUN_EQ_THM;o_THM])
+  ONCE_REWRITE_TAC[subat];
+  BY(REWRITE_TAC[arith `~(SUC i = 0)`;arith `SUC i - 1 = i`])
   ]);;
   (* }}} *)
 
-TAUT;;
-st 5 [name "except_list_except"];;
+let subat_nil = prove_by_refinement(
+  `(!i (y:A). subat i y [] = [])`,
+  (* {{{ proof *)
+  [
+  MESON_TAC[subat_rules]
+  ]);;
+  (* }}} *)
 
-Wmlnymd.facesAt2_list;;
-st 5 [name "facesAt2_list"];;
-st 5 [name "admissible2"];;
-st 5 [name "good_graph"];;
-st 5 [name "except_list_except"];;
-st 5 [name "tri_list_tri"];;
-st 5 [name "quad_list_quad"];;
-st 5 [name "facesAt2_list"];;
-open Wmlnymd;;
-open Reduction1;;
-Function_list.functions();;
+let subat_explicit = prove_by_refinement(
+  `(!i x xs (y:A).
+      subat 9 y (x::xs) = x :: (subat 8 y xs) /\
+      subat 8 y (x::xs) = x :: (subat 7 y xs) /\
+      subat 7 y (x::xs) = x :: (subat 6 y xs) /\
+      subat 6 y (x::xs) = x :: (subat 5 y xs) /\
+      subat 5 y (x::xs) = x :: (subat 4 y xs) /\
+      subat 4 y (x::xs) = x :: (subat 3 y xs) /\
+      subat 3 y (x::xs) = x :: (subat 2 y xs) /\
+      subat 2 y (x::xs) = x :: (subat 1 y xs) /\
+      subat 1 y (x::xs) = x :: (subat 0 y xs) /\
+      subat 0 y (x::xs) = y :: xs)`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[arith `9 = SUC 8 /\ 8 = SUC 7 /\ 7 = SUC 6 /\ 6 = SUC 5 /\ 5 = SUC 4 /\ 4 = SUC 3 /\ 3 = SUC 2 /\ 2 = SUC 1 /\ 1 = SUC 0`;subat_rules])
+  ]);;
+  (* }}} *)
 
+let bisect_left = new_definition'
+   `bisect_left i d = subat i (pathL (EL i d)) d`;;
 
-(3:int);;
-[0;1;2;3];;
-let x = 3 and y = 4 in x + y;;
-map (fun x -> x + 1) [0;1;2];;
+let bisect_right = new_definition'
+   `bisect_right i d = subat i (pathR (EL i d)) d`;;
 
-`3:num`;;
-`[0;1;2;3]`;;
-`let x = 3 and y = 4 in x + y`;;
-`map (\x. x + 1) [0;1;2]`;;
+let frac_left = new_definition'
+  `frac_left i r d = 
+     (let (a,b) = EL i d in
+	subat i (a,a * (&1 - r) + b * r) d)`;;
+
+let frac_right = new_definition'
+  `frac_right i r d = 
+     (let (a,b) = EL i d in
+	subat i (a * (&1 - r) + b * r,b) d)`;;
+
+let bisect_left_frac = prove_by_refinement(
+  `!d i. bisect_left i d = frac_left i (#0.5) d`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[bisect_left;frac_left;LET_THM];
+  LIST_INDUCT_TAC THEN REWRITE_TAC[subat;LAMBDA_PAIR];
+  REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[EL;HD;TL;Sphere.pathL;CONS_11];
+    INTRO_TAC PAIR_SURJECTIVE [`h`] THEN REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[Sphere.pathL;PAIR_EQ];
+    BY(ARITH_TAC);
+  INTRO_TAC num_CASES [`i`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[];
+  ASM_REWRITE_TAC[EL;TL];
+  BY(ASM_REWRITE_TAC[EL;TL;arith `SUC n - 1 = n`;LAMBDA_PAIR])
+  ]);;
+  (* }}} *)
+
+let bisect_right_frac = prove_by_refinement(
+  `!d i. bisect_right i d = frac_right i (#0.5) d`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[bisect_right;frac_right;LET_THM];
+  LIST_INDUCT_TAC THEN REWRITE_TAC[subat;LAMBDA_PAIR];
+  REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[EL;HD;TL;Sphere.pathR;CONS_11];
+    INTRO_TAC PAIR_SURJECTIVE [`h`] THEN REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[Sphere.pathR;PAIR_EQ];
+    BY(ARITH_TAC);
+  INTRO_TAC num_CASES [`i`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[];
+  ASM_REWRITE_TAC[EL;TL];
+  BY(ASM_REWRITE_TAC[EL;TL;arith `SUC n - 1 = n`;LAMBDA_PAIR])
+  ]);;
+  (* }}} *)
+
+let ineq6m = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6 a1 a2 a3 a4 a5 a6 b1 b2 b3 b4 b5 b6 f.
+    ineqm [x1;x2;x3;x4;x5;x6] [(a1,b1);(a2,b2);(a3,b3);(a4,b4);(a5,b5);(a6,b6)] f = 
+    ineq [(a1,x1,b1);(a2,x2,b2);(a3,x3,b3);(a4,x4,b4);(a5,x5,b5);(a6,x6,b6)] f`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ineqm];
+  BY(REWRITE_TAC[MAP2])
+  ]);;
+  (* }}} *)
+
+let simple_dest_ineq ineq = 
+  let t = snd(strip_forall ineq) in
+  let (vs,i) = dest_comb t in
+  let (_,vs) = dest_comb vs in
+  let vs = dest_list vs in
+  let vs = map (fun t -> let (a,b) = dest_pair t in (a,dest_pair b)) vs in
+  let vs = map (fun (a,(b,c)) -> (a, b, c)) vs in
+    (t,vs,i);;
+
+simple_dest_ineq (hd (Ineq.getexact "1965189142 34")).ineq;;
+
+let mk_bisect_left =
+  let bl = `bisect_left` in
+    fun i domain ->
+      let i' = mk_small_numeral i in
+	mk_comb (mk_comb (bl,i'),domain);;
+
+let mk_bisect_right =
+  let br = `bisect_right` in
+    fun i domain ->
+      let i' = mk_small_numeral i in
+	mk_comb (mk_comb (br,i'),domain);;
+
+let mk_decimal10000  = 
+  let d = mk_small_numeral 10000 in
+  let dec = `DECIMAL` in
+    fun r ->
+      let r' = mk_small_numeral (truncate(10000.0 *. r)) in
+	mk_comb (mk_comb (dec,r'),d);;
+
+let mk_frac_left =  
+  let bl = `frac_left` in
+    fun i r d ->
+      let i' = mk_small_numeral i in
+      let r' = mk_decimal10000 r in
+	mk_comb (mk_comb (mk_comb (bl,i'),r'),d);;
+
+let mk_frac_right =  
+  let bl = `frac_right` in
+    fun i r d ->
+      let i' = mk_small_numeral i in
+      let r' = mk_decimal10000 r in
+	mk_comb (mk_comb (mk_comb (bl,i'),r'),d);;
+
+let rec mk_rec acc domain = function
+  | Iarg_bisect (i,u,v) -> 
+      let usL = mk_rec acc (mk_bisect_left i domain) u in
+	mk_rec usL (mk_bisect_right i domain) v 
+  | Iarg_leaf _ -> acc
+  | Iarg_facet ((i,false),r,_,v) ->
+      let usL = mk_frac_left i (1.0 -. r)  domain in
+	usL :: (mk_rec  acc (mk_frac_right i (1.0 -. r) domain) v)
+  | Iarg_facet ((i,true),r,_,v) ->
+      let usR = mk_frac_right i r domain in
+	usR :: (mk_rec acc (mk_frac_left i r domain) v);;
+
+let mk_ineq  = 
+  let ineq_const = `ineq` in
+    fun xs f ->
+      mk_comb(mk_comb (ineq_const, xs),f);;
+
+let mk_ineqm  = 
+  let ineq_const = `ineqm` in
+    fun xs ab f ->
+      mk_comb(mk_comb(mk_comb (ineq_const, xs),ab),f);;
+
+mk_ineq `[a:real,x:real,b:real]` `x > &0`;;
+mk_ineqm `[x:real]` `[a:real,b:real]` `x > &0`;;
+
+let mk_case_tree idq iarg = 
+  let (inq,axbs,f) = simple_dest_ineq idq.ineq in
+  let xs = mk_flist (map (fun (_,x,_) -> x) axbs) in
+  let abs = mk_flist (map (fun (a,_,b) -> mk_pair (a,b)) axbs) in
+  let doms = mk_rec [] abs iarg in
+    map (fun ab -> mk_ineqm xs ab f) doms;;
+
+let iarg2563100177 = Iarg_facet ((0,true),0.5000,1900,
+ Iarg_facet ((1,true),0.5000,985,
+ Iarg_facet ((2,true),0.5000,826,
+ Iarg_leaf 1947)));;
+
+let prep256 = { 
+  idv= "prep-2563100177";
+  doc="";
+  tags= [];
+  ineq= `!x1 x2 x3 x4 x5 x6.
+     ineq
+     [ #4.0,x1, #6.3504;  #4.0,x2, #6.3504;  #4.0,x3, #6.3504;  #4.0,
+                                                               x4,
+                                                                #6.3504; 
+      #6.3504,
+     x5,
+      #8.0;  #6.3504,x6, #8.0]
+     (rhazim_x x1 x2 x3 x4 x5 x6 * -- &1 +
+      unit6 x1 x2 x3 x4 x5 x6 *  #1.0685 +
+      sqrt_x1 x1 x2 x3 x4 x5 x6 *  #0.4635 +
+      unit6 x1 x2 x3 x4 x5 x6 *  #0.4635 * -- #2.0 +
+      sqrt_x2 x1 x2 x3 x4 x5 x6 * -- #0.424 +
+      unit6 x1 x2 x3 x4 x5 x6 *  #0.424 *  #2.0 +
+      sqrt_x3 x1 x2 x3 x4 x5 x6 * -- #0.424 +
+      unit6 x1 x2 x3 x4 x5 x6 *  #0.424 *  #2.0 +
+      sqrt_x4 x1 x2 x3 x4 x5 x6 *  #0.594 +
+      unit6 x1 x2 x3 x4 x5 x6 *  #0.594 * -- #2.0 +
+      sqrt_x5 x1 x2 x3 x4 x5 x6 * -- #0.124 +
+      unit6 x1 x2 x3 x4 x5 x6 *  #0.124 *  #2.52 +
+      sqrt_x6 x1 x2 x3 x4 x5 x6 * -- #0.124 +
+      unit6 x1 x2 x3 x4 x5 x6 *  #0.124 *  #2.52 <
+      &0)`;
+};;
+
+mk_case_tree prep256 iarg2563100177;;
+
+let iarg8875 = 
+ Iarg_facet ((0,true),0.7397,730,
+ Iarg_facet ((1,true),0.6312,1267,
+ Iarg_facet ((2,true),0.6427,1056,
+ Iarg_facet ((4,false),0.5000,1335,
+ Iarg_facet ((5,false),0.5000,867,
+ Iarg_bisect (1,
+ Iarg_facet ((2,true),0.5000,1412,
+ Iarg_facet ((4,true),0.5000,989,
+ Iarg_leaf 1146)),
+ Iarg_facet ((2,true),0.5000,1346,
+ Iarg_leaf 1935)))))));;
+
+let prep8875 = 
+{ 
+  idv= "prep-8875146520";
+  doc="";
+  tags= [];
+  ineq= `!x1 x2 x3 x4 x5 x6.
+     ineq
+     [ #4.0,x1, #6.3504;  #4.0,x2, #6.3504;  #4.0,x3, #6.3504;  #4.0,x4, #4.0; 
+      #3.01 *  #3.01,
+     x5,
+      #3.237 *  #3.237;  #3.01 *  #3.01,x6, #3.237 *  #3.237]
+     (unit6 x1 x2 x3 x4 x5 x6 *  #0.616 +
+      rhazim_x x1 x2 x3 x4 x5 x6 * -- &1 +
+      rhazim2_x x1 x2 x3 x4 x5 x6 * -- &1 +
+      rhazim3_x x1 x2 x3 x4 x5 x6 * -- &1 +
+      unit6 x1 x2 x3 x4 x5 x6 * pi +
+      unit6 x1 x2 x3 x4 x5 x6 * const1 * pi +
+      flat_term2_135_x (&20) (&4) (&4) x1 x2 x3 x4 x5 x6 * -- &1 +
+      unit6 x1 x2 x3 x4 x5 x6 *  #0.012 * -- #4.47 +
+      unit6 x1 x2 x3 x4 x5 x6 *  #0.01 *  #2.52 *  #2.0 * -- #4.47 +
+      sqrt_x1 x1 x2 x3 x4 x5 x6 *  #0.01 *  #4.47 +
+      sqrt_x3 x1 x2 x3 x4 x5 x6 *  #0.01 *  #4.47 +
+      mud_126_x_v1 ( #2.0 *  #1.26)  #2.0  #2.0 x1 x2 x3 x4 x5 x6 * -- &1 <
+      &0 \/
+      unit6 x1 x2 x3 x4 x5 x6 * &20 +
+      delta_135_x (&4 *  #1.26 *  #1.26) (&4) (&4) x1 x2 x3 x4 x5 x6 * -- &1 <
+      &0 \/
+      delta_126_x (&4 *  #1.26 *  #1.26) (&4) (&4) x1 x2 x3 x4 x5 x6 +
+      unit6 x1 x2 x3 x4 x5 x6 * -- &20 <
+      &0)`;
+};;
+
+let cases8875 = mk_case_tree prep8875 iarg8875;;
+
+let hd8875 = List.nth cases8875 7;;
+
+(REWRITE_CONV [frac_left;frac_right;bisect_left_frac;bisect_right_frac;subat_explicit;LET_THM;LAMBDA_PAIR;Basics.EL_EXPLICIT] THENC REAL_RAT_REDUCE_CONV THENC REWRITE_CONV[ineq6m]) hd8875;;
+

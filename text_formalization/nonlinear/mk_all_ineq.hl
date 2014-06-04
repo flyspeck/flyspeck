@@ -19,15 +19,33 @@ module Mk_all_ineq = struct
 
   open Optimize;;
 
+(* ********************************************************************** *)
+(* relate `nonlinear` to `the_nonlinear_inequalities` *)
+(* ********************************************************************** *)
+
+let disregard = 
+   [
+"9563139965D"; (* derived lp, disregard it. Removed from Ineq.ineqs Jun 2014 *)
+"TSKAJXY-DERIVED"; (* doesn't ever actually get added in, so doesn't need to be removed *)
+  ] ;;
+
+let the_nonlinear_inequalities = new_definition
+  `the_nonlinear_inequalities <=>
+  (pack_nonlinear_non_ox3q1h /\ ox3q1h /\ 
+     main_nonlinear_terminal_v11 /\ lp_ineqs /\ pack_ineq_def_a /\
+    kcblrqc_ineq_def)`;;
+
 let mk_nonlinear = 
-  let ineql = map (fun idv -> idv.ineq) !Ineq.ineqs in
+  let ineqs = filter (fun t -> not (mem t disregard)) !Ineq.ineqs in
+  let ineql = map (fun idv -> idv.ineq) ineqs in
   let ineq_conj = end_itlist (curry mk_conj) ineql in
   let _ = new_definition (mk_eq (`nonlinear:bool`,ineq_conj)) in
     ();;
 
 let get_nonlinear = 
-  let sl = map (fun ind -> ind.idv) !Ineq.ineqs in
-  let ineql = map (fun idv -> idv.ineq) !Ineq.ineqs in
+  let ineqs = filter (fun t -> not (mem t disregard)) !Ineq.ineqs in
+  let sl = map (fun ind -> ind.idv) ineqs in
+  let ineql = map (fun idv -> idv.ineq) ineqs in
   let ineq_conj = end_itlist (curry mk_conj) ineql in
   let th = new_definition (mk_eq (`nonlinear:bool`,ineq_conj)) in
   let th1 = UNDISCH (MATCH_MP (TAUT `(a <=> b) ==> (a ==> b)`) th) in
@@ -36,6 +54,134 @@ let get_nonlinear =
       let i = index s sl in
       let th2 = funpow i CONJUNCT2 th1 in
 	co1 th2;;
+
+(* old version,
+
+let mk_nonlinear = 
+  let ineql = map (fun idv -> idv.ineq) !Ineq.ineqs in
+  let ineq_conj = end_itlist (curry mk_conj) ineql in
+  let _ = new_definition (mk_eq (`nonlinear:bool`,ineq_conj)) in
+    ();;
+
+let get_nonlinear = 
+  let ineql = map (fun idv -> idv.ineq) !Ineq.ineqs in
+  let sl = map (fun ind -> ind.idv) !Ineq.ineqs in
+  let ineq_conj = end_itlist (curry mk_conj) ineql in
+  let th = new_definition (mk_eq (`nonlinear:bool`,ineq_conj)) in
+  let th1 = UNDISCH (MATCH_MP (TAUT `(a <=> b) ==> (a ==> b)`) th) in
+  let co1 thm = if (is_conj (concl thm)) then CONJUNCT1 thm else thm in
+    fun s ->
+      let i = index s sl in
+      let th2 = funpow i CONJUNCT2 th1 in
+	co1 th2;;
+
+*)
+
+let kcblrqc_ineq_s = ["6988401556"; "4667071578"; "8519146937"; "3296257235"; "5490182221";
+   "5735387903"; "3862621143 back"; "3862621143 front"; "3862621143 side";
+   "3862621143 revised"; "4240815464 a reduced"; "4240815464 a";
+   "6944699408 a reduced"; "6944699408 a"; "7043724150 a reduced v2";
+   "7043724150 a"; "3287695934"; "2570626711"; "4652969746 2";
+   "4652969746 1"];;
+
+let pack_ineq_s = 
+  let has_packid = (fun t -> not(intersect ["UKBRPFE";"WAZLDCD";"BIEFJHU"] (Ineq.flypaper_ids t) = [])) in
+  let idl = (filter has_packid !Ineq.ineqs) in
+  let tml = map (fun t -> t.idv) idl in
+    tml;;
+
+let get_main_nonlinear_s = 
+  let is_main = function 
+    | Main_estimate -> true
+    | _ -> false in
+  let has_main ind = 
+    exists (is_main) ind.tags in
+  let main_ineq_data1 = 
+    filter has_main (!Ineq.ineqs) in
+  let id = map (fun t-> t.idv) main_ineq_data1 in
+    id;;
+
+let main_nonlinear = 
+  let is_main = function 
+    | Main_estimate -> true
+    | _ -> false in
+  let has_main ind = 
+    exists (is_main) ind.tags in
+  let main_ineq_data1 = 
+    filter has_main (!Ineq.ineqs) in
+  let id = map (fun t-> t.idv) main_ineq_data1 in
+  let main_ineq_data = map (fun t -> hd(Ineq.getexact t)) id in
+  let ineql = map (fun ind -> ind.ineq) main_ineq_data in
+  let sl = map (fun ind -> ind.idv) main_ineq_data in
+  let main_ineq_conj = end_itlist (curry mk_conj) ineql in
+  let th = new_definition (mk_eq (`main_nonlinear_terminal_v11:bool`,main_ineq_conj)) in
+    th;;
+
+let lp_ineqs_s =
+  let check_lp_tags =
+    let rec check tags =
+      match tags with
+	| Lp :: _ -> true
+	| Tablelp :: _ -> true
+	| Lp_aux _ :: _ -> true
+	| h :: t -> check t
+	| [] -> false in
+      fun ineq -> check ineq.tags in
+  let ineq_ids = ["6170936724"] in
+  let lp_ineqs = filter (fun ineq -> check_lp_tags ineq or mem ineq.idv ineq_ids) !Ineq.ineqs in
+    map (fun t -> t.idv) lp_ineqs;;
+
+(*
+mem "9563139965D" lp_ineqs_s;;
+st 5 [`lp_ineqs`];;
+*)
+
+let ox3q1h_s = 
+  let idvs = map (fun t -> t.idv) (!Ineq.ineqs) in
+  let getprefix idv = filter (fun t -> (String.length idv <= String.length t) &&
+			     (String.sub t 0 (String.length idv) = idv)) idvs in
+    getprefix "OXLZLEZ 6346351218";;
+
+let packing_ineq_data = Merge_ineq.packing_ineq_data;;
+
+let packing_ineq_data_s = map (fun t -> t.idv) packing_ineq_data;;
+
+let mk_pack_nonlinear = 
+  let ineql = map (fun idv -> idv.ineq) packing_ineq_data in
+  let packing_ineq_conj = end_itlist (curry mk_conj) ineql in
+  let th = new_definition (mk_eq (`pack_nonlinear_non_ox3q1h:bool`,packing_ineq_conj)) in
+    th;;
+
+(* XX doesn't work for some strange reason *)
+
+let nonlinear_imp_the_nonlinear_inequalities = prove_by_refinement(
+  `nonlinear ==> the_nonlinear_inequalities`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[the_nonlinear_inequalities];
+  DISCH_TAC;
+  nCONJ_TAC 5;
+    REWRITE_TAC[Tame_lemmas.kcblrqc_ineq_def];
+    BY(REWRITE_TAC (map get_nonlinear kcblrqc_ineq_tml));
+  nCONJ_TAC 4;
+    BY(REWRITE_TAC (Ysskqoy.pack_ineq_def_a :: map get_nonlinear pack_ineq_s));
+  nCONJ_TAC 3;
+    BY(REWRITE_TAC (Lp_ineqs.lp_ineqs_def :: map get_nonlinear lp_ineqs_s));
+  nCONJ_TAC 2;
+    BY(REWRITE_TAC (main_nonlinear :: map get_nonlinear get_main_nonlinear_s));
+  nCONJ_TAC 1;
+    BY(REWRITE_TAC (Merge_ineq.ox3q1h() :: map get_nonlinear ox3q1h_s));
+  ASM_REWRITE_TAC[];
+  BY(REWRITE_TAC (mk_pack_nonlinear :: map get_nonlinear packing_ineq_data_s))
+  ]);;
+  (* }}} *)
+
+
+(* ********************************************************************** *)
+(* relate prep.hl to `nonlinear` *)
+(* ********************************************************************** *)
+
+
 
 (*
 let prep_ineqs = ref ([]:ineq_datum list);;
@@ -94,11 +240,12 @@ let prove_ineq s =
   let LET_ELIM_TAC = CONV_TAC (REDEPTH_CONV let_CONV) in
   let is_xconvert tags = mem Xconvert tags in
   let is_branch tags = mem Branching tags in
-  let NONL = `prepared_nonlinear:bool` in
+  let PNONL = `prepared_nonlinear:bool` in
   let idq = hd(Ineq.getexact s) in
-  let (s',tags,ineq) = idq_fields idq in
+  let (s',tags,inq) = idq_fields idq in
+  let _ = report s' in
   let _ = (s = s') or failwith "prove_ineq: wrong ineq" in 
-    try (s,prove(mk_imp(NONL,ineq),
+    try (s,prove(mk_imp(PNONL,inq),
 	  LET_ELIM_TAC THEN
 	    EVERY (map DSPLIT_TAC (get_split_tags idq)) THEN 
 	    EVERY
@@ -109,17 +256,60 @@ let prove_ineq s =
 	     if (is_branch tags && not(is_xconvert tags)) then SERIES3Q1H_5D_TAC else ALL_TAC;
 	     STYLIZE_TAC;
 	     WRAPUP_TAC;
-	     REWRITE_TAC (get_all_prep_nonlinear s)]))
-    with Failure m -> failwith (s^" "^m);;
+	     REWRITE_TAC (get_all_prep_nonlinear s);
+            ]))
+    with Failure m ->  let m' = ("NOT FOUND:"^s^" "^m) in (report m';(m',TRUTH));;
+
+
+let process s = 
+    let idq = hd(Ineq.getexact s) in
+      Optimize.preprocess_split_idq idq;;
+
+
 
 let example2 = map prove_ineq  ["GLFVCVK4a 8328676778";"4750199435";"GLFVCVK4 2477216213 y4supercrit"];;
+prove_ineq "5550839403 delta";;
+prove_ineq;;
+let v = process "5550839403 delta";;
+map (fun (_,_,t) -> t) v;;
+get_all_prep_nonlinear "5550839403 delta";;
 
-Ineq.getexact "4528012043";;
-prove_ineq "4528012043";;
+
 
 let exec() = 
-  let sl = map (fun t -> t.idv) !Ineq.ineqs in
+  let ineqs = filter (fun t -> not (mem t disregard)) !Ineq.ineqs in
+  let sl = map (fun t -> t.idv) ineqs in
     map prove_ineq sl;;
+
+(*
+let mm = exec();;
+
+filter (fun s -> s.[0]='N') (map fst mm);;
+
+let problems = ["5550839403 delta";
+   "5550839403";
+   "8405387449";
+   "9368433105";
+   "5557288534 delta";
+   "5557288534";
+   "1348932091 delta";
+   "1348932091";
+   "2073661826";
+   "6184614449";
+   "6944699408 a reduced";
+   "6944699408 a";
+   "7043724150 a reduced v2";
+   "7043724150 a"];;
+
+let newprep = map Preprocess.preprocess1 problems;;
+let txx = map snd newprep;;
+  let prep_file = Filename.temp_file "prep" ".hl";; 
+    let vxx = Flyspeck_lib.join_lines (txx);;
+    Flyspeck_lib.output_filestring prep_file (vxx) ;;
+
+0;;
+
+*)
 
 (* (* experimental, combine subgoals into a a single subgoal. *)
 let (merge1_goal:refinement) = 

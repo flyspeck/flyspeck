@@ -23,7 +23,7 @@ module Optimize = struct
 
 open Lib;;
 open Nonlinear_lemma;;
-
+open Hales_tactic;;
 
 let length = List.length;;
 
@@ -78,9 +78,11 @@ let paren s = "("^ s ^")";;
 
 let real_ty = `:real`;;
 let mk_x i = mk_var("x"^string_of_int i,real_ty);;
+let mk_a i = mk_var("a"^string_of_int i,real_ty);;
 
 let x9list =  map mk_x (1--9);;
 let x6list = map mk_x (1--6);;
+let a6list = map mk_a (1--6);;
 let x_backlist = map mk_x [7;2;3;4;8;9];;
 
 let xspec = SPECL x6list;;
@@ -94,6 +96,11 @@ let dest_ineq ineq =
   let vs = map (fun t -> let (a,b) = dest_pair t in (a,dest_pair b)) vs in
   let vs = map (fun (a,(b,c)) -> (a, b, c)) vs in
     (t,vs,disjuncts i);;
+
+let get_a_var tm = 
+  let (_,ayb,_) = dest_ineq tm in
+    map (fun (a,_,_) -> a) ayb;;
+
 
 (* renames variables as x1,x2,x3,.... *)
 
@@ -688,6 +695,18 @@ let BRANCH_TAC = EVERY[
 (* X_OF_Y. Convert y variables to x variables. *)
 (* *************************************************************************** *)
 
+let sq_pow2_6 = prove_by_refinement(
+  `!a1 a2 a3 a4 a5 a6 x1 x2 x3 x4 x5 x6.
+    a1 pow 2 <= x1 /\ a2 pow 2 <= x2 /\ a3 pow 2 <= x3 /\ a4 pow 2 <= x4 /\ a5 pow 2 <= x5 /\ a6 pow 2 <= x6
+   ==> sqrt x1 * sqrt x1 = x1 /\ sqrt x2 * sqrt x2 = x2 /\ sqrt x3 * sqrt x3 = x3 /\ sqrt x4 * sqrt x4 = x4 /\ sqrt x5 * sqrt x5 = x5 /\ sqrt x6 * sqrt x6 = x6`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  BY(REPEAT CONJ_TAC THEN MATCH_MP_TAC sq_pow2 THEN ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+(* deprecate June 3, 2014 *)
 
   let SQRT_SQRT_TAC = 
 EVERY[
@@ -709,6 +728,7 @@ EVERY[
   DISCH_TAC;];;
 *)
 
+(* deprecated June 3, 2014 *)
 
 let X_SQRT_COMPOUND_ORDER = 
 [`norm2hh (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6) = 
@@ -757,7 +777,7 @@ let X_SQRT_COMPOUND_ORDER =
     let w = goal_concl gl in
       get_consts w;;
 
-
+(* deprecated June 3, 2014 *)
   let X_SQRT_COMPOUND_ORDER_TAC:tactic =  
     fun gl ->
       let (asl,a) = dest_goal gl in
@@ -767,6 +787,33 @@ let X_SQRT_COMPOUND_ORDER =
     let X_SQRT_COMPOUND_ORDER_FIL = list_mk_conj vos in
   (SUBGOAL_THEN  X_SQRT_COMPOUND_ORDER_FIL  (fun t-> REWRITE_TAC[t;(GSYM Sphere.rhazim_x); (GSYM Sphere.rhazim2_x);xspec (GSYM Sphere.rhazim3_x)]) THENL[ (GEN_MESON_TAC 0 200 1[Sphere.norm2hh_x;rad2_x_y;delta_x4_delta4_y;dih_x_y;dih2_x_y;delta_x_y;dih3_x_y;tauq_x_y;GSYM Sphere.dih4_x;GSYM Sphere.dih5_x;GSYM Sphere.dih6_x;vol_x_y;Sphere.eta2_126; Sphere.eta2_135;Sphere.eta2_456;GSYM vol3f_x_lfun;GSYM vol3_x_sqrt;GSYM vol3f_x_sqrt2_lmplus]);ALL_TAC]) gl
 ;;
+
+(* added June 3, 2014 *)
+
+  let X_SQRT_COMPOUND_ORDER_TAC2 =  
+    let ay6_xsqrt = [rad2_x_y;delta_x4_delta4_y;dih_x_y;dih2_x_y;delta_x_y;dih3_x_y;vol_x_y;sq_pow2_6] in
+    let xsqrt9 = [tauq_x_y] in
+    let xsqrt6 = [GSYM Sphere.norm2hh_x;GSYM Sphere.dih4_x;
+		  GSYM Sphere.dih5_x;GSYM Sphere.dih6_x;GSYM Sphere.eta2_126;
+		  GSYM Sphere.eta2_135;GSYM Sphere.eta2_456;GSYM vol3f_x_lfun;
+		  GSYM vol3f_x_sqrt2_lmplus;GSYM vol3_x_sqrt;
+		  GSYM Sphere.rhazim_x;GSYM Sphere.rhazim2_x;GSYM Sphere.rhazim3_x] in
+    let a7 = [delta_x4_delta4_y;delta_x_y] in
+    let f v t = not ( (fst o strip_forall o concl) t = v) in
+    let _ = filter (f (a6list @ x6list)) (ay6_xsqrt @ a7) = [] or failwith "1" in
+    let _ = filter (f (x9list)) xsqrt9 = [] or failwith "2" in 
+    let _ = filter (f x6list) xsqrt6 = [] or failwith "3" in
+    let spec9 = map SPEC_ALL xsqrt9 in
+    let spec6 = map SPEC_ALL xsqrt6 in
+    let aspec6 a = map SPEC_ALL (map (SPECL a) ay6_xsqrt) in
+    let x7 = map (List.nth x9list) [6;1;2;3;7;8] in
+    let aspec7 a =  (map (SPECL (a @ x7)) a7) in
+    fun aspec ->
+      let aspec' = if List.length aspec > 6 then fst (chop_list 6 aspec) else aspec in
+      let aspec'' = if List.length aspec = 9 then aspec7 (map (List.nth aspec) [6;1;2;3;7;8]) else [] in
+      let thms = end_itlist CONJ (spec9 @ spec6 @ (aspec6 aspec') @ aspec'')  in
+	MP_TAC thms THEN ASM_REWRITE_TAC[] THEN DISCH_THEN (unlist REWRITE_TAC);;
+
 
 (*
   let X_SQRT_COMPOUND_ORDER_TAC:tactic =  
@@ -803,7 +850,11 @@ let X_COMPOUND_DEF =  [REAL_ARITH `&2 = #2.0`;
  GSYM Sphere.ldih3_x;GSYM Sphere.ldih6_x;
   ];;
 
+
+(* replaced June 3, 2014 **
 let X_OF_Y_TAC = 
+  let arith_facts = REAL_ARITH `(&2 = #2.0) /\ (x pow 2 = x * x) /\ (#2.0 * #2.0 = #4.0) /\ 
+    (#2.18 * #2.18 = #4.7524 ) /\ (#2.52 * #2.52 = #6.3504)` in
   (
   (DISCH_TAC) THEN
   TRY (MATCH_MP_TAC ineq_square2) THEN TRY (MATCH_MP_TAC ineq_square2_9) THEN
@@ -823,9 +874,45 @@ let X_OF_Y_TAC =
     (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN
     (REWRITE_TAC[GSYM ineq_expand9]) THEN
     (REWRITE_TAC[GSYM ineq_expand6]) THEN
-    (REWRITE_TAC[REAL_ARITH `(&2 = #2.0) /\ (x pow 2 = x * x) /\ (#2.0 * #2.0 = #4.0) /\ (#2.18 * #2.18 = #4.7524 ) /\ (#2.52 * #2.52 = #6.3504)`;sqrt8_2;sqrt2_sqrt2;Sphere.h0;Sphere.hplus]) THEN
+    (REWRITE_TAC[arith_facts;sqrt8_2;sqrt2_sqrt2;Sphere.h0;Sphere.hplus]) THEN
   ALL_TAC
   );;
+*)
+
+let PRINT_TAC s gl = (report s; ALL_TAC gl);;
+
+let X_OF_Y_TAC = 
+  let arith_facts = REAL_ARITH `(&2 = #2.0) /\ (x pow 2 = x * x) /\ (#2.0 * #2.0 = #4.0) /\ 
+    (#2.18 * #2.18 = #4.7524 ) /\ (#2.52 * #2.52 = #6.3504)` in
+  (
+  (DISCH_TAC) THEN
+   fun gl ->
+           let (_,a) = dest_goal gl in 
+	   let a' = REWRITE_RULE basic_constants_nn (ASSUME a) in
+	   let aspec = get_a_var (concl (xspec a')) in
+
+  (
+    TRY (MATCH_MP_TAC ineq_square2) THEN TRY (MATCH_MP_TAC ineq_square2_9) THEN
+  (REWRITE_TAC basic_constants_nn) THEN
+  REWRITE_TAC[GSYM CONJ_ASSOC] THEN
+  (REPEAT (CONJ_TAC THENL[MP_TAC hminus_gt THEN MP_TAC sqrt3_nn THEN REWRITE_TAC[Sphere.h0;Sphere.hplus] THEN REAL_ARITH_TAC;ALL_TAC])) THEN
+  (REPEAT GEN_TAC) THEN
+  (REWRITE_TAC [sol_y_123;taum_123]) THEN
+  (REWRITE_TAC[Sphere.ineq]) THEN
+(*  (SQRT_SQRT_TAC) THEN *)
+    (REPEAT DISCH_TAC) THEN
+    (* remove x variable compound *)
+    X_SQRT_COMPOUND_ORDER_TAC2 aspec THEN
+    FROZEN_REWRITE_TAC X_FROZEN_COMPOUND THEN 
+    REWRITE_TAC X_COMPOUND_DEF THEN
+    (* repackage *)
+    (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN
+    (REWRITE_TAC[GSYM ineq_expand9]) THEN
+    (REWRITE_TAC[GSYM ineq_expand6]) THEN
+    (REWRITE_TAC[arith_facts;sqrt8_2;sqrt2_sqrt2;Sphere.h0;Sphere.hplus]) THEN
+  ALL_TAC 
+  ) gl);;
+
 
 
 (* *************************************************************************** *)
@@ -851,12 +938,38 @@ let SERIES3Q1H_5D_TAC =
 (* *************************************************************************** *)
 
 let EXPAND_lfun = 
-  (SUBGOAL_THEN `lfun x1 = (#1.26 - proj_x1  (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real))/(#0.26)` (fun t-> REWRITE_TAC[t])) THENL [
+  (SUBGOAL_THEN `lfun x1 = (#1.26 - proj_x1  (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real))/(#0.26)` (unlist REWRITE_TAC)) THENL [
   REWRITE_TAC[Sphere.lfun;proj_x1;Sphere.h0;REAL_ARITH `#1.26 - &1 = #0.26`];ALL_TAC] ;;
 
-let REMOVE_dummy = SUBGOAL_THEN `!(f:bool). (!(dummy:real). ineq [&1,dummy,&1] f) = (!(x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real). ineq[(&1,x1,&1);(&1,x2,&1);(&1,x3,&1);(&1,x4,&1);(&1,x5,&1);(&1,x6,&1)] f)` (fun t-> REWRITE_TAC[t]) THENL[  REWRITE_TAC[ineq] THEN  MESON_TAC[REAL_ARITH `~(&2 <= &1)`]; ALL_TAC];;
+let dummy_lemma = prove_by_refinement(
+  `!(f:bool). (!(dummy:real). ineq [&1,dummy,&1] f) = (!(x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real). ineq[(&1,x1,&1);(&1,x2,&1);(&1,x3,&1);(&1,x4,&1);(&1,x5,&1);(&1,x6,&1)] f)`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ineq] THEN  MESON_TAC[REAL_ARITH `~(&2 <= &1)`];
+  ]);;
+  (* }}} *)
 
-let EXPAND_1var = SUBGOAL_THEN `!(f:real->bool) a b. (!(y:real). ineq [a,y,b] (f y)) = (!(x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real). ineq[(a,x1,b);(&1,x2,&1);(&1,x3,&1);(&1,x4,&1);(&1,x5,&1);(&1,x6,&1)] (f x1))` (fun t-> REWRITE_TAC[t]) THENL [REWRITE_TAC[ineq] THEN  MESON_TAC[REAL_ARITH `(&1 <= &1)`];ALL_TAC] ;;
+(* June 5, 2014 *)
+
+let REMOVE_dummy = REWRITE_TAC[dummy_lemma];;
+
+(*
+let REMOVE_dummy = SUBGOAL_THEN `!(f:bool). (!(dummy:real). ineq [&1,dummy,&1] f) = (!(x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real). ineq[(&1,x1,&1);(&1,x2,&1);(&1,x3,&1);(&1,x4,&1);(&1,x5,&1);(&1,x6,&1)] f)` (unlist REWRITE_TAC) THENL[  REWRITE_TAC[ineq] THEN  MESON_TAC[REAL_ARITH `~(&2 <= &1)`]; ALL_TAC];;
+*)
+
+let EXPAND_1var_lemma = prove_by_refinement(
+  `!(f:real->bool) a b. (!(y:real). ineq [a,y,b] (f y)) = (!(x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real). ineq[(a,x1,b);(&1,x2,&1);(&1,x3,&1);(&1,x4,&1);(&1,x5,&1);(&1,x6,&1)] (f x1))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ineq] THEN  MESON_TAC[REAL_ARITH `(&1 <= &1)`];
+  ]);;
+  (* }}} *)
+
+let EXPAND_1var = REWRITE_TAC[EXPAND_1var_lemma];;
+
+(*
+let EXPAND_1var = SUBGOAL_THEN `!(f:real->bool) a b. (!(y:real). ineq [a,y,b] (f y)) = (!(x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real). ineq[(a,x1,b);(&1,x2,&1);(&1,x3,&1);(&1,x4,&1);(&1,x5,&1);(&1,x6,&1)] (f x1))` (unlist REWRITE_TAC) THENL [REWRITE_TAC[ineq] THEN  MESON_TAC[REAL_ARITH `(&1 <= &1)`];ALL_TAC] ;;
+*)
 
 let REAL_SIMPLIFY_EXPRESSION =  let
   arith = REAL_ARITH `!x y z. (&8 = #8) /\ (x - y = x + (-- #1.0) * y) /\ 
@@ -870,7 +983,7 @@ let REAL_SIMPLIFY_EXPRESSION =  let
   (REWRITE_TAC[REAL_POW_MUL;real_div;REAL_MUL_LZERO; REAL_MUL_RZERO;arith]) ;;
 
 let EXPAND_SQRT = 
-  (SUBGOAL_THEN `sqrt x1 = sqrt_x1 x1 x2 x3 x4 x5 x6 /\ sqrt x2 = sqrt_x2 x1 x2 x3 x4 x5 x6 /\ sqrt x3 = sqrt_x3 x1 x2 x3 x4 x5 x6 /\ sqrt x4 = sqrt_x4 x1 x2 x3 x4 x5 x6 /\ sqrt x5 = sqrt_x5 x1 x2 x3 x4 x5 x6 /\ sqrt x6  = sqrt_x6 x1 x2 x3 x4 x5 x6 /\ sqrt x8 = sqrt_x5 (x7:real) x2 x3 x4 x8 x9 /\ sqrt x9 = sqrt_x6 x7 x2 x3 x4 x8 x9 ` (fun t->REWRITE_TAC[t])  THENL [REWRITE_TAC[sqrt_x1;sqrt_x2; sqrt_x3;sqrt_x4;sqrt_x5;sqrt_x6];ALL_TAC]) ;;
+  (SUBGOAL_THEN `sqrt x1 = sqrt_x1 x1 x2 x3 x4 x5 x6 /\ sqrt x2 = sqrt_x2 x1 x2 x3 x4 x5 x6 /\ sqrt x3 = sqrt_x3 x1 x2 x3 x4 x5 x6 /\ sqrt x4 = sqrt_x4 x1 x2 x3 x4 x5 x6 /\ sqrt x5 = sqrt_x5 x1 x2 x3 x4 x5 x6 /\ sqrt x6  = sqrt_x6 x1 x2 x3 x4 x5 x6 /\ sqrt x8 = sqrt_x5 (x7:real) x2 x3 x4 x8 x9 /\ sqrt x9 = sqrt_x6 x7 x2 x3 x4 x8 x9 ` (unlist REWRITE_TAC)  THENL [REWRITE_TAC[sqrt_x1;sqrt_x2; sqrt_x3;sqrt_x4;sqrt_x5;sqrt_x6];ALL_TAC]) ;;
 
 (* for 1d inequality involving vol2f marchal *)
 
@@ -881,7 +994,7 @@ REWRITE_TAC[vol2f_marchal_pow_y;vol2r_y] THEN
   x1 pow 3 = promote_pow3 (x1:real) (x2:real) (x3:real) 
     (x4:real) (x5:real) (x6:real) /\ 
   x1 pow 4 = promote pow4 x1 x2 x3 x4 x5 x6` 
-  (fun t->REWRITE_TAC[t]) 
+  (unlist REWRITE_TAC) 
   THENL[ REWRITE_TAC[promote;pow1;pow2;pow3;pow4;promote_pow2;promote_pow3];
 	 REWRITE_TAC[LET_DEF;LET_END_DEF]] ;;
 
@@ -942,10 +1055,10 @@ let STYLIZE_TAC =
   (REWRITE_TAC[real_arith_unit]) THEN
   (REWRITE_TAC[REAL_ARITH `unit0 * x = x * unit0`]) THEN
   (REWRITE_TAC[unit0f]) THEN
-    (SUBGOAL_THEN subgoal_proj  (fun t-> REWRITE_TAC[t])
+    (SUBGOAL_THEN subgoal_proj  (unlist REWRITE_TAC)
   THENL [REWRITE_TAC[proj_x3;proj_x4;proj_x5;proj_x6;proj_x2;
 		    proj_x1;unit0;REAL_ARITH `x * &1 = x`];ALL_TAC]) THEN
-  (SUBGOAL_THEN subgoal_unit6  (fun t-> REWRITE_TAC[t]) 
+  (SUBGOAL_THEN subgoal_unit6  (unlist REWRITE_TAC) 
      THENL [REWRITE_TAC[unit0;unit6];ALL_TAC]) THEN
   (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN
   (REWRITE_TAC[GSYM ineq_expand9]) THEN
@@ -1068,7 +1181,7 @@ let testsplit_idq ex idq =
 let preprocess_split_idq idq = 
   let (s,tags,ineq) = idq_fields idq in
   let ineq_strip_let = strip_let_tm ineq in
-  let suffix i n = Printf.sprintf "%s split(%d/%d)" s i n in 
+  let suffix i n = Printf.sprintf "prep-%s split(%d/%d)" s i n in 
   let ls = get_split_tags idq in
     if (ls = []) then [preprocess (s,tags,ineq_strip_let)] else
       let cases = split_all_h0  [(ineq_strip_let, ls)] in

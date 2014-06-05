@@ -9,6 +9,7 @@
 
 (setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
 (setq hol-light-interactive-buffer-name "*jun2*")
+(setq hol-light-interactive-buffer-name "*jun4*")
 
 
 

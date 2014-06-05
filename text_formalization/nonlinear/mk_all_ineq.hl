@@ -9,7 +9,11 @@
 (* generate all theorems of terms in !Ineq.ineqs from a single assumption `prepared_nonlinear:bool`,
    defined as the conjunction of all inequalities in prep.hl
 
-   Taking this a step further, we would get |- prepared_nonlinear ==> nonlinear
+   nonlinear_imp_the_nonlinear_inequalities:
+   nonlinear ==> the_nonlinear_inequalities
+
+   prepared_nonlinear_imp_nonlinear:
+   We also show |- prepared_nonlinear |- nonlinear
 
  *)
 
@@ -18,6 +22,7 @@ flyspeck_needs "nonlinear/prep.hl";;
 module Mk_all_ineq = struct
 
   open Optimize;;
+  open Hales_tactic;;
 
 (* ********************************************************************** *)
 (* relate `nonlinear` to `the_nonlinear_inequalities` *)
@@ -36,14 +41,14 @@ let the_nonlinear_inequalities = new_definition
     kcblrqc_ineq_def)`;;
 
 let mk_nonlinear = 
-  let ineqs = filter (fun t -> not (mem t disregard)) !Ineq.ineqs in
+  let ineqs = filter (fun t -> not (mem t.idv disregard)) !Ineq.ineqs in
   let ineql = map (fun idv -> idv.ineq) ineqs in
   let ineq_conj = end_itlist (curry mk_conj) ineql in
   let _ = new_definition (mk_eq (`nonlinear:bool`,ineq_conj)) in
     ();;
 
 let get_nonlinear = 
-  let ineqs = filter (fun t -> not (mem t disregard)) !Ineq.ineqs in
+  let ineqs = filter (fun t -> not (mem t.idv disregard)) !Ineq.ineqs in
   let sl = map (fun ind -> ind.idv) ineqs in
   let ineql = map (fun idv -> idv.ineq) ineqs in
   let ineq_conj = end_itlist (curry mk_conj) ineql in
@@ -154,7 +159,9 @@ let mk_pack_nonlinear =
 
 (* XX doesn't work for some strange reason *)
 
-let nonlinear_imp_the_nonlinear_inequalities = prove_by_refinement(
+report "this will take a few minutes...";;
+
+let nonlinear_imp_the_nonlinear_inequalities = Prove_by_refinement.prove_by_refinement(
   `nonlinear ==> the_nonlinear_inequalities`,
   (* {{{ proof *)
   [
@@ -162,7 +169,7 @@ let nonlinear_imp_the_nonlinear_inequalities = prove_by_refinement(
   DISCH_TAC;
   nCONJ_TAC 5;
     REWRITE_TAC[Tame_lemmas.kcblrqc_ineq_def];
-    BY(REWRITE_TAC (map get_nonlinear kcblrqc_ineq_tml));
+    BY(REWRITE_TAC (map get_nonlinear kcblrqc_ineq_s));
   nCONJ_TAC 4;
     BY(REWRITE_TAC (Ysskqoy.pack_ineq_def_a :: map get_nonlinear pack_ineq_s));
   nCONJ_TAC 3;
@@ -176,6 +183,7 @@ let nonlinear_imp_the_nonlinear_inequalities = prove_by_refinement(
   ]);;
   (* }}} *)
 
+report "done";;
 
 (* ********************************************************************** *)
 (* relate prep.hl to `nonlinear` *)
@@ -224,9 +232,10 @@ let get_all_prep_nonlinear =
   let c i thm = co1 (funpow i CONJUNCT2 thm) in
   let get s = c (index s sl) th1 in
     fun s ->
-      try [get s] with
+      let ps = "prep-"^s in
+      try [get ps] with
 	  Failure _ -> 
-	    (let s' = s^" split(" in
+	    (let s' = ps^" split(" in
 	     let ssl = hasprefix s' sl in
 	       map get ssl);;
 	    
@@ -245,7 +254,8 @@ let prove_ineq s =
   let (s',tags,inq) = idq_fields idq in
   let _ = report s' in
   let _ = (s = s') or failwith "prove_ineq: wrong ineq" in 
-    try (s,prove(mk_imp(PNONL,inq),
+  let thml = get_all_prep_nonlinear s in
+    try (s,Hol_pervasives.prove(mk_imp(PNONL,inq),
 	  LET_ELIM_TAC THEN
 	    EVERY (map DSPLIT_TAC (get_split_tags idq)) THEN 
 	    EVERY
@@ -256,9 +266,9 @@ let prove_ineq s =
 	     if (is_branch tags && not(is_xconvert tags)) then SERIES3Q1H_5D_TAC else ALL_TAC;
 	     STYLIZE_TAC;
 	     WRAPUP_TAC;
-	     REWRITE_TAC (get_all_prep_nonlinear s);
+	     REWRITE_TAC (thml);
             ]))
-    with Failure m ->  let m' = ("NOT FOUND:"^s^" "^m) in (report m';(m',TRUTH));;
+    with Failure m -> let m' = ("NOT FOUND:"^s^" "^m) in (report m';(m',TRUTH));;
 
 
 let process s = 
@@ -266,72 +276,35 @@ let process s =
       Optimize.preprocess_split_idq idq;;
 
 
-
+(*
 let example2 = map prove_ineq  ["GLFVCVK4a 8328676778";"4750199435";"GLFVCVK4 2477216213 y4supercrit"];;
 prove_ineq "5550839403 delta";;
 prove_ineq;;
 let v = process "5550839403 delta";;
 map (fun (_,_,t) -> t) v;;
 get_all_prep_nonlinear "5550839403 delta";;
-
+*)
 
 
 let exec() = 
-  let ineqs = filter (fun t -> not (mem t disregard)) !Ineq.ineqs in
+  let ineqs = filter (fun t -> not (mem t.idv disregard)) !Ineq.ineqs in
   let sl = map (fun t -> t.idv) ineqs in
     map prove_ineq sl;;
 
+
 (*
-let mm = exec();;
+let exec_results = exec();;
 
-filter (fun s -> s.[0]='N') (map fst mm);;
 
-let problems = ["5550839403 delta";
-   "5550839403";
-   "8405387449";
-   "9368433105";
-   "5557288534 delta";
-   "5557288534";
-   "1348932091 delta";
-   "1348932091";
-   "2073661826";
-   "6184614449";
-   "6944699408 a reduced";
-   "6944699408 a";
-   "7043724150 a reduced v2";
-   "7043724150 a"];;
+let prepared_nonlinear_imp_nonlinear = 
+  let inn = map (fun (_,x) -> UNDISCH x) exec_results in
+  let ineq_nn = end_itlist (CONJ) inn in
+  let ineqs = !Ineq.ineqs in
+  let ineql = map (fun idv -> idv.ineq) ineqs in
+  let ineq_conj = end_itlist (curry mk_conj) ineql in
+  let def = new_definition (mk_eq (`nonlinear:bool`,ineq_conj)) in
+    EQ_MP (SYM def) ineq_nn;;
 
-let newprep = map Preprocess.preprocess1 problems;;
-let txx = map snd newprep;;
-  let prep_file = Filename.temp_file "prep" ".hl";; 
-    let vxx = Flyspeck_lib.join_lines (txx);;
-    Flyspeck_lib.output_filestring prep_file (vxx) ;;
-
-0;;
-
-*)
-
-(* (* experimental, combine subgoals into a a single subgoal. *)
-let (merge1_goal:refinement) = 
-  fun (meta,sgs,just) ->
-  if List.length sgs < 2 then (meta,sgs,just)
-  else 
-    let s0::s1::s2 = sgs in
-    let _ = fst(s0) = [] or failwith "merge1_goal asl nonempty" in
-    let _ = fst(s1) = [] or failwith "merge1_goal asl nonempty" in
-    let sgs' = ([],mk_conj (snd s0, snd s1)) ::s2 in
-    let just' i ths = 
-      (just i ( (CONJUNCT1 (hd ths)) :: (CONJUNCT2 ( (hd ths))) :: tl ths)) in
-      (meta,sgs',just');;
-
-let rec merge_all_goal (meta,sgs,just) =
-  if (List.length sgs < 2) then (meta,sgs,just)
-  else merge_all_goal (merge1_goal (meta,sgs,just));;
-
-let top_asl_thm() =
-  let (_,sgs,f)::_ = !current_goalstack in
-  let t = snd(hd sgs) in
-    DISCH t (f null_inst [ASSUME t]);;
 *)
 
 

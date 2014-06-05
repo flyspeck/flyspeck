@@ -1,6 +1,6 @@
 
 
-  #print_length 30;;
+  #print_length 590;;
 
 (* reset goalstate *)
 loadt "tactics.ml";;
@@ -4494,6 +4494,333 @@ help_flag 'd' "insert";;
 
 
 
-open Terminal;;
+(* RECENT WORK ******)
 
-Ineq.getexact "9563139965 e";;
+
+let real_convex_on_quadratic = prove_by_refinement(
+  `!s a b c. &0 <= a /\ s SUBSET {x | &0 <= x} ==> (\x. a * x pow 2 + b * x + c) real_convex_on s`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[GSYM RPOW_POW];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT (CONJ_TAC ORELSE MATCH_MP_TAC REAL_CONVEX_ADD );
+      MATCH_MP_TAC REAL_CONVEX_LMUL;
+      ASM_REWRITE_TAC[];
+      MATCH_MP_TAC REAL_CONVEX_ON_RPOW;
+      ASM_REWRITE_TAC[];
+      BY(ARITH_TAC);
+    REWRITE_TAC[real_convex_on];
+    BY(REAL_ARITH_TAC);
+  REWRITE_TAC[real_convex_on];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `u = &1 - v` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let x_lc = prove_by_refinement(
+  `!t1 t t2. t1 <= t /\ t <= t2 ==> (?u v. &0 <= u /\ &0 <= v /\ u + v = &1 /\ t = u * t1 + v * t2)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `t IN closed_real_segment [t1,t2]` (C SUBGOAL_THEN MP_TAC);
+    BY(ASM_REWRITE_TAC[IN_REAL_SEGMENT]);
+  REWRITE_TAC[closed_real_segment;IN_ELIM_THM];
+  REPEAT WEAKER_STRIP_TAC;
+  GEXISTL_TAC [`&1 - u`;`u`];
+  ASM_REWRITE_TAC[];
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let real_max_quadratic = prove_by_refinement(
+  `!a b c r t1 t t2. &0 <= a /\ a * t1 pow 2 + b * t1 + c < r /\ a * t2 pow 2 + b * t2 + c < r /\
+     &0 <= t1 /\ t1 <= t /\ t <= t2 ==> a * t pow 2 + b * t + c < r`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC real_convex_on_quadratic [`{x | &0 <= x}`;`a`;`b`;`c`];
+  ANTS_TAC;
+    BY(ASM_REWRITE_TAC[SUBSET_REFL]);
+  DISCH_TAC;
+  INTRO_TAC x_lc [`t1`;`t`;`t2`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC (GEN_ALL REAL_CONVEX_LOWER) [`u`;`v`;`(\x. a * x pow 2 + b * x + c)`;`{x | &0 <= x}`;`t1`;`t2`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[IN_ELIM_THM];
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  FIRST_X_ASSUM (SUBST1_TAC o GSYM);
+  REWRITE_TAC[];
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let real_min_quadratic = prove_by_refinement(
+  `!a b c r t1 t t2. &0 < a * t1 pow 2 + b * t1 + c /\ &0 < a * t2 pow 2 + b * t2 + c /\  a <= &0 /\ 
+     &0 <= t1 /\ t1 <= t /\ t <= t2 ==> &0 < a * t pow 2 + b * t + c`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC real_max_quadratic [`-- a`;`-- b`;`-- c`;`&0`;`t1`;`t`;`t2`];
+  ASM_REWRITE_TAC[REAL_MUL_LNEG;GSYM REAL_NEG_ADD;REAL_NEG_LT0];
+  DISCH_THEN MATCH_MP_TAC;
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let delta_quadratic_alt = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+     delta_x x1 x2 x3 x4 x5 x6 = 
+     (-- x1) * x4 pow 2 + 
+    (--  (x1 * x1 + (x3 - x5) * (x2 - x6) - x1 * (x2 + x3 + x5 + x6))) * x4 +
+       -- (x1 * x3 * x5 +
+     x1 * x2 * x6 -
+     x3 * (x1 + x2 - x3 + x5 - x6) * x6 -
+     x2 * x5 * (x1 - x2 + x3 - x5 + x6))`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[delta_x] THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let delta_min_4 = prove_by_refinement(
+  `!x4m x4M x1 x2 x3 x4 x5 x6 . 
+    &0 < delta_x x1 x2 x3 x4m x5 x6 /\ &0 < delta_x x1 x2 x3 x4M x5 x6 /\
+    &0 <= x4m /\ x4m <= x4 /\ x4 <= x4M /\ &0 <= x1 ==>
+    &0 < delta_x x1 x2 x3 x4 x5 x6
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_TAC THEN REWRITE_TAC[delta_quadratic_alt];
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC real_min_quadratic;
+  GEXISTL_TAC [`x4m`;`x4M`] THEN ASM_REWRITE_TAC[];
+  BY(POP_ASSUM MP_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let delta_min_1 = prove_by_refinement(
+  `!x1m x1M x1 x2 x3 x4 x5 x6 . 
+       &0 < delta_x x1m x2 x3 x4 x5 x6 /\ &0 < delta_x x1M x2 x3 x4 x5 x6 /\
+    &0 <= x1m /\ x1m <= x1 /\ x1 <= x1M /\ &0 <= x4 ==>
+    &0 < delta_x x1 x2 x3 x4 x5 x6
+  `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC delta_min_4 [`x1m`;`x1M`;`x4`;`x2`;`x6`;`x1`;`x5`;`x3`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[Merge_ineq.delta_x_sym]);
+  BY(ASM_MESON_TAC[Merge_ineq.delta_x_sym])
+  ]);;
+  (* }}} *)
+
+let delta_min_2 = prove_by_refinement(
+  `!x2m x2M x1 x2 x3 x4 x5 x6 . 
+       &0 < delta_x x1 x2m x3 x4 x5 x6 /\ &0 < delta_x x1 x2M x3 x4 x5 x6 /\
+    &0 <= x2m /\ x2m <= x2 /\ x2 <= x2M /\ &0 <= x5 ==>
+    &0 < delta_x x1 x2 x3 x4 x5 x6
+  `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC delta_min_1 [`x2m`;`x2M`;`x2`;`x1`;`x3`;`x5`;`x4`;`x6`];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[Merge_ineq.delta_x_sym]);
+  BY(ASM_MESON_TAC[Merge_ineq.delta_x_sym])
+  ]);;
+  (* }}} *)
+
+let delta_min_3 = prove_by_refinement(
+  `!x3m x3M x1 x2 x3 x4 x5 x6 . 
+       &0 < delta_x x1 x2 x3m x4 x5 x6 /\ &0 < delta_x x1 x2 x3M x4 x5 x6 /\
+    &0 <= x3m /\ x3m <= x3 /\ x3 <= x3M /\ &0 <= x6 ==>
+    &0 < delta_x x1 x2 x3 x4 x5 x6
+  `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC delta_min_1 [`x3m`;`x3M`;`x3`;`x1`;`x2`;`x6`;`x4`;`x5`;];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[Merge_ineq.delta_x_sym]);
+  BY(ASM_MESON_TAC[Merge_ineq.delta_x_sym])
+  ]);;
+  (* }}} *)
+
+let delta_min_5 = prove_by_refinement(
+  `!x5m x5M x1 x2 x3 x4 x5 x6 . 
+       &0 < delta_x x1 x2 x3 x4 x5m x6 /\ &0 < delta_x x1 x2 x3 x4 x5M x6 /\
+    &0 <= x5m /\ x5m <= x5 /\ x5 <= x5M /\ &0 <= x2 ==>
+    &0 < delta_x x1 x2 x3 x4 x5 x6
+  `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC delta_min_1 [`x5m`;`x5M`;`x5`;`x6`;`x1`;`x2`;`x3`;`x4`;];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[Merge_ineq.delta_x_sym]);
+  BY(ASM_MESON_TAC[Merge_ineq.delta_x_sym])
+  ]);;
+  (* }}} *)
+
+let delta_min_6 = prove_by_refinement(
+  `!x6m x6M x1 x2 x3 x4 x5 x6 . 
+       &0 < delta_x x1 x2 x3 x4 x5 x6m /\ &0 < delta_x x1 x2 x3 x4 x5 x6M /\
+    &0 <= x6m /\ x6m <= x6 /\ x6 <= x6M /\ &0 <= x3 ==>
+    &0 < delta_x x1 x2 x3 x4 x5 x6
+  `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC delta_min_1 [`x6m`;`x6M`;`x6`;`x1`;`x5`;`x3`;`x4`;`x2`;];
+  ANTS_TAC;
+    ASM_REWRITE_TAC[];
+    BY(ASM_MESON_TAC[Merge_ineq.delta_x_sym]);
+  BY(ASM_MESON_TAC[Merge_ineq.delta_x_sym])
+  ]);;
+  (* }}} *)
+
+let delta_min_corner_4_784 = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+    &4 <= x1 /\ x1 <= #7.84 /\
+    &4 <= x2 /\ x2 <= #7.84 /\
+    &4 <= x3 /\ x3 <= #7.84 /\
+    &4 <= x4 /\ x4 <= #7.84 /\
+    &4 <= x5 /\ x5 <= #7.84 /\
+    &4 <= x6 /\ x6 <= #7.84 ==>
+   &0 < delta_x x1 x2 x3 x4 x5 x6
+`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `&0 <= x1 /\ &0 <= x2 /\ &0 <= x3 /\ &0 <= x4 /\ &0 <= x5 /\ &0 <= x6 /\ &0 <= &4 /\ &0 <= #7.84` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  INTRO_TAC delta_min_1 [`&4`;`#7.84`];
+  INTRO_TAC delta_min_2 [`&4`;`#7.84`];
+  INTRO_TAC delta_min_3 [`&4`;`#7.84`];
+  INTRO_TAC delta_min_4 [`&4`;`#7.84`];
+  INTRO_TAC delta_min_5 [`&4`;`#7.84`];
+  INTRO_TAC delta_min_6 [`&4`;`#7.84`];
+  REPEAT WEAKER_STRIP_TAC;
+  BY(REPEAT (REPEAT CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]) THEN REWRITE_TAC[Sphere.delta_x] THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let delta_pos_4_784 = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+    &4 <= x1 /\ x1 <= #7.84 /\
+    &4 <= x2 /\ x2 <= #7.84 /\
+    &4 <= x3 /\ x3 <= #7.84 /\
+    &4 <= x4 /\ x4 <= #7.84 /\
+    &4 <= x5 /\ x5 <= #7.84 /\
+    &4 <= x6 /\ x6 <= #7.84 ==>
+(&0 < delta_x x1 x2 x3 x4 x5 x6 /\ &0 < x1 /\ &0 < x2 /\ &0 < x3 /\ &0 < x4 /\ &0 < x5 /\ &0 < x6)
+ `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  CONJ_TAC;
+    MATCH_MP_TAC delta_min_corner_4_784;
+    BY(ASM_REWRITE_TAC[]);
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let square_x_784 = prove_by_refinement(
+  `!x a. x <= a * a ==> (abs a <= #2.8 ==> x <= #7.84)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  ENOUGH_TO_SHOW_TAC `a * a <= #7.84`;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  REWRITE_TAC[arith `#7.84 = #2.8 * #2.8`];
+  GMATCH_SIMP_TAC Misc_defs_and_lemmas.ABS_SQUARE_LE;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let square_x_4 = prove_by_refinement(
+  `!x a. a* a <= x  ==> (&2 <= a  ==> &4 <= x)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  ENOUGH_TO_SHOW_TAC `&4 <= a * a`;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  REWRITE_TAC[arith `&4 = &2 * &2`];
+  GMATCH_SIMP_TAC Misc_defs_and_lemmas.ABS_SQUARE_LE;
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let ineq_mp_simple = prove_by_refinement(
+  `!a b c. ineq a (b ==> c) <=> (b ==> ineq a c)`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[Sphere.ineq];
+  TYPIFY `h` SPEC1_TAC;
+  REWRITE_TAC[FORALL_PAIR_THM;Sphere.ineq];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let POSTPREP_OXL_634_TAC = 
+  EVERY [
+  REPEAT GEN_TAC;
+  REWRITE_TAC[arith `a * b * a * b = (a * b) * (a * b)`];
+  REWRITE_TAC[Sphere.ineq] THEN REPEAT DISCH_TAC;
+  INTRO_TAC delta_pos_4_784 [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ANTS_TAC THENL [EVERY [
+    ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    REPEAT (FIRST_X_ASSUM (MP_TAC o MATCH_MP square_x_4));
+    REPEAT (FIRST_X_ASSUM (MP_TAC o MATCH_MP square_x_784));
+    REPEAT WEAKER_STRIP_TAC;
+    REPEAT (FIRST_X_ASSUM_ST `==>` GMATCH_SIMP_TAC);
+    MP_TAC Nonlinear_lemma.hminus_prop;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);];ALL_TAC];
+  DISCH_TAC;
+  FIRST_ASSUM (MP_TAC o MATCH_MP gchi_all_atn);
+  FIRST_ASSUM (MP_TAC o MATCH_MP dih_all_atn);
+  SIMP_TAC[];
+  DISCH_THEN kill;
+  DISCH_THEN kill;
+  POP_ASSUM MP_TAC;
+  ASM_TAC;
+  REWRITE_TAC[GSYM Nonlinear_lemma.ineq_expand6];
+  (GSPECL_TAC (List.rev Optimize.x6list))
+  ];;
+
+let get_prep s = 
+  let p1 = !Prep.prep_ineqs in
+    (find (fun t -> (t.idv = s)) p1);;
+
+let mk_post_prep_oxl s = 
+  let idq = get_prep s in
+  let _ = g idq.ineq in
+  let _ = e POSTPREP_TAC in
+  let b,inq = top_goal() in
+  let _ = b=[] or failwith s in
+    {idv = "2"^ idq.idv;
+     doc = idq.doc;
+     tags = idq.tags;
+     ineq = inq};;
+
+let mk_one (i,j) = 
+  mk_post_prep_oxl (Printf.sprintf "prep-OXLZLEZ 6346351218 %d %d" i j);;
+
+let all_cases = List.flatten (map (fun i -> [(1,i);(2,i);(3,i);(4,i)]) (0--45));;
+let all_oxl = map  mk_one all_cases;;
+
+
+Sphere.gchi;;
+mk_one 3 17;;
+
+
+
+mk_post_prep_oxl "prep-OXLZLEZ 6346351218 1 2";;
+

@@ -14,14 +14,17 @@ set by the parameter MSEC_INC.
 The output appears in break_case_log.hl.
 *)
 
-
-
+(*
+rflyspeck_needs "nonlinear/break_case_log.hl";;
+*)
 
 flyspeck_needs "nonlinear/prep.hl";;
 flyspeck_needs "nonlinear/scripts.hl";;
+flyspeck_needs "nonlinear/break_case_log.hl";;
 
 module Break_case_exec = struct
 
+  open Hales_tactic;;
 (* open Sphere2;; *)
 
 
@@ -65,16 +68,20 @@ partition on (xleft,zleft). So changing the side exchanges right and left all th
 *)
 
 
-type ('a) iargs = Iarg_facet of ((int * bool) * float * 'a * ('a) iargs)
-	     | Iarg_leaf of 'a
-	     | Iarg_bisect of (int * ('a) iargs * ('a) iargs);;
-
 let rec string_of_iargs = function 
   | Iarg_leaf msec -> Printf.sprintf "\n Iarg_leaf %d" msec
   | Iarg_facet ((i,b),frac,msec,a) -> Printf.sprintf "\n Iarg_facet ((%d,%s),%3.4f,%d,%s)"
       i (string_of_bool b) frac msec (string_of_iargs a)
   | Iarg_bisect(idx,a,b) -> Printf.sprintf "\n Iarg_bisect (%d,%s,%s)" 
       idx (string_of_iargs a) (string_of_iargs b);;
+
+
+(* ********************************************************************** *)
+(* I/O *)
+(* ********************************************************************** *)
+
+
+let fullpath s = flyspeck_dir ^ s;;
 
 let output_case s iargs = 
   let sfull = Printf.sprintf "\nadd_case (\"%s\",%s);;\n" s (string_of_iargs iargs) in
@@ -121,7 +128,9 @@ let eval_float s =
     let t= (!float_cache)() in
       t;;
 
+(* ********************************************************************** *)
 (* C++ CODE GENERATION. *)
+(* ********************************************************************** *)
 
 let cpp_template_arg = sprintf "
  const char svn[] = %s;
@@ -200,6 +209,10 @@ let rerun_timer =
 	(*  let _ = report (":"^outs^":") in *)
       let msecs = try (int_of_string (outs)) with _ -> timer in
 	(msecs);;
+
+(* ********************************************************************** *)
+(* Recursive parition of the domain *)
+(* ********************************************************************** *)
 
 (* DOMAIN CONSTANTS *)
 
@@ -293,7 +306,11 @@ let rec recursive_find_frac facet x1 z1  (f1,t1) (f2,t2) =
 	    let ((f1',t1'),(f2',t2')) = if (t3 <= msec_inc) then ((f3,t3),(f2,t2)) else ((f1,t1),(f3,t3)) in
 	      recursive_find_frac facet x1 z1 (f1',t1') (f2',t2');;
 
+(* ********************************************************************** *)
 (* DEBUG *)
+(* ********************************************************************** *)
+
+
 
 let rec pass_time = function
     Iarg_bisect (_,a,b) -> pass_time a + pass_time b
@@ -319,7 +336,9 @@ let rec recheck_pass  timeout domain iarg = match iarg with
 	Iarg_bisect(idx,recheck_pass timeout partA a,recheck_pass timeout partB b);;
 
 
-(* MAIN PROCEDURES *)
+(* ********************************************************************** *)
+(* Generate file break_case_log.hl *)
+(* ********************************************************************** *)
 
 let initial_msec = 
   let ft_sec = Scripts.finalize Scripts.finished_times in
@@ -390,6 +409,293 @@ let run_all_over2sec save =
   let alldata = map (fun s -> try s,run_one save s with Failure msg -> report s; failwith msg) over2 in
     alldata;;
 
+
+
+(* ********************************************************************** *)
+(* RECENT WORK 2014: Generate terms to be fed to nonlinear optimization. *)
+(* ********************************************************************** *)
+
+let subat_rules = prove_by_refinement(
+  `(!i (y:A). subat i y [] = []) /\
+    (!x xs (y:A). subat 0 y (x::xs) = y :: xs) /\
+    (!i x xs (y:A). subat (SUC i) y (x::xs) = x :: (subat i) y xs)`,
+  (* {{{ proof *)
+  [
+  ONCE_REWRITE_TAC[Sphere.subat];
+  BY(REWRITE_TAC[arith `~(SUC i = 0)`;arith `SUC i - 1 = i`])
+  ]);;
+  (* }}} *)
+
+let subat_nil = prove_by_refinement(
+  `(!i (y:A). subat i y [] = [])`,
+  (* {{{ proof *)
+  [
+  MESON_TAC[subat_rules]
+  ]);;
+  (* }}} *)
+
+let subat_explicit = prove_by_refinement(
+  `(!i x xs (y:A).
+      subat 9 y (x::xs) = x :: (subat 8 y xs) /\
+      subat 8 y (x::xs) = x :: (subat 7 y xs) /\
+      subat 7 y (x::xs) = x :: (subat 6 y xs) /\
+      subat 6 y (x::xs) = x :: (subat 5 y xs) /\
+      subat 5 y (x::xs) = x :: (subat 4 y xs) /\
+      subat 4 y (x::xs) = x :: (subat 3 y xs) /\
+      subat 3 y (x::xs) = x :: (subat 2 y xs) /\
+      subat 2 y (x::xs) = x :: (subat 1 y xs) /\
+      subat 1 y (x::xs) = x :: (subat 0 y xs) /\
+      subat 0 y (x::xs) = y :: xs)`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[arith `9 = SUC 8 /\ 8 = SUC 7 /\ 7 = SUC 6 /\ 6 = SUC 5 /\ 5 = SUC 4 /\ 4 = SUC 3 /\ 3 = SUC 2 /\ 2 = SUC 1 /\ 1 = SUC 0`;subat_rules])
+  ]);;
+  (* }}} *)
+
+let bisect_left_frac = prove_by_refinement(
+  `!d i. bisect_left i d = frac_left i (#0.5) d`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.bisect_left;Sphere.frac_left;LET_THM];
+  LIST_INDUCT_TAC THEN REWRITE_TAC[Sphere.subat;LAMBDA_PAIR];
+  REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[EL;HD;TL;Sphere.pathL;CONS_11];
+    INTRO_TAC PAIR_SURJECTIVE [`h`] THEN REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[Sphere.pathL;PAIR_EQ];
+    BY(ARITH_TAC);
+  INTRO_TAC num_CASES [`i`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[];
+  ASM_REWRITE_TAC[EL;TL];
+  BY(ASM_REWRITE_TAC[EL;TL;arith `SUC n - 1 = n`;LAMBDA_PAIR])
+  ]);;
+  (* }}} *)
+
+let bisect_right_frac = prove_by_refinement(
+  `!d i. bisect_right i d = frac_right i (#0.5) d`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.bisect_right;Sphere.frac_right;LET_THM];
+  LIST_INDUCT_TAC THEN REWRITE_TAC[Sphere.subat;LAMBDA_PAIR];
+  REPEAT WEAKER_STRIP_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[EL;HD;TL;Sphere.pathR;CONS_11];
+    INTRO_TAC PAIR_SURJECTIVE [`h`] THEN REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[Sphere.pathR;PAIR_EQ];
+    BY(ARITH_TAC);
+  INTRO_TAC num_CASES [`i`];
+  ASM_REWRITE_TAC[] THEN REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[];
+  ASM_REWRITE_TAC[EL;TL];
+  BY(ASM_REWRITE_TAC[EL;TL;arith `SUC n - 1 = n`;LAMBDA_PAIR])
+  ]);;
+  (* }}} *)
+
+let ineq6m = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6 a1 a2 a3 a4 a5 a6 b1 b2 b3 b4 b5 b6 f.
+    ineqm [x1;x2;x3;x4;x5;x6] [(a1,b1);(a2,b2);(a3,b3);(a4,b4);(a5,b5);(a6,b6)] f = 
+    ineq [(a1,x1,b1);(a2,x2,b2);(a3,x3,b3);(a4,x4,b4);(a5,x5,b5);(a6,x6,b6)] f`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.ineqm];
+  BY(REWRITE_TAC[MAP2])
+  ]);;
+  (* }}} *)
+
+let ineq9m = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6 x7 x8 x9 a1 a2 a3 a4 a5 a6 a7 a8 a9 b1 b2 b3 b4 b5 b6 b7 b8 b9 f.
+    ineqm [x1;x2;x3;x4;x5;x6;x7;x8;x9] [(a1,b1);(a2,b2);(a3,b3);(a4,b4);(a5,b5);(a6,b6);
+			      (a7,b7);(a8,b8);(a9,b9)] f = 
+    ineq [(a1,x1,b1);(a2,x2,b2);(a3,x3,b3);(a4,x4,b4);(a5,x5,b5);(a6,x6,b6);
+	 (a7,x7,b7);(a8,x8,b8);(a9,x9,b9)] f`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.ineqm];
+  BY(REWRITE_TAC[MAP2])
+  ]);;
+  (* }}} *)
+
+let simple_dest_ineq ineq = 
+  let t = snd(strip_forall ineq) in
+  let (vs,i) = dest_comb t in
+  let (_,vs) = dest_comb vs in
+  let vs = dest_list vs in
+  let vs = map (fun t -> let (a,b) = dest_pair t in (a,dest_pair b)) vs in
+  let vs = map (fun (a,(b,c)) -> (a, b, c)) vs in
+    (t,vs,i);;
+
+(* example
+simple_dest_ineq (hd (Ineq.getexact "1965189142 34")).ineq;;
+*)
+
+let mk_bisect_left =
+  let bl = `bisect_left` in
+    fun i domain ->
+      let i' = mk_small_numeral i in
+	mk_comb (mk_comb (bl,i'),domain);;
+
+let mk_bisect_right =
+  let br = `bisect_right` in
+    fun i domain ->
+      let i' = mk_small_numeral i in
+	mk_comb (mk_comb (br,i'),domain);;
+
+let mk_decimal10000  = 
+  let d = mk_small_numeral 10000 in
+  let dec = `DECIMAL` in
+    fun r ->
+      let r' = mk_small_numeral (truncate(10000.0 *. r)) in
+	mk_comb (mk_comb (dec,r'),d);;
+
+let mk_frac_left =  
+  let bl = `frac_left` in
+    fun i r d ->
+      let i' = mk_small_numeral i in
+      let r' = mk_decimal10000 r in
+	mk_comb (mk_comb (mk_comb (bl,i'),r'),d);;
+
+let mk_frac_right =  
+  let bl = `frac_right` in
+    fun i r d ->
+      let i' = mk_small_numeral i in
+      let r' = mk_decimal10000 r in
+	mk_comb (mk_comb (mk_comb (bl,i'),r'),d);;
+
+let rec mk_rec acc domain = function
+  | Iarg_bisect (i,u,v) -> 
+      let usL = mk_rec acc (mk_bisect_left i domain) u in
+	mk_rec usL (mk_bisect_right i domain) v 
+  | Iarg_leaf _ -> acc
+  | Iarg_facet ((i,false),r,_,v) ->
+      let usL = mk_frac_left i r   domain in
+	usL :: (mk_rec  acc (mk_frac_right i r  domain) v)
+  | Iarg_facet ((i,true),r,_,v) ->
+      let usR = mk_frac_right i (1.0 -. r)  domain in
+	usR :: (mk_rec acc (mk_frac_left i (1.0 -. r)  domain) v);;
+
+let mk_ineq  = 
+  let ineq_const = `ineq` in
+    fun xs f ->
+      mk_comb(mk_comb (ineq_const, xs),f);;
+
+let mk_ineqm  = 
+  let ineq_const = `ineqm` in
+    fun xs ab f ->
+      mk_comb(mk_comb(mk_comb (ineq_const, xs),ab),f);;
+
+(* TESTS:
+
+mk_ineq `[a:real,x:real,b:real]` `x > &0`;;
+mk_ineqm `[x:real]` `[a:real,b:real]` `x > &0`;;
+*)
+
+let mk_case_list idq iarg = 
+  let (inq,axbs,f) = simple_dest_ineq idq.ineq in
+  let xs = mk_flist (map (fun (_,x,_) -> x) axbs) in
+  let abs = mk_flist (map (fun (a,_,b) -> mk_pair (a,b)) axbs) in
+  let doms = mk_rec [] abs iarg in
+    map (fun ab -> mk_ineqm xs ab f) doms;;
+
+let count_case_list iarg =
+  let varmax = 10 in
+  let a = `a:real` in
+  let a9 = mk_flist (map (fun t -> mk_pair (a,a)) (0--varmax)) in
+  let m =  mk_rec [] a9 iarg in
+    List.length m;;
+
+let ineq_conv = 
+  (REWRITE_CONV [Sphere.frac_left;Sphere.frac_right;bisect_left_frac;bisect_right_frac;
+		 subat_explicit;LET_THM;LAMBDA_PAIR;Basics.EL_EXPLICIT] 
+     THENC REAL_RAT_REDUCE_CONV THENC REWRITE_CONV[ineq6m;ineq9m]) ;;
+
+(* string,int *)
+
+(* ********************************************************************** *)
+(* TEST CASE: "OXLZLEZ 6346351218 %d %d" *)
+(* ********************************************************************** *)
+
+(*
+let input_ineqs = ref ([]:(string*int)list);;
+
+ let add_inequality i  = 
+   let _ = input_ineqs:= i :: !input_ineqs in
+  ();;
+
+ let get_inequality s = 
+   filter (fun t -> fst t = s) (!input_ineqs);;
+*)
+
+ let oxl_parameters (i,j) = 
+   let m = Printf.sprintf "prep-OXLZLEZ 6346351218 %d %d" i j in
+   let count = 
+     try count_case_list (snd(find (fun s -> fst s = m) !Break_case_log.break_data))
+     with Failure _ -> 1 in
+     map (fun i -> (m,i)) (0-- (count - 1));;
+
+let all_oxl_cases = List.flatten (map (fun i -> [(1,i);(2,i);(3,i);(4,i)]) (0--45));;
+
+let all_oxl_parameters = List.flatten (map oxl_parameters all_oxl_cases);;
+ 
+List.length all_oxl_parameters;;
+
+(* generating OXL inequality series *)
+
+let POSTPREP_OXL_634_TAC = 
+  EVERY [
+  REPEAT GEN_TAC;
+  REWRITE_TAC[arith `a * b * a * b = (a * b) * (a * b)`];
+  REWRITE_TAC[Sphere.ineq] THEN REPEAT DISCH_TAC;
+  INTRO_TAC Merge_ineq.delta_pos_4_784 [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ANTS_TAC THENL [EVERY [
+    ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    REPEAT (FIRST_X_ASSUM (MP_TAC o MATCH_MP Merge_ineq.square_x_4));
+    REPEAT (FIRST_X_ASSUM (MP_TAC o MATCH_MP Merge_ineq.square_x_784));
+    REPEAT WEAKER_STRIP_TAC;
+    REPEAT (FIRST_X_ASSUM_ST `==>` GMATCH_SIMP_TAC);
+    MP_TAC Nonlinear_lemma.hminus_prop;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);];ALL_TAC];
+  DISCH_TAC;
+  FIRST_ASSUM (MP_TAC o MATCH_MP Functional_equation.gchi_all_atn);
+  FIRST_ASSUM (MP_TAC o MATCH_MP Functional_equation.dih_all_atn);
+  SIMP_TAC[];
+  DISCH_THEN kill;
+  DISCH_THEN kill;
+  POP_ASSUM MP_TAC;
+  ASM_TAC;
+  REWRITE_TAC[GSYM Nonlinear_lemma.ineq_expand6];
+  (GSPECL_TAC (List.rev Optimize.x6list))
+  ];;
+
+let get_prep s = 
+  let p1 = !Prep.prep_ineqs in
+    (find (fun t -> (t.idv = s)) p1);;
+
+let mk_post_prep_oxl s = 
+  let idq = get_prep s in
+  let _ = g idq.ineq in
+  let _ = e POSTPREP_OXL_634_TAC in
+  let b,inq = top_goal() in
+  let _ = b=[] or failwith s in
+    {idv = "2"^ idq.idv;
+     doc = idq.doc;
+     tags = idq.tags;
+     ineq = inq};;
+
+let mk_one (i,j) = 
+  mk_post_prep_oxl (Printf.sprintf "prep-OXLZLEZ 6346351218 %d %d" i j);;
+
+let get_one (s,i) = 
+  let idq = mk_post_prep_oxl s in
+  let iarg =  assocd s (!Break_case_log.break_data) (Iarg_leaf 1000) in
+  let cl = mk_case_list idq iarg in
+    List.nth cl i;;
+
+let get_nth j = 
+  get_one (List.nth all_oxl_parameters j);;
+
+(*
+map get_one all_oxl_parameters ;;
+*)
+
+
+get_nth (Random.int 5070);;
+
+List.length all_oxl_parameters;;
 
 
 end;;

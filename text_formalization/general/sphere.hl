@@ -15,6 +15,15 @@ module Sphere = struct
 
 prioritize_real();;
 
+let has_stv t =
+  let typ = (type_vars_in_term t) in
+  can (find (fun ty -> (is_vartype ty) && ((dest_vartype ty).[0] = '?'))) typ;;
+
+let new_definition' t = 
+    if has_stv t 
+    then (Print_types.print_term_types t; failwith "new_definition has stv") 
+    else new_definition t;;
+
 let ineq = define
  `(!c. ineq [] c <=> c)
     /\ (!a x b xs c. ineq (CONS (a,x,b) xs) c <=> a <= x /\ x <= b ==> ineq xs c)`;;
@@ -852,6 +861,74 @@ let taum_sub345_x = new_definition
  `taum_sub345_x x3s x4s x5s (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) = 
       taum_x x1 x2 x3s x4s x5s x6`;;
 *)
+
+(* Added June 8, 2014.  More ineq processing. *)
+
+let ineqm = new_definition'
+  `ineqm xs ab f = ineq (MAP2 (\ x ab. (FST ab,x,SND ab)) xs ab) f`;;
+
+let subat = new_recursive_definition list_RECURSION 
+  `subat (i:num) (y:A) ([]:(A)list) = ([]:(A)list) /\
+   subat i (y:A) (x::xs) = if i = 0 then y ::  xs else x :: (subat (i-1) y xs)`;;
+
+let bisect_left = new_definition'
+   `bisect_left i d = subat i (pathL (EL i d)) d`;;
+
+let bisect_right = new_definition'
+   `bisect_right i d = subat i (pathR (EL i d)) d`;;
+
+let frac_left = new_definition'
+  `frac_left i r d = 
+     (let (a,b) = EL i d in
+	subat i (a,a * (&1 - r) + b * r) d)`;;
+
+let frac_right = new_definition'
+  `frac_right i r d = 
+     (let (a,b) = EL i d in
+	subat i (a * (&1 - r) + b * r,b) d)`;;
+
+let dihatn_x = new_definition' 
+  `!x1 x2 x3 x4 x5 x6.
+         dihatn_x x1 x2 x3 x4 x5 x6 =
+         (let d_x4 = delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+          pi / &2 + atn ((--d_x4)/sqrt (&4 * x1 * d)))`;;
+
+let dih2atn_x = new_definition' 
+  `!x1 x2 x3 x4 x5 x6.
+         dih2atn_x x1 x2 x3 x4 x5 x6 =
+         (let e = rotate2 delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+          pi / &2 + atn ((--e)/sqrt (&4 * x2 * d)))`;;
+
+let dih3atn_x = new_definition' 
+  `!x1 x2 x3 x4 x5 x6.
+         dih3atn_x x1 x2 x3 x4 x5 x6 =
+         (let e = rotate3 delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+          pi / &2 + atn ((--e)/sqrt (&4 * x3 * d)))`;;
+
+let dih4atn_x = new_definition' 
+  `!x1 x2 x3 x4 x5 x6.
+         dih4atn_x x1 x2 x3 x4 x5 x6 =
+         (let e = rotate4 delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+          pi / &2 + atn ((--e)/sqrt (&4 * x4 * d)))`;;
+
+let dih5atn_x = new_definition' 
+  `!x1 x2 x3 x4 x5 x6.
+         dih5atn_x x1 x2 x3 x4 x5 x6 =
+         (let e = rotate5 delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+          pi / &2 + atn ((--e)/sqrt (&4 * x5 * d)))`;;
+
+let dih6atn_x = new_definition' 
+  `!x1 x2 x3 x4 x5 x6.
+         dih6atn_x x1 x2 x3 x4 x5 x6 =
+         (let e = rotate6 delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+          pi / &2 + atn ((--e)/sqrt (&4 * x6 * d)))`;;
+
 
 end;;
 

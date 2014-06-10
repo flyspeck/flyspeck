@@ -565,8 +565,9 @@ let rec mk_rec acc domain = function
       let usL = mk_frac_left i r   domain in
 	usL :: (mk_rec  acc (mk_frac_right i r  domain) v)
   | Iarg_facet ((i,true),r,_,v) ->
-      let usR = mk_frac_right i (1.0 -. r)  domain in
-	usR :: (mk_rec acc (mk_frac_left i (1.0 -. r)  domain) v);;
+      let r' = 1.0 -. r in
+      let usR = mk_frac_right i r'  domain in
+	usR :: (mk_rec acc (mk_frac_left i r'  domain) v);;
 
 let mk_ineq  = 
   let ineq_const = `ineq` in
@@ -696,6 +697,151 @@ map get_one all_oxl_parameters ;;
 get_nth (Random.int 5070);;
 
 List.length all_oxl_parameters;;
+
+(* Theorems to reconstruct inequality on full domain from subdomains *)
+
+let bisect_left_nil = 0;;
+let bisect_right_nil = 0;;
+
+let bisect_left_rules = prove_by_refinement(
+  `!i h t. bisect_left i [] = [] /\
+      bisect_left 0 (h::t) = (pathL h)::t /\
+      bisect_left (SUC i) (h::t) = h :: bisect_left i t`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Sphere.bisect_left;subat_rules;EL;HD;TL])
+  ]);;
+  (* }}} *)
+
+let bisect_right_rules = prove_by_refinement(
+  `!i h t. bisect_right i [] = [] /\
+      bisect_right 0 (h::t) = (pathR h)::t /\
+      bisect_right (SUC i) (h::t) = h :: bisect_right i t`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Sphere.bisect_right;subat_rules;EL;HD;TL])
+  ]);;
+  (* }}} *)
+
+let frac_left_rules = prove_by_refinement(
+  `!i h t r. frac_left i r [] = [] /\
+      frac_left 0 r (h::t) = (FST h,FST h * (&1 - r) + SND h * r)::t /\
+      frac_left (SUC i) r (h::t) = h :: frac_left i r t`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Sphere.frac_left;subat_rules;EL;HD;TL;LET_THM;LAMBDA_PAIR;CONS_11])
+  ]);;
+  (* }}} *)
+
+let frac_right_rules = prove_by_refinement(
+  `!i h t r. frac_right i r [] = [] /\
+      frac_right 0 r (h::t) = (FST h * (&1 - r) + SND h * r,SND h)::t /\
+      frac_right (SUC i) r (h::t) = h :: frac_right i r t`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Sphere.frac_right;subat_rules;EL;HD;TL;LET_THM;LAMBDA_PAIR;CONS_11])
+  ]);;
+  (* }}} *)
+
+let ineqm_rules = prove_by_refinement(
+  `ineqm [] [] f = f /\
+    ineqm (h::t) (h'::t') f = (FST h' <= h /\ h <= SND h' ==> ineqm t t' f)`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Sphere.ineqm;MAP2;Sphere.ineq])
+  ]);;
+  (* }}} *)
+
+let bisect_thm = prove_by_refinement(
+  `!d i x f. sizel x = sizel d ==>
+    ineqm x (bisect_left i d) f ==> ineqm x (bisect_right i d) f ==> ineqm x d f`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC;
+    BY(SIMP_TAC[bisect_left_rules]);
+  INDUCT_TAC;
+    SIMP_TAC[bisect_left_rules;bisect_right_rules];
+    LIST_INDUCT_TAC;
+      BY(REWRITE_TAC[Seq.size;LENGTH;arith `~(0 = SUC i)`]);
+    REWRITE_TAC[Seq.size_cons;arith `SUC i = SUC j <=> i = j`];
+    TYPIFY `h` SPEC1_TAC;
+    REWRITE_TAC[FORALL_PAIR_THM];
+    REWRITE_TAC[ineqm_rules;Sphere.pathL;Sphere.pathR];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `h' <= (p1+p2)/ &2` ASM_CASES_TAC;
+      FIRST_X_ASSUM_ST `ineqm` kill;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_TAC THEN REAL_ARITH_TAC);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  REWRITE_TAC[bisect_left_rules;bisect_right_rules];
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[Seq.size;LENGTH;arith `~(0 = SUC i)`]);
+  REWRITE_TAC[Seq.size_cons;arith `SUC i = SUC j <=> i = j`];
+  REWRITE_TAC[ineqm_rules];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let ineqm_frac_thm = prove_by_refinement(
+  `!d i x f r. sizel x = sizel d ==>
+    ineqm x (frac_left i r d) f ==> ineqm x (frac_right i r d) f ==> ineqm x d f`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC;
+    BY(SIMP_TAC[frac_left_rules]);
+  INDUCT_TAC;
+    SIMP_TAC[frac_left_rules;frac_right_rules];
+    LIST_INDUCT_TAC;
+      BY(REWRITE_TAC[Seq.size;LENGTH;arith `~(0 = SUC i)`]);
+    REWRITE_TAC[Seq.size_cons;arith `SUC i = SUC j <=> i = j`];
+    REWRITE_TAC[ineqm_rules];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `h' <= FST h * (&1 - r) + SND h * r` ASM_CASES_TAC;
+      FIRST_X_ASSUM_ST `ineqm` kill;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_TAC THEN REAL_ARITH_TAC);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  REWRITE_TAC[frac_left_rules;frac_right_rules];
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[Seq.size;LENGTH;arith `~(0 = SUC i)`]);
+  REWRITE_TAC[Seq.size_cons;arith `SUC i = SUC j <=> i = j`];
+  REWRITE_TAC[ineqm_rules];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let rec prove_iargs tm = 
+  let (_,[x;d;f]) = strip_comb tm in
+    function
+      | Iarg_bisect (i,u,v) ->
+	  let thm_u = prove_iargs (mk_ineqm x (mk_bisect_left i d) f) u in
+	  let thm_v = prove_iargs (mk_ineqm x (mk_bisect_right i d) f) v in
+	  let i' = mk_small_numeral i in
+	  let thm =   UNDISCH_ALL (SPECL [d;i';x;f] bisect_thm) in
+	    PROVE_HYP thm_v (PROVE_HYP thm_u thm)
+      | Iarg_leaf _ -> ASSUME tm
+      | Iarg_facet ((i,false),r,_,v) ->
+	  let thm_v = prove_iargs (mk_ineqm x (mk_frac_right i r d) f) v in
+	  let i' = mk_small_numeral i in
+	  let r' = mk_decimal10000 r in
+	  let thm = UNDISCH_ALL (SPECL [d;i';x;f;r'] ineqm_frac_thm) in
+	    PROVE_HYP thm_v thm
+      | Iarg_facet ((i,true),r,_,v) ->
+	  let r' = 1.0 -. r in
+	  let thm_v = prove_iargs (mk_ineqm x (mk_frac_left i r' d) f) v in
+	  let i' = mk_small_numeral i in
+	  let r'' = mk_decimal10000 r' in
+	  let thm = UNDISCH_ALL (SPECL [d;i';x;f;r''] ineqm_frac_thm) in
+	    PROVE_HYP thm_v thm;;
+	    
+let prove_iargs_cases tm iarg = 
+  let spec_all tm = concl (SPEC_ALL (ASSUME tm)) in
+  let eq1 = REWRITE_CONV [GSYM  Break_case_exec.ineq6m] (spec_all tm) in
+  let rhs1 = rhs (concl eq1) in
+  let pthm = prove_iargs (rhs1) iarg in
+    EQ_MP (SYM eq1) pthm;;
 
 
 end;;

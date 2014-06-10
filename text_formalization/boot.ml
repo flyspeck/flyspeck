@@ -1,7 +1,7 @@
 (* ========================================================================= *)
 (* FLYSPECK - BOOK FORMALISATION                                             *)
 (*                                                                           *)
-(* File to kickstart checkpointed flyspeck using BLCR                        *)
+(* File to kickstart checkpointed flyspeck using DMTCP                       *)
 (*                                                                           *)
 (* Author: Joe Pleso                                                         *)
 (* Date:   2011-04-20                                                        *)
@@ -35,7 +35,25 @@ Unix.dup2 flyspeck_stderr Unix.stderr;;
 Unix.close hollight_stdout;;
 Unix.close hollight_stderr;;
 #use "strictbuild.hl";;
-build_silent();;
+(* change to quick build for nonlinear proving *)
+let split list n =
+    let rec aux acc = function
+      | [] -> List.rev acc, []
+      | h :: t -> if n = h then (List.rev (h::acc)), t
+                       else aux  (h :: acc) t  in
+    aux  [] list;;
+let new_build_silent() =
+  let loaded = try_do (fun s -> flyspeck_needs s; s) 
+  (fst(split Build.build_sequence "nonlinear/merge_ineq.hl"))
+  in
+  let unloaded = filter(not o already_loaded) 
+  (fst(split Build.build_sequence "nonlinear/merge_ineq.hl"))
+  in
+  (loaded,unloaded);;
+new_build_silent();;
+flyspeck_needs "nonlinear/experimental_oxl_run.hl";;
+(* end change *)
+
 Unix.dup2 backup_stdout Unix.stdout;;
 Unix.dup2 backup_stderr Unix.stderr;;
 Unix.close backup_stdout;;
@@ -46,4 +64,6 @@ Unix.close flyspeck_stderr;;
 let ocampl_pid()=process_to_string "echo -n $PPID";;
 let blcr()=(build_silent o ignore o Sys.command)
   ("cr_checkpoint -f context.ocampl --backup --term " ^ (ocampl_pid()) ^ " &");;
-blcr();;
+let dmtcp()=(new_build_silent o ignore o Sys.command)("dmtcp_command -bc");;
+let dmtcp()= (dmtcp o Gc.compact)();;
+dmtcp();;

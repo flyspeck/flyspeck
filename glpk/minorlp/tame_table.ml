@@ -23,11 +23,11 @@ flyspeck_needs "../graph_generator/graph_control.hl";;
 
 module Tame_table = struct
 
-  let squander_target = Graph_control.flyspeck_properties.Graph_control.squander_target;;
-  let table_weight_d = Graph_control.flyspeck_properties.Graph_control.table_weight_d;;
-  let table_weight_a = Graph_control.flyspeck_properties.Graph_control.table_weight_a;;
-  let table_weight_b = Graph_control.flyspeck_properties.Graph_control.table_weight_b;;
-  let node_card_max_at_exceptional_vertex = Graph_control.flyspeck_properties.Graph_control.node_card_max_at_exceptional_vertex;;
+  let squander_target = Graph_control.flyspeck_properties_2014.Graph_control.squander_target;;
+  let table_weight_d = Graph_control.flyspeck_properties_2014.Graph_control.table_weight_d;;
+  let table_weight_a = Graph_control.flyspeck_properties_2014.Graph_control.table_weight_a;;
+  let table_weight_b = Graph_control.flyspeck_properties_2014.Graph_control.table_weight_b;;
+  let node_card_max_at_exceptional_vertex = Graph_control.flyspeck_properties_2014.Graph_control.node_card_max_at_exceptional_vertex;;
   let fl x = float_of_int x /. 10000.0;;
 
 type lptype = Lp_unset

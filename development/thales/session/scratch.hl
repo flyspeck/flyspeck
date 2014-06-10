@@ -25,7 +25,9 @@ let rr =
   let _ = new_definition (mk_eq (`nonlinear:bool`,ineq_conj)) in
     ();;
 
-
+flyspeck_needs "computational_build.hl";;
+flyspeck_needs "../glpk/minorlp/tame_table.ml";;
+Tame_table.execute();;
 
 ;;
 help "SYM";;
@@ -4783,46 +4785,49 @@ prove_iargs_cases
 
 (* CURRENT WORK ******)
 
-module Test = struct
-  open Ineq;;
-  open Sphere;;
-add
+Ineq.add
 {
-  idv="test1";
+  idv="7823243247";
   doc="justify delta pos";
   tags=[Main_estimate];
-  ineq = all_forall `ineq [
+  ineq = `!x1 x2 x3 x4 x5 x6. ineq [
     (&4,x1,#6.3504);
     (&4,x2,#6.3504);
     (&4,x3,#6.3504);
-    (#9.0601,x4,#15.327225);
-    (#9.0601,x5,#15.327225);
-    (#9.0601,x6,#15.327225)
-  ]
-    (
-      eulerA_x x1 x2 x3 x4 x5 x6 < &0 \/
-      &0 < delta_x x1 x2 x3 x4 x5 x6)`;
-};;
-end;;
-
-run
-{
-  idv="test1";
-  doc="justify delta pos";
-  tags=[Main_estimate];
-  ineq = Sphere.all_forall `ineq [
-    (&4,x1,#6.3504);
-    (&4,x2,#6.3504);
-    (&4,x3,#6.3504);
-    (#9.0601,x4,#15.327225);
-    (#9.0601,x5,#15.327225);
-    (#9.0601,x6,#15.327225)
+    (#9.0,x4,#15.328);
+    (#9.0,x5,#15.328);
+    (#9.0,x6,#15.328)
   ]
     (
      &0 < delta_x x1 x2 x3 x4 x5 x6 \/
       eulerA_x x1 x2 x3 x4 x5 x6 < &0
    )`;
 };;
+
+Ineq.add
+{
+  idv="5744538693";
+  doc="justify delta pos";
+  tags=[Main_estimate];
+  ineq =  `!x1 x2 x3 x4 x5 x6. ineq [
+    (&6,x1,&8);
+    (&4,x2,&7);
+    (&4,x3,&7);
+    (&8,x4,&25);
+    (&4,x5,&7);
+    (&4,x6,&7)
+  ]
+    (
+          &0 < delta4_squared_x x1 x2 x3 x4 x5 x6 \/
+     &0 < delta_x x1 x2 x3 x4 x5 x6 
+   )`;
+};;
+
+let delta_ineq = 
+  let t1 = (hd(Ineq.getexact "7823243247")).ineq in
+  let t2 = (hd(Ineq.getexact "5744538693")).ineq  in
+  let t = mk_conj (t1,t2) in
+    new_definition' (mk_eq (`delta_ineq:bool`,t));;
 
 
 
@@ -4895,6 +4900,10 @@ let odom4 = ([4.01; 4.01; 4.; 4.; 4.; 4.], [8.0; 8.0; 8.; 8.; 8.0; 8.0]);;
 let odom5 = ([4.01; 4.; 4.01; 4.; 4.; 4.], [8.0; 8.0; 8.; 8.; 8.0; 8.0]);;
 let odom6 = ([4.01; 4.; 4.; 4.; 4.; 4.], [7.99; 8.0; 8.; 8.; 8.0; 8.0]);;
 let odom7 = ([4.;4.;4.;4.;4.;4.],[6.3504; 6.3504; 6.3504; 9.64; 9.64; 9.64]);;
+let odom8 = ([4.;4.;4.;4.;9.;9.],[6.3504; 6.3504; 6.3504; 6.3504; 13.48; 13.48]);;
+let odom9 = ([4.;4.;4.;9.;9.;4.],[6.3504; 6.3504; 6.3504; 13.48; 13.48; 6.3504]);;
+let odom10 = ([4.;4.;4.;6.3504;6.3504;4.],[6.3504; 6.3504; 6.3504; 11.7; 11.7; 6.3504]);;
+let odom11 = ([7.;4.;4.;4.;4.;4.],[8.; 8.; 8.; 7.99; 8.; 8.]);;
 
 let include_domain (a1,b1) (a2,b2) = 
   let eps = 1.0e-10 in
@@ -4905,10 +4914,9 @@ let minlist x = end_itlist min x;;
 let maxlist x = end_itlist max x;;
 
 let rtest i = 
-  let eps = 1.0e-10 in
   let (a,b) = (ocaml_domain (concl (h1 i))) in
   let v = include_domain (a,b) in
-    v odom1 or v odom2 or v odom3 or v odom4 or v odom5 or v odom6 or v odom7;;
+    exists v [odom1;odom2;odom3;odom4;odom5;odom6;odom7;odom8;odom9;odom10;odom11];;
 
 let qtest i = 
   let eps = 1.0e-10 in
@@ -4921,28 +4929,43 @@ let atest i =
     maxlist (fst (chop_list 3 b)) < 6.3504 +.eps;;
 
 let dtest i = 
-  let (_,_,fs) = Optimize.dest_ineq (concl (h1 (List.nth f2 i))) in
+  let (_,_,fs) = Optimize.dest_ineq (concl (h1  i)) in
    exists (has_match `delta_x x1 x2 x3 x4 x5 x6 + unit6 x1 x2 x3 x4 x5 x6 * -- y < &0`) fs;;
 
-filter dtest (0--58);;
-dtest 54;;  
-Optimize.dest_ineq (concl (h1 54));;
-dtest (List.nth;;
+let etest i = 
+  let odom = ([6.;4.;4.;8.;4.;4.],[8.; 7.; 7.; 25.; 7.;7.]) in
+  let t = concl (h1 i) in
+  let (a,b) = ocaml_domain t in
+  let (_,_,fs) = Optimize.dest_ineq t in
+    include_domain (a,b) odom && 
+   exists (has_match `x1_delta_x x1 x2 x3 x4 x5 x6 * &4 +
+     delta4_squared_x x1 x2 x3 x4 x5 x6 * -- y <
+     &0`) fs;;
 
+let ftest i  = 
+  let odom = ([4.;4.;4.;9.;9.;9.],[6.3504; 6.3504; 6.3504; 15.328;15.328;15.328]) in
+  let t = concl (h1 i) in
+  let (a,b) = ocaml_domain t in
+  let (_,_,fs) = Optimize.dest_ineq t in
+    include_domain (a,b) odom && 
+      exists (has_match `eulerA_x x1 x2 x3 x4 x5 x6 < &0`) fs;;
 
-
-let f1 = filter (not o  rtest) (0--604);;
-let f2 = filter (fun i -> not (rtest i) && not (ptest i = [])) (0 -- 604);;
+let f2 = filter 
+  (fun i -> not (rtest i) && not (ptest i = []) && not (dtest i) && not (etest i) && not (ftest i)) (0 -- 604);;
 
 let show i =
   let t = concl (h1 (List.nth f2 i)) in
     (t, ocaml_domain t);;
 
-let odom8 = ([4.;4.;4.;9.0601;9.0601;9.0601],[6.3504; 6.3504; 6.3504; 15.328;15.328;15.328]);;
-filter (fun i -> 
-	  let (a,b) = (ocaml_domain (concl( h1 i))) in
-	include_domain (a,b) odom8) f2;;
+show 1;;
+let f1 = filter (not o  rtest) (0--604);;
 
+let f1 = filter (not o  rtest) (0--604);;
+
+
+show 0;;
+show 6;;
+show 10;;
      f2;;
 show 23;;
 Sphere.delta_234_x;;
@@ -4951,6 +4974,7 @@ filter atest f2;;
 filter qtest f2;;
 List.length f2;;
 
+show
 (h1 (List.nth f2 15),ocaml_;;
 h1 (List.nth f2 15);;
 ocaml_domain (concl (h1 588));;
@@ -5015,3 +5039,4 @@ st 15 [`hminus`;`<=`];;
 
 
 flyspeck_needs "nonlinear/break_case_exec.hl";;
+st 5 [name "Kcblrqc"];;

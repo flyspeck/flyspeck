@@ -31,7 +31,6 @@ flyspeck_needs "tame/ssreflect/sort-compiled.hl";;
 
 flyspeck_needs "nonlinear/break_case_exec.hl";;
 
-1;;
 (* 
 
 This uses the data from break_case_log.hl to create a collection of
@@ -91,7 +90,55 @@ Nonlin_def.sqrt_x2;; etc.
 
 module Experimental_oxl_run = struct
 
+(*
   Break_case_exec.ineq_conv (Break_case_exec.get_nth 3);;
+*)
+
+(* Modify inequalities returned by Break_case_exec.get_nth as follows:
+   1) Remove the assumption &0 < delta_x x1 x2 x3 x4 x5 x6 /\ ...
+   2) Rewrite with |- const1 = sol0 / pi
+*)
+
+  let remove_assumptions ineq =
+    let ltm, rtm = dest_comb ineq in
+      mk_comb (ltm, rand rtm);;
+
+    let get_ineq i =
+      let name, case = List.nth Break_case_exec.all_oxl_parameters i in
+      let ineq0 = Break_case_exec.get_nth i in
+      let ineq1 = remove_assumptions ineq0 in
+      let ineq2 = (rand o concl o REWRITE_CONV[SYM Nonlinear_lemma.sol0_over_pi_EQ_const1]) ineq1 in
+	name, case, ineq2;;
+	
+(*
+   Save string representations of inequalities in a file.
+*)
+    let get_and_save sep fname cases =
+      let out = open_out fname in
+      let p = Pervasives.output_string out in
+      let rec save_all cases =
+	match cases with
+	  | [] -> ()
+	  | c :: cs ->
+	      let _ = print_endline (Printf.sprintf "Case: %d\n" c) in
+	      let _ =
+		try
+		  let name, case, ineq = get_ineq c in
+		  let str = string_of_term ineq in
+		  let str = Str.global_replace (Str.regexp "\n") " " str in
+		  let str = Str.global_replace (Str.regexp "--#") "-- #" str in
+		  let str = Printf.sprintf "%d: (%s,%d): %s%s" c name case str sep in
+		    p str
+		with Failure msg ->
+		  print_endline ("FAILURE: " ^ msg);
+		  p (Printf.sprintf "%d: FAILURE%s" c sep) in
+		save_all cs 
+      in
+      let _ = save_all cases in
+      let _ = close_out out in
+	();;
+
+    let save_all() = get_and_save "\n" "oxl.txt" (0--7271);;
 
 end;;
 

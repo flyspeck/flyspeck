@@ -586,8 +586,10 @@ mk_ineq `[a:real,x:real,b:real]` `x > &0`;;
 mk_ineqm `[x:real]` `[a:real,b:real]` `x > &0`;;
 *)
 
-let mk_case_list idq iarg = 
-  let (inq,axbs,f) = simple_dest_ineq idq.ineq in
+(* arguments changed June 13, 2014 *)
+
+let mk_case_list inq iarg = 
+  let (inq,axbs,f) = simple_dest_ineq inq in
   let xs = mk_flist (map (fun (_,x,_) -> x) axbs) in
   let abs = mk_flist (map (fun (a,_,b) -> mk_pair (a,b)) axbs) in
   let doms = mk_rec [] abs iarg in
@@ -635,6 +637,14 @@ let all_oxl_parameters = List.flatten (map oxl_parameters all_oxl_cases);;
  
 List.length all_oxl_parameters;;
 
+let ineqm_mp_simple = prove_by_refinement(
+  `!a a' b c. ineqm a a' (b ==> c) <=> (b ==> ineqm a a' c)`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Sphere.ineqm;Merge_ineq.ineq_mp_simple])
+  ]);;
+  (* }}} *)
+
 (* generating OXL inequality series *)
 
 let POSTPREP_OXL_634_TAC = 
@@ -657,10 +667,12 @@ let POSTPREP_OXL_634_TAC =
   SIMP_TAC[];
   DISCH_THEN kill;
   DISCH_THEN kill;
-  POP_ASSUM MP_TAC;
+  (* last lines changed 2014-06-13 *)
+  POP_ASSUM kill;
   ASM_TAC;
   REWRITE_TAC[GSYM Nonlinear_lemma.ineq_expand6];
-  (GSPECL_TAC (List.rev Optimize.x6list))
+  REWRITE_TAC [GSYM Nonlinear_lemma.sol0_over_pi_EQ_const1];
+  (*  (GSPECL_TAC (List.rev Optimize.x6list)); *)
   ];;
 
 let get_prep s = 
@@ -684,7 +696,7 @@ let mk_one (i,j) =
 let get_one (s,i) = 
   let idq = mk_post_prep_oxl s in
   let iarg =  assocd s (!Break_case_log.break_data) (Iarg_leaf 1000) in
-  let cl = mk_case_list idq iarg in
+  let cl = mk_case_list idq.ineq iarg in
     List.nth cl i;;
 
 let get_nth j = 
@@ -694,15 +706,12 @@ let get_nth j =
 map get_one all_oxl_parameters ;;
 *)
 
-
 get_nth (Random.int 5070);;
+
 
 List.length all_oxl_parameters;;
 
 (* Theorems to reconstruct inequality on full domain from subdomains *)
-
-let bisect_left_nil = 0;;
-let bisect_right_nil = 0;;
 
 let bisect_left_rules = prove_by_refinement(
   `!i h t. bisect_left i [] = [] /\
@@ -750,6 +759,47 @@ let ineqm_rules = prove_by_refinement(
   (* {{{ proof *)
   [
   BY(REWRITE_TAC[Sphere.ineqm;MAP2;Sphere.ineq])
+  ]);;
+  (* }}} *)
+
+let LENGTH_subat = prove_by_refinement(
+  `!xs i y. LENGTH (subat i y xs) = LENGTH xs`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[(* Break_case_exec. *) subat_rules;LENGTH];
+  BY(INDUCT_TAC THEN ASM_REWRITE_TAC[(* Break_case_exec. *) subat_rules;LENGTH])
+  ]);;
+  (* }}} *)
+
+let LENGTH_frac_left = prove_by_refinement(
+  `!xs i r. LENGTH(frac_left i r xs) = LENGTH xs`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Sphere.frac_left;LENGTH_subat;LET_THM;LAMBDA_PAIR])
+  ]);;
+  (* }}} *)
+
+let LENGTH_frac_right = prove_by_refinement(
+  `!xs i r. LENGTH(frac_right i r xs) = LENGTH xs`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Sphere.frac_right;LENGTH_subat;LET_THM;LAMBDA_PAIR])
+  ]);;
+  (* }}} *)
+
+let LENGTH_bisect_left = prove_by_refinement(
+  `!xs i. LENGTH(bisect_left i xs) = LENGTH xs`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Sphere.bisect_left;LENGTH_subat;LET_THM;LAMBDA_PAIR])
+  ]);;
+  (* }}} *)
+
+let LENGTH_bisect_right = prove_by_refinement(
+  `!xs i. LENGTH(bisect_right i xs) = LENGTH xs`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Sphere.bisect_right;LENGTH_subat;LET_THM;LAMBDA_PAIR])
   ]);;
   (* }}} *)
 
@@ -844,6 +894,60 @@ let prove_iargs_cases tm iarg =
   let rhs1 = rhs (concl eq1) in
   let pthm = prove_iargs (rhs1) iarg in
     EQ_MP (SYM eq1) pthm;;
+
+
+(*  MOVED to .
+let postprocess t = 
+  let t2 = cconv (REWRITE_CONV [GSYM Nonlinear_lemma.sol0_over_pi_EQ_const1;ineqm_mp_simple]) t in
+  let t3 = snd(dest_imp t2) in
+    t3;;
+
+let postprocess_int i = 
+  let t1 = (* Break_case_exec. *) get_nth i in
+    postprocess1 t1;;
+*)
+
+let mk_i i = 
+  try 
+    let _ = Serialization.mk_ser_thm ((* Break_case_exec. *) get_nth i) in
+      (true,i)
+  with Failure _ ->  (false,i);;
+
+let prove_oxl_serialize_processed_idq t iarg = 
+  let cl = (* Break_case_exec. *) mk_case_list t iarg in
+  let cthms = map Serialization.mk_ser_thm cl in
+  let athm = (* Break_case_exec. *) prove_iargs_cases t iarg in
+  let rthm = itlist (PROVE_HYP) cthms athm in
+  let vthm = REWRITE_RULE 
+    [LENGTH;LENGTH_bisect_left;LENGTH_bisect_right;LENGTH_frac_left;LENGTH_frac_right] 
+    (DISCH_ALL rthm) in
+    vthm;;
+
+let prove_oxl_serialize_processed_idv s =
+  let idq = (* Break_case_exec. *) mk_post_prep_oxl s in
+  let iarg  = assocd s (!Break_case_log.break_data) (Iarg_leaf 1000) in  
+    prove_oxl_serialize_processed_idq idq.ineq iarg;;
+
+let SERIAL_OXL_TAC s gl = 
+  let t = goal_concl gl in
+  let iarg = assocd s (!Break_case_log.break_data) (Iarg_leaf 1000) in  
+  let thm = prove_oxl_serialize_processed_idq t iarg in
+    ACCEPT_TAC thm gl;;
+
+let prove_oxl_serialized_idv s = 
+  let idq = (* Break_case_exec. *) get_prep s in
+    prove(idq.ineq,(* Break_case_exec. *) POSTPREP_OXL_634_TAC THEN SERIAL_OXL_TAC s);;
+
+let prove_prep_oxl (i,j) = 
+  let s = Printf.sprintf "prep-OXLZLEZ 6346351218 %d %d" i j in
+  let _ = report s in
+    (s,prove_oxl_serialized_idv s);;
+
+(* This generates theorems for all the prop-OXLZLEZ series inequalities in prep.hl *)
+
+let exec_prove_all_prep_oxl () = 
+  map prove_prep_oxl (* Break_case_exec. *) all_oxl_cases;;
+
 
 
 end;;

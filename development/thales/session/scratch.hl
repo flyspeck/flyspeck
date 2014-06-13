@@ -10,6 +10,8 @@ rflyspeck_needs "general/hol_pervasives.hl";;
 flyspeck_needs "general/sphere.hl";;
 flyspeck_needs "nonlinear/functional_equation.hl";;
 flyspeck_needs "nonlinear/merge_ineq.hl";;
+flyspeck_needs "nonlinear/break_case_exec.hl";;
+
 needs "general/theorem_oxl_digest.hl";;
 flyspeck_dir;;
 loadt "..//formal_lp/hypermap/ssreflect/list_hypermap_iso-compiled.hl";;
@@ -21,6 +23,7 @@ rflyspeck_needs "tame/tactic.hl";;
 flyspeck_needs "nonlinear/mk_all_ineq.hl";;
 
 CONJ (UNDISCH (ASSUME `t ==> a`)) (UNDISCH (ASSUME `t ==> b`));;
+
 
 let rr = 
   let ineqs = !Ineq.ineqs in
@@ -36,6 +39,7 @@ Tame_table.execute();;
 ;;
 help "SYM";;
 help "EQ_MP";;
+help "PROVE_HYP";;
 hd (!Ineq.ineqs);;
 
 hd (nn);;
@@ -2694,7 +2698,6 @@ Nonlin_def.edge2_flatD_x1;;
     ] (hs1 10);;
 
 
-xxd
 
 List.nth p1 3;;
 list_mk_conj;;
@@ -4702,40 +4705,6 @@ Serialization.full_digest_thm TRUTH;;
 
 
 prove_iargs (rhs2) (iarg8875);;
-
-;;
-st 5 [`ineq`;`ineqm`];;
-help "SPEC_ALL";;
-help_grep "spec";;
-GEN_ALL;;
-ineqm_frac_thm;;
-bisect_thm;;
-    
-
-
-let rec mk_rec acc domain = function
-  | Iarg_bisect (i,u,v) -> 
-      let usL = mk_rec acc (mk_bisect_left i domain) u in
-	mk_rec usL (mk_bisect_right i domain) v 
-  | Iarg_leaf _ -> acc
-  | Iarg_facet ((i,false),r,_,v) ->
-      let usL = mk_frac_left i r   domain in
-	usL :: (mk_rec  acc (mk_frac_right i r  domain) v)
-  | Iarg_facet ((i,true),r,_,v) ->
-      let r' = 1.0 -. r in
-      let usR = mk_frac_right i r'  domain in
-	usR :: (mk_rec acc (mk_frac_left i r'  domain) v);;
-
-
-help "UNDISCH";;
-st 5 [`frac_left`];;
-Sphere.pathL;;
-help "PROVE_HYP";;
-st 5 [`MAP2`];;
-st 5 [`ineqm`];;
-st 5 [`bisect_left`];;
-st 5 [`subat i d []`];;
-let justify_bisect i th_u th_v ineq = 
   
 let iarg8875 = 
  Iarg_facet ((0,true),0.7397,730,
@@ -4843,42 +4812,122 @@ run {
 
 0.541 -. 0.028;;
 
+
+
 (* CURRENT WORK, JUNE 2014 ******)
 
 (* ********************************************************************** *)
 (* post analysis of oxl cases *)
 (* ********************************************************************** *)
 
-
-let ineqm_mp_simple = prove_by_refinement(
-  `!a a' b c. ineqm a a' (b ==> c) <=> (b ==> ineqm a a' c)`,
+let LENGTH_subat = prove_by_refinement(
+  `!xs i y. LENGTH (subat i y xs) = LENGTH xs`,
   (* {{{ proof *)
   [
-    BY(REWRITE_TAC[Sphere.ineqm;Merge_ineq.ineq_mp_simple])
+  LIST_INDUCT_TAC THEN REWRITE_TAC[Break_case_exec.subat_rules;LENGTH];
+  BY(INDUCT_TAC THEN ASM_REWRITE_TAC[Break_case_exec.subat_rules;LENGTH])
   ]);;
   (* }}} *)
 
-let postprocess i = 
-  let t1 = Break_case_exec.get_nth i in
-  let t2 = cconv (REWRITE_CONV [GSYM Nonlinear_lemma.sol0_over_pi_EQ_const1;ineqm_mp_simple]) t1 in
+let LENGTH_frac_left = prove_by_refinement(
+  `!xs i r. LENGTH(frac_left i r xs) = LENGTH xs`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Sphere.frac_left;LENGTH_subat;LET_THM;LAMBDA_PAIR])
+  ]);;
+  (* }}} *)
+
+let LENGTH_frac_right = prove_by_refinement(
+  `!xs i r. LENGTH(frac_right i r xs) = LENGTH xs`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Sphere.frac_right;LENGTH_subat;LET_THM;LAMBDA_PAIR])
+  ]);;
+  (* }}} *)
+
+let LENGTH_bisect_left = prove_by_refinement(
+  `!xs i. LENGTH(bisect_left i xs) = LENGTH xs`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Sphere.bisect_left;LENGTH_subat;LET_THM;LAMBDA_PAIR])
+  ]);;
+  (* }}} *)
+
+let LENGTH_bisect_right = prove_by_refinement(
+  `!xs i. LENGTH(bisect_right i xs) = LENGTH xs`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Sphere.bisect_right;LENGTH_subat;LET_THM;LAMBDA_PAIR])
+  ]);;
+  (* }}} *)
+
+
+
+(*
+let postprocess t = 
+  let t2 = cconv (REWRITE_CONV [GSYM Nonlinear_lemma.sol0_over_pi_EQ_const1;ineqm_mp_simple]) t in
   let t3 = snd(dest_imp t2) in
     t3;;
 
+let postprocess_int i = 
+  let t1 = Break_case_exec.get_nth i in
+    postprocess1 t1;;
+*)
+
 let mk_i i = 
   try 
-    let _ = Serialization.mk_ser_thm (postprocess i) in
+    let _ = Serialization.mk_ser_thm (Break_case_exec.get_nth i) in
       (true,i)
   with Failure _ ->  (false,i);;
 
-let uu = map mk_i (0--30);;
+let uu = map mk_i (6020--6040);;
 List.length (filter fst uu);;
+let s = "prep-OXLZLEZ 6346351218 1 31";;
+let s = "prep-OXLZLEZ 6346351218 3 33";;
+
+let prove_serialize_processed_idq t iarg = 
+  let cl = Break_case_exec.mk_case_list t iarg in
+  let cthms = map Serialization.mk_ser_thm cl in
+  let athm = Break_case_exec.prove_iargs_cases idq.ineq iarg in
+  let rthm = itlist (PROVE_HYP) cthms athm in
+  let vthm = REWRITE_RULE 
+    [LENGTH;LENGTH_bisect_left;LENGTH_bisect_right;LENGTH_frac_left;LENGTH_frac_right] 
+    (DISCH_ALL rthm) in
+    vthm;;
+
+let prove_serialize_processed_idv s =
+  let idq = Break_case_exec.mk_post_prep_oxl s in
+  let iarg  = assocd s (!Break_case_log.break_data) (Iarg_leaf 1000) in  
+    prove_serialize_processed_idq idq.ineq iarg;;
+
+let SERIAL_OXL_TAC s gl = 
+  let t = goal_concl gl in
+  let iarg = assocd s (!Break_case_log.break_data) (Iarg_leaf 1000) in  
+  let thm = prove_serialize_processed_idq t iarg in
+    ACCEPT_TAC thm gl;;
+
+let prove_serialized_idv s = 
+  let idq = get_prep s in
+  let _ = g idq.ineq in
+  let _ = e (POSTPREP_OXL_634_TAC THEN SERIAL_OXL_TAC s) in
+  let b,inq = top_goal() in
+  let _ = b=[] or failwith s in
+    {idv = "2"^ idq.idv;
+     doc = idq.doc;
+     tags = idq.tags;
+     ineq = inq};;
+
+
+let s = "prep-OXLZLEZ 6346351218 3 33";;
+prove_serialize_processed_idv s;;
+ 
+PROVE_HYP;;
+DISCH_ALL;;
+
 
 (* ********************************************************************** *)
 (* analysis of non oxl cases *)
 (* ********************************************************************** *)
-
-
-
 
 let has_subterm sub tm = 
   can (find_term ((=) sub)) tm;; 
@@ -5063,43 +5112,6 @@ let f1 = filter (not o  test_domain) (0--604);;
       | Const(s,t) ->  [s] 
       | Comb (t1,t2) -> get_const_names t1 @ get_const_names t2 
       | Abs (t1,t2) -> get_const_names t1 @ get_const_names t2 ;;
-
-[(["ldih2_x_div_sqrtdelta_posbranch"; "ldih3_x_div_sqrtdelta_posbranch";
-     "ldih5_x_div_sqrtdelta_posbranch"; "ldih6_x_div_sqrtdelta_posbranch";
-     "sol_euler156_x_div_sqrtdelta"; "sol_euler246_x_div_sqrtdelta";
-     "sol_euler345_x_div_sqrtdelta"; "sol_euler_x_div_sqrtdelta"],
-    9);
-   (["delta4_squared_x"; "eta2_126"; "eta2_135"; "gamma23_full8_x";
-     "x1_delta_x"],
-    327);
-   (["delta4_squared_x"; "eta2_126"; "eta2_135"; "gamma23_full8_x";
-     "x1_delta_x"],
-    328);
-   (["gamma3f_x_div_sqrtdelta"], 333); (["gamma3f_x_div_sqrtdelta"], 334);
-   (["eta2_456"; "gamma3f_x_div_sqrtdelta"], 335);
-   (["dih4_x_div_sqrtdelta_posbranch"; "eta2_456"; "gamma3f_x_div_sqrtdelta"],
-    336);
-   (["dih4_x_div_sqrtdelta_posbranch"; "eta2_456"; "gamma3f_x_div_sqrtdelta"],
-    337);
-   (["dih4_x_div_sqrtdelta_posbranch"; "eta2_456"; "gamma3f_x_div_sqrtdelta"],
-    338);
-   (["dih4_x_div_sqrtdelta_posbranch"; "eta2_456"; "gamma3f_x_div_sqrtdelta"],
-    339);
-   (["dih4_x_div_sqrtdelta_posbranch"; "eta2_456"; "gamma3f_x_div_sqrtdelta"],
-    340);
-   (["dih4_x_div_sqrtdelta_posbranch"; "eta2_456"; "gamma3f_x_div_sqrtdelta"],
-    341);
-   (["eta2_456"], 342); (["eta2_456"], 343); (["eta2_456"], 344);
-   (["gamma2_x1_div_a_v2"], 345); (["gamma2_x1_div_a_v2"], 346);
-   (["gamma2_x1_div_a_v2"], 347); (["lfun_y1"], 394);
-   (["asnFnhk"; "lfun_y1"], 395);
-   (["acs_sqrt_x1_d4"; "arclength_x_123"], 396); (["asn797k"], 398);
-   (["arclength_x1"], 400); (["arclength_x1"], 401); (["dnum1"], 508);
-   (["delta4_squared_x"; "x1_delta_x"], 516); (["tau_residual_x"], 519);
-   (["taud_D1_num_x"; "taud_D2_num_x"], 521); (["taud_D2_num_x"], 523);
-   (["taud_D1_num_x"; "taud_D2_num_x"], 538); (["taud_D2_num_x"], 539);
-   (["tau_residual_x"], 579); (["delta4_squared_x"; "x1_delta_x"], 587);
-   (["delta4_squared_x"], 605)];;
 
   let rational_expansions = 
     [("delta_x",Sphere.delta_x);
@@ -5436,7 +5448,7 @@ top_goal();;
 
 
 
-let test = prove_by_refinement(
+let DELTA_TAC_DESIGN_GAME = prove_by_refinement(
   `#`,
   (* {{{ proof *)
   [

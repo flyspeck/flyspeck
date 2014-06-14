@@ -344,9 +344,13 @@ let rec recheck_pass  timeout domain iarg = match iarg with
 let initial_msec = 
   let ft_sec = Scripts.finalize Scripts.finished_times in
   let ft_msec = Scripts.finalize Scripts.finished_times_msecs in
+  let get s =       try assoc s ft_msec       with _ -> 1000 * (assoc s ft_sec ) in
+  let starts_prep s = Str.string_match (Str.regexp "prep-*") s 0 in
+  let cut_prep s = String.sub s 5 (String.length s - 5) in
     fun s ->
-      try assoc s ft_msec 
-      with _ -> 1000 * (assoc s ft_sec );;
+      try get s 
+      with _ -> 
+	if starts_prep s then get (cut_prep s) else failwith ("initial_msec "^ s);;
 
 let initialize s = 
   let msec = initial_msec s in
@@ -711,7 +715,544 @@ get_nth (Random.int 5070);;
 
 List.length all_oxl_parameters;;
 
+xxd
+
+(* ********************************************************************** *)
+(* TEST CASE: DELTA SERIES.  
+   In these inequalities, if delta_x1 x2 x3 x4 x5 x6 appears in 
+   a square root, denominator, or atn function, it is positive over the
+   entire domain of the inequality.
+ *)
+(* ********************************************************************** *)
+
+(* ********************************************************************** *)
+(* Classification of non oxl cases.
+   We skip quad cases for now.  *)
+(* ********************************************************************** *)
+
+let get_idq s = 
+  find (fun idq -> idq.idv = s) !Prep.prep_ineqs;;
+
+let get_ineq s = 
+  (get_idq s).ineq;;
+
+let rec get_const_names tm = 
+    match tm with       
+        Var(s,t) -> []
+      | Const(s,t) ->  [s] 
+      | Comb (t1,t2) -> get_const_names t1 @ get_const_names t2 
+      | Abs (t1,t2) -> get_const_names t1 @ get_const_names t2 ;;
+
+let rec all_const_name P = 
+    function
+      | Abs(_,t) -> all_const_name P t
+      | Comb(u,v) -> all_const_name P u && all_const_name P v
+      | Var _ -> true
+      | Const(s,_) -> P s;;
+
+let some_const_name P t = not (all_const_name (not o P) t);;
+
+let tough_names = 
+  [
+    "quad_cross_diag2_x";
+    "arclength_x1";"arclength_x_123";
+    "eta2_126";"eta2_135";"eta2_456";
+    "taud_x";
+    "mud_126_x_v1";"mud_135_x_v1";"mud_234_x_v1";
+    "vol3f_x_lfun";"vol3f_x_sqrt_lmplus";"vol3_x_sqrt";
+    "gamma23_full8_x";
+    "gamma23_keep135_x";
+  ];;
+
+ (* let has_quad = some_const_name ((=) "quad_cross_diag2_x");;   *)
+
+let has_tough = some_const_name (fun s -> mem s tough_names);;
+
+let reduced_prep_idq,tough_idq = 
+  let p1 = !Prep.prep_ineqs in
+  let p2 = filter (fun t -> not (Str.string_match (Str.regexp "prep-OXLZLEZ 6346351218 [1234]") t.idv 0)) p1 in
+    partition (fun t -> not ( has_tough t.ineq) ) p2 ;;
+
+let (sz,nth_term,nth_idv) = 
+  let p = reduced_prep_idq in
+    (List.length p,
+     (fun k->  (snd(strip_forall (List.nth p k).ineq))),
+     (fun k-> (List.nth p k).idv));;
+
+let ocaml_of_term = 
+  let rec soh t = 
+    let _ = not( is_var t) or failwith "no variables allowed" in
+    let (f,xs) = strip_comb t in
+    let _  = (is_const f) or failwith ("constant expected:" ^ string_of_term f) in
+    let ifix i = let [a;b] = xs in ((i) (soh a) (soh b)) in
+      match fst (dest_const f) with
+	  | "real_add" -> ifix (+.)
+	  | "real_mul" -> ifix ( *. )
+	  | "real_div" -> ifix (/.)
+	  | "real_neg" -> (let [a] = xs in  ( ~-. ) (  soh a))
+	  | "real_of_num" -> let [a] = xs in (float_of_int (dest_small_numeral a))
+	  | "NUMERAL" -> let [a] = xs in float_of_int (dest_small_numeral t)
+	  | "DECIMAL" ->  let [a;b] = xs in float_of_int (dest_small_numeral a ) /. float_of_int (dest_small_numeral b) 
+	  | "hminus" -> 1.2317544220903216 
+	  | "pi" ->  3.1415926535897932385
+	  | "const1" -> 0.55128559843253080794 /. 3.1415926535897932385
+	      in
+    fun t -> 
+      try (soh t) 
+      with Failure s -> failwith (s^" .......   "^string_of_term t);;
+
+let ocaml_domain inq = 
+  let (_,axb,_) = simple_dest_ineq (snd (strip_forall inq)) in
+  let ab = map (fun (a,_,b) -> (a,b)) axb in
+  let a,b = unzip ab in
+    let f = ((* rhs o concl o REAL_RAT_REDUCE_CONV o *) ocaml_of_term (* o ud*)) in
+    map f a,map f b;;
+
+let odom_table = 
+  let odom0 = ([4.; 4.; 4.; 4.; 4.; 4.], [7.99; 8.0; 8.; 8.; 7.99; 7.99]) in
+  let odom1 = ([4.01; 4.01; 4.; 4.; 4.; 4.], [8.0; 8.0; 8.; 8.; 8.0; 8.0]) in
+  let odom2 = ([4.01; 4.; 4.01; 4.; 4.; 4.], [8.0; 8.0; 8.; 8.; 8.0; 8.0]) in
+  let odom3 = ([4.01; 4.; 4.; 4.; 4.; 4.], [7.99; 8.0; 8.; 8.; 8.0; 8.0]) in
+  let odom4 = ([4.;4.;4.;4.;4.;4.],[6.3504; 6.3504; 6.3504; 9.64; 9.64; 9.64]) in
+  let odom5 = ([4.;4.;4.;4.;9.;9.],[6.3504; 6.3504; 6.3504; 6.3504; 13.48; 13.48]) in
+  let odom6 = ([4.;4.;4.;9.;9.;4.],[6.3504; 6.3504; 6.3504; 13.48; 13.48; 6.3504]) in
+  let odom7 = ([4.;4.;4.;6.3504;6.3504;4.],[6.3504; 6.3504; 6.3504; 11.7; 11.7; 6.3504]) in
+  let odom8 = ([7.;4.;4.;4.;4.;4.],[8.; 8.; 8.; 7.99; 8.; 8.]) in
+  let odom9 = ([4.; 4.; 4.; 4.; 4.; 4.], [7.99; 7.99; 7.99; 8.; 8.; 8.]) in
+  let odom10 = ([4.; 4.; 4.; 4.; 4.; 4.], [7.99; 7.99; 8.; 8.; 8.; 7.99]) in
+    [
+      (odom0,Merge_ineq.delta_min_corner_0);
+      (odom1,Merge_ineq.delta_min_corner_1);
+      (odom2,Merge_ineq.delta_min_corner_2);
+      (odom3,Merge_ineq.delta_min_corner_3);
+      (odom4,Merge_ineq.delta_min_corner_4);
+      (odom5,Merge_ineq.delta_min_corner_5);
+      (odom6,Merge_ineq.delta_min_corner_6);
+      (odom7,Merge_ineq.delta_min_corner_7);
+      (odom8,Merge_ineq.delta_min_corner_8);
+      (odom9,Merge_ineq.delta_min_corner_4_799_8);
+      (odom10,Merge_ineq.delta_min_corner_4_799_8_alt);
+    ];;
+
+let check_odom = setify (map (fun ((a,b),t) -> 
+       let rr = GSYM (REWRITE_RULE[IMP_IMP_THM;GSYM CONJ_ASSOC] Nonlinear_lemma.ineq_expand6) in
+       let t' = REWRITE_RULE[rr] t in
+       let diff x y = map2 (-.) x y in
+       let (c,d) = ocaml_domain (concl t') in
+	 setify(diff a c),setify(diff b d)) odom_table);;
+
+check_odom = [([0.],[0.])];;
+
+let include_domain (a1,b1) (a2,b2) = 
+  let eps = 1.0e-10 in
+    forall2 (fun x y -> x +. eps >= y) a1 a2 &&
+      forall2 (fun x y -> x <= y +. eps) b1 b2;;
+
+let test_domain t = 
+  let (a,b) = (ocaml_domain t) in
+  let v (dom,_) = include_domain (a,b) dom in
+    exists v odom_table;;
+
+let find_domain t = 
+  let (a,b) = (ocaml_domain t) in
+  let v (dom,_) = include_domain (a,b) dom in
+    snd (find v odom_table);;
+
+let test_delta_explicit t = 
+  let (_,_,fs) = Optimize.dest_ineq t in
+   exists (has_match `delta_x x1 x2 x3 x4 x5 x6 + unit6 x1 x2 x3 x4 x5 x6 * -- y < &0`) fs;;
+
+let test_delta4_explicit t = 
+  let odom = ([6.;4.;4.;8.;4.;4.],[8.; 7.; 7.; 25.; 7.;7.]) in
+  let (a,b) = ocaml_domain t in
+  let (_,_,fs) = Optimize.dest_ineq t in
+    include_domain (a,b) odom && 
+   exists (has_match `x1_delta_x x1 x2 x3 x4 x5 x6 * &4 +
+     delta4_squared_x x1 x2 x3 x4 x5 x6 * -- y <
+     &0`) fs;;
+
+let test_eulerA_explicit t  = 
+  let odom = ([4.;4.;4.;9.;9.;9.],[6.3504; 6.3504; 6.3504; 15.328;15.328;15.328]) in
+  let (a,b) = ocaml_domain t in
+  let (_,_,fs) = Optimize.dest_ineq t in
+    include_domain (a,b) odom && 
+      exists (has_match `eulerA_x x1 x2 x3 x4 x5 x6 < &0`) fs;;
+
+let rec test_delta_inert  = 
+  let delta_strings = ["dih_x";"dih2_x";"dih3_x";"dih4_x";"dih5_x";"dih6_x";
+		       "ldih1_x";"ldih2_x";"ldih3_x";"ldih4_x";"ldih5_x";"ldih6_x";
+		       "gchi1_x";"gchi2_x";"gchi3_x";"gchi4_x";"gchi5_x";"gchi6_x";
+		       "rhazim_x";"rhazim2_x";"rhazim3_x";] in
+    all_const_name (fun s -> not (mem s delta_strings));;
+
+let test_delta_pos t = not(test_delta_inert t) && test_domain t;;
+
+let delta_pos_idv = 
+  map nth_idv (filter (test_delta_pos o nth_term) (0 -- (sz - 1)));;
+
+let delta_inert_idv = 
+  map nth_idv (filter (test_delta_inert o nth_term) (0 -- (sz - 1)));;
+
+let delta_ok_idv = delta_pos_idv @ delta_inert_idv;;
+
+List.length delta_ok_idv;;
+
+let problematic_delta_cases = filter 
+  (fun i -> 
+     let t = nth_term i in
+       not (test_domain t) && not (test_delta_inert t) && 
+	 not (test_delta_explicit t) && not (test_delta4_explicit t) && 
+	 not (test_eulerA_explicit t)) (0 -- (sz-1));;
+
+problematic_delta_cases = [];;
+
+
+(* ********************************************************************** *)
+(* analysis of delta_ok cases *)
+(* ********************************************************************** *)
+
+
+  let rational_expansions = 
+    [("delta_x",Sphere.delta_x);
+     ("delta_x4",Sphere.delta_x4);
+     ("delta_x1",Nonlin_def.delta_x1);
+     ("ups_x",Sphere.ups_x);
+     ("rho_x",Sphere.rho_x);
+     ("lfun",Sphere.lfun);
+     ("num1",Sphere.num1);
+     ("gchi",Sphere.gchi);
+     ("delta4_squared_x",Sphere.delta4_squared_x);
+     ("x1_delta_x",Sphere.x1_delta_x);
+     ("lfun_y1",Sphere.lfun_y1);
+     ("norm2hh_x",Sphere.norm2hh_x);
+     ("norm2hh",Sphere.norm2hh);
+     ("bump",Sphere.bump);
+     ("pow2",Nonlin_def.pow2);
+     ("rad2_x",Sphere.rad2_x);
+     ("proj_x1",Nonlin_def.proj_x1);
+     ("proj_x2",Nonlin_def.proj_x2);
+     ("proj_x3",Nonlin_def.proj_x3);
+     ("proj_x4",Nonlin_def.proj_x4);
+     ("proj_x5",Nonlin_def.proj_x5);
+     ("proj_x6",Nonlin_def.proj_x6);
+     ("unit6",Nonlin_def.unit6);
+     ("dnum1",Nonlin_def.dnum1);
+     ("rho",Nonlinear_lemma.rho_alt);
+     ("delta_126_x",Sphere.delta_126_x);
+     ("delta_135_x",Sphere.delta_135_x);
+     ("mu_y",Nonlin_def.mu_y);
+    ];;
+
+  let sqrt_expansions = 
+    [("eulerA_x",Sphere.eulerA_x);
+     ("proj_y1", Nonlin_def.proj_y1);
+     ("proj_y2",Nonlin_def.proj_y2);
+     ("proj_y3",Nonlin_def.proj_y3);
+     ("proj_y4",Nonlin_def.proj_y4);
+     ("proj_y5",Nonlin_def.proj_y5);
+     ("proj_y6",Nonlin_def.proj_y6);
+     ("sqrt_x1",Nonlin_def.sqrt_x1);
+     ("sqrt_x2",Nonlin_def.sqrt_x2);
+     ("sqrt_x3",Nonlin_def.sqrt_x3);
+     ("sqrt_x4",Nonlin_def.sqrt_x4);
+     ("sqrt_x5",Nonlin_def.sqrt_x5);
+     ("sqrt_x6",Nonlin_def.sqrt_x6);
+     ("halfbump_x",Nonlin_def.halfbump_x);
+     ("halfbump_x1",Nonlin_def.halfbump_x1);
+     ("halfbump_x4",Nonlin_def.halfbump_x4);
+     ("taud_D2_num_x",Functional_equation.nonfunctional_taud_D2);
+     ("mu6_x",Functional_equation.nonfunctional_mu6_x);
+     ("vol_x",Sphere.vol_x);
+     ("eta_x",Sphere.eta_x);
+     ("taud_D1_num_x",Functional_equation.nonfunctional_taud_D1);
+     ("gamma2_x_div_azim_v2",Nonlin_def.gamma2_x_div_azim_v2);
+     ("gamma2_x1_div_a_v2",Functional_equation.nonf_gamma2_x1_div_a_v2);
+     ("edge2_flatD_x1",(*M*)nonf_edge2_flatD_x1);
+     ("edge2_126_x",(*M*)nonf_edge2_126_x);
+     ("flat_term_x",    REWRITE_RULE[Sphere.flat_term] Sphere.flat_term_x);
+     ("flat_term2_126_x",(*M*)nonf_flat_term2_126_x);
+     ("edge2_135_x",nonf_edge2_135_x);
+     ("flat_term2_135_x",(*M*)nonf_flat_term2_135_x);
+    ];;
+
+  let trig_expansions1 = 
+   [
+     ("dihatn_x",Sphere.dihatn_x);
+     ("dih2atn_x",Sphere.dih2atn_x);
+     ("dih3atn_x",Sphere.dih3atn_x);
+     ("dih4atn_x",Sphere.dih4atn_x);
+     ("dih5atn_x",Sphere.dih5atn_x);
+     ("dih6atn_x",Sphere.dih6atn_x);
+     ("rhazimatn_x",Sphere.rhazimatn_x);
+     ("rhazim2atn_x",Sphere.rhazim2atn_x);
+     ("rhazim3atn_x",Sphere.rhazim3atn_x);
+     ("ldihatn_x",Sphere.ldihatn_x);
+     ("ldih2atn_x",Sphere.ldih2atn_x);
+     ("ldih3atn_x",Sphere.ldih3atn_x);
+     ("ldih4atn_x",Sphere.ldih4atn_x);
+     ("ldih5atn_x",Sphere.ldih5atn_x);
+     ("ldih6atn_x",Sphere.ldih6atn_x);
+   ];;
+
+  let trig_expansions = 
+    [
+      ("asn797k",Sphere.asn797k);
+      ("asnFnhk",Sphere.asnFnhk);
+      ("arclength_x1'",(*M*) nonf_arclength_x1');
+      ("arclength_x_123'",(*M*) nonf_arclength_x_123');
+      ("sol_euler_x_div_sqrtdelta",Nonlin_def.sol_euler_x_div_sqrtdelta);
+      ("sol_euler156_x_div_sqrtdelta",(*M*)nonf_sol_euler156_x_div_sqrtdelta);
+      ("sol_euler246_x_div_sqrtdelta",(*M*)nonf_sol_euler246_x_div_sqrtdelta);
+      ("sol_euler345_x_div_sqrtdelta",(*M*)nonf_sol_euler345_x_div_sqrtdelta);
+      ("acs_sqrt_x1_d4",Sphere.acs_sqrt_x1_d4);
+      ("tau_residual_x",Nonlin_def.tau_residual_x);
+      ("rhazim_x_div_sqrtdelta_posbranch",Nonlin_def.rhazim_x_div_sqrtdelta_posbranch);
+      ("rhazim2_x_div_sqrtdelta_posbranch",nonf_rhazim2_x_div_sqrtdelta_posbranch);
+      ("rhazim3_x_div_sqrtdelta_posbranch",nonf_rhazim3_x_div_sqrtdelta_posbranch);
+      ("dih_x_div_sqrtdelta_posbranch",Nonlin_def.dih_x_div_sqrtdelta_posbranch);
+      ("dih4_x_div_sqrtdelta_posbranch",nonf_dih4_x_div_sqrtdelta_posbranch);
+      ("ldih_x_div_sqrtdelta_posbranch",Nonlin_def.ldih_x_div_sqrtdelta_posbranch);
+      ("ldih2_x_div_sqrtdelta_posbranch",nonf_ldih2_x_div_sqrtdelta_posbranch);
+      ("ldih3_x_div_sqrtdelta_posbranch",nonf_ldih3_x_div_sqrtdelta_posbranch);
+      ("ldih5_x_div_sqrtdelta_posbranch",nonf_ldih5_x_div_sqrtdelta_posbranch);
+      ("ldih6_x_div_sqrtdelta_posbranch",nonf_ldih6_x_div_sqrtdelta_posbranch);
+      ("gamma3f_x_div_sqrt_delta",Functional_equation.nonf_gamma3f_x_div_sqrt_delta);
+    ];;
+
+  let nonlin_rewrites = map snd (rational_expansions @ sqrt_expansions @ trig_expansions);;
+
+  let good_names = 
+    let ignores = 
+      ["==>";"?";"!";"/\\";"\\/";",";"~";"APPEND";"CONS";"HD";"LAST";
+       "NIL";"=";"real_lt";"real_gt";"real_le";"real_ge";"BIT0";"BIT1";"NUMERAL";
+       "DECIMAL";"real_sub";"real_add";"real_neg";
+       "real_of_num";"_0";"_1";"real_div";"real_mul";"real_pow";"COND";"LET";"LET_END";] in
+    let real_constants = 
+      ["sol0";"tau0";"mm1";"mm2";"const1";"h0";"rho";"pi";"sqrt8";
+       "hminus";"hplus";"rh0";"arc_hhn";"sqrt3";"cos797";] in
+    let specials = 
+      ["ineq";"ineqm";
+       "bisect_left";"bisect_right";"frac_left";"frac_right";] in
+    let primitive_univariate = 
+      ["sqrt";"atn";"sin";"cos";"acs";"asn";"matan";] in
+    let trig_primitive = 
+      ["dihatn_x";     "dih2atn_x";     "dih3atn_x";
+       "dih4atn_x";     "dih5atn_x";     "dih6atn_x";
+       "rhazimatn_x";     "rhazim2atn_x";     "rhazim3atn_x";
+       "ldihatn_x";     "ldih2atn_x";     "ldih3atn_x";
+       "ldih4atn_x";     "ldih5atn_x";     "ldih6atn_x"      ] in
+      ignores @ real_constants @ specials @ primitive_univariate @ trig_primitive;;
+
+
+(* const_names *)
+
+let bad_names t = 
+  let t' = concl (REWRITE_RULE nonlin_rewrites (ASSUME t)) in
+  filter (fun c -> not(mem c good_names)) (setify ( (get_const_names t')));;
+
+let hminus_pow_2_le = prove_by_refinement(
+  `!c d.  &0 <= c /\ c <= &2 /\ #6.3504 <= d ==> (c * hminus) * (c * hminus) <= d`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `(c * hminus ) * (c * hminus) <= #6.3504` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  TYPIFY `#6.3504 = (&2 * #1.26) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  TYPIFY `(c * hminus) * (c * hminus) = (c * hminus) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  GMATCH_SIMP_TAC (GSYM Trigonometry2.POW2_COND);
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  GMATCH_SIMP_TAC REAL_LE_MUL2;
+  MP_TAC Nonlinear_lemma.hminus_lt_h0;
+  MP_TAC Nonlinear_lemma.hminus_prop;
+  REWRITE_TAC[Sphere.h0];
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let hminus_pow_2_ge = prove_by_refinement(
+  `!c d.  &2 <= c /\ d <= #5.76 ==> d <= (c * hminus) * (c * hminus)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `#5.76 <= (c * hminus ) * (c * hminus)` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  TYPIFY `#5.76 = (&2 * #1.2) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  TYPIFY `(c * hminus) * (c * hminus) = (c * hminus) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  GMATCH_SIMP_TAC (GSYM Trigonometry2.POW2_COND);
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  GMATCH_SIMP_TAC REAL_LE_MUL2;
+  MP_TAC Nonlinear_lemma.hminus_prop;
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let hminus_pow_2_gt = prove_by_refinement(
+  `!c d.  &2 <= c /\ d < #5.76 ==> d < (c * hminus) * (c * hminus)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `#5.76 <= (c * hminus ) * (c * hminus)` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  TYPIFY `#5.76 = (&2 * #1.2) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  TYPIFY `(c * hminus) * (c * hminus) = (c * hminus) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  GMATCH_SIMP_TAC (GSYM Trigonometry2.POW2_COND);
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  GMATCH_SIMP_TAC REAL_LE_MUL2;
+  MP_TAC Nonlinear_lemma.hminus_prop;
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let h_series = map MATCH_MP_TAC [hminus_pow_2_le;hminus_pow_2_ge;hminus_pow_2_gt];;
+
+let x_lb = prove_by_refinement(
+  `!x a b. a <= x ==> b <= a ==> b <= x`,
+  (* {{{ proof *)
+  [
+  REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let x_ub = prove_by_refinement(
+  `!x a b. x <= a ==> a <= b ==> x <= b`,
+  (* {{{ proof *)
+  [
+  REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let x_pos = prove_by_refinement(
+  `!x a b. a <= x ==> &0 < a ==> &0 < x`,
+  (* {{{ proof *)
+  [
+  REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let DOMAIN_X_MATCH_TAC x thm = 
+  let t = SPEC x thm in
+  let TAC2 = DISCH_THEN (fun t -> FIRST_X_ASSUM (ASSUME_TAC o MATCH_MP t)) in
+    MP_TAC t THEN TAC2;;
+
+let x_ubs = map (C DOMAIN_X_MATCH_TAC x_ub)  Optimize.x6list;;
+let x_lbs = map (C DOMAIN_X_MATCH_TAC x_lb) Optimize.x6list;;
+let x_poss = map (C DOMAIN_X_MATCH_TAC x_pos) Optimize.x6list;;
+
+let onfirst tacs = [EVERY tacs;ALL_TAC];;
+
+let POSITIVE_DOMAIN_TAC =  (* proves a subgoal of the form `&0 < xi /\ &0 < xj /\ ... ` *)
+  EVERY 
+    [
+      ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;    
+      EVERY x_poss;    
+      BY(REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN TRY (REAL_ARITH_TAC) THEN REPEAT ( FIRST h_series THEN REAL_ARITH_TAC))
+    ];;
+
+let DELTA_TAC delta_thm = EVERY [
+  REPEAT GEN_TAC;
+  REWRITE_TAC[arith `a * b * a * b = (a * b) * (a * b)`];
+  REWRITE_TAC[Sphere.ineq] THEN REPEAT DISCH_TAC;
+  COMMENT "delta_pos";
+  INTRO_TAC delta_thm [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ANTS_TAC THENL onfirst [      ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;      EVERY x_lbs;      EVERY x_ubs;      BY(REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN TRY (REAL_ARITH_TAC) THEN REPEAT ( FIRST h_series THEN REAL_ARITH_TAC))];
+  DISCH_TAC;
+  TYPIFY `&0 < x1 /\ &0 < x2 /\ &0 < x3 /\ &0 < x4 /\ &0 < x5 /\ &0 < x6` (C SUBGOAL_THEN ASSUME_TAC) THENL [POSITIVE_DOMAIN_TAC;ALL_TAC];
+  INTRO_TAC Functional_equation.delta_all_atn [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ANTS_TAC THENL onfirst [    BY(ASM_REWRITE_TAC[]) ];
+  SIMP_TAC[];
+  DISCH_THEN kill;
+  REPLICATE_TAC 2 (POP_ASSUM kill);
+  ASM_TAC THEN REWRITE_TAC[GSYM Nonlinear_lemma.ineq_expand6];
+  ];;
+
+let process_delta_pos_idv s = 
+  let tt0 = get_ineq s in
+  let delta_thm = find_domain tt0 in
+  let DTAC = DELTA_TAC delta_thm in
+  let _ = g tt0 in
+  let _ = e(DTAC) in
+  let a,t' = top_goal() in
+  let _ = a = [] or failwith s in
+(*  let _ = (bad_names t' = []) or failwith s in *)
+    t';;
+
+let process_delta_inert_idv s = 
+  let t = get_ineq s in
+(*  let _ = (bad_names t = []) or failwith s in *)
+    t;;
+
+(*
+setify (map process_delta_inert_idv delta_inert_idv);;    
+setify (map process_delta_pos_idv delta_pos_idv);;
+*)
+
+
+
+ let idv_parameters s = 
+   let count = 
+     try count_case_list (snd(find (fun bd -> fst bd = s) !Break_case_log.break_data))
+     with Failure _ -> 1 in
+     map (fun i -> (s,i)) (0-- (count - 1));;
+
+let all_delta_ok_parameters = List.flatten (map idv_parameters delta_ok_idv);;
+ 
+List.length all_delta_ok_parameters;;
+
+(* timing stats *)
+
+let oxl_times = filter (fun t,_ -> Str.string_match (Str.regexp "OXLZLEZ 6346351218 [1234]") t 0) (Scripts.times);;
+
+let delta_ok_times  = 
+  let preptime = map (fun (s,t) -> ("prep-"^s, t)) Scripts.times in
+    filter (fun (s,_) -> mem s delta_ok_idv) preptime;;
+
+let [oxl_time;delta_time;total_time] = map (Scripts.hour o Scripts.total) 
+  [oxl_times;delta_ok_times;Scripts.times];;
+
+let mk_post_prep_delta s = 
+  let t = get_ineq s in
+  let inert = mem s delta_inert_idv in
+  let pos = mem s delta_pos_idv in
+  let _ = inert or pos or failwith ("delta series expected: "^s) in
+  let TAC = if pos then DELTA_TAC (find_domain t) else ALL_TAC in
+  let _ = g t in
+  let _ = e(TAC) in
+  let a,t' = top_goal() in
+  let _ = a = [] or failwith ("delta unexpected assumption: "^s) in
+    t';;
+
+let random_elt ls = 
+  let i = Random.int (List.length ls) in
+    List.nth ls i;;
+
+mk_post_prep_delta (random_elt (delta_ok_idv));;
+
+let get_one_delta (s,i) = 
+  let t = mk_post_prep_delta s in
+  let iarg =  assocd s (!Break_case_log.break_data) (Iarg_leaf 1000) in
+  let cl = mk_case_list t iarg in
+    List.nth cl i;;
+
+let get_nth_delta j = 
+  get_one_delta (List.nth all_delta_ok_parameters j);;
+
+List.length all_delta_ok_parameters = 6200;;
+
+
+
+
+
+(* ********************************************************************** *)
 (* Theorems to reconstruct inequality on full domain from subdomains *)
+(* ********************************************************************** *)
 
 let bisect_left_rules = prove_by_refinement(
   `!i h t. bisect_left i [] = [] /\

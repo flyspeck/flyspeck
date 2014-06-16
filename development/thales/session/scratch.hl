@@ -5197,3 +5197,45 @@ map (fun i ->
        report (string_of_int i); get_nth_delta (i)) (0-- (List.length all_delta_ok_parameters - 1)) ;;
 
 delta_time /. total_time;;
+
+
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Sphere.quadratic_root_plus];
+  REWRITE_TAC[LET_THM];
+  Calc_derivative.CALC_ID_TAC;
+  TYPED_ABBREV_TAC `d = sqrt (b pow 2- &4 * a * c)`;
+  ASM_REWRITE_TAC[];
+  TYPIFY `b pow 2 - &4 * a * c = d pow 2` (C SUBGOAL_THEN ASSUME_TAC);
+    FULL_EXPAND_TAC "d";
+    GMATCH_SIMP_TAC SQRT_POW_2;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[arith `~(&2 = &0)`];
+  BY(ASM_TAC THEN CONV_TAC REAL_RING)
+
+let quadratic_root_plus_works = prove_by_refinement(
+`!a b c. ~(a = &0) /\ &0 <= b pow 2 - &4 * a * c ==>
+	let x = quadratic_root_plus (a,b,c) in
+		a * x pow 2 + b * x + c = &0`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[Sphere.quadratic_root_plus];
+  REWRITE_TAC[LET_THM];
+  Calc_derivative.CALC_ID_TAC;
+  TYPED_ABBREV_TAC `d = sqrt (b pow 2- &4 * a * c)`;
+  ASM_REWRITE_TAC[];
+  TYPIFY `b pow 2 - &4 * a * c = d pow 2` (C SUBGOAL_THEN ASSUME_TAC);
+    FULL_EXPAND_TAC "d";
+    GMATCH_SIMP_TAC SQRT_POW_2;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[arith `~(&2 = &0)`];
+  BY(ASM_TAC THEN CONV_TAC REAL_RING)
+  ]);;
+  (* }}} *)
+
+Sections.section_proof ["a";"b";"c"]
+[
+   ((BETA_TAC THEN (move ["ineqs"])) THEN (CONV_TAC let_CONV));
+   (((fun arg_tac -> (use_arg_then2 ("Collect_geom2.FACTOR_OF_QUADRARTIC", [Collect_geom2.FACTOR_OF_QUADRARTIC])) (fun fst_arg -> (use_arg_then2 ("ineqs", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))));
+   ((((use_arg_then2 ("Sphere.quadratic_root_plus", [Sphere.quadratic_root_plus]))(thm_tac (new_rewrite [] [])))) THEN (arith_tac) THEN (done_tac));
+];;

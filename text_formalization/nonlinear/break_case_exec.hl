@@ -763,7 +763,7 @@ let tough_names =
     "eta2_126";"eta2_135";"eta2_456";
     "taud_x";
     "mud_126_x_v1";"mud_135_x_v1";"mud_234_x_v1";
-    "vol3f_x_lfun";"vol3f_x_sqrt_lmplus";"vol3_x_sqrt";
+    "vol3f_x_lfun";"vol3f_x_sqrt2_lmplus";"vol3_x_sqrt";
     "gamma23_full8_x";
     "gamma23_keep135_x";
   ];;
@@ -899,6 +899,8 @@ let delta_inert_idv =
 
 let delta_ok_idv = delta_pos_idv @ delta_inert_idv;;
 
+let delta_nok_idv = subtract (map (fun idq -> idq.idv) reduced_prep_idq) delta_ok_idv;;
+
 List.length delta_ok_idv;;
 
 let problematic_delta_cases = filter 
@@ -944,6 +946,7 @@ problematic_delta_cases = [];;
      ("rho",Nonlinear_lemma.rho_alt);
      ("delta_126_x",Sphere.delta_126_x);
      ("delta_135_x",Sphere.delta_135_x);
+     ("delta_234_x",Sphere.delta_234_x);
      ("mu_y",Nonlin_def.mu_y);
     ];;
 
@@ -976,7 +979,12 @@ problematic_delta_cases = [];;
      ("flat_term_x",    REWRITE_RULE[Sphere.flat_term] Sphere.flat_term_x);
      ("flat_term2_126_x",Merge_ineq.nonf_flat_term2_126_x);
      ("edge2_135_x",Merge_ineq.nonf_edge2_135_x);
+     ("edge2_234_x",Merge_ineq.nonf_edge2_234_x);
      ("flat_term2_135_x",Merge_ineq.nonf_flat_term2_135_x);
+     ("flat_term2_234_x",Merge_ineq.nonf_flat_term2_234_x);
+     ("mudLs_135_x",Merge_ineq.nonf_mudLs_135_x);
+     ("mudLs_126_x",Merge_ineq.nonf_mudLs_126_x);
+     ("taud_x'",Merge_ineq.nonf_taud_x');
     ];;
 
   let trig_expansions1 = 
@@ -1003,11 +1011,11 @@ problematic_delta_cases = [];;
       ("asn797k",Sphere.asn797k);
       ("asnFnhk",Sphere.asnFnhk);
       ("arclength_x1'",Merge_ineq.nonf_arclength_x1');
-      ("arclength_x_123'",(*M*) Merge_ineq.nonf_arclength_x_123');
+      ("arclength_x_123'", Merge_ineq.nonf_arclength_x_123');
       ("sol_euler_x_div_sqrtdelta",Nonlin_def.sol_euler_x_div_sqrtdelta);
-      ("sol_euler156_x_div_sqrtdelta",(*M*)Merge_ineq.nonf_sol_euler156_x_div_sqrtdelta);
-      ("sol_euler246_x_div_sqrtdelta",(*M*)Merge_ineq.nonf_sol_euler246_x_div_sqrtdelta);
-      ("sol_euler345_x_div_sqrtdelta",(*M*)Merge_ineq.nonf_sol_euler345_x_div_sqrtdelta);
+      ("sol_euler156_x_div_sqrtdelta",Merge_ineq.nonf_sol_euler156_x_div_sqrtdelta);
+      ("sol_euler246_x_div_sqrtdelta",Merge_ineq.nonf_sol_euler246_x_div_sqrtdelta);
+      ("sol_euler345_x_div_sqrtdelta",Merge_ineq.nonf_sol_euler345_x_div_sqrtdelta);
       ("acs_sqrt_x1_d4",Sphere.acs_sqrt_x1_d4);
       ("tau_residual_x",Nonlin_def.tau_residual_x);
       ("rhazim_x_div_sqrtdelta_posbranch",Nonlin_def.rhazim_x_div_sqrtdelta_posbranch);
@@ -1112,6 +1120,7 @@ let hminus_pow_2_gt = prove_by_refinement(
   ]);;
   (* }}} *)
 
+
 let h_series = map MATCH_MP_TAC [hminus_pow_2_le;hminus_pow_2_ge;hminus_pow_2_gt];;
 
 let x_lb = prove_by_refinement(
@@ -1147,7 +1156,7 @@ let x_ubs = map (C DOMAIN_X_MATCH_TAC x_ub)  Optimize.x6list;;
 let x_lbs = map (C DOMAIN_X_MATCH_TAC x_lb) Optimize.x6list;;
 let x_poss = map (C DOMAIN_X_MATCH_TAC x_pos) Optimize.x6list;;
 
-let onfirst tacs = [EVERY tacs;ALL_TAC];;
+(* let onfirst tacs = [EVERY tacs;ALL_TAC];; *)
 
 let POSITIVE_DOMAIN_TAC =  (* proves a subgoal of the form `&0 < xi /\ &0 < xj /\ ... ` *)
   EVERY 
@@ -1163,11 +1172,11 @@ let DELTA_TAC delta_thm = EVERY [
   REWRITE_TAC[Sphere.ineq] THEN REPEAT DISCH_TAC;
   COMMENT "delta_pos";
   INTRO_TAC delta_thm [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
-  ANTS_TAC THENL onfirst [      ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;      EVERY x_lbs;      EVERY x_ubs;      BY(REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN TRY (REAL_ARITH_TAC) THEN REPEAT ( FIRST h_series THEN REAL_ARITH_TAC))];
+  ONFIRST ANTS_TAC [      ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;      EVERY x_lbs;      EVERY x_ubs;      BY(REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN TRY (REAL_ARITH_TAC) THEN REPEAT ( FIRST h_series THEN REAL_ARITH_TAC))];
   DISCH_TAC;
   TYPIFY `&0 < x1 /\ &0 < x2 /\ &0 < x3 /\ &0 < x4 /\ &0 < x5 /\ &0 < x6` (C SUBGOAL_THEN ASSUME_TAC) THENL [POSITIVE_DOMAIN_TAC;ALL_TAC];
   INTRO_TAC Functional_equation.delta_all_atn [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
-  ANTS_TAC THENL onfirst [    BY(ASM_REWRITE_TAC[]) ];
+  ONFIRST ANTS_TAC  [    BY(ASM_REWRITE_TAC[]) ];
   SIMP_TAC[];
   DISCH_THEN kill;
   REPLICATE_TAC 2 (POP_ASSUM kill);

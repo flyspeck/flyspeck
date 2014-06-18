@@ -840,6 +840,10 @@ let M_CELL_LIST_PASS_ALT = prove(`!fs domain. m_cell_list_pass fs domain <=>
 				   (!y:real^N. y IN interval [domain] ==> ?f. MEM f fs /\ f y < &0)`,
 				 REWRITE_TAC[m_cell_list_pass; ITLIST_DISJ_EXISTS]);;
 
+let M_CELL_LIST_PASS_APPEND = prove(`!fs fs2 domain. m_cell_list_pass fs domain
+				      ==> m_cell_list_pass (APPEND fs fs2) domain`,
+				    MESON_TAC[M_CELL_LIST_PASS_ALT; MEM_APPEND]);;
+
 let ONE_POINT_INTERVAL = prove(`!x:real^N. interval [x,x] = {x}`,
 			       GEN_TAC THEN REWRITE_TAC[EXTENSION; IN_SING; IN_INTERVAL] THEN X_GEN_TAC `y:real^N` THEN
 				 EQ_TAC THEN SIMP_TAC[REAL_LE_REFL] THEN
@@ -1597,7 +1601,7 @@ let m_p_verify_list n p_split fs certificate_list xx zz =
 (* disjunctions *)
 
 
-let m_verify_list_raw (report_start, total_size) n pp fs_list certificate domain_th0 th_list =
+let m_verify_disj_raw (report_start, total_size) n pp fs_list certificate domain_th0 th_list =
   let r_size = result_size certificate in
   let r_size2 = float_of_int (if total_size > 0 then total_size else (if r_size > 0 then r_size else 1)) in
   let k = ref 0 in
@@ -1682,6 +1686,7 @@ let m_verify_list_raw (report_start, total_size) n pp fs_list certificate domain
 	      let _ = !info_print_level < 1 or
 		(let r = int_of_float (float_of_int !kk /. r_size2 *. 100.0) in
 		 let _ = if r <> !last_report then (last_report := r; report0 (sprintf "%d " r)) else () in true) in
+
 	      let fs = List.nth fs_list j in
 		if f0_flag then
 		  let domain, _, _ = (dest_m_cell_domain o concl) domain_th in
@@ -1732,13 +1737,76 @@ let m_verify_list_raw (report_start, total_size) n pp fs_list certificate domain
 
 (*****************)
 
-
-let m_verify_list_raw0 n pp fs_list certificate xx zz =
-  m_verify_list_raw (0, 0) n pp fs_list certificate (mk_m_center_domain n pp xx zz) [];;
-
+let m_verify_disj_raw0 n pp fs_list certificate xx zz =
+  m_verify_disj_raw (0, 0) n pp fs_list certificate (mk_m_center_domain n pp xx zz) [];;
 
 
-	
+(******************************)
+(* m_p_verify_disj *)
+
+let m_p_verify_disj_raw (report_start, total_size) n p_split fs_list certificate domain_th0 th_list =
+  let r_size = p_result_size certificate in
+  let r_size2 = float_of_int (if total_size > 0 then total_size else (if r_size > 0 then r_size else 1)) in
+  let k = ref 0 in
+  let kk = ref report_start in
+  let last_report = ref (int_of_float (float_of_int !kk /. r_size2 *. 100.0)) in
+
+  let rec rec_verify =
+    fun domain_th certificate ->
+      match certificate with
+	| P_result_mono (p_stat, mono, r1) ->
+	    failwith "Mono: not implemented"
+
+	| P_result_pass (p_stat, j, f0_flag) -> 
+	    let _ = k := !k + 1; kk := !kk + 1 in
+	    let _ = !info_print_level < 2 or 
+	      (report (sprintf "Verifying: %d/%d (f0_flag = %b)" !k r_size f0_flag); true) in
+	    let _ = !info_print_level <> 1 or
+	      (let r = int_of_float (float_of_int !kk /. r_size2 *. 100.0) in
+	       let _ = if r <> !last_report then (last_report := r; report0 (sprintf "%d " r)) else () in true) in
+	    let fs = List.nth fs_list j in
+	      if f0_flag then
+		let domain, _, _ = (dest_m_cell_domain o concl) domain_th in
+		let xx, zz = dest_pair domain in
+		  m_taylor_cell_list_pass0 n (fs.f p_stat.pp xx zz)
+	      else
+		let taylor_th = fs.taylor p_stat.pp p_stat.pp domain_th in
+		  m_taylor_cell_list_pass n p_stat.pp taylor_th  
+		  
+	| P_result_glue (p_stat, i, convex_flag, r1, r2) ->
+	    let domain1_th, domain2_th =
+	      if convex_flag then
+		let d1, _ = restrict_domain n (i + 1) true domain_th in
+		let d2, _ = restrict_domain n (i + 1) false domain_th in
+		  d1, d2
+	      else
+		split_domain n p_split (i + 1) domain_th in
+	    let th1 = rec_verify domain1_th r1 in
+	    let th2 = rec_verify domain2_th r2 in
+	      if convex_flag then
+		failwith "convexity: not implemented"
+	      else
+		let th0 = m_glue_cells_list n (i + 1) th1 th2 in
+		  merge_m_cell_list_pass n th0
+
+	| P_result_ref i ->
+	    let _ = !info_print_level < 2 or (report (sprintf "Ref: %d" i); true) in
+	      if i > 0 then 
+		List.nth th_list (i - 1)
+	      else
+		let domain, _, _ = (dest_m_cell_domain o concl) domain_th in
+		let pass_th = List.nth th_list (-i - 1) in
+		  m_cell_list_pass_subdomain domain pass_th
+		    
+	| _ -> failwith "False result" 
+  in
+    rec_verify domain_th0 certificate;;
+
+(******************)
+let m_p_verify_disj_raw0 n p_split fs_list certificate xx zz =
+  m_p_verify_disj_raw (0, 0) n p_split fs_list certificate (mk_m_center_domain n p_split xx zz) [];;
+
+
 end;;
 
 (*

@@ -4,7 +4,7 @@
 (* Date: 2012-10-27                                            *)
 (* =========================================================== *)
 
-needs "verifier/interval_m/verifier.ml";;
+needs "verifier/interval_m/verifier.hl";;
 needs "verifier/m_verifier.hl";;
 needs "verifier/m_verifier_build.hl";;
 needs "taylor/m_taylor_arith2.hl";;
@@ -50,16 +50,20 @@ type verification_parameters =
   (* procedure returns a wrong result due to rounding errors *)
   (* (this parameter will be eliminated when the search procedure is corrected) *)
   eps : float;
+
+  test_certificate : bool;
 };;
 
 let default_params =
 {
-  allow_derivatives = true;
-  convex_flag = true;
-  mono_pass_flag = true;
+  allow_derivatives = false;
+  convex_flag = false;
+  mono_pass_flag = false;
   raw_intervals_flag = true;
   adaptive_precision = true;
-  eps = 0.0;
+  eps = 1e-12;
+
+  test_certificate = false;
 };;
 
 
@@ -72,6 +76,12 @@ type verification_stats =
 
 
 (********************************)
+
+let rec unzip3 = function
+  | [] -> [], [], []
+  | (a,b,c) :: t ->
+      let x,y,z = unzip3 t in
+	a::x, b::y, c::z;;
 
 (* Adds a constant approximation to the table of known constants *)
 let add_constant_interval int_th =
@@ -100,14 +110,14 @@ let test_expression bin_ops unary_ops =
 	let lhs, rhs = dest_comb tm in
 	let c, _ = dest_const lhs in
 	  if mem c unary_ops then test rhs else false
-      with Failure _ -> false in
-
+      with Failure _ -> false 
+    in
       fun tm ->
 	frees tm = [] or
-	  can dest_var tm or
-	  can test_vector tm or
-	  test_unary tm or
-	  test_binary tm in
+	can dest_var tm or
+	can test_vector tm or
+	test_unary tm or
+	test_binary tm in
     test;;
 
 
@@ -322,6 +332,19 @@ let expr_to_vector_fun =
 	mk_abs (x_var, subst (zip vars2 vars) expr_tm), 
       (if n = 0 then mk_vector_list [x_var] else mk_vector_list vars);;
 
+(* Converts a list of terms in the form [`x + y`; `z`]  
+   into a list of terms [`\x:real^3. x$1 + x$2`; `\x:real^3. x$3` *)
+let exprs_to_vector_fun =
+  let comp_op = `$` in
+    fun expr_tms ->
+      let vars = List.sort Pervasives.compare (unions (map frees expr_tms)) in
+      let n = length vars in
+      let x_var = mk_var ("x", n_vector_type_array.(if n = 0 then 1 else n)) in
+      let x_tm = mk_icomb (comp_op, x_var) in
+      let vars2 = map (fun i -> mk_comb (x_tm, mk_small_numeral i)) (1--n) in
+	map (fun tm -> mk_abs (x_var, subst (zip vars2 vars) tm)) expr_tms,
+      (if n = 0 then mk_vector_list [x_var] else mk_vector_list vars);;
+
 
 (* Given an inequality `P x y`, variable names and the corresponding bounds,
    yields `(x0 <= x /\ x <= x1) /\ (y0 <= y /\ y <= y1) ==> P x y` *)
@@ -417,9 +440,16 @@ let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_t
       let eval_fs, tf, ti = mk_verification_functions params pp fun_tm in
 	
       let _ = !info_print_level < 1 or (report0 "Constructing a solution certificate... "; true) in
-      let certificate = Verifier.run_test tf xx_float zz_float false 0.0 
-	!params.allow_derivatives !params.convex_flag !params.mono_pass_flag
-	!params.raw_intervals_flag !params.eps in
+      let opt0 = {
+	Verifier.min_flag = false;
+	Verifier.min_max = 0.0;
+	Verifier.allow_d = !params.allow_derivatives;
+	Verifier.allow_convex_flag = !params.convex_flag;
+	Verifier.mono_pass_flag = !params.mono_pass_flag;
+	Verifier.raw_interval_flag = !params.raw_intervals_flag;
+	Verifier.epsilon = !params.eps;
+      } in
+      let certificate = Verifier.run_test [tf] xx_float zz_float opt0 in
       let stats = Verifier.result_stats certificate in
       let _ = !info_print_level < 1 or (report0 " done\n"; true) in
       let _ = !info_print_level < 1 or (Verifier.report_stats stats; true) in
@@ -428,7 +458,7 @@ let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_t
       let start, finish, result = 
 	if !params.adaptive_precision then
 	  let _ = !info_print_level < 1 or (report0 "Informal verification... "; true) in
-	  let c1p = Informal_verifier.m_verify_list pp 1 pp ti c1 xx2 zz2 in
+	  let c1p = Informal_verifier.m_verify_list pp 1 pp [ti] c1 xx2 zz2 in
 	  let _ = !info_print_level < 1 or (report0 " done\n"; true) in
 
 	  let _ = !info_print_level < 1 or (report0 "Formal verification... "; true) in
@@ -448,6 +478,7 @@ let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_t
   {total_time = finish -. total_start; formal_verification_time = finish -. start; certificate = stats};;
 	
 
+(*
 (* A simple verification function which accepts 
    a list of rewrite theorems which are applied to the inequality
    before verification *)
@@ -459,5 +490,260 @@ let verify_ineq_and_rewrite rewrite_thms params pp ineq_tm =
 (* The simplest verification function *)
 let verify_ineq = verify_ineq_and_rewrite [];;
 
+*)
+
+let normalize_disj_result norm_flag fun_tms v1 eq_th1 domain_sub_th pass_thm =
+  let fs, dom = dest_m_cell_pass (concl pass_thm) in
+  let fs2 = mk_list (fun_tms, type_of (hd fun_tms)) in
+  let append_th0 = MATCH_MP (ISPECL[fs; fs2; dom] M_CELL_LIST_PASS_APPEND) pass_thm in
+  let append_th1 = REWRITE_RULE[APPEND] append_th0 in
+  let th0 = REWRITE_RULE[m_cell_list_pass; ITLIST] append_th1 in
+  let n = (get_dim o fst o dest_forall o concl) th0 in
+  let th1 = SPEC v1 th0 in
+  let comp_thms = end_itlist CONJ (Array.to_list comp_thms_array.(n)) in
+  let th2 = REWRITE_RULE[comp_thms] th1 in
+  let r_tm0 = (rand o concl) th2 in
+  let r_tm1 = (rand o concl) eq_th1 in
+  let eq_th2 = TAUT (mk_eq (r_tm0, r_tm1)) in
+  let th3 = (UNDISCH_ALL o REWRITE_RULE[GSYM eq_th1] o ONCE_REWRITE_RULE[eq_th2]) th2 in
+  let dom_th = (UNDISCH_ALL o SPEC v1 o REWRITE_RULE[SUBSET]) domain_sub_th in
+  let th4 = (DISCH_ALL o MY_PROVE_HYP dom_th) th3 in
+  let th5 = REWRITE_RULE[IN_INTERVAL; dimindex_array.(n); gen_in_interval n; comp_thms] th4 in
+    if norm_flag then GEN_ALL th5 else th4;;
+
+
+let verify_disj_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_thms =
+  let total_start = Unix.gettimeofday() in
+  let eq_th1 = mk_standard_ineq rewrite_thms ineq_tm in
+  let ineq_tms = striplist dest_disj ((rand o concl) eq_th1) in
+    if length ineq_tms = 1 then
+      verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_thms
+    else
+      let ineq_tms1 = map lhand ineq_tms in
+      let fun_tms, v1 = exprs_to_vector_fun ineq_tms1 in
+      let vars = map (fst o dest_var) (dest_vector v1) in
+      let lo_list = dest_list lo_tm and
+	  hi_list = dest_list hi_tm in
+      let bounds0 = zip var_names (zip lo_list hi_list) in
+      let bounds = itlist (fun name list -> assoc name bounds0 :: list) vars [] in
+      let xx, zz = unzip bounds in
+      let xx, zz = mk_real_list xx, mk_real_list zz in
+	
+      let domain_sub_th, (xx1, zz1) = mk_float_domain pp (xx, zz) in
+      let n = (get_dim o fst o dest_abs) (hd fun_tms) in
+      let xx2 = Informal_taylor.convert_to_float_list pp true xx and
+	  zz2 = Informal_taylor.convert_to_float_list pp false zz in
+      let xx_float = map float_of_float_tm (dest_list xx1) and
+	  zz_float = map float_of_float_tm (dest_list zz1) in
+
+	(* Issue warnings for unimplemented features *)
+      let _ = params0.mono_pass_flag = false or (report "WARNING: mono_pass_flag should be false"; true) in
+      let _ = params0.convex_flag = false or (report "WARNING: covex_flag should be false"; true) in
+      let _ = params0.allow_derivatives = false or (report "WARNGING: allow_derivatives should be false"; true) in
+
+      let params = ref {params0 with 
+			  mono_pass_flag = false;
+			  convex_flag = false;
+			  allow_derivatives = false} in
+
+      let eval_fs_list, tf_list, ti_list = unzip3 (map (mk_verification_functions params pp) fun_tms) in
+
+      let _ = !info_print_level < 1 or (report0 "Constructing a solution certificate... "; true) in
+      let opt0 = {
+	Verifier.min_flag = false;
+	Verifier.min_max = 0.0;
+	Verifier.allow_d = !params.allow_derivatives;
+	Verifier.allow_convex_flag = !params.convex_flag;
+	Verifier.mono_pass_flag = !params.mono_pass_flag;
+	Verifier.raw_interval_flag = !params.raw_intervals_flag;
+	Verifier.epsilon = !params.eps;
+      } in
+      let certificate = Verifier.run_test tf_list xx_float zz_float opt0 in
+      let stats = Verifier.result_stats certificate in
+
+      let _ = !info_print_level < 1 or (report0 " done\n"; true) in
+      let _ = !info_print_level < 1 or (Verifier.report_stats stats; true) in
+
+      let _ = if params0.test_certificate then
+	let certificate2 = Verifier.run_test tf_list xx_float zz_float {opt0 with Verifier.allow_d = true} in
+	let stats2 = Verifier.result_stats certificate2 in
+	let _ = Verifier.report_stats stats2 in
+	  ()
+      else () in
+
+      let c1 = certificate in
+      let start, finish, result =
+	if !params.adaptive_precision then
+	  let _ = !info_print_level < 1 or (report0 "Informal verification... "; true) in
+	  let c1p, _ = Informal_verifier.m_verify_raw0 pp 1 pp ti_list c1 xx2 zz2 in
+	  let _ = !info_print_level < 1 or (report0 " done\n"; true) in
+
+	  let _ = !info_print_level < 1 or (report0 "Formal verification... "; true) in
+	  let start = Unix.gettimeofday() in
+	  let result = m_p_verify_disj_raw0 n pp eval_fs_list c1p xx1 zz1 in
+	  let finish = Unix.gettimeofday() in
+	  let _ = !info_print_level < 1 or (report0 " done\n"; true) in
+	    start, finish, result
+	else
+	  let _ = !info_print_level < 1 or (report0 "Formal verification... "; true) in
+	  let start = Unix.gettimeofday() in
+	  let result = m_verify_disj_raw0 n pp eval_fs_list c1 xx1 zz1 in
+	  let finish = Unix.gettimeofday() in
+	  let _ = !info_print_level < 1 or (report0 " done\n"; true) in
+	    start, finish, result in
+	normalize_disj_result norm_flag fun_tms v1 eq_th1 domain_sub_th result,
+  {total_time = finish -. total_start; formal_verification_time = finish -. start; certificate = stats};;
+
+
+
+(* A simple verification function which accepts 
+   a list of rewrite theorems which are applied to the inequality
+   before verification *)
+let verify_ineq_and_rewrite rewrite_thms params pp ineq_tm =
+  let ineq, vars, bounds = dest_ineq ineq_tm in
+    verify_disj_ineq0 params true pp ineq vars bounds rewrite_thms;;
+
+(* The simplest verification function *)
+let verify_ineq = verify_ineq_and_rewrite [];;
 
 end;;
+
+
+(*
+let h0 = new_definition `h0 = #1.26` and
+    lmfun = new_definition`lmfun h = if (h<=h0) then (h0 - h)/(h0 - &1) else &0` and
+    hplus = new_definition `hplus = #1.3254` and
+    marchal_quartic = new_definition `marchal_quartic h = 
+  (sqrt(&2)-h)*(h- hplus )*(&9*(h pow 2) - &17*h + &3)/
+    ((sqrt(&2) - &1)* &5 *(hplus - &1))`;;
+
+
+let lmfun_cond_le = (UNDISCH_ALL o prove)(`x <= h0 ==> lmfun x = (h0 - x) / (h0 - &1)`,
+					  REWRITE_TAC[lmfun] THEN REAL_ARITH_TAC);;
+
+let lmfun_cond_ge = (UNDISCH_ALL o prove)(`h0 <= x ==> lmfun x = &0`,
+					  ONCE_REWRITE_TAC[REAL_ARITH `a <= b <=> ~(b <= a) \/ a = b`] THEN
+					    STRIP_TAC THEN ASM_REWRITE_TAC[lmfun] THEN
+					    REAL_ARITH_TAC);;
+
+let eq_tm = `marchal_quartic x - lmfun x`;;
+let eq_th1, eq_th2 = 
+  let ths = [marchal_quartic; h0; hplus] in
+    REWRITE_CONV (lmfun_cond_le :: ths) eq_tm,
+  REWRITE_CONV (REAL_SUB_RZERO :: lmfun_cond_ge :: ths) eq_tm;;
+
+let eq_tm1 = (rand o concl) eq_th1 and
+    eq_tm2 = (rand o concl) eq_th2;;
+
+let ineq1_concl = mk_binary "real_lt" (eq_tm1, `&0`) and
+    ineq2_concl = mk_binary "real_lt" (`&0`, eq_tm1) and
+    ineq3_concl = mk_binary "real_lt" (`&0`, eq_tm2);;
+
+(* A better approximation cannot be achieved directly *)
+let bounds1 = `#1.2 <= x /\ x <= #1.2317544220903043901` and
+    bounds2 = `#1.2317544220903047 <= x /\ x <= #1.26` and
+    bounds3 = `#1.26 <= x /\ x <= #1.3`;;
+
+let ineq1_tm = mk_imp (bounds1, ineq1_concl) and
+    ineq2_tm = mk_imp (bounds2, ineq2_concl) and
+    ineq3_tm = mk_imp (bounds3, ineq3_concl);;
+
+open M_verifier_main;;
+
+let ineq1_th, _ = verify_ineq {default_params with eps = 0.; allow_derivatives = true} 12 ineq1_tm;;
+let ineq2_th, _ = verify_ineq {default_params with eps = 0.; allow_derivatives = true} 12 ineq2_tm;;
+let ineq3_th, _ = verify_ineq {default_params with eps = 0.} 12 ineq3_tm;;
+
+
+
+open M_verifier_main;;
+let ineq_tm = `&0 <= x /\ x <= &1 /\ &0 <= y /\ y <= &1 ==> x * y < #0.6 \/ x < #1.5 \/ y < #0.8`;;
+let ineq_tm = ineq2_tm;;
+verify_ineq {default_params with allow_derivatives = true} 20 ineq_tm;;
+
+let ineq, vars, bounds = dest_ineq ineq_tm;;
+
+let params0 = default_params and
+    norm_flag = true and
+    pp = 5 and
+    ineq_tm = ineq and
+    var_names = vars and
+    lo_tm, hi_tm = bounds and
+    rewrite_thms = [];;
+let pp = 20;;
+let params0 = {params0 with eps = 0.};;
+let total_start = Unix.gettimeofday();;
+
+let eq_th1 = mk_standard_ineq rewrite_thms ineq_tm;;
+let ineq_tms = striplist dest_disj ((rand o concl) eq_th1);;
+let ineq_tms1 = map lhand ineq_tms;;
+
+if length ineq_tms1 = 1 && frees (hd ineq_tms1) = [] then
+  let i_fun = build_interval_fun (hd ineq_tms1) in
+  let th0 = eval_interval_fun pp i_fun [] [] in
+  let th1 = float_interval_lt0 th0 in
+  let total = Unix.gettimeofday() -. total_start in
+    REWRITE_RULE[GSYM eq_th1] th1,
+  {total_time = total; formal_verification_time = total; certificate = Verifier.dummy_stats}
+else
+  failwith "";;
+
+let fun_tms, v1 = exprs_to_vector_fun ineq_tms1;;
+let vars = map (fst o dest_var) (dest_vector v1);;
+let lo_list = dest_list lo_tm and
+    hi_list = dest_list hi_tm;;
+let bounds0 = zip var_names (zip lo_list hi_list);;
+let bounds = itlist (fun name list -> assoc name bounds0 :: list) vars [];;
+let xx, zz = unzip bounds;;
+let xx, zz = mk_real_list xx, mk_real_list zz;;
+
+let domain_sub_th, (xx1, zz1) = mk_float_domain pp (xx, zz);;
+let n = (get_dim o fst o dest_abs) (hd fun_tms);;
+let xx2 = Informal_taylor.convert_to_float_list pp true xx and
+    zz2 = Informal_taylor.convert_to_float_list pp false zz;;
+let xx_float = map float_of_float_tm (dest_list xx1) and
+    zz_float = map float_of_float_tm (dest_list zz1);;
+
+let params = ref params0;;
+let eval_fs_list, tf_list, ti_list = unzip3 (map (mk_verification_functions params pp) fun_tms);;
+
+let _ = !info_print_level < 1 or (report0 "Constructing a solution certificate... "; true);;
+let opt0 = {
+  Verifier.min_flag = false;
+  Verifier.min_max = 0.0;
+  Verifier.allow_d = false;
+  Verifier.allow_convex_flag = false;
+  Verifier.mono_pass_flag = true;
+  Verifier.raw_interval_flag = params0.raw_intervals_flag;
+  Verifier.epsilon = params0.eps;
+};;
+let certificate = Verifier.run_test tf_list xx_float zz_float opt0;;
+let stats = Verifier.result_stats certificate;;
+let _ = !info_print_level < 1 or (report0 " done\n"; true);;
+let _ = !info_print_level < 1 or (Verifier.report_stats stats; true);;
+
+let c1 = certificate;;
+let start, finish, result = 0,0,0;;
+if !params.adaptive_precision then 1 else 0;;
+let _ = !info_print_level < 1 or (report0 "Informal verification... "; true);;
+let c1p, _ = Informal_verifier.m_verify_raw0 pp 1 pp ti_list c1 xx2 zz2;;
+let _ = !info_print_level < 1 or (report0 " done\n"; true);;
+
+let _ = !info_print_level < 1 or (report0 "Formal verification... "; true);;
+let start = Unix.gettimeofday();;
+let result = m_p_verify_disj_raw0 n pp eval_fs_list c1p xx1 zz1;;
+let finish = Unix.gettimeofday();;
+let _ = !info_print_level < 1 or (report0 " done\n"; true);;
+start, finish, result;;
+ (*else*)
+let _ = !info_print_level < 1 or (report0 "Formal verification... "; true);;
+let start = Unix.gettimeofday();;
+let result = m_verify_disj_raw0 n pp eval_fs_list c1 xx1 zz1;;
+let finish = Unix.gettimeofday();;
+let _ = !info_print_level < 1 or (report0 " done\n"; true) in
+  start, finish, result;;
+
+normalize_disj_result norm_flag fun_tms v1 eq_th1 domain_sub_th result;;
+  {total_time = finish -. total_start; formal_verification_time = finish -. start; certificate = stats};;
+
+*)

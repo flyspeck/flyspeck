@@ -312,13 +312,15 @@ let mk_float_domain pp (xx_tm, zz_tm) =
 (* Also, deals with > and / *)
 (* A user can provide additional rewrite theorems *)
 let mk_standard_ineq =
-  let lemma = REAL_ARITH `a < b <=> a - b < &0` in
+  let lemma_lt = REAL_ARITH `a < b <=> a - b < &0` and
+      lemma_le = REAL_ARITH `a <= b <=> a - b <= &0` in
     fun thms tm ->
       let th0 = (REWRITE_CONV([real_gt; real_div] @ thms) THENC DEPTH_CONV let_CONV) tm in
       let rhs = rand (concl th0) in
-      let th1 = (ONCE_REWRITE_CONV[lemma] THENC PURE_REWRITE_CONV[REAL_NEG_0; REAL_SUB_RZERO; REAL_SUB_LZERO]) rhs in
+      let th1 = (ONCE_REWRITE_CONV[lemma_le] THENC 
+		   ONCE_REWRITE_CONV[lemma_lt] THENC 
+		   PURE_REWRITE_CONV[REAL_NEG_0; REAL_SUB_RZERO; REAL_SUB_LZERO]) rhs in
 	TRANS th0 th1;;
-
 
 (* Converts a term in the form `x + y` into the term `\x:real^2. x$1 + x$2` *)
 let expr_to_vector_fun =
@@ -504,12 +506,13 @@ let normalize_disj_result norm_flag fun_tms v1 eq_th1 domain_sub_th pass_thm =
   let th2 = REWRITE_RULE[comp_thms] th1 in
   let r_tm0 = (rand o concl) th2 in
   let r_tm1 = (rand o concl) eq_th1 in
-  let eq_th2 = TAUT (mk_eq (r_tm0, r_tm1)) in
-  let th3 = (UNDISCH_ALL o REWRITE_RULE[GSYM eq_th1] o ONCE_REWRITE_RULE[eq_th2]) th2 in
+  let imp_th = REAL_ARITH (mk_imp (r_tm0, r_tm1)) in
+  let th3 = MP imp_th (UNDISCH_ALL th2) in
+  let th4 = REWRITE_RULE[GSYM eq_th1] th3 in
   let dom_th = (UNDISCH_ALL o SPEC v1 o REWRITE_RULE[SUBSET]) domain_sub_th in
-  let th4 = (DISCH_ALL o MY_PROVE_HYP dom_th) th3 in
-  let th5 = REWRITE_RULE[IN_INTERVAL; dimindex_array.(n); gen_in_interval n; comp_thms] th4 in
-    if norm_flag then GEN_ALL th5 else th4;;
+  let th5 = (DISCH_ALL o MY_PROVE_HYP dom_th) th4 in
+  let th6 = REWRITE_RULE[IN_INTERVAL; dimindex_array.(n); gen_in_interval n; comp_thms] th5 in
+    if norm_flag then GEN_ALL th6 else th5;;
 
 
 let verify_disj_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_thms =

@@ -886,7 +886,8 @@ let rec test_delta_inert  =
   let delta_strings = ["dih_x";"dih2_x";"dih3_x";"dih4_x";"dih5_x";"dih6_x";
 		       "ldih1_x";"ldih2_x";"ldih3_x";"ldih4_x";"ldih5_x";"ldih6_x";
 		       "gchi1_x";"gchi2_x";"gchi3_x";"gchi4_x";"gchi5_x";"gchi6_x";
-		       "rhazim_x";"rhazim2_x";"rhazim3_x";] in
+		       "rhazim_x";"rhazim2_x";"rhazim3_x";
+		       ] in
     all_const_name (fun s -> not (mem s delta_strings));;
 
 let test_delta_pos t = not(test_delta_inert t) && test_domain t;;
@@ -984,6 +985,7 @@ problematic_delta_cases = [];;
      ("flat_term2_234_x",Merge_ineq.nonf_flat_term2_234_x);
      ("mudLs_135_x",Merge_ineq.nonf_mudLs_135_x);
      ("mudLs_126_x",Merge_ineq.nonf_mudLs_126_x);
+     ("mudLs_234_x",Merge_ineq.nonf_mudLs_234_x);
      ("taud_x'",Merge_ineq.nonf_taud_x');
     ];;
 
@@ -1029,6 +1031,7 @@ problematic_delta_cases = [];;
       ("ldih5_x_div_sqrtdelta_posbranch",Merge_ineq.nonf_ldih5_x_div_sqrtdelta_posbranch);
       ("ldih6_x_div_sqrtdelta_posbranch",Merge_ineq.nonf_ldih6_x_div_sqrtdelta_posbranch);
       ("gamma3f_x_div_sqrt_delta",Functional_equation.nonf_gamma3f_x_div_sqrt_delta);
+      ("gamma3atn_x",Nonlin_def.gamma3atn_x);
     ];;
 
   let nonlin_rewrites = map snd (rational_expansions @ sqrt_expansions @ trig_expansions);;
@@ -1043,7 +1046,7 @@ problematic_delta_cases = [];;
       ["sol0";"tau0";"mm1";"mm2";"const1";"h0";"rho";"pi";"sqrt8";
        "hminus";"hplus";"rh0";"arc_hhn";"sqrt3";"cos797";] in
     let specials = 
-      ["ineq";"ineqm";
+      ["ineq";"ineqm";"delta_ineq_v3";
        "bisect_left";"bisect_right";"frac_left";"frac_right";] in
     let primitive_univariate = 
       ["sqrt";"atn";"sin";"cos";"acs";"asn";"matan";] in
@@ -1076,6 +1079,30 @@ let hminus_pow_2_le = prove_by_refinement(
   MP_TAC Nonlinear_lemma.hminus_lt_h0;
   MP_TAC Nonlinear_lemma.hminus_prop;
   REWRITE_TAC[Sphere.h0];
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let hminus4_pow_2_le = prove_by_refinement(
+  `!c d.  &0 <= c /\ c <= &2 /\ #25.4016 <= d ==> (&2 * c * hminus) * (&2 * c * hminus) <= d`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `(&2 * c * hminus ) * (&2 * c * hminus) <= #25.4016` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  TYPIFY `#25.4016 = (&4 * #1.26) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  TYPIFY `(&2 * c * hminus) * (&2 * c * hminus) = (&2 * c * hminus) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  GMATCH_SIMP_TAC (GSYM Trigonometry2.POW2_COND);
+  REWRITE_TAC[REAL_MUL_ASSOC];
+  REWRITE_TAC[arith `&0 <= &4 * #1.26`];
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  GMATCH_SIMP_TAC REAL_LE_MUL2;
+  MP_TAC Nonlinear_lemma.hminus_lt_h0;
+  MP_TAC Nonlinear_lemma.hminus_prop;
+  REWRITE_TAC[Sphere.h0];
+  REPEAT WEAKER_STRIP_TAC;
   BY(ASM_TAC THEN REAL_ARITH_TAC)
   ]);;
   (* }}} *)
@@ -1121,7 +1148,7 @@ let hminus_pow_2_gt = prove_by_refinement(
   (* }}} *)
 
 
-let h_series = map MATCH_MP_TAC [hminus_pow_2_le;hminus_pow_2_ge;hminus_pow_2_gt];;
+let h_series = map MATCH_MP_TAC [hminus4_pow_2_le;hminus_pow_2_le;hminus_pow_2_ge;hminus_pow_2_gt];;
 
 let x_lb = prove_by_refinement(
   `!x a b. a <= x ==> b <= a ==> b <= x`,

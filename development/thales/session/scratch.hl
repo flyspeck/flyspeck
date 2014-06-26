@@ -3,6 +3,20 @@
   #print_length 50;;
   #print_length 500;;
 
+(* proof recording. *)
+
+(*
+  let prove_bak = prove;;
+  let prove_by_refinement_bak = prove_by_refinement;;
+*)
+
+  let prove (s,t) = 
+    (report (string_of_term s); prove_bak(s,t));;
+
+  let prove_by_refinement (s,t) = 
+    (report (string_of_term s); prove_by_refinement_bak(s,t));;
+
+
 (* reset goalstate *)
 loadt "tactics.ml";;
 rflyspeck_needs "general/hol_pervasives.hl";;
@@ -4781,6 +4795,17 @@ run {
    delta_y y1 y2 y3 y4 y5 y6 < &10) `;
 };;
 
+run2 { 
+  idv= "prep-5744538693";
+  doc="";
+  tags= [];
+  ineq= `!x1 x2 x3 x4 x5 x6.
+     ineq [&5,x1,&8; &4,x2,&7; &4,x3,&7; &8,x4,&28; &4,x5,&7; &4,x6,&7]
+     (delta4_squared_x x1 x2 x3 x4 x5 x6 * -- &1 < &0 \/
+      delta_x x1 x2 x3 x4 x5 x6 * -- &1 < &0)`;
+};;
+
+
 {
   idv="7823243247";
   doc="justify delta pos has been moved to main_estimate_ineq.hl.";
@@ -4883,7 +4908,8 @@ let (sz,nth_term,nth_idv) =
 
 let POS_TAC t =     TYPIFY t  (C SUBGOAL_THEN MP_TAC) THENL [Break_case_exec.POSITIVE_DOMAIN_TAC;ALL_TAC];;
 
-let PREP_TAC =   EVERY[REPEAT GEN_TAC;
+let PREP_TAC =   EVERY[REPEAT DISCH_TAC;
+		       REPEAT GEN_TAC;
   REWRITE_TAC[arith `a * b * a * b = (a * b) * (a * b)`];
   REWRITE_TAC[Sphere.ineq] THEN REPEAT DISCH_TAC;];;
 
@@ -5050,22 +5076,84 @@ let run_idq idq =
   let a,w = top_goal() in
 (*  let _ = (bad_names w = []) or failwith s in  *)
   let _ = a = [] or failwith ("delta unexpected assumption: "^s) in
-    (s,bad_cases w);;
+    (s,bad_names w);;
 
 let out_all = map run_idq tough_idq;;
 
-let really_tough_idv = map fst (filter (fun _,b -> not(b=[])) out_all);;
-let notso_tough_idv = map fst (filter (fun _,b -> (b=[])) out_all);;
-List.length !Prep.prep_ineqs;;
-Scripts.unfinished_cases();;
-Scripts.finished_rejects;;
-List.length notso_tough_idv + List.length really_tough_idv;;
-List.length all_oxl_cases +
-List.length reduced_prep_idq +
-List.length tough_idq;;
-List.length !Prep.prep_ineqs;;
+let has_eulerA dj = mem (`eulerA_x x1 x2 x3 x4 x5 x6 < &0`) dj;;
 
-Scripts.times;;
+let has_delta4_squared_x dj = 
+  can (find (has_match `x1_delta_x x1 x2 x3 x4 x5 x6 * &4 +
+         delta4_squared_x x1 x2 x3 x4 x5 x6 * -- c <
+         &0`)) dj;;
+
+let needs_delta_ineq t = 
+  let (_,_,dj)= Parse_ineq.dest_ineq (snd (strip_forall t)) in
+    not(test_delta_inert t) && not(test_domain t) &&  has_eulerA dj
+
+let needs_delta_ineq2 t = 
+  let (_,_,dj)= Parse_ineq.dest_ineq (snd (strip_forall t)) in
+    not(test_domain t) &&  has_delta4_squared_x dj;;
+
+let DELTA_TAC_PREP d = EVERY [
+  ASM_CASES_TAC d THEN ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM (MP_TAC o MATCH_MP delta_ineq_delta_bd);
+  ONFIRST ANTS_TAC [REAL_ARITH_TAC];
+  DISCH_TAC;
+  TYPIFY `&0 < x1 /\ &0 < x2 /\ &0 < x3 /\ &0 < x4 /\ &0 < x5 /\ &0 < x6` (C SUBGOAL_THEN ASSUME_TAC) THENL [Break_case_exec.POSITIVE_DOMAIN_TAC;ALL_TAC];
+  INTRO_TAC Functional_equation.delta_all_atn [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST ANTS_TAC [ BY(ASM_REWRITE_TAC[]) ];
+  SIMP_TAC[];
+  DISCH_THEN kill;
+  REPLICATE_TAC 2 (POP_ASSUM kill)
+  ];;
+
+let EULERA_TAC_PREP = EVERY [
+  INTRO_TAC delta_ineq_eulerA [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST ANTS_TAC [ ASM_REWRITE_TAC[] THEN ASM_TAC THEN REPEAT WEAKER_STRIP_TAC; EVERY Break_case_exec.x_lbs; EVERY Break_case_exec.x_ubs; BY(REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN TRY (REAL_ARITH_TAC) THEN REPEAT ( FIRST Break_case_exec.h_series THEN REAL_ARITH_TAC))];
+  DISCH_THEN DISJ_CASES_TAC THEN ASM_REWRITE_TAC[];
+  TYPIFY `&0 < x1 /\ &0 < x2 /\ &0 < x3 /\ &0 < x4 /\ &0 < x5 /\ &0 < x6` (C SUBGOAL_THEN ASSUME_TAC) THENL [Break_case_exec.POSITIVE_DOMAIN_TAC;ALL_TAC];
+  INTRO_TAC Functional_equation.delta_all_atn [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST ANTS_TAC [    BY(ASM_REWRITE_TAC[]) ];
+  SIMP_TAC[];
+  DISCH_THEN kill;
+  REPLICATE_TAC 2 (POP_ASSUM kill);
+  ];;
+
+let EULERA_TAC gl =
+  let (_,w) = dest_goal gl in
+  let d = disjuncts w in
+    if has_eulerA d then EULERA_TAC_PREP gl else 
+      let fl = filter  (has_match `delta_x x1 x2 x3 x4 x5 x6 + unit6 x1 x2 x3 x4 x5 x6 * -- y < &0`) d in
+	if fl=[] then ALL_TAC gl else DELTA_TAC_PREP (hd fl) gl;;
+  
+let run_1 s  =
+  let di = `delta_ineq_v3:bool` in
+  let t = (get_prep s).ineq in
+  let gt = if needs_delta_ineq t then mk_imp(di,t) else t in
+  let _ = g gt in
+  let _ = try e(PREP_TAC THEN EULERA_TAC THEN POS_SIMP_TAC THEN POST_TAC THEN TRY DISCH_TAC) with Failure m -> failwith (m^" "^s) in
+  let a,w = top_goal() in
+(*  let _ = (bad_names w = []) or failwith s in *)
+  let _ = a = [] or a = [di] or failwith ("delta unexpected assumption: "^s) in 
+  let data =   (s,List.length a,bad_names w) in
+   (* w *) data;;
+
+(*
+let s = "prep-6762190381";;
+run_1 s;;
+*)
+
+let rrr = map run_1 delta_nok_idv;;
+filter (fun (_,_,ls) -> not(ls = [])) rrr;;
+
+(* OK This has dealt with the  delta_nok_idv cases *)
+
+(* timing information *)
+
+let really_tough_idv = map fst (filter (fun _,b -> not(b=[])) out_all);;
+
+let notso_tough_idv = map fst (filter (fun _,b -> (b=[])) out_all);;
 
 let oxl_times2 = map (fun (s,t) -> ("prep-"^s,t)) oxl_times;;
 
@@ -5074,73 +5162,121 @@ let times idvs  =
     filter (fun (s,_) -> mem s idvs) preptime;;
 
 let cohort_times,total_time = 
-  let a::b = map (Scripts.hour o Scripts.total) 
-    [Scripts.times;oxl_times2;delta_ok_times;times delta_nok_idv;
-     times notso_tough_idv;times really_tough_idv] 
+  let a::b = map (fun (x1,x2)-> x1, (Scripts.hour o Scripts.total) x2 ) 
+    [("all",Scripts.times);("oxl",oxl_times2);("delta_ok",delta_ok_times);
+     ("delta_nok",times delta_nok_idv);
+     ("not so",times notso_tough_idv);("really",times really_tough_idv)] 
   in (b,a);;
-
-List.length Scripts.times;;
-List.length oxl_times;;
-List.length delta_ok_times;;
-  List.length (times notso_tough_idv);;
-  List.length (times really_tough_idv);;
 
 let puzzles= (filter (fun (s,_) -> not (mem ("prep-"^s) (map fst (oxl_times2 @ delta_ok_times) @ notso_tough_idv @ really_tough_idv @ delta_nok_idv))) Scripts.times);;
 
 List.length puzzles;;
 
-get_ineq "7550003505 0 1 3";;
+List.length really_tough_idv;;
 
-map fst oxl_times;;
-map fst delta_ok_times;;
-notso_tough_idv;;
+let rtough = (filter (fun _,b -> not(b=[])) out_all);;
+let rz = 
+  (filter (fun _,b -> not(b=[]) && subset b  ["rhazim2_x"; "rhazim3_x"; "rhazim_x"]) out_all);;
+let kz = 
+  (filter (fun _,b -> not(b=[]) && not (subset b  ["rhazim2_x"; "rhazim3_x"; "rhazim_x"])) out_all);;
 
-let bads = setify (List.flatten (map snd bad_cases));;
+let rrr = map run_1 rz;;
 
-List.length bad_cases;;
+filter (fun (_,_,ls) -> not(ls = [])) rrr;;
+List.length rz;;
 
-let eta126_idq = 
-  filter 
-    (fun t -> Break_case_exec.some_const_name 
-       (fun s -> mem s ["arclength_x_123"]) t.ineq)  tough_idq;;
 
-List.length eta126_idq;;
+map snd rtough;;
+List.nth rtough 23;;
+kz;;
+let gz,qz = partition (fun (_,xs) -> subset xs ["gamma23_full8_x";"gamma23_keep135_x"]) kz;;
+map (fun s,_ -> (get_prep s).ineq) gz;;
+map (fun (s,_) -> 
+       let t = (get_prep s).ineq in
+	 (s,Break_case_exec.test_delta_pos t)) gz;;
 
-eta126_idq;;
+get_prep "prep-IXPOTPA split(1/2)";;
+get_prep "prep-IXPOTPA split(0/2)";;
+let s = "prep-IXPOTPA split(0/2)";;
+let s = "prep-TEWNSCJ split(1/2)";;
+let t = (Break_case_exec.get_prep s).ineq;;
+let di = `delta_ineq_v3:bool`;;
+t;;
+  needs_delta_ineq2 t;;
+  let gt = if needs_delta_ineq2 t then mk_imp(di,t) else t;;
+  let pos = Break_case_exec.test_delta_pos t ;;
+  let TAC = if pos then DELTA1_TAC (find_domain t) else ALL_TAC ;;
+  let delta_thm = find_domain t;;
+g gt;;
+PREP_TAC;;
+let DELTA1_TAC delta_thm = EVERY [
+  COMMENT "delta_pos";
+  INTRO_TAC delta_thm [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST ANTS_TAC [      ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;      EVERY Break_case_exec.x_lbs;      EVERY Break_case_exec.x_ubs;      BY(REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN TRY (REAL_ARITH_TAC) THEN REPEAT ( FIRST Break_case_exec.h_series THEN REAL_ARITH_TAC))];
 
-g (hd eta126_idq).ineq;;
+  COMMENT "delta_via_ineq";;
+  let (_,w) = top_goal();;
+  let d = disjuncts w ;;
 
-PREP_TAC
+      let fl = filter  (has_match `x1_delta_x x1 x2 x3 x4 x5 x6 * &4 +
+    delta4_squared_x x1 x2 x3 x4 x5 x6 * -- c <
+    &0`) d;;
+	if fl=[] then ALL_TAC gl else DELTA_TAC_PREP (hd fl) gl;;
+      let hdd = hd fl;;
+let DELTA_TAC_PREP d = EVERY [
+  ASM_CASES_TAC (hdd) THEN ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM (MP_TAC o MATCH_MP Merge_ineq.delta_ineq_delta4_x_squared2);
+  ONFIRST ANTS_TAC [  art[] THEN    ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;      EVERY Break_case_exec.x_lbs;      EVERY Break_case_exec.x_ubs; rule (rr[arith `&4 * hminus = &2 * (&2 * hminus)`]);     (REPEAT STRIP_TAC THEN TRY (FIRST_X_ASSUM MATCH_MP_TAC) THEN TRY (REAL_ARITH_TAC) THEN REPEAT ( FIRST Break_case_exec.h_series THEN TRY REAL_ARITH_TAC))];
+  comment "end delta_via_ineq";;
 
-map (fun idq -> ocaml_domain idq.ineq) eta126_idq;;
-List.nth eta126_idq 9;;
+  comment "single branch here";;
+  DISCH_TAC;
+  TYPIFY `&0 < x1 /\ &0 < x2 /\ &0 < x3 /\ &0 < x4 /\ &0 < x5 /\ &0 < x6` (C SUBGOAL_THEN ASSUME_TAC) THENL [Break_case_exec.POSITIVE_DOMAIN_TAC;ALL_TAC];
+  INTRO_TAC Functional_equation.delta_all_atn [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST ANTS_TAC [ BY(ASM_REWRITE_TAC[]) ];
+  SIMP_TAC[];
+  DISCH_THEN kill;
+..... next use eta conditions to rewrite gamma23_full8_x...
+  REPLICATE_TAC 2 (POP_ASSUM kill)
+  ];;
 
-map (fun t -> test_domain t.ineq ) eta126_idq;;
 
+  
+  DISCH_TAC;
+  TYPIFY `&0 < x1 /\ &0 < x2 /\ &0 < x3 /\ &0 < x4 /\ &0 < x5 /\ &0 < x6` (C SUBGOAL_THEN ASSUME_TAC) THENL [Break_case_exec.POSITIVE_DOMAIN_TAC;ALL_TAC];
+  INTRO_TAC Functional_equation.delta_all_atn [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST ANTS_TAC [    BY(ASM_REWRITE_TAC[]) ];
+  SIMP_TAC[];
+  DISCH_THEN kill;
+  REPLICATE_TAC 2 (POP_ASSUM kill);
+  ];;
+
+TAC;;
+POST_TAC
 xxd
-let out126 = map run_idq eta126_idq;;
 
-get_ineq "prep-FHBVYXZ b split(0/2)";;
+  
+let _ = g gt in
+  let _ = try e(PREP_TAC THEN EULERA_TAC THEN POST_TAC THEN TRY DISCH_TAC) with Failure m -> failwith (m^" "^s) in
+  let a,w = top_goal() in
+(*  let _ = (bad_names w = []) or failwith s in *)
+  let _ = a = [] or a = [di] or failwith ("delta unexpected assumption: "^s) in 
+  let data =   (s,List.length a,bad_names w) in
+    w;;
 
-let etaout = filter (fun (_,t) -> some_const_name (fun s -> mem s ["mud_126_x_v1";"mud_135_x_v1";"mud_234_x_v1";"arclength_x1";"vol3_x_sqrt";"taud_x";"eta2_126";"eta2_135";"eta2_456"]) t)  out126;;
+let DELTA1_TAC delta_thm = EVERY [
+  COMMENT "delta_pos";
+  INTRO_TAC delta_thm [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST ANTS_TAC [      ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;      EVERY Break_case_exec.x_lbs;      EVERY Break_case_exec.x_ubs;      BY(REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN TRY (REAL_ARITH_TAC) THEN REPEAT ( FIRST Break_case_exec.h_series THEN REAL_ARITH_TAC))];
+  DISCH_TAC;
+  TYPIFY `&0 < x1 /\ &0 < x2 /\ &0 < x3 /\ &0 < x4 /\ &0 < x5 /\ &0 < x6` (C SUBGOAL_THEN ASSUME_TAC) THENL [Break_case_exec.POSITIVE_DOMAIN_TAC;ALL_TAC];
+  INTRO_TAC Functional_equation.delta_all_atn [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST ANTS_TAC [    BY(ASM_REWRITE_TAC[]) ];
+  SIMP_TAC[];
+  DISCH_THEN kill;
+  REPLICATE_TAC 2 (POP_ASSUM kill);
+  ];;
 
-let (s,t) = hd etaout;;
-let w = t;;
-g t;;
-
-  let has_eta126 = some_const_name ((=) "eta2_126") w ;;
-  let has_eta135 = some_const_name ((=) "eta2_135") w ;;
-  let has_eta456 = some_const_name ((=) "eta2_456") w ;;
-  let TAC1 = if has_eta126 then POS_TAC `&0 < x1 /\ &0 < x2 /\ &0 < x6` else ALL_TAC ;;
-PREP_TAC
-TAC1  
-
-let TAC2 = if has_eta135 then POS_TAC `&0 < x1 /\ &0 < x3 /\ &0 < x5` else ALL_TAC in
-  let TAC3 = if has_eta456 then POS_TAC `&0 < x4 /\ &0 < x5 /\ &0 < x6` else ALL_TAC in
-  let TAC0 = if has_eta126 or has_eta135 or has_eta456 then 
-      INTRO_TAC eta_atn [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`]
-  else ALL_TAC in
-    (TAC0 THEN TAC1 THEN TAC2 THEN TAC3 THEN SIMP_TAC[] THEN REPEAT(DISCH_THEN kill)) gl;;
 
 
 
@@ -5151,11 +5287,7 @@ let TAC2 = if has_eta135 then POS_TAC `&0 < x1 /\ &0 < x3 /\ &0 < x5` else ALL_T
 
 (* FUTURE WORK *)
 
-let delta_ineq = 
-  let t1 = (hd(Ineq.getexact "7823243247")).ineq in
-  let t2 = (hd(Ineq.getexact "5744538693")).ineq  in
-  let t = mk_conj (t1,t2) in
-    new_definition' (mk_eq (`delta_ineq:bool`,t));;
+Nonlinear_lemma.delta_ineq;;
 
 let stot = Parse_ineq.ocaml_string_of_term;;
 
@@ -5296,6 +5428,7 @@ top_goal();;
 
 
 
+
 let DELTA_TAC_DESIGN_GAME = prove_by_refinement(
   `#`,
   (* {{{ proof *)
@@ -5375,3 +5508,92 @@ delta_time /. total_time;;
     BY(ASM_REWRITE_TAC[]);
   REWRITE_TAC[arith `~(&2 = &0)`];
   BY(ASM_TAC THEN CONV_TAC REAL_RING)
+
+let s = List.nth delta_nok_idv 0;;
+
+let t = (get_prep s).ineq;;
+needs_delta_ineq t;;
+
+filter (fun s ->
+	  let t = (get_prep s).ineq in
+	    not(needs_delta_ineq t)) delta_nok_idv;;
+
+	  
+g t;;
+g (mk_imp(`delta_ineq_v3:bool`,t));;
+PREP_TAC;;  
+EULERA_TAC;;
+
+top_goal();;
+has_match;;
+let dk = 
+  let w = snd(top_goal()) in
+  find (fun s -> has_match `delta_x x1 x2 x3 x4 x5 x6 + unit6 x1 x2 x3 x4 x5 x6 * -- y < &0` s)
+    (disjuncts w);;
+
+get_ineq "7550003505 0 1 3";;
+
+map fst oxl_times;;
+map fst delta_ok_times;;
+notso_tough_idv;;
+
+let bads = setify (List.flatten (map snd bad_cases));;
+
+List.length bad_cases;;
+
+let eta126_idq = 
+  filter 
+    (fun t -> Break_case_exec.some_const_name 
+       (fun s -> mem s ["arclength_x_123"]) t.ineq)  tough_idq;;
+
+List.length eta126_idq;;
+
+eta126_idq;;
+
+g (hd eta126_idq).ineq;;
+
+PREP_TAC
+
+map (fun idq -> ocaml_domain idq.ineq) eta126_idq;;
+List.nth eta126_idq 9;;
+
+map (fun t -> test_domain t.ineq ) eta126_idq;;
+
+let out126 = map run_idq eta126_idq;;
+
+get_ineq "prep-FHBVYXZ b split(0/2)";;
+
+let etaout = filter (fun (_,t) -> some_const_name (fun s -> mem s ["mud_126_x_v1";"mud_135_x_v1";"mud_234_x_v1";"arclength_x1";"vol3_x_sqrt";"taud_x";"eta2_126";"eta2_135";"eta2_456"]) t)  out126;;
+
+let (s,t) = hd etaout;;
+let w = t;;
+g t;;
+
+  let has_eta126 = some_const_name ((=) "eta2_126") w ;;
+  let has_eta135 = some_const_name ((=) "eta2_135") w ;;
+  let has_eta456 = some_const_name ((=) "eta2_456") w ;;
+  let TAC1 = if has_eta126 then POS_TAC `&0 < x1 /\ &0 < x2 /\ &0 < x6` else ALL_TAC ;;
+PREP_TAC
+TAC1  
+
+let TAC2 = if has_eta135 then POS_TAC `&0 < x1 /\ &0 < x3 /\ &0 < x5` else ALL_TAC in
+  let TAC3 = if has_eta456 then POS_TAC `&0 < x4 /\ &0 < x5 /\ &0 < x6` else ALL_TAC in
+  let TAC0 = if has_eta126 or has_eta135 or has_eta456 then 
+      INTRO_TAC eta_atn [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`]
+  else ALL_TAC in
+    (TAC0 THEN TAC1 THEN TAC2 THEN TAC3 THEN SIMP_TAC[] THEN REPEAT(DISCH_THEN kill)) gl;;
+
+
+  
+List.length !Prep.prep_ineqs;;
+Scripts.unfinished_cases();;
+Scripts.finished_rejects;;
+List.length notso_tough_idv + List.length really_tough_idv;;
+List.length all_oxl_cases +
+List.length reduced_prep_idq +
+List.length tough_idq;;
+List.length really_tough_idv;;
+List.length delta_nok_idv;;
+List.length !Prep.prep_ineqs;;
+
+Scripts.times;;

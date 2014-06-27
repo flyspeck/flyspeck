@@ -360,8 +360,48 @@ let quad_4680581274_delta_issue = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let taum_x_sym = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. taum_x x1 x3 x2 x4 x6 x5 = taum_x x1 x2 x3 x4 x5 x6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.taum_x;Sphere.rhazim_x;Sphere.rhazim2_x;Sphere.rhazim3_x];
+  REWRITE_TAC[Sphere.rhazim;Sphere.rhazim2;Sphere.rhazim3;Sphere.node2_y;Sphere.node3_y];
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC (arith `a = a' /\ b = b' /\ c = c' ==> (a + b + c - p = a' + c' + b' - p)`);
+  BY(MESON_TAC[Nonlinear_lemma.dih_y_sym])
+  ]);;
+  (* }}} *)
+
+let taud_x_taum_x = prove_by_refinement(
+  `main_nonlinear_terminal_v11 ==>
+    (!x1 x2 x3 x4 x5 x6.
+       &4 <= x1 /\ x1 <= (&2 * h0) pow 2 /\
+       &4 <= x2 /\ x2 <= (&2 * h0) pow 2 /\
+       &4 <= x3 /\ x3 <= (&2 * h0) pow 2 /\
+       cstab pow 2 <= x4 /\ x4 <= #3.915 pow 2 /\
+       x5 = &4 /\ x6 = &4 /\
+	   &0 <= delta_x x1 x2 x3 x4 x5 x6 ==>
+	   taud_x x1 x2 x3 x4 x5 x6 <= taum_x x1 x2 x3 x4 x5 x6)
+`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC (UNDISCH Pent_hex.OWZLKVY4) [`sqrt x1`;`sqrt x2`;`sqrt x3`;`sqrt x4`;`sqrt x5`;`sqrt x6`];
+  GMATCH_SIMP_TAC (GSYM Functional_equation.taud_x_taud);
+  GMATCH_SIMP_TAC (Terminal.taum_taum_x);
+  REWRITE_TAC[Sphere.delta_y;Sphere.y_of_x];
+  REPEAT (GMATCH_SIMP_TAC Merge_ineq.sqrtpow2);
+  REPEAT (GMATCH_SIMP_TAC SQRT_POS_LE);
+  REPEAT (GMATCH_SIMP_TAC REAL_LE_RSQRT);
+  REPEAT (GMATCH_SIMP_TAC REAL_LE_LSQRT);
+  ASM_REWRITE_TAC[arith `&2 pow 2 = &4`;Collect_geom2.SQRT4_EQ2];
+  BY(ASM_TAC THEN REWRITE_TAC[Sphere.h0;Sphere.cstab] THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
 let quad_4680581274_a = prove_by_refinement(
-  `quad_nonlinear_v2 ==> (!x1 x2 x3 x4 x5 x6 x7 x8 x9.
+  `quad_nonlinear_v2 /\ main_nonlinear_terminal_v11 ==> (!x1 x2 x3 x4 x5 x6 x7 x8 x9.
 			 // &0 <= delta_x x1 x2 x3 x4 x5 x6 /\
 			 // &0 <= delta_x x7 x2 x3 x4 x8 x9 ==>
      ineq
@@ -397,19 +437,28 @@ let quad_4680581274_a = prove_by_refinement(
       &0))`,
   (* {{{ proof *)
   [
-  rt[Sphere.ineq]
-    st/r
-  rt[taut `(a \/ b \/ c \/ d) <=> (~b /\ ~c /\ ~d ==> a)`;Nonlin_def.unit6;arith `&1 * u = u`]
-  st/r
-  mmp (arith `#0.541 < a /\ -- #0.028 < b ==> #0.513 + b * -- &1 + a * -- &1 < &0`)
-  conj
+  REWRITE_TAC[Sphere.ineq];
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[TAUT `(a \/ b \/ c \/ d) <=> (~b /\ ~c /\ ~d ==> a)`;Nonlin_def.unit6;arith `&1 * u = u`];
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC (arith `#0.541 < a /\ -- #0.028 < b ==> #0.513 + b * -- &1 + a * -- &1 < &0`);
+  CONJ_TAC;
     INTRO_TAC (get_quad_nonlinear "4680581274 2x") [`x7`;`x3`;`x2`;`x4`;`x9`;`x8`];
-  art[Sphere.ineq;arith `u > v <=> v < u`;IMP_IMP_THM;Sphere.h0]
-  ants
-  asm then rat
-
-  xxd to here ...
-
+    ASM_REWRITE_TAC[Sphere.ineq;arith `u > v <=> v < u`;IMP_IMP_THM;Sphere.h0];
+    ANTS_TAC;
+      BY(ASM_TAC THEN REAL_ARITH_TAC);
+    BY(MESON_TAC[taum_x_sym]);
+  INTRO_TAC (get_quad_nonlinear "4680581274 1x") [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ASM_REWRITE_TAC[Sphere.ineq;arith `u > v <=> v < u`;IMP_IMP_THM;Sphere.h0];
+  ASM_REWRITE_TAC[arith `d < &10 <=> (d + -- &10 < &0)`];
+  ANTS_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  TYPIFY `taud_x x1 x2 x3 x4 x5 x6 <= taum_x x1 x2 x3 x4 x5 x6` ENOUGH_TO_SHOW_TAC;
+    BY(REAL_ARITH_TAC);
+  INTRO_TAC (UNDISCH_ALL taud_x_taum_x) [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  DISCH_THEN MATCH_MP_TAC;
+  ASM_SIMP_TAC[arith `~(d + -- &10 < &0) ==> &0 <= d`];
+  BY(ASM_TAC THEN REWRITE_TAC[Sphere.h0;Sphere.cstab] THEN REAL_ARITH_TAC)
   ]);;
   (* }}} *)
 

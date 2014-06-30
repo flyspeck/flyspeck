@@ -81,6 +81,7 @@ let mk_x i = mk_var("x"^string_of_int i,real_ty);;
 let mk_a i = mk_var("a"^string_of_int i,real_ty);;
 
 let x9list =  map mk_x (1--9);;
+let x10list =  map mk_x (1--10);;
 let x6list = map mk_x (1--6);;
 let a6list = map mk_a (1--6);;
 let x_backlist = map mk_x [7;2;3;4;8;9];;
@@ -231,7 +232,7 @@ let dest_nonlin t =
   let (iis,zzs) = unzip( map (dest) il) in
   let zz = nub zzs in
   let _ = (zz = [`&0`]) or failwith "zero expected" in
-  let _ = ((map p2 r = x6list) or (map p2 r = x9list)) or failwith "x1..x6 or x1..x9 expected" in
+  let _ = ((map p2 r = x6list) or (map p2 r = x9list) or (map p2 r = x10list)) or failwith "x1..x6 or x1..x9 expected" in
   (map p1 r, map p3 r,iis);;
 
  (* these names don't change in cpp interval code *)
@@ -907,6 +908,7 @@ let X_OF_Y_TAC =
     REWRITE_TAC X_COMPOUND_DEF THEN
     (* repackage *)
     (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN
+    (REWRITE_TAC[GSYM ineq_expand10]) THEN
     (REWRITE_TAC[GSYM ineq_expand9]) THEN
     (REWRITE_TAC[GSYM ineq_expand6]) THEN
     (REWRITE_TAC[arith_facts;sqrt8_2;sqrt2_sqrt2;Sphere.h0;Sphere.hplus]) THEN
@@ -961,11 +963,39 @@ let EXPAND_1var_lemma = prove_by_refinement(
   `!(f:real->bool) a b. (!(y:real). ineq [a,y,b] (f y)) = (!(x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real). ineq[(a,x1,b);(&1,x2,&1);(&1,x3,&1);(&1,x4,&1);(&1,x5,&1);(&1,x6,&1)] (f x1))`,
   (* {{{ proof *)
   [
-  REWRITE_TAC[ineq] THEN  MESON_TAC[REAL_ARITH `(&1 <= &1)`];
+  REWRITE_TAC[Sphere.ineq] THEN  MESON_TAC[REAL_ARITH `(&1 <= &1)`];
   ]);;
   (* }}} *)
 
-let EXPAND_1var = REWRITE_TAC[EXPAND_1var_lemma];;
+let EXPAND_10var_lemma = prove_by_refinement(
+  `!f a1 b1 a2 b2 a3 b3 a4 b4 a5 a6 a7 b7 a8 a9 a10. (!y1 y2 y3 y4 y5 y6 y7 y8 y9 y10.
+    ineq [(a1,y1,b1);(a2,y2,b2);(a3,y3,b3);(a4,y4,b4);(a5,y5,a5);
+	  (a6,y6,a6);(a7,y7,b7);(a8,y8,a8);(a9,y9,a9);(a10,y10,a10)] (f y1 y2 y3 y4 y5 y6 y7 y8 y9 y10))
+   = (!y1 y2 y3 y4 y5 y7.
+    ineq [(a1,y1,b1);(a2,y2,b2);(a3,y3,b3);(a4,y4,b4);(a5,y5,a5);
+	  (a7,y7,b7)] (f y1 y2 y3 y4 y5 a6 y7 a8 a9 a10))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.ineq];
+  BY(MESON_TAC[REAL_ARITH `(a <= x /\ x <= a) <=> (x = a)`])
+  ]);;
+  (* }}} *)
+
+let EXPAND_9var_lemma = prove_by_refinement(
+  `!f a1 b1 a2 b2 a3 b3 a4 b4 a5 a6 a7 b7 a8 a9. (!y1 y2 y3 y4 y5 y6 y7 y8 y9.
+    ineq [(a1,y1,b1);(a2,y2,b2);(a3,y3,b3);(a4,y4,b4);(a5,y5,a5);
+	  (a6,y6,a6);(a7,y7,b7);(a8,y8,a8);(a9,y9,a9)] (f y1 y2 y3 y4 y5 y6 y7 y8 y9))
+   = (!y1 y2 y3 y4 y5 y7.
+    ineq [(a1,y1,b1);(a2,y2,b2);(a3,y3,b3);(a4,y4,b4);(a5,y5,a5);
+	  (a7,y7,b7)] (f y1 y2 y3 y4 y5 a6 y7 a8 a9))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[Sphere.ineq];
+  BY(MESON_TAC[REAL_ARITH `(a <= x /\ x <= a) <=> (x = a)`])
+  ]);;
+  (* }}} *)
+
+let EXPAND_var = REWRITE_TAC[EXPAND_1var_lemma;EXPAND_10var_lemma;EXPAND_9var_lemma];;
 
 (*
 let EXPAND_1var = SUBGOAL_THEN `!(f:real->bool) a b. (!(y:real). ineq [a,y,b] (f y)) = (!(x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real). ineq[(a,x1,b);(&1,x2,&1);(&1,x3,&1);(&1,x4,&1);(&1,x5,&1);(&1,x6,&1)] (f x1))` (unlist REWRITE_TAC) THENL [REWRITE_TAC[ineq] THEN  MESON_TAC[REAL_ARITH `(&1 <= &1)`];ALL_TAC] ;;
@@ -1025,11 +1055,17 @@ let STYLIZE_TAC =
     x1 * unit0 = proj_x1 (x1) (x2) (x3) (x4) (x5) (x6) /\
     (x4 * unit0 = proj_x4 x1 x2 x3 x4 x5 x6) /\
     (x5 * unit0 = proj_x5 x1 x2 x3 x4 x5 x6) /\ 
-    (x6 * unit0 = proj_x6 x1 x2 x3 x4 x5 x6)` in
+    (x6 * unit0 = proj_x6 x1 x2 x3 x4 x5 x6) /\
+    ups_x x2 x3 x4 = ups234_x (x1:real) (x2:real) x3 x4 (x5:real) (x6:real) /\
+    delta_x x1 x2 x3 x4 x5 (#4.0) = deltaL_x (#4.0) x1 x2 x3 x4 x5 x6 /\
+    delta_x4 x1 x2 x3 x4 x5 (#4.0) = deltaL_x4 (#4.0) x1 x2 x3 x4 x5 x6 
+  ` in
   let subgoal_unit6 = `unit0 = unit6
     (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real)` in
   REMOVE_dummy  THEN
-  EXPAND_1var THEN
+  EXPAND_var THEN
+  REWRITE_TAC[GSYM Nonlin_def.cayleytr6;GSYM Nonlin_def.cayleyR6] THEN
+  REWRITE_TAC[ccayleytr6u;ccayleyR6u] THEN
   DISCH_TAC THEN REPEAT GEN_TAC THEN
   (* rename added Nov 27, 2010 *)
   X_RENAME_TAC THEN 
@@ -1055,12 +1091,13 @@ let STYLIZE_TAC =
   (REWRITE_TAC[real_arith_unit]) THEN
   (REWRITE_TAC[REAL_ARITH `unit0 * x = x * unit0`]) THEN
   (REWRITE_TAC[unit0f]) THEN
-    (SUBGOAL_THEN subgoal_proj  (unlist REWRITE_TAC)
+  (SUBGOAL_THEN subgoal_proj  (unlist REWRITE_TAC)
   THENL [REWRITE_TAC[proj_x3;proj_x4;proj_x5;proj_x6;proj_x2;
-		    proj_x1;unit0;REAL_ARITH `x * &1 = x`];ALL_TAC]) THEN
+		    proj_x1;unit0;REAL_ARITH `x * &1 = x`;Nonlin_def.ups234_x;Nonlin_def.deltaL_x;Nonlin_def.deltaL_x4];ALL_TAC]) THEN
   (SUBGOAL_THEN subgoal_unit6  (unlist REWRITE_TAC) 
      THENL [REWRITE_TAC[unit0;unit6];ALL_TAC]) THEN
   (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN
+  (REWRITE_TAC[GSYM ineq_expand10]) THEN
   (REWRITE_TAC[GSYM ineq_expand9]) THEN
   (REWRITE_TAC[GSYM ineq_expand6]) THEN DISCH_TAC;;
 

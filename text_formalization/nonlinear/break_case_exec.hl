@@ -35,6 +35,19 @@ let ( MSEC_INC ) = 1000;; (* global parameter for msec target size *)
 let ERROR_TOLERANCE = 0.3;;  (* try for times within MSEC_INC * (1 +/- ERROR_TOLERANCE ). *)
 let verbose = true;;
 
+let get_prep s = 
+  let p1 = !Prep.prep_ineqs in
+    (find (fun t -> (t.idv = s)) p1);;
+
+let delta_ineq = 
+  let t1 = (hd(Ineq.getexact "7823243247")).ineq in
+  let t2 = (hd(Ineq.getexact "5744538693")).ineq  in
+  let t3 = (get_prep "prep-2327525027").ineq in
+  let t4 = (get_prep "prep-4092227918").ineq in 
+  let t = end_itlist (curry mk_conj) [t1;t2;t3;t4] in
+    Sphere.new_definition' (mk_eq (`delta_ineq_v6:bool`,t));;
+
+
 (*
 
 The type iargs is used to record a partition of a nonlinear inequality domain into pieces.
@@ -81,13 +94,24 @@ let rec string_of_iargs = function
 (* I/O *)
 (* ********************************************************************** *)
 
+let break_temp_file = Filename.temp_file "break_log" ".hl";; 
 
+let touch_temp = process_to_string (Printf.sprintf "touch %s" break_temp_file);;
+
+(*
 let fullpath s = flyspeck_dir ^ s;;
 
 let output_case s iargs = 
   let sfull = Printf.sprintf "\nadd_case (\"%s\",%s);;\n" s (string_of_iargs iargs) in
   let oc = open_out_gen [Open_append;Open_text] 436 (fullpath "nonlinear/break_case_log_more.hl") in
   (Pervasives.output_string oc (sfull); close_out oc);;
+*)
+
+let output_case s iargs = 
+  let sfull = Printf.sprintf "\nadd_case (\"%s\",%s);;\n" s (string_of_iargs iargs) in
+  let oc = open_out_gen [Open_append;Open_text] 436 (break_temp_file) in
+  (Pervasives.output_string oc (sfull); close_out oc);;
+
 
 let sprintf = Printf.sprintf;;
 
@@ -311,7 +335,7 @@ let rec recursive_find_frac facet x1 z1  (f1,t1) (f2,t2) =
 (* DEBUG *)
 (* ********************************************************************** *)
 
-
+report "---33";;
 
 let rec pass_time = function
     Iarg_bisect (_,a,b) -> pass_time a + pass_time b
@@ -414,12 +438,25 @@ let run_all_over2sec save =
   let alldata = map (fun s -> try s,run_one save s with Failure msg -> report s; failwith msg) over2 in
     alldata;;
 
+(* steps to add more to the break_case_log.hl:
+
+  let preptimes = map (fun s -> try s,Break_case_exec.initial_msec s with _ -> failwith s) 
+   (Break_case_exec.idvlist);;
+  let over2sec =  (sort (fun (_,s) (_,t) -> s < t) (filter (fun (s,t) -> t > 2200) preptimes));;
+  let over2 = map fst over2sec;;
+  let has_iarg = map fst !Break_case_log.break_data;;
+  let redoable = subtract over2 has_iarg;;
+  let redotimes = map (fun s -> try s,Break_case_exec.initial_msec s with _ -> failwith s) redoable;;
+  let redodata = map (fun s -> 
+			try (run_one true s;s) 
+			with Failure msg -> report s; failwith msg) redoable;;
+*)
 
 
 (* ********************************************************************** *)
 (* Generate terms to be fed to nonlinear optimization. *)
 (* ********************************************************************** *)
-
+report "---45";;
 let subat_rules = prove_by_refinement(
   `(!i (y:A). subat i y [] = []) /\
     (!x xs (y:A). subat 0 y (x::xs) = y :: xs) /\
@@ -502,6 +539,7 @@ let ineq6m = prove_by_refinement(
   ]);;
   (* }}} *)
 
+report "---54";;
 let ineq9m = prove_by_refinement(
   `!x1 x2 x3 x4 x5 x6 x7 x8 x9 a1 a2 a3 a4 a5 a6 a7 a8 a9 b1 b2 b3 b4 b5 b6 b7 b8 b9 f.
     ineqm [x1;x2;x3;x4;x5;x6;x7;x8;x9] [(a1,b1);(a2,b2);(a3,b3);(a4,b4);(a5,b5);(a6,b6);
@@ -612,7 +650,7 @@ let ineq_conv =
      THENC REAL_RAT_REDUCE_CONV THENC REWRITE_CONV[ineq6m;ineq9m]) ;;
 
 (* string,int *)
-
+report "65";;
 (* ********************************************************************** *)
 (* TEST CASE: "OXLZLEZ 6346351218 %d %d" *)
 (* ********************************************************************** *)
@@ -681,9 +719,6 @@ let POSTPREP_OXL_634_TAC =
   (*  (GSPECL_TAC (List.rev Optimize.x6list)); *)
   ];;
 
-let get_prep s = 
-  let p1 = !Prep.prep_ineqs in
-    (find (fun t -> (t.idv = s)) p1);;
 
 let mk_post_prep_oxl s = 
   let idq = get_prep s in
@@ -949,6 +984,11 @@ problematic_delta_cases = [];;
      ("delta_135_x",Sphere.delta_135_x);
      ("delta_234_x",Sphere.delta_234_x);
      ("mu_y",Nonlin_def.mu_y);
+     ("cayleyR6u",Nonlin_def.cayleyR6u);
+     ("cayleytr6u",Nonlin_def.cayleytr6u);
+     ("deltaL_x",Nonlin_def.deltaL_x);
+     ("deltaL_x4",Nonlin_def.deltaL_x4);
+     ("ups234_x",Nonlin_def.ups234_x);
     ];;
 
   let sqrt_expansions = 
@@ -1034,6 +1074,8 @@ problematic_delta_cases = [];;
       ("gamma3atn_x",Nonlin_def.gamma3atn_x);
     ];;
 
+  report "---c";;
+
   let nonlin_rewrites = map snd (rational_expansions @ sqrt_expansions @ trig_expansions);;
 
   let good_names = 
@@ -1046,7 +1088,7 @@ problematic_delta_cases = [];;
       ["sol0";"tau0";"mm1";"mm2";"const1";"h0";"rho";"pi";"sqrt8";
        "hminus";"hplus";"rh0";"arc_hhn";"sqrt3";"cos797";] in
     let specials = 
-      ["ineq";"ineqm";"delta_ineq_v3";
+      ["ineq";"ineqm";"delta_ineq_v6";
        "bisect_left";"bisect_right";"frac_left";"frac_right";] in
     let primitive_univariate = 
       ["sqrt";"atn";"sin";"cos";"acs";"asn";"matan";] in
@@ -1231,7 +1273,7 @@ setify (map process_delta_inert_idv delta_inert_idv);;
 setify (map process_delta_pos_idv delta_pos_idv);;
 *)
 
-
+report "---d";;
 
  let idv_parameters s = 
    let count = 
@@ -1330,6 +1372,8 @@ let frac_right_rules = prove_by_refinement(
   BY(REWRITE_TAC[Sphere.frac_right;subat_rules;EL;HD;TL;LET_THM;LAMBDA_PAIR;CONS_11])
   ]);;
   (* }}} *)
+
+report "---e";;
 
 let ineqm_rules = prove_by_refinement(
   `ineqm [] [] f = f /\
@@ -1474,6 +1518,8 @@ let prove_iargs_cases tm iarg =
     EQ_MP (SYM eq1) pthm;;
 
 
+report "---f";;
+
 (*  MOVED to .
 let postprocess t = 
   let t2 = cconv (REWRITE_CONV [GSYM Nonlinear_lemma.sol0_over_pi_EQ_const1;ineqm_mp_simple]) t in
@@ -1526,6 +1572,6 @@ let prove_prep_oxl (i,j) =
 let exec_prove_all_prep_oxl () = 
   map prove_prep_oxl (* Break_case_exec. *) all_oxl_cases;;
 
-
+report "---g";;
 
 end;;

@@ -1,0 +1,739 @@
+needs "update_database.ml";;
+
+let abs_sum_lemma_pos = prove(`!a b. &0 <= a * b ==> abs (a + b) = abs a + abs b`,
+			      REWRITE_TAC[REAL_MUL_POS_LE] THEN REAL_ARITH_TAC);;
+
+let abs_sum_lemma_neg = prove(`!a b. a * b <= &0 ==> abs (a + b) = abs (abs a - abs b)`,
+			      ONCE_REWRITE_TAC[REAL_ARITH `a * b <= &0 <=> &0 <= (--a) * b`] THEN
+				REWRITE_TAC[REAL_MUL_POS_LE] THEN
+				REAL_ARITH_TAC);;
+
+let sign_mul_lemma = prove(`!a b c. a * b <= &0 /\ &0 <= b * c /\ ~(b = &0) ==> a * c <= &0`,
+			   REPEAT STRIP_TAC THEN
+			     MP_TAC (SPECL[`b * c:real`; `a * b:real`; `&0`] REAL_LE_LMUL) THEN
+			     ASM_REWRITE_TAC[REAL_MUL_RZERO] THEN
+			     REWRITE_TAC[REAL_ARITH `(b * c) * a * b = (b * b) * (a * c):real`] THEN
+			     POP_ASSUM (MP_TAC o REWRITE_RULE[GSYM REAL_LT_SQUARE]) THEN
+			     ONCE_REWRITE_TAC[REAL_ARITH `(b * b) * x <= &0 <=> &0 <= (--(b * b) * x)`] THEN
+			     REWRITE_TAC[REAL_MUL_POS_LE] THEN
+			     REAL_ARITH_TAC);;
+			     
+let sum_bound_lemma = prove(`!m n f. 
+			      (!k. abs (f (k + 1)) <= abs (f k) /\ f (k + 1) * f k <= &0) ==>
+			      abs (sum (m..n) f) <= abs (f m) /\ &0 <= sum (m..n) f * f m`,
+      GEN_TAC THEN GEN_TAC THEN
+	ABBREV_TAC `t:num = n - m` THEN
+	POP_ASSUM MP_TAC THEN
+	MAP_EVERY (fun tm -> SPEC_TAC (tm, tm)) [`m:num`; `n:num`; `t:num`] THEN
+	INDUCT_TAC THEN REPEAT (FIRST [GEN_TAC; DISCH_TAC]) THENL [
+	  SUBGOAL_THEN `n < m \/ n = m:num` DISJ_CASES_TAC THENL [
+	    UNDISCH_TAC `n - m = 0` THEN ARITH_TAC;
+	    ASM_SIMP_TAC[SUM_TRIV_NUMSEG; REAL_ABS_0; REAL_ABS_POS; REAL_MUL_LZERO; REAL_LE_REFL];
+	    ALL_TAC
+	  ] THEN
+	    ASM_REWRITE_TAC[SUM_SING_NUMSEG; REAL_LE_REFL; REAL_LE_SQUARE];
+	  ALL_TAC
+	] THEN
+	SUBGOAL_THEN `m <= n:num /\ n - (m + 1) = t` ASSUME_TAC THENL [
+	  UNDISCH_TAC `n - m = SUC t` THEN ARITH_TAC;
+	  ALL_TAC
+	] THEN
+        ASM_SIMP_TAC[SUM_CLAUSES_LEFT] THEN
+        FIRST_X_ASSUM (MP_TAC o SPECL[`n:num`; `m + 1`]) THEN
+        ASM_REWRITE_TAC[] THEN
+	DISCH_THEN (MP_TAC o SPEC `f:num->real`) THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN
+	FIRST_X_ASSUM (MP_TAC o SPEC `m:num`) THEN STRIP_TAC THEN
+	ASM_CASES_TAC `f (m + 1) = &0` THENL [
+	  SUBGOAL_THEN `sum (m + 1..n) f = &0` ASSUME_TAC THENL [
+	    UNDISCH_TAC `abs (sum (m + 1..n) f) <= abs (f (m + 1))` THEN
+	      ASM_REWRITE_TAC[] THEN REAL_ARITH_TAC;
+	    ALL_TAC
+	  ] THEN
+	  ASM_REWRITE_TAC[REAL_ADD_RID; REAL_LE_SQUARE; REAL_LE_REFL];
+	  ALL_TAC
+	] THEN
+	ABBREV_TAC `a = (f:num->real) m` THEN
+	ABBREV_TAC `b = (f:num->real) (m + 1)` THEN
+	ABBREV_TAC `c = sum (m + 1..n) f` THEN
+	CONJ_TAC THENL [
+	  SUBGOAL_THEN `a * c <= &0` ASSUME_TAC THENL [
+	    MATCH_MP_TAC sign_mul_lemma THEN
+	      EXISTS_TAC `b:real` THEN
+	      ONCE_REWRITE_TAC[REAL_ARITH `a * b = b * a:real`] THEN
+	      ASM_REWRITE_TAC[];
+	    ALL_TAC
+	  ] THEN
+	    ASM_SIMP_TAC[abs_sum_lemma_neg] THEN
+	    MAP_EVERY UNDISCH_TAC [`abs c <= abs b`; `abs b <= abs a`] THEN
+	    REAL_ARITH_TAC;
+	  ALL_TAC
+	] THEN
+	SUBGOAL_THEN `abs (a * c) <= abs (a * a)` MP_TAC THENL [
+	  REWRITE_TAC[REAL_ABS_MUL] THEN
+	    MATCH_MP_TAC REAL_LE_LMUL THEN
+	    MAP_EVERY UNDISCH_TAC [`abs c <= abs b`; `abs b <= abs a`] THEN
+	    REAL_ARITH_TAC;
+	  ALL_TAC
+	] THEN
+	REWRITE_TAC[REAL_ARITH `(a + c) * a = a * a + c * a:real`] THEN
+	  SUBGOAL_THEN `abs (a * a) = a * a` (fun th -> REWRITE_TAC[th]) THENL [
+	    REWRITE_TAC[REAL_ABS_REFL; REAL_LE_SQUARE];
+	    ALL_TAC
+	  ] THEN
+	    REAL_ARITH_TAC);;
+
+let alt_sign_converges = prove(`!f k. (!n. abs (f (n + 1)) <= abs (f n) /\ f (n + 1) * f n <= &0) /\
+				 ((f ---> &0) sequentially) ==>
+				 ?l. (f real_sums l) (from k)`,
+   REWRITE_TAC[REAL_SERIES_CAUCHY; REALLIM_SEQUENTIALLY; GSYM IMP_IMP; REAL_SUB_RZERO] THEN 
+     REPEAT GEN_TAC THEN DISCH_THEN (LABEL_TAC "h1") THEN REPEAT STRIP_TAC THEN
+     REWRITE_TAC[FROM_INTER_NUMSEG_GEN] THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `e:real`) THEN ASM_REWRITE_TAC[] THEN STRIP_TAC THEN
+     EXISTS_TAC `N:num` THEN REPEAT STRIP_TAC THEN
+     REMOVE_THEN "h1" (MP_TAC o MATCH_MP sum_bound_lemma) THEN
+     COND_CASES_TAC THENL [
+       DISCH_THEN (MP_TAC o SPECL[`k:num`; `n:num`]) THEN
+	 FIRST_X_ASSUM (MP_TAC o SPEC `k:num`) THEN
+	 ANTS_TAC THENL [ ASM_ARITH_TAC; ALL_TAC ] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (MP_TAC o SPECL[`m:num`; `n:num`]) THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `m:num`) THEN
+     ANTS_TAC THENL [ ASM_ARITH_TAC; ALL_TAC ] THEN
+     REAL_ARITH_TAC);;
+
+let alt_sign_converges2 = prove(`!f k. (!n. abs (f (n + 1)) <= abs (f n) /\ f (n + 1) * f n <= &0) /\
+				  ((f ---> &0) sequentially) ==>
+				  ?l. (f real_sums l) (from k) /\ abs l <= abs (f k)`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPEC_ALL alt_sign_converges) THEN ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THEN EXISTS_TAC `l:real` THEN ASM_REWRITE_TAC[] THEN
+     POP_ASSUM MP_TAC THEN REWRITE_TAC[real_sums; FROM_INTER_NUMSEG] THEN DISCH_TAC THEN
+     FIRST_ASSUM (MP_TAC o MATCH_MP (REWRITE_RULE[GSYM IMP_IMP] REALLIM_UBOUND)) THEN
+     FIRST_ASSUM (MP_TAC o MATCH_MP (REWRITE_RULE[GSYM IMP_IMP] REALLIM_LBOUND)) THEN
+     REWRITE_TAC[TRIVIAL_LIMIT_SEQUENTIALLY; EVENTUALLY_SEQUENTIALLY] THEN
+     DISCH_THEN (ASSUME_TAC o SPEC `--abs (f (k:num))`) THEN
+     DISCH_THEN (ASSUME_TAC o SPEC `abs (f (k:num))`) THEN
+     POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+     FIRST_X_ASSUM (ASSUME_TAC o MATCH_MP sum_bound_lemma) THEN
+     ANTS_TAC THENL [
+       EXISTS_TAC `0` THEN REWRITE_TAC[LE_0] THEN GEN_TAC THEN
+	 FIRST_X_ASSUM (MP_TAC o SPECL[`k:num`; `n:num`]) THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     DISCH_TAC THEN
+     ANTS_TAC THENL [
+       EXISTS_TAC `0` THEN REWRITE_TAC[LE_0] THEN GEN_TAC THEN
+	 FIRST_X_ASSUM (MP_TAC o SPECL[`k:num`; `n:num`]) THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     POP_ASSUM MP_TAC THEN REAL_ARITH_TAC);;
+
+	 
+let alt_sign_bound = prove(`!f k. (!n. abs (f (n + 1)) <= abs (f n) /\ f (n + 1) * f n <= &0) /\
+			     ((f ---> &0) sequentially) ==>
+			     abs (real_infsum (from k) f) <= abs (f k)`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPEC_ALL alt_sign_converges2) THEN ASM_REWRITE_TAC[] THEN
+     STRIP_TAC THEN ASM_SIMP_TAC[REAL_INFSUM_UNIQUE]);;
+
+
+let integral_uniform_limit = prove(`!f g s a b.
+				     (!e. &0 < e ==> ?N. !n x. N <= n /\ x IN real_interval[a,b] 
+				          ==> abs (f n x - g x) < e)
+				     /\ (!n. ((f n) has_real_integral (s n)) (real_interval[a,b]))
+				     ==> (?r. (g has_real_integral r) (real_interval[a,b])
+					  /\ (s ---> r) sequentially)`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL[`g:real->real`; `a:real`; `b:real`] REAL_INTEGRABLE_UNIFORM_LIMIT) THEN
+     ANTS_TAC THENL [
+       GEN_TAC THEN DISCH_THEN (fun th -> FIRST_ASSUM (MP_TAC o C MATCH_MP th)) THEN
+	 STRIP_TAC THEN EXISTS_TAC `(f:num->real->real) N` THEN
+	 POP_ASSUM (MP_TAC o SPEC `N:num`) THEN
+	 REWRITE_TAC[REAL_ARITH `abs (a - b) = abs (b - a)`] THEN
+	 SIMP_TAC[LE_REFL; REAL_LT_IMP_LE] THEN DISCH_THEN (K ALL_TAC) THEN
+	 REWRITE_TAC[real_integrable_on] THEN
+	 EXISTS_TAC `(s:num->real) N` THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[real_integrable_on] THEN STRIP_TAC THEN
+     EXISTS_TAC `y:real` THEN ASM_REWRITE_TAC[REALLIM_SEQUENTIALLY] THEN
+     REPEAT STRIP_TAC THEN
+     ASM_CASES_TAC `b <= a:real` THENL [
+       EXISTS_TAC `0` THEN REPEAT STRIP_TAC THEN
+	 FIRST_X_ASSUM (MP_TAC o SPEC `n:num`) THEN
+	 UNDISCH_TAC `(g has_real_integral y) (real_interval[a,b])` THEN
+	 UNDISCH_TAC `&0 < e` THEN
+	 ASM_SIMP_TAC[HAS_REAL_INTEGRAL_NULL_EQ] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `(e / &2) / (b - a)`) THEN
+     ANTS_TAC THENL [
+       MATCH_MP_TAC REAL_LT_DIV THEN
+	 POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     STRIP_TAC THEN EXISTS_TAC `N:num` THEN REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC REAL_LET_TRANS THEN EXISTS_TAC `e / &2` THEN
+     CONJ_TAC THENL [ ALL_TAC; UNDISCH_TAC `&0 < e` THEN REAL_ARITH_TAC ] THEN
+     SUBGOAL_THEN `e / &2 = ((e / &2) / (b - a)) * (b - a)` (fun th -> ONCE_REWRITE_TAC[th]) THENL [
+       UNDISCH_TAC `~(b <= a:real)` THEN CONV_TAC REAL_FIELD;
+       ALL_TAC
+     ] THEN
+     MATCH_MP_TAC HAS_REAL_INTEGRAL_BOUND THEN
+     EXISTS_TAC `\x:real. f (n:num) x - (g x):real` THEN
+     REPEAT CONJ_TAC THENL [
+       MATCH_MP_TAC REAL_LE_DIV THEN
+	 UNDISCH_TAC `&0 < e` THEN UNDISCH_TAC `~(b <= a:real)` THEN REAL_ARITH_TAC;
+       UNDISCH_TAC `~(b <= a:real)` THEN REAL_ARITH_TAC;
+       MATCH_MP_TAC HAS_REAL_INTEGRAL_SUB THEN ASM_REWRITE_TAC[ETA_AX];
+       ALL_TAC
+     ] THEN
+     REPEAT STRIP_TAC THEN MATCH_MP_TAC REAL_LT_IMP_LE THEN REWRITE_TAC[] THEN
+     FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);;
+
+let integral_series = prove(`!f g s r a b.
+			      (!e. &0 < e ==> ?N. !n x. N <= n /\ x IN real_interval[a,b] 
+			       ==> abs (sum (s INTER (0..n)) (\i. f i x) - g x) < e)
+			    /\ (!n. ((f n) has_real_integral (r n)) (real_interval[a,b]))
+			    ==> (?v. (g has_real_integral v) (real_interval[a,b]) /\
+			      (r real_sums v) s)`,
+   REPEAT STRIP_TAC THEN
+     REWRITE_TAC[real_sums] THEN
+     MATCH_MP_TAC integral_uniform_limit THEN
+     EXISTS_TAC `\n x:real. sum (s INTER (0..n)) (\i. f i x)` THEN
+     ASM_REWRITE_TAC[] THEN GEN_TAC THEN
+     MATCH_MP_TAC HAS_REAL_INTEGRAL_SUM THEN
+     ASM_SIMP_TAC[FINITE_NUMSEG; FINITE_INTER]);;
+
+
+let power_series_uniform = prove(`!a s t y. real_summable s (\i. a i * y pow i)
+				 /\ abs t < abs y
+				 ==> (!e. &0 < e ==> ?N. !n x. N <= n /\ x IN real_interval[--abs t, abs t]
+				      ==> abs (sum (s INTER (0..n)) (\i. a i * x pow i) 
+					       - real_infsum s (\i. a i * x pow i)) < e)`,
+   REPEAT STRIP_TAC THEN
+     ABBREV_TAC `M = (abs y + abs t) / (abs y - abs t)` THEN
+     SUBGOAL_THEN `&0 < M /\ M * (abs y - abs t) = abs y + abs t` ASSUME_TAC THENL [
+       EXPAND_TAC "M" THEN CONJ_TAC THENL [
+	 MATCH_MP_TAC REAL_LT_DIV THEN UNDISCH_TAC `abs t < abs y` THEN REAL_ARITH_TAC;
+	 ALL_TAC
+       ] THEN
+	 MATCH_MP_TAC REAL_DIV_RMUL THEN UNDISCH_TAC `abs t < abs y` THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     MP_TAC (SPECL[`M:real`; `Cx o (a:num->real)`; `Cx y`; `s:num->bool`; `e:real`] POWER_SERIES_UNIFORM_CONVERGENCE_STOLZ) THEN
+     ANTS_TAC THEN ASM_REWRITE_TAC[EVENTUALLY_SEQUENTIALLY] THENL [
+       UNDISCH_TAC `real_summable s (\i. a i * y pow i)` THEN
+	 REWRITE_TAC[REAL_SUMMABLE_COMPLEX; o_THM] THEN
+	 SUBGOAL_THEN `Cx o (\i. a i * y pow i) = \i. Cx (a i) * Cx y pow i` (fun th -> REWRITE_TAC[th]) THEN
+	 REWRITE_TAC[FUN_EQ_THM; o_THM; CX_MUL; CX_POW];
+       ALL_TAC
+     ] THEN
+     STRIP_TAC THEN
+     EXISTS_TAC `N:num` THEN REWRITE_TAC[IN_REAL_INTERVAL] THEN REPEAT STRIP_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `n:num`) THEN ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (MP_TAC o SPEC `Cx x`) THEN
+     REWRITE_TAC[GSYM CX_SUB; COMPLEX_NORM_CX] THEN ANTS_TAC THENL [
+       MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `M * (abs y - abs t)` THEN
+	 CONJ_TAC THENL [
+	   ASM_REWRITE_TAC[] THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[REAL_LE_LMUL_EQ] THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `(\i. (Cx o a) i * Cx x pow i) = (\i. Cx (a i * x pow i))` ASSUME_TAC THENL [
+       REWRITE_TAC[FUN_EQ_THM; o_THM; CX_MUL; CX_POW];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[VSUM_CX] THEN
+     SUBGOAL_THEN `infsum s (\i. Cx (a i * x pow i)) = Cx (real_infsum s (\i. a i * x pow i))` ASSUME_TAC THENL [
+       SUBGOAL_THEN `real_summable s (\i. a i * x pow i)` MP_TAC THENL [
+	 MATCH_MP_TAC REAL_SERIES_ABSCONV_IMP_CONV THEN REWRITE_TAC[] THEN
+	   MATCH_MP_TAC REAL_POWER_SERIES_CONV_IMP_ABSCONV THEN
+	   EXISTS_TAC `y:real` THEN ASM_REWRITE_TAC[] THEN
+	   MAP_EVERY UNDISCH_TAC [`abs t < abs y`; `--abs t <= x:real`; `x <= abs t:real`] THEN
+	   REAL_ARITH_TAC;
+	 ALL_TAC
+       ] THEN
+	 REWRITE_TAC[real_summable] THEN STRIP_TAC THEN
+	 ASM_SIMP_TAC[REAL_INFSUM_UNIQUE] THEN POP_ASSUM MP_TAC THEN
+	 REWRITE_TAC[REAL_SUMS_COMPLEX] THEN DISCH_TAC THEN
+	 MATCH_MP_TAC INFSUM_UNIQUE THEN
+	 SUBGOAL_THEN `(\i. Cx (a i * x pow i)) = Cx o (\i. a i * x pow i)` ASSUME_TAC THENL [
+	   REWRITE_TAC[FUN_EQ_THM; o_THM; CX_MUL; CX_POW];
+	   ALL_TAC
+	 ] THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[GSYM CX_SUB; COMPLEX_NORM_CX]);;
+
+
+let has_real_integral_pow_pos = prove(`!n a. &0 <= a ==>
+					((\x. x pow n) has_real_integral a pow (n + 1) / &(n + 1))
+					(real_interval[&0, a])`,
+  REPEAT STRIP_TAC THEN
+    MP_TAC (SPECL[`\t:real. t pow (n + 1) / &(n + 1)`; `\t:real. t pow n`; `&0`; `a:real`] REAL_FUNDAMENTAL_THEOREM_OF_CALCULUS) THEN
+    ANTS_TAC THEN ASM_REWRITE_TAC[] THENL [
+      REPEAT STRIP_TAC THEN MATCH_MP_TAC HAS_REAL_DERIVATIVE_ATREAL_WITHIN THEN
+	REAL_DIFF_TAC THEN
+	REWRITE_TAC[ADD_SUB; REAL_MUL_RID; real_div] THEN
+	ONCE_REWRITE_TAC[REAL_ARITH `(a * b) * c = (a * c) * b:real`] THEN
+	SUBGOAL_THEN `~(&(n + 1) = &0)` ASSUME_TAC THENL [
+	  REWRITE_TAC[GSYM REAL_OF_NUM_ADD] THEN REAL_ARITH_TAC;
+	  ALL_TAC
+	] THEN
+	ASM_SIMP_TAC[REAL_MUL_RINV; REAL_MUL_LID];
+      ALL_TAC
+    ] THEN
+    REWRITE_TAC[REAL_POW_ZERO; ARITH_RULE `~(n + 1 = 0)`; real_div; REAL_MUL_LZERO; REAL_SUB_RZERO]);;
+
+
+let has_real_integral_pow_neg = prove(`!n a. a <= &0 ==>
+					((\x. x pow n) has_real_integral --(a pow (n + 1) / &(n + 1)))
+					(real_interval[a, &0])`,
+  REPEAT STRIP_TAC THEN
+    MP_TAC (SPECL[`\t:real. t pow (n + 1) / &(n + 1)`; `\t:real. t pow n`; `a:real`; `&0`] REAL_FUNDAMENTAL_THEOREM_OF_CALCULUS) THEN
+    ANTS_TAC THEN ASM_REWRITE_TAC[] THENL [
+      REPEAT STRIP_TAC THEN MATCH_MP_TAC HAS_REAL_DERIVATIVE_ATREAL_WITHIN THEN
+	REAL_DIFF_TAC THEN
+	REWRITE_TAC[ADD_SUB; REAL_MUL_RID; real_div] THEN
+	ONCE_REWRITE_TAC[REAL_ARITH `(a * b) * c = (a * c) * b:real`] THEN
+	SUBGOAL_THEN `~(&(n + 1) = &0)` ASSUME_TAC THENL [
+	  REWRITE_TAC[GSYM REAL_OF_NUM_ADD] THEN REAL_ARITH_TAC;
+	  ALL_TAC
+	] THEN
+	ASM_SIMP_TAC[REAL_MUL_RINV; REAL_MUL_LID];
+      ALL_TAC
+    ] THEN
+    REWRITE_TAC[REAL_POW_ZERO; ARITH_RULE `~(n + 1 = 0)`; real_div; REAL_MUL_LZERO; REAL_SUB_LZERO]);;
+
+
+let power_series_integral = prove(`!f a s r. (!x. abs x < r ==> ((\i. a i * x pow i) real_sums f x) s)
+				    ==> (!x. abs x < r ==>
+					   let v = if x < &0 then --real_integral (real_interval[x, &0]) f 
+					   else real_integral (real_interval[&0, x]) f in
+					     ((\i. a i * x pow (i + 1) / &(i + 1)) real_sums v) s)`,
+   REPEAT STRIP_TAC THEN LET_TAC THEN
+     MP_TAC (SPECL[`\i x:real. a i * x pow i`; `f:real->real`; `s:num->bool`; `\i. a i * (if x < &0 then (-- &1) else &1) * x pow (i + 1) / &(i + 1)`; `min x (&0)`; `max x (&0)`] integral_series) THEN
+     ANTS_TAC THENL [
+       CONJ_TAC THENL [
+	 ABBREV_TAC `y = abs x + (r - abs x) / &2` THEN
+	   MP_TAC (SPECL[`a:num->real`; `s:num->bool`; `x:real`; `y:real`] power_series_uniform) THEN
+	   ANTS_TAC THENL [
+	     CONJ_TAC THENL [ ALL_TAC; UNDISCH_TAC `abs x < r` THEN EXPAND_TAC "y" THEN REAL_ARITH_TAC ] THEN
+	       REWRITE_TAC[real_summable] THEN EXISTS_TAC `(f:real->real) y` THEN
+	       FIRST_X_ASSUM MATCH_MP_TAC THEN
+	       UNDISCH_TAC `abs x < r` THEN EXPAND_TAC "y" THEN REAL_ARITH_TAC;
+	     ALL_TAC
+	   ] THEN
+	   REPEAT STRIP_TAC THEN
+	   POP_ASSUM (fun th -> FIRST_X_ASSUM (STRIP_ASSUME_TAC o C MATCH_MP th)) THEN
+	   EXISTS_TAC `N:num` THEN REPEAT STRIP_TAC THEN
+	   FIRST_X_ASSUM (MP_TAC o SPECL[`n:num`; `x':real`]) THEN
+	   ANTS_TAC THEN ASM_REWRITE_TAC[] THENL [
+	     POP_ASSUM MP_TAC THEN REWRITE_TAC[IN_REAL_INTERVAL] THEN REAL_ARITH_TAC;
+	     ALL_TAC
+	   ] THEN
+	   SUBGOAL_THEN `real_infsum s (\i. a i * x' pow i) = f x'` (fun th -> SIMP_TAC[th]) THEN
+	   MATCH_MP_TAC REAL_INFSUM_UNIQUE THEN
+	   FIRST_X_ASSUM MATCH_MP_TAC THEN
+	   POP_ASSUM MP_TAC THEN UNDISCH_TAC `abs x < r` THEN
+	   REWRITE_TAC[IN_REAL_INTERVAL] THEN REAL_ARITH_TAC;
+	 ALL_TAC
+       ] THEN
+	 GEN_TAC THEN REWRITE_TAC[] THEN
+	 MATCH_MP_TAC HAS_REAL_INTEGRAL_LMUL THEN
+	 COND_CASES_TAC THENL [
+	   ASM_SIMP_TAC[REAL_ARITH `x < &0 ==> min x (&0) = x /\ max x (&0) = &0`] THEN
+	     REWRITE_TAC[REAL_ARITH `-- &1 * t = --t`] THEN
+	     MATCH_MP_TAC has_real_integral_pow_neg THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[REAL_ARITH `~(x < &0) ==> min x (&0) = &0 /\ max x (&0) = x`; REAL_MUL_LID] THEN
+	 MATCH_MP_TAC has_real_integral_pow_pos THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     STRIP_TAC THEN
+     SUBGOAL_THEN `v:real = if x < &0 then --v' else v'` ASSUME_TAC THENL [
+       POP_ASSUM (K ALL_TAC) THEN POP_ASSUM MP_TAC THEN
+	 EXPAND_TAC "v" THEN COND_CASES_TAC THENL [
+	   ASM_SIMP_TAC[REAL_ARITH `x < &0 ==> min x (&0) = x /\ max x (&0) = &0`] THEN
+	     DISCH_THEN (MP_TAC o MATCH_MP REAL_INTEGRAL_UNIQUE) THEN REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[REAL_ARITH `~(x < &0) ==> min x (&0) = &0 /\ max x (&0) = x`] THEN
+	 DISCH_THEN (MP_TAC o MATCH_MP REAL_INTEGRAL_UNIQUE) THEN REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+       ASM_REWRITE_TAC[] THEN POP_ASSUM (K ALL_TAC) THEN POP_ASSUM MP_TAC THEN
+       COND_CASES_TAC THEN REWRITE_TAC[] THENL [
+	 DISCH_THEN (MP_TAC o MATCH_MP REAL_SERIES_NEG) THEN
+	   REWRITE_TAC[REAL_ARITH `--(a * (-- &1) * b) = a * b:real`];
+	 ALL_TAC
+       ] THEN
+       REWRITE_TAC[REAL_MUL_LID]);;
+	 
+
+let power_series_integral2 = prove(`!f f' a s r. (!x. abs x < r ==> (f has_real_derivative f' x) (atreal x))
+				     /\ (!x. abs x < r ==> ((\i. a i * x pow i) real_sums f' x) s)
+				   ==> (!x. abs x < r ==>
+					  ((\i. a i * x pow (i + 1) / &(i + 1)) real_sums f x - f (&0)) s)`,
+   REWRITE_TAC[GSYM IMP_IMP] THEN REPEAT GEN_TAC THEN DISCH_TAC THEN
+     DISCH_THEN (MP_TAC o MATCH_MP power_series_integral) THEN REPEAT STRIP_TAC THEN
+     FIRST_ASSUM (fun th -> FIRST_X_ASSUM (MP_TAC o C MATCH_MP th)) THEN
+     LET_TAC THEN
+     SUBGOAL_THEN `v = (f:real->real) x - f (&0)` (fun th -> REWRITE_TAC[th]) THEN
+     EXPAND_TAC "v" THEN COND_CASES_TAC THENL [
+       MP_TAC (SPECL[`f:real->real`; `f':real->real`; `x:real`; `&0`] REAL_FUNDAMENTAL_THEOREM_OF_CALCULUS) THEN
+	 ANTS_TAC THENL [
+	   ASM_SIMP_TAC[REAL_LT_IMP_LE; IN_REAL_INTERVAL] THEN REPEAT STRIP_TAC THEN
+	     MATCH_MP_TAC HAS_REAL_DERIVATIVE_ATREAL_WITHIN THEN
+	     FIRST_X_ASSUM MATCH_MP_TAC THEN
+	     REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 DISCH_THEN (MP_TAC o MATCH_MP REAL_INTEGRAL_UNIQUE) THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     MP_TAC (SPECL[`f:real->real`; `f':real->real`; `&0`; `x:real`] REAL_FUNDAMENTAL_THEOREM_OF_CALCULUS) THEN
+     ANTS_TAC THENL [
+       CONJ_TAC THENL [ POP_ASSUM MP_TAC THEN REAL_ARITH_TAC; ALL_TAC ] THEN
+	 REWRITE_TAC[IN_REAL_INTERVAL] THEN REPEAT STRIP_TAC THEN
+	 MATCH_MP_TAC HAS_REAL_DERIVATIVE_ATREAL_WITHIN THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (MP_TAC o MATCH_MP REAL_INTEGRAL_UNIQUE) THEN REAL_ARITH_TAC);;
+
+
+let strict_increasing_num_le = prove(`!h:num->num. (!n. h n < h (n + 1))
+				   ==> (!n. n <= h n)`,
+   GEN_TAC THEN DISCH_TAC THEN INDUCT_TAC THEN TRY ARITH_TAC THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `n:num`) THEN
+     REWRITE_TAC[ADD1] THEN POP_ASSUM MP_TAC THEN ARITH_TAC);;
+     
+
+let strict_increasing_num_lt = prove(`!h:num->num. (!n. h n < h (n + 1))
+				   ==> (!n m. n < m ==> h n < h m)`,
+   GEN_TAC THEN DISCH_TAC THEN INDUCT_TAC THEN INDUCT_TAC THEN TRY ARITH_TAC THENL [
+     FIRST_X_ASSUM (MP_TAC o SPEC `m:num`) THEN
+     ASM_CASES_TAC `m = 0` THEN ASM_SIMP_TAC[ADD1] THEN ASM_ARITH_TAC;
+     ALL_TAC
+   ] THEN
+     REWRITE_TAC[LT_SUC] THEN
+     ASM_CASES_TAC `SUC n = m` THEN ASM_REWRITE_TAC[ADD1] THEN DISCH_TAC THEN
+     REPEAT (FIRST_X_ASSUM (MP_TAC o SPEC `m:num`)) THEN
+     ASM_ARITH_TAC);;
+
+
+let strict_increasing_num_inj = prove(`!h:num->num. (!n. h n < h (n + 1))
+				   ==> (!n m. h n = h m ==> n = m)`,
+   GEN_TAC THEN DISCH_THEN (MP_TAC o MATCH_MP strict_increasing_num_lt) THEN
+     REPEAT STRIP_TAC THEN
+     DISJ_CASES_TAC (ARITH_RULE `n = m:num \/ n < m \/ m < n`) THEN ASM_REWRITE_TAC[] THEN
+     POP_ASSUM DISJ_CASES_TAC THEN POP_ASSUM (fun th -> FIRST_X_ASSUM (MP_TAC o C MATCH_MP th)) THEN ASM_ARITH_TAC);;
+
+
+let strict_increasing_num_le_eq = prove(`!h:num->num. (!n. h n < h (n + 1))
+				   ==> (!n m. h n <= h m <=> n <= m)`,
+				      MESON_TAC[strict_increasing_num_lt; LE_LT; NOT_LE]);;
+
+let strict_increasing_num_lt_eq = prove(`!h:num->num. (!n. h n < h (n + 1))
+				   ==> (!n m. h n < h m <=> n < m)`,
+				      MESON_TAC[strict_increasing_num_lt; LT_LE; NOT_LT]);;
+
+
+let strict_increasing_num_le2 = prove(`!h:num->num. (!n. h n < h (n + 1))
+				       ==> (!n m. h n <= m ==> n <= m)`,
+   MESON_TAC[strict_increasing_num_le; strict_increasing_num_le_eq; LE_TRANS]);;
+
+
+let real_sums_image = prove(`!f h s l. (!n. h n < h (n + 1)) 
+			      ==> ((f real_sums l) (IMAGE h s) <=> ((f o h) real_sums l) s)`,
+   REWRITE_TAC[real_sums; REALLIM_SEQUENTIALLY] THEN REPEAT STRIP_TAC THEN
+     EQ_TAC THEN REPEAT STRIP_TAC THENL [
+       POP_ASSUM (fun th -> FIRST_X_ASSUM (STRIP_ASSUME_TAC o C MATCH_MP th)) THEN 
+	 EXISTS_TAC `N:num` THEN REPEAT STRIP_TAC THEN
+	 SUBGOAL_THEN `?m. N <= m /\ IMAGE (h:num->num) s INTER (0..m) = IMAGE h (s INTER (0..n))` STRIP_ASSUME_TAC THENL [
+	   EXISTS_TAC `(h:num->num) n` THEN
+	     FIRST_ASSUM (LABEL_TAC "h_le" o MATCH_MP strict_increasing_num_le) THEN
+	     FIRST_ASSUM (LABEL_TAC "h_le_eq" o MATCH_MP strict_increasing_num_le_eq) THEN
+	     CONJ_TAC THENL [
+	       UNDISCH_TAC `N <= n:num` THEN REMOVE_THEN "h_le" (MP_TAC o SPEC `n:num`) THEN
+		 ARITH_TAC;
+	       ALL_TAC
+	     ] THEN
+	     REWRITE_TAC[EXTENSION; IN_INTER; IN_IMAGE; IN_NUMSEG; LE_0] THEN
+	     GEN_TAC THEN EQ_TAC THEN STRIP_TAC THENL [
+	       EXISTS_TAC `x':num` THEN POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[];
+	       ALL_TAC
+	     ] THEN
+	     ASM_REWRITE_TAC[] THEN EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 FIRST_X_ASSUM (MP_TAC o SPEC `m:num`) THEN ASM_REWRITE_TAC[] THEN
+	 SUBGOAL_THEN `!x y. x IN (s INTER (0..n)) /\ y IN (s INTER (0..n)) /\ h x = (h:num->num) y ==> x = y` ASSUME_TAC THENL [
+	   ASM_MESON_TAC[strict_increasing_num_inj];
+	   ALL_TAC
+	 ] THEN
+         POP_ASSUM (MP_TAC o MATCH_MP SUM_IMAGE) THEN SIMP_TAC[];
+       ALL_TAC
+     ] THEN
+     POP_ASSUM (fun th -> FIRST_X_ASSUM (STRIP_ASSUME_TAC o C MATCH_MP th)) THEN
+     EXISTS_TAC `(h:num->num) N` THEN REPEAT STRIP_TAC THEN
+     ABBREV_TAC `k = @t. (h:num->num) t <= n /\ (!i. h i <= n ==> i <= t)` THEN
+     SUBGOAL_THEN `h k <= n /\ !i. (h:num->num) i <= n ==> i <= k` STRIP_ASSUME_TAC THENL [
+       EXPAND_TAC "k" THEN CONV_TAC SELECT_CONV THEN
+	 REWRITE_TAC[GSYM num_MAX] THEN
+	 CONJ_TAC THENL [ EXISTS_TAC `N:num` THEN ASM_REWRITE_TAC[]; EXISTS_TAC `n:num` ] THEN
+	 ASM_MESON_TAC[strict_increasing_num_le2];
+	ALL_TAC
+     ] THEN
+     POP_ASSUM (LABEL_TAC "i_le_k") THEN
+     SUBGOAL_THEN `N <= k:num` ASSUME_TAC THENL [
+       FIRST_X_ASSUM (MP_TAC o SPEC `N:num`) THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `IMAGE (h:num->num) s INTER (0..n) = IMAGE h (s INTER (0..k))` ASSUME_TAC THENL [
+       FIRST_ASSUM (LABEL_TAC "h_le" o MATCH_MP strict_increasing_num_le) THEN
+
+
+	 REWRITE_TAC[EXTENSION; IN_INTER; IN_IMAGE; IN_NUMSEG; LE_0] THEN
+	 GEN_TAC THEN EQ_TAC THEN STRIP_TAC THENL [
+	   EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[] THEN
+	     FIRST_X_ASSUM MATCH_MP_TAC THEN
+	     UNDISCH_TAC `x = (h:num->num) x'` THEN DISCH_THEN (fun th -> ASM_REWRITE_TAC[GSYM th]);
+	   ALL_TAC
+	 ] THEN
+	 CONJ_TAC THENL [ EXISTS_TAC `x':num` THEN ASM_REWRITE_TAC[]; ALL_TAC ] THEN
+	 FIRST_ASSUM (MP_TAC o SPECL[`x':num`; `k:num`] o MATCH_MP strict_increasing_num_le_eq) THEN
+	 ASM_REWRITE_TAC[] THEN ASM_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REMOVE_THEN "i_le_k" (K ALL_TAC) THEN
+     FIRST_X_ASSUM (MP_TAC o SPEC `k:num`) THEN ASM_REWRITE_TAC[] THEN
+     SUBGOAL_THEN `!x y. x IN (s INTER (0..k)) /\ y IN (s INTER (0..k)) /\ h x = (h:num->num) y ==> x = y` ASSUME_TAC THENL [
+       ASM_MESON_TAC[strict_increasing_num_inj];
+       ALL_TAC
+     ] THEN
+     POP_ASSUM (MP_TAC o MATCH_MP SUM_IMAGE) THEN SIMP_TAC[]);;
+      
+     
+let real_sums_image_odd = prove(`!f l. ((\i. if ODD i then f i else &0) real_sums l) (:num)
+				<=> ((\i. f (2 * i + 1)) real_sums l) (:num)`,
+   REPEAT GEN_TAC THEN ONCE_REWRITE_TAC[GSYM (ISPEC `ODD` IN)] THEN
+     REWRITE_TAC[REAL_SERIES_RESTRICT] THEN
+     ABBREV_TAC `h = \i. 2 * i + 1` THEN
+     SUBGOAL_THEN `ODD = IMAGE h (:num)` (fun th -> REWRITE_TAC[th]) THENL [
+       EXPAND_TAC "h" THEN REWRITE_TAC[EXTENSION; IN_IMAGE; IN_UNIV; IN; ODD_EXISTS; ADD1];
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `!n. h n < (h:num->num) (n + 1)` MP_TAC THENL [
+       EXPAND_TAC "h" THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (MP_TAC o MATCH_MP real_sums_image) THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     SUBGOAL_THEN `f o h = \i. (f:num->real) (2 * i + 1)` (fun th -> REWRITE_TAC[th]) THEN
+     EXPAND_TAC "h" THEN REWRITE_TAC[FUN_EQ_THM; o_THM]);;
+
+
+let real_sums_image_even = prove(`!f l. ((\i. if EVEN i then f i else &0) real_sums l) (:num)
+				 <=> ((\i. f (2 * i)) real_sums l) (:num)`,
+   REPEAT GEN_TAC THEN ONCE_REWRITE_TAC[GSYM (ISPEC `EVEN` IN)] THEN
+     REWRITE_TAC[REAL_SERIES_RESTRICT] THEN
+     ABBREV_TAC `h = \i. 2 * i` THEN
+     SUBGOAL_THEN `EVEN = IMAGE h (:num)` (fun th -> REWRITE_TAC[th]) THENL [
+       EXPAND_TAC "h" THEN REWRITE_TAC[EXTENSION; IN_IMAGE; IN_UNIV; IN; EVEN_EXISTS; ADD1];
+       ALL_TAC
+     ] THEN
+     SUBGOAL_THEN `!n. h n < (h:num->num) (n + 1)` MP_TAC THENL [
+       EXPAND_TAC "h" THEN ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (MP_TAC o MATCH_MP real_sums_image) THEN
+     DISCH_THEN (fun th -> REWRITE_TAC[th]) THEN
+     SUBGOAL_THEN `f o h = \i. (f:num->real) (2 * i)` (fun th -> REWRITE_TAC[th]) THEN
+     EXPAND_TAC "h" THEN REWRITE_TAC[FUN_EQ_THM; o_THM]);;
+   
+
+
+let atn_derivative_series = prove(`!x. abs x < &1
+				    ==> ((\k. (if EVEN k then (-- &1) pow (k DIV 2) else &0) * x pow k) 
+					   real_sums inv (&1 + x pow 2)) (:num)`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL[`0`; `(-- &1) * x pow 2`] REAL_SUMS_GP) THEN
+     ANTS_TAC THENL [
+       REWRITE_TAC[REAL_ABS_MUL; REAL_ABS_POW; REAL_ARITH `abs (-- &1) = &1`; REAL_MUL_LID] THEN
+	 ASM_REWRITE_TAC[ABS_SQUARE_LT_1; REAL_ABS_ABS];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[COND_RAND; COND_RATOR; REAL_MUL_LZERO; real_sums_image_even; FROM_0] THEN
+     REWRITE_TAC[ARITH_RULE `(2 * k) DIV 2 = k`; REAL_POW_MUL; REAL_POW_POW] THEN
+     REWRITE_TAC[real_pow; real_div; MULT_0; REAL_MUL_LID; REAL_SUB_RNEG; REAL_MUL_LNEG]);;
+
+
+let atn_series = prove(`!x. abs x < &1
+			 ==> ((\k. ((-- &1) pow k) / &(2 * k + 1) * x pow (2 * k + 1))
+				real_sums atn x) (:num)`,
+   REPEAT STRIP_TAC THEN
+     MP_TAC (SPECL[`atn`; `\x. inv (&1 + x pow 2)`; `\k. if EVEN k then (-- &1) pow (k DIV 2) else &0`; `(:num)`; `&1`] power_series_integral2) THEN
+     REWRITE_TAC[HAS_REAL_DERIVATIVE_ATN; atn_derivative_series] THEN
+     DISCH_THEN (MP_TAC o SPEC `x:real`) THEN ASM_REWRITE_TAC[ATN_0; REAL_SUB_RZERO] THEN
+     REWRITE_TAC[COND_RAND; COND_RATOR; REAL_MUL_LZERO; real_sums_image_even] THEN
+     REWRITE_TAC[ARITH_RULE `(2 * i) DIV 2 = i`; real_div; REAL_MUL_AC]);;
+
+
+let log_matan_series = prove(`!x. abs x < &1 /\ ~(x = &0)
+			       ==> ((\k. x pow (2 * k) / &(2 * k + 1))
+				      real_sums log ((&1 + x) / (&1 - x)) / (&2 * x)) (:num)`,
+   REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC REAL_SUMS_EQ THEN REWRITE_TAC[IN_UNIV] THEN
+     EXISTS_TAC `\k. x pow (2 * k + 1) / &(2 * k + 1) * inv x` THEN
+     CONJ_TAC THENL [
+       X_GEN_TAC `k:num` THEN REWRITE_TAC[REAL_POW_ADD; REAL_POW_1] THEN
+	 ONCE_REWRITE_TAC[REAL_ARITH `(a * x) / b * inv x = (x * inv x) * a / b:real`] THEN
+	 ASM_SIMP_TAC[REAL_MUL_RINV; REAL_MUL_LID];
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[real_div; REAL_INV_MUL; REAL_MUL_ASSOC] THEN
+     MATCH_MP_TAC REAL_SERIES_RMUL THEN REWRITE_TAC[GSYM real_div] THEN
+     ABBREV_TAC `f = \x:real. log ((&1 + x) / (&1 - x)) / &2` THEN
+     MP_TAC (SPECL[`f:real->real`; `\x:real. inv (&1 - x pow 2)`; `\i. if EVEN i then &1 else &0`; `(:num)`; `&1`] power_series_integral2) THEN
+     ANTS_TAC THENL [
+       CONJ_TAC THEN X_GEN_TAC `t:real` THEN DISCH_TAC THEN REWRITE_TAC[] THENL [
+	 EXPAND_TAC "f" THEN REAL_DIFF_TAC THEN
+	   CONJ_TAC THENL [
+	     ASM_SIMP_TAC[REAL_ARITH `abs t < &1 ==> ~(&1 - t = &0)`] THEN
+	       MATCH_MP_TAC REAL_LT_DIV THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+	     ALL_TAC
+	   ] THEN
+	   POP_ASSUM MP_TAC THEN CONV_TAC REAL_FIELD;
+	 ALL_TAC
+       ] THEN
+	 REWRITE_TAC[COND_RAND; COND_RATOR; REAL_MUL_LZERO; real_sums_image_even; FROM_0] THEN
+	 MP_TAC (SPECL[`0`; `t:real pow 2`] REAL_SUMS_GP) THEN
+	 ANTS_TAC THENL [
+	   REWRITE_TAC[REAL_ABS_MUL; REAL_ABS_POW; REAL_ARITH `abs (-- &1) = &1`; REAL_MUL_LID] THEN
+	     ASM_REWRITE_TAC[ABS_SQUARE_LT_1; REAL_ABS_ABS];
+	   ALL_TAC
+	 ] THEN
+	 REWRITE_TAC[real_pow; real_div; REAL_MUL_LID; REAL_POW_POW; FROM_0; MULT_0];
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (MP_TAC o SPEC `x:real`) THEN ASM_REWRITE_TAC[] THEN
+     REWRITE_TAC[COND_RAND; COND_RATOR; REAL_MUL_LZERO; real_sums_image_even; REAL_MUL_LID] THEN
+     SUBGOAL_THEN `f (&0) = &0` (fun th -> REWRITE_TAC[th; REAL_SUB_RZERO]) THENL [
+       EXPAND_TAC "f" THEN REWRITE_TAC[REAL_ADD_RID; REAL_SUB_RZERO; real_div; REAL_MUL_LID; REAL_INV_1; LOG_1; REAL_MUL_LZERO];
+       ALL_TAC
+     ] THEN
+     EXPAND_TAC "f" THEN REWRITE_TAC[]);;
+
+
+(* matan *)
+
+let matan = new_definition `matan x = 
+  if (x = &0) then &1
+  else if (x > &0) then atn (sqrt x) / (sqrt x) 
+  else  (log ((&1 + sqrt( -- x))/(&1 - sqrt( -- x)))) / (&2 * sqrt (-- x))`;;
+
+
+let matan_power_series = prove(`!x. abs x < &1
+			       ==> ((\k. ((-- &1) pow k / &(2 * k + 1)) * x pow k)
+				      real_sums matan x) (:num)`,
+   REPEAT STRIP_TAC THEN REWRITE_TAC[matan] THEN
+     ASM_CASES_TAC `x = &0` THEN ASM_REWRITE_TAC[] THENL [
+       ABBREV_TAC `h = \k. -- &1 pow k / &(2 * k + 1) * &0 pow k` THEN
+	 SUBGOAL_THEN `h 0 = &1 /\ (!i. 1 <= i ==> h i = &0)` ASSUME_TAC THENL [
+	   EXPAND_TAC "h" THEN REWRITE_TAC[REAL_POW_ZERO; real_pow; MULT_0; ADD] THEN
+	     CONJ_TAC THENL [ REAL_ARITH_TAC; ALL_TAC ] THEN
+	     GEN_TAC THEN COND_CASES_TAC THEN ASM_SIMP_TAC[ARITH_RULE `1 <= i ==> ~(i = 0)`; ARITH_RULE `~(1 <= 0)`; REAL_MUL_RZERO];
+	   ALL_TAC
+	 ] THEN
+	 SUBGOAL_THEN `&1 = &0 + sum(0..1 - 1) h` (fun th -> REWRITE_TAC[th]) THENL [
+	   ASM_REWRITE_TAC[SUB_REFL; SUM_SING_NUMSEG; REAL_ADD_LID];
+	   ALL_TAC
+	 ] THEN
+	 REWRITE_TAC[GSYM FROM_0] THEN MATCH_MP_TAC REAL_SUMS_OFFSET_REV THEN
+	 REWRITE_TAC[ARITH_RULE `0 < 1`] THEN
+	 MATCH_MP_TAC REAL_SUMS_EQ THEN
+	 EXISTS_TAC `\i:num. &0` THEN
+	 ASM_SIMP_TAC[REAL_SERIES_0; IN_FROM];
+       ALL_TAC
+     ] THEN
+     ASM_CASES_TAC `x > &0` THENL [
+       ASM_REWRITE_TAC[] THEN
+	 SUBGOAL_THEN `!y. y > &0 /\ y < &1 ==> ((\k. -- &1 pow k / &(2 * k + 1) * (y pow 2) pow k) real_sums atn y / y) (:num)` MP_TAC THENL [
+	   REPEAT STRIP_TAC THEN
+	     MATCH_MP_TAC REAL_SUMS_EQ THEN REWRITE_TAC[IN_UNIV] THEN
+	     EXISTS_TAC `\k. (-- &1 pow k / &(2 * k + 1) * y pow (2 * k + 1)) * inv y` THEN
+	     CONJ_TAC THENL [
+	       X_GEN_TAC `k:num` THEN REWRITE_TAC[REAL_POW_ADD; REAL_POW_1; GSYM REAL_MUL_ASSOC; REAL_POW_POW] THEN
+		 ASM_SIMP_TAC[REAL_ARITH `y > &0 ==> ~(y = &0)`; REAL_MUL_RINV; REAL_MUL_RID];
+	       ALL_TAC
+	     ] THEN
+	     REWRITE_TAC[real_div] THEN
+	     MATCH_MP_TAC REAL_SERIES_RMUL THEN REWRITE_TAC[GSYM real_div] THEN
+	     MATCH_MP_TAC atn_series THEN POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+	 DISCH_THEN (MP_TAC o SPEC `sqrt x`) THEN ANTS_TAC THENL [
+	   ASM_REWRITE_TAC[real_gt; SQRT_LT_0; REAL_ARITH `&0 < x <=> x > &0`] THEN
+	     MATCH_MP_TAC REAL_LT_LSQRT THEN
+	     REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC;
+	   ALL_TAC
+	 ] THEN
+         SUBGOAL_THEN `sqrt x pow 2 = x` (fun th -> REWRITE_TAC[th]) THEN
+	 ASM_REWRITE_TAC[SQRT_POW2] THEN POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[] THEN
+     MP_TAC (SPEC `sqrt (--x:real)` log_matan_series) THEN ANTS_TAC THENL [
+       ASM_REWRITE_TAC[SQRT_EQ_0; REAL_NEG_EQ_0] THEN
+	 ONCE_REWRITE_TAC[REAL_ARITH `&1 = abs(&1)`] THEN REWRITE_TAC[REAL_LT_SQUARE_ABS] THEN
+	 REWRITE_TAC[REAL_SQRT_POW_2] THEN REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[GSYM REAL_POW_POW; REAL_SQRT_POW_2] THEN
+       ASM_SIMP_TAC[REAL_ARITH `~(x > &0) ==> abs (--x) = --x`] THEN
+       ONCE_REWRITE_TAC[REAL_NEG_MINUS1] THEN 
+       REWRITE_TAC[REAL_POW_MUL; REAL_POW_ONE; REAL_MUL_RID; real_div; REAL_MUL_AC]);;
+	
+
+     SUBGOAL_THEN `x < &0` ASSUME_TAC THENL [ REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC; ALL_TAC ] THEN
+       
+
+(*
+INTEGRABLE_UNIFORM_LIMIT;;
+HAS_REAL_INTEGRAL_BOUND;;
+HAS_REAL_INTEGRAL_SUB;;
+REAL_INTEGRAL_UBOUND;;
+
+let HAS_REAL_DERIVATIVE_SERIES = prove
+ (`!s f f' g' k.
+         is_realinterval s /\
+         (!n x. x IN s
+                ==> (f n has_real_derivative f' n x) (atreal x within s)) /\
+         (!e. &0 < e
+              ==> ?N. !n x. n >= N /\ x IN s
+                            ==> abs(sum (k INTER (0..n)) (\i. f' i x) - g' x)
+                                    <= e) /\
+         (?x l. x IN s /\ ((\n. f n x) real_sums l) k)
+         ==> ?g. !x. x IN s
+                     ==> ((\n. f n x) real_sums g x) k /\
+                         (g has_real_derivative g' x) (atreal x within s)`,
+  REPEAT GEN_TAC THEN REWRITE_TAC[real_sums] THEN
+  DISCH_THEN(REPEAT_TCL CONJUNCTS_THEN ASSUME_TAC) THEN
+  MATCH_MP_TAC HAS_REAL_DERIVATIVE_SEQUENCE THEN EXISTS_TAC
+   `\n:num x:real. sum(k INTER (0..n)) (\n. f' n x):real` THEN
+  ASM_SIMP_TAC[ETA_AX; FINITE_INTER_NUMSEG; HAS_REAL_DERIVATIVE_SUM]);;
+
+*)

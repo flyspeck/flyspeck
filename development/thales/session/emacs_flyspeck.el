@@ -10,6 +10,7 @@
 (setq hol-light-interactive-buffer-name "*hol-light-toplevel*")
 (setq hol-light-interactive-buffer-name "*jun14*")
 (setq hol-light-interactive-buffer-name "*jun27*")
+(setq hol-light-interactive-buffer-name "*jun28*")
 
 
 

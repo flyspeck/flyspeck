@@ -26,10 +26,14 @@ flyspeck_needs "nonlinear/break_case_log.hl";;
 module Break_case_exec = struct
 
   open Hales_tactic;;
-(* open Sphere2;; *)
-
 
 (* PRELIMINARIES *)
+
+  let assert_test p s = p or failwith s;;
+
+let random_elt ls = 
+  let i = Random.int (List.length ls) in
+    List.nth ls i;;
 
 let ( MSEC_INC ) = 1000;; (* global parameter for msec target size *)
 let ERROR_TOLERANCE = 0.3;;  (* try for times within MSEC_INC * (1 +/- ERROR_TOLERANCE ). *)
@@ -335,8 +339,6 @@ let rec recursive_find_frac facet x1 z1  (f1,t1) (f2,t2) =
 (* DEBUG *)
 (* ********************************************************************** *)
 
-report "---33";;
-
 let rec pass_time = function
     Iarg_bisect (_,a,b) -> pass_time a + pass_time b
   | Iarg_leaf msec -> msec
@@ -440,23 +442,191 @@ let run_all_over2sec save =
 
 (* steps to add more to the break_case_log.hl:
 
-  let preptimes = map (fun s -> try s,Break_case_exec.initial_msec s with _ -> failwith s) 
-   (Break_case_exec.idvlist);;
+  let preptimes = map (fun s -> try s,(* Break_case_exec. *) initial_msec s with _ -> failwith s) 
+   ((* Break_case_exec. *) idvlist);;
   let over2sec =  (sort (fun (_,s) (_,t) -> s < t) (filter (fun (s,t) -> t > 2200) preptimes));;
   let over2 = map fst over2sec;;
   let has_iarg = map fst !Break_case_log.break_data;;
   let redoable = subtract over2 has_iarg;;
-  let redotimes = map (fun s -> try s,Break_case_exec.initial_msec s with _ -> failwith s) redoable;;
+  let redotimes = map (fun s -> try s,(* Break_case_exec. *) initial_msec s with _ -> failwith s) redoable;;
   let redodata = map (fun s -> 
 			try (run_one true s;s) 
 			with Failure msg -> report s; failwith msg) redoable;;
 *)
 
 
+
 (* ********************************************************************** *)
-(* Generate terms to be fed to nonlinear optimization. *)
+(* A few lemmas. *)
 (* ********************************************************************** *)
-report "---45";;
+
+
+let delta_ineq_eulerA = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+    delta_ineq_v6 /\
+    &4 <= x1 /\ x1 <= #6.3504 /\
+    &4 <= x2 /\ x2 <= #6.3504 /\
+    &4 <= x3 /\ x3 <= #6.3504 /\
+    #9.0 <= x4 /\ x4 <= #15.328 /\
+    #9.0 <= x5 /\ x5 <= #15.328 /\
+    #9.0 <= x6 /\ x6 <= #15.328 ==>
+    (eulerA_x x1 x2 x3 x4 x5 x6 < &0 \/
+   &0 < delta_x x1 x2 x3 x4 x5 x6 )
+`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[delta_ineq;Sphere.ineq];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let delta_ineq_delta4_x_squared = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+    delta_ineq_v6 /\
+              &4 <= x1 /\ x1 <= &8 /\
+            &4 <= x2 /\ x2 <= &7 /\
+            &4 <= x3 /\ x3 <= &7 /\
+            &8 <= x4 /\ x4 <= &28 /\
+            &4 <= x5 /\ x5 <= &7 /\
+            &4 <= x6 /\ x6 <= &7 ==>
+    (&0 < delta4_squared_x x1 x2 x3 x4 x5 x6 \/
+   &0 < delta_x x1 x2 x3 x4 x5 x6 )
+`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[delta_ineq;Sphere.ineq];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let delta_ineq_delta4_x_squared_wide = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+    delta_ineq_v6 /\
+              &4 <= x1 /\ x1 <= &7 /\
+            &4 <= x2 /\ x2 <= &7 /\
+            &4 <= x3 /\ x3 <= &7 /\
+            &4 <= x4 /\ x4 <= &7 /\
+            &8 <= x5 /\ x5 <= &28 /\
+            &4 <= x6 /\ x6 <= &7 ==>
+    (&0 < delta4_squared_x x1 x2 x3 x4 x5 x6 \/
+   &0 < delta_x x1 x2 x3 x4 x5 x6 )
+`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[delta_ineq;Sphere.ineq];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `28` (C INTRO_TAC [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`]);
+  ASM_REWRITE_TAC[];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let delta_ineq_delta4_x_squared2 = prove_by_refinement(
+  `!c x1 x2 x3 x4 x5 x6.
+     ~(x1_delta_x x1 x2 x3 x4 x5 x6 * &4 +
+      delta4_squared_x x1 x2 x3 x4 x5 x6 * c <
+      &0) ==>
+    (delta_ineq_v6 /\
+    c < &0 /\
+              &4 <= x1 /\ x1 <= &8 /\
+            &4 <= x2 /\ x2 <= &7 /\
+            &4 <= x3 /\ x3 <= &7 /\
+            &8 <= x4 /\ x4 <= &28 /\
+            &4 <= x5 /\ x5 <= &7 /\
+            &4 <= x6 /\ x6 <= &7 )
+	     ==>
+    (
+   &0 < delta_x x1 x2 x3 x4 x5 x6 )
+`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `x1_delta_x x1 x2 x3 x4 x5 x6 * &4 +      delta4_squared_x x1 x2 x3 x4 x5 x6 * c <      &0 \/ &0 < delta_x x1 x2 x3 x4 x5 x6` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[]);
+  FIRST_X_ASSUM_ST `delta4_squared_x` kill;
+  TYPIFY `&0 < delta_x x1 x2 x3 x4 x5 x6` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  INTRO_TAC delta_ineq_delta4_x_squared [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[Sphere.x1_delta_x];
+  DISCH_TAC;
+  MATCH_MP_TAC (arith `&0 <= -- a /\ &0 < -- b  ==> a + b < &0`);
+  CONJ2_TAC;
+    REWRITE_TAC[arith `-- (a * b ) = a * (-- b)`];
+    GMATCH_SIMP_TAC REAL_LT_MUL_EQ;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  REWRITE_TAC[arith `-- ((a * b) * &4) = &4 * a * (-- b)`];
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let delta_ineq_delta4_x_squared2_wide = prove_by_refinement(
+  `!c x1 x2 x3 x4 x5 x6.
+     ~(x1_delta_x x1 x2 x3 x4 x5 x6 * &4 +
+      delta4_squared_x x1 x2 x3 x4 x5 x6 * c <
+      &0) ==>
+    (delta_ineq_v6 /\
+    c < &0 /\
+              &4 <= x1 /\ x1 <= &7 /\
+            &4 <= x2 /\ x2 <= &7 /\
+            &4 <= x3 /\ x3 <= &7 /\
+            &4 <= x4 /\ x4 <= &7 /\
+            &8 <= x5 /\ x5 <= &28 /\
+            &4 <= x6 /\ x6 <= &7 )
+	     ==>
+    (
+   &0 < delta_x x1 x2 x3 x4 x5 x6 )
+`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `x1_delta_x x1 x2 x3 x4 x5 x6 * &4 +      delta4_squared_x x1 x2 x3 x4 x5 x6 * c <      &0 \/ &0 < delta_x x1 x2 x3 x4 x5 x6` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[]);
+  FIRST_X_ASSUM_ST `delta4_squared_x` kill;
+  TYPIFY `&0 < delta_x x1 x2 x3 x4 x5 x6` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  INTRO_TAC delta_ineq_delta4_x_squared_wide [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ASM_REWRITE_TAC[];
+  REWRITE_TAC[Sphere.x1_delta_x];
+  DISCH_TAC;
+  MATCH_MP_TAC (arith `&0 <= -- a /\ &0 < -- b  ==> a + b < &0`);
+  CONJ2_TAC;
+    REWRITE_TAC[arith `-- (a * b ) = a * (-- b)`];
+    GMATCH_SIMP_TAC REAL_LT_MUL_EQ;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  REWRITE_TAC[arith `-- ((a * b) * &4) = &4 * a * (-- b)`];
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let delta_ineq_delta_234_x = prove_by_refinement(
+  `delta_ineq_v6 ==> (!x1 x2 x3 x4 x5 x6 r.
+	~(delta_234_x r (&4) (&4) x1 x2 x3 x4 x5 x6 +
+ unit6 x1 x2 x3 x4 x5 x6 * -- &98  <
+ &0 ) ==> ( r = ((#2.0 * #1.26) * #2.0 * #1.26) /\
+	    &4 <= x1 /\ x1 <= &4 * #1.26 pow 2 /\
+	&4 <= x2 /\ x2 <= &4 * #1.26 pow 2 /\
+	&4 <= x3 /\ x3 <= &4 * #1.26 pow 2 /\
+	#3.01 pow 2 <= x4 /\ x4 <= #3.36 pow 2 /\
+	&4 <= x5 /\ x5 <= &4 * #1.26 pow 2 /\
+	&4 <= x6 /\ x6 <= &4 * #1.26 pow 2
+==> &0 < delta_x x1 x2 x3 x4 x5 x6))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[delta_ineq];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `&98` (C INTRO_TAC [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`]);
+  ASM_REWRITE_TAC[Sphere.ineq;IMP_IMP_THM];
+  ANTS_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  FIRST_X_ASSUM_ST `delta_234_x` MP_TAC THEN ASM_REWRITE_TAC[];
+  ASM_REWRITE_TAC[arith `(a * b * a * b) = (a * b) * (a*b)`];
+  BY(REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
 let subat_rules = prove_by_refinement(
   `(!i (y:A). subat i y [] = []) /\
     (!x xs (y:A). subat 0 y (x::xs) = y :: xs) /\
@@ -539,7 +709,6 @@ let ineq6m = prove_by_refinement(
   ]);;
   (* }}} *)
 
-report "---54";;
 let ineq9m = prove_by_refinement(
   `!x1 x2 x3 x4 x5 x6 x7 x8 x9 a1 a2 a3 a4 a5 a6 a7 a8 a9 b1 b2 b3 b4 b5 b6 b7 b8 b9 f.
     ineqm [x1;x2;x3;x4;x5;x6;x7;x8;x9] [(a1,b1);(a2,b2);(a3,b3);(a4,b4);(a5,b5);(a6,b6);
@@ -553,8 +722,286 @@ let ineq9m = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let ineqm_mp_simple = prove_by_refinement(
+  `!a a' b c. ineqm a a' (b ==> c) <=> (b ==> ineqm a a' c)`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Sphere.ineqm;Merge_ineq.ineq_mp_simple])
+  ]);;
+  (* }}} *)
+
+let hminus_pow_2_le = prove_by_refinement(
+  `!c d.  &0 <= c /\ c <= &2 /\ #6.3504 <= d ==> (c * hminus) * (c * hminus) <= d`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `(c * hminus ) * (c * hminus) <= #6.3504` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  TYPIFY `#6.3504 = (&2 * #1.26) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  TYPIFY `(c * hminus) * (c * hminus) = (c * hminus) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  GMATCH_SIMP_TAC (GSYM Trigonometry2.POW2_COND);
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  GMATCH_SIMP_TAC REAL_LE_MUL2;
+  MP_TAC Nonlinear_lemma.hminus_lt_h0;
+  MP_TAC Nonlinear_lemma.hminus_prop;
+  REWRITE_TAC[Sphere.h0];
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let hminus4_pow_2_le = prove_by_refinement(
+  `!c d.  &0 <= c /\ c <= &2 /\ #25.4016 <= d ==> (&2 * c * hminus) * (&2 * c * hminus) <= d`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `(&2 * c * hminus ) * (&2 * c * hminus) <= #25.4016` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  TYPIFY `#25.4016 = (&4 * #1.26) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  TYPIFY `(&2 * c * hminus) * (&2 * c * hminus) = (&2 * c * hminus) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  GMATCH_SIMP_TAC (GSYM Trigonometry2.POW2_COND);
+  REWRITE_TAC[REAL_MUL_ASSOC];
+  REWRITE_TAC[arith `&0 <= &4 * #1.26`];
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  GMATCH_SIMP_TAC REAL_LE_MUL2;
+  MP_TAC Nonlinear_lemma.hminus_lt_h0;
+  MP_TAC Nonlinear_lemma.hminus_prop;
+  REWRITE_TAC[Sphere.h0];
+  REPEAT WEAKER_STRIP_TAC;
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let hminus_pow_2_ge = prove_by_refinement(
+  `!c d.  &2 <= c /\ d <= #5.76 ==> d <= (c * hminus) * (c * hminus)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `#5.76 <= (c * hminus ) * (c * hminus)` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  TYPIFY `#5.76 = (&2 * #1.2) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  TYPIFY `(c * hminus) * (c * hminus) = (c * hminus) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  GMATCH_SIMP_TAC (GSYM Trigonometry2.POW2_COND);
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  GMATCH_SIMP_TAC REAL_LE_MUL2;
+  MP_TAC Nonlinear_lemma.hminus_prop;
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let hminus_pow_2_gt = prove_by_refinement(
+  `!c d.  &2 <= c /\ d < #5.76 ==> d < (c * hminus) * (c * hminus)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `#5.76 <= (c * hminus ) * (c * hminus)` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  TYPIFY `#5.76 = (&2 * #1.2) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  TYPIFY `(c * hminus) * (c * hminus) = (c * hminus) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(REAL_ARITH_TAC);
+  GMATCH_SIMP_TAC (GSYM Trigonometry2.POW2_COND);
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  GMATCH_SIMP_TAC REAL_LE_MUL;
+  GMATCH_SIMP_TAC REAL_LE_MUL2;
+  MP_TAC Nonlinear_lemma.hminus_prop;
+  BY(ASM_TAC THEN REAL_ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+
+let h_series = map MATCH_MP_TAC [hminus4_pow_2_le;hminus_pow_2_le;hminus_pow_2_ge;hminus_pow_2_gt];;
+
+let x_lb = prove_by_refinement(
+  `!x a b. a <= x ==> b <= a ==> b <= x`,
+  (* {{{ proof *)
+  [
+  REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let x_ub = prove_by_refinement(
+  `!x a b. x <= a ==> a <= b ==> x <= b`,
+  (* {{{ proof *)
+  [
+  REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let x_pos = prove_by_refinement(
+  `!x a b. a <= x ==> &0 < a ==> &0 < x`,
+  (* {{{ proof *)
+  [
+  REAL_ARITH_TAC;
+  ]);;
+  (* }}} *)
+
+let bisect_left_rules = prove_by_refinement(
+  `!i h t. bisect_left i [] = [] /\
+      bisect_left 0 (h::t) = (pathL h)::t /\
+      bisect_left (SUC i) (h::t) = h :: bisect_left i t`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Sphere.bisect_left;subat_rules;EL;HD;TL])
+  ]);;
+  (* }}} *)
+
+let bisect_right_rules = prove_by_refinement(
+  `!i h t. bisect_right i [] = [] /\
+      bisect_right 0 (h::t) = (pathR h)::t /\
+      bisect_right (SUC i) (h::t) = h :: bisect_right i t`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Sphere.bisect_right;subat_rules;EL;HD;TL])
+  ]);;
+  (* }}} *)
+
+let frac_left_rules = prove_by_refinement(
+  `!i h t r. frac_left i r [] = [] /\
+      frac_left 0 r (h::t) = (FST h,FST h * (&1 - r) + SND h * r)::t /\
+      frac_left (SUC i) r (h::t) = h :: frac_left i r t`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Sphere.frac_left;subat_rules;EL;HD;TL;LET_THM;LAMBDA_PAIR;CONS_11])
+  ]);;
+  (* }}} *)
+
+let frac_right_rules = prove_by_refinement(
+  `!i h t r. frac_right i r [] = [] /\
+      frac_right 0 r (h::t) = (FST h * (&1 - r) + SND h * r,SND h)::t /\
+      frac_right (SUC i) r (h::t) = h :: frac_right i r t`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Sphere.frac_right;subat_rules;EL;HD;TL;LET_THM;LAMBDA_PAIR;CONS_11])
+  ]);;
+  (* }}} *)
+
+let ineqm_rules = prove_by_refinement(
+  `ineqm [] [] f = f /\
+    ineqm (h::t) (h'::t') f = (FST h' <= h /\ h <= SND h' ==> ineqm t t' f)`,
+  (* {{{ proof *)
+  [
+  BY(REWRITE_TAC[Sphere.ineqm;MAP2;Sphere.ineq])
+  ]);;
+  (* }}} *)
+
+let LENGTH_subat = prove_by_refinement(
+  `!xs i y. LENGTH (subat i y xs) = LENGTH xs`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC THEN REWRITE_TAC[ subat_rules;LENGTH];
+  BY(INDUCT_TAC THEN ASM_REWRITE_TAC[ subat_rules;LENGTH])
+  ]);;
+  (* }}} *)
+
+let LENGTH_frac_left = prove_by_refinement(
+  `!xs i r. LENGTH(frac_left i r xs) = LENGTH xs`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Sphere.frac_left;LENGTH_subat;LET_THM;LAMBDA_PAIR])
+  ]);;
+  (* }}} *)
+
+let LENGTH_frac_right = prove_by_refinement(
+  `!xs i r. LENGTH(frac_right i r xs) = LENGTH xs`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Sphere.frac_right;LENGTH_subat;LET_THM;LAMBDA_PAIR])
+  ]);;
+  (* }}} *)
+
+let LENGTH_bisect_left = prove_by_refinement(
+  `!xs i. LENGTH(bisect_left i xs) = LENGTH xs`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Sphere.bisect_left;LENGTH_subat;LET_THM;LAMBDA_PAIR])
+  ]);;
+  (* }}} *)
+
+let LENGTH_bisect_right = prove_by_refinement(
+  `!xs i. LENGTH(bisect_right i xs) = LENGTH xs`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[Sphere.bisect_right;LENGTH_subat;LET_THM;LAMBDA_PAIR])
+  ]);;
+  (* }}} *)
+
+let bisect_thm = prove_by_refinement(
+  `!d i x f. LENGTH x = LENGTH d ==>
+    ineqm x (bisect_left i d) f ==> ineqm x (bisect_right i d) f ==> ineqm x d f`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC;
+    BY(SIMP_TAC[bisect_left_rules]);
+  INDUCT_TAC;
+    SIMP_TAC[bisect_left_rules;bisect_right_rules];
+    LIST_INDUCT_TAC;
+      BY(REWRITE_TAC[LENGTH;arith `~(0 = SUC i)`]);
+    REWRITE_TAC[LENGTH;arith `SUC i = SUC j <=> i = j`];
+    TYPIFY `h` SPEC1_TAC;
+    REWRITE_TAC[FORALL_PAIR_THM];
+    REWRITE_TAC[ineqm_rules;Sphere.pathL;Sphere.pathR];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `h' <= (p1+p2)/ &2` ASM_CASES_TAC;
+      FIRST_X_ASSUM_ST `ineqm` kill;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_TAC THEN REAL_ARITH_TAC);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  REWRITE_TAC[bisect_left_rules;bisect_right_rules];
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[LENGTH;arith `~(0 = SUC i)`]);
+  REWRITE_TAC[LENGTH;arith `SUC i = SUC j <=> i = j`];
+  REWRITE_TAC[ineqm_rules];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+let ineqm_frac_thm = prove_by_refinement(
+  `!d i x f r. LENGTH x = LENGTH d ==>
+    ineqm x (frac_left i r d) f ==> ineqm x (frac_right i r d) f ==> ineqm x d f`,
+  (* {{{ proof *)
+  [
+  LIST_INDUCT_TAC;
+    BY(SIMP_TAC[frac_left_rules]);
+  INDUCT_TAC;
+    SIMP_TAC[frac_left_rules;frac_right_rules];
+    LIST_INDUCT_TAC;
+      BY(REWRITE_TAC[LENGTH;arith `~(0 = SUC i)`]);
+    REWRITE_TAC[LENGTH;arith `SUC i = SUC j <=> i = j`];
+    REWRITE_TAC[ineqm_rules];
+    REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `h' <= FST h * (&1 - r) + SND h * r` ASM_CASES_TAC;
+      FIRST_X_ASSUM_ST `ineqm` kill;
+      FIRST_X_ASSUM MATCH_MP_TAC;
+      BY(ASM_TAC THEN REAL_ARITH_TAC);
+    FIRST_X_ASSUM MATCH_MP_TAC;
+    BY(ASM_TAC THEN REAL_ARITH_TAC);
+  REWRITE_TAC[frac_left_rules;frac_right_rules];
+  LIST_INDUCT_TAC;
+    BY(REWRITE_TAC[LENGTH;arith `~(0 = SUC i)`]);
+  REWRITE_TAC[LENGTH;arith `SUC i = SUC j <=> i = j`];
+  REWRITE_TAC[ineqm_rules];
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+
+(* ********************************************************************** *)
+(* Generate terms to be fed to nonlinear optimization. *)
+(* ********************************************************************** *)
+
+
+let strip_term = snd o strip_forall;;
+
 let simple_dest_ineq ineq = 
-  let t = snd(strip_forall ineq) in
+  let t = strip_term ineq in
   let (vs,i) = dest_comb t in
   let (_,vs) = dest_comb vs in
   let vs = dest_list vs in
@@ -644,50 +1091,57 @@ let count_case_list iarg =
   let m =  mk_rec [] a9 iarg in
     List.length m;;
 
+let count_iargs m = 
+  try count_case_list (snd(find (fun s -> fst s = m) !Break_case_log.break_data))
+  with Failure _ -> 1;;
+
+let get_iarg s = assocd s (!Break_case_log.break_data) (Iarg_leaf 1000);;
+
 let ineq_conv = 
   (REWRITE_CONV [Sphere.frac_left;Sphere.frac_right;bisect_left_frac;bisect_right_frac;
 		 subat_explicit;LET_THM;LAMBDA_PAIR;Basics.EL_EXPLICIT] 
      THENC REAL_RAT_REDUCE_CONV THENC REWRITE_CONV[ineq6m;ineq9m]) ;;
 
+let get_one_iarg app (s,i) = 
+  let t = app s in
+  let iarg =  get_iarg s in 
+  let cl = mk_case_list t iarg in
+    List.nth cl i;;
+
+let idv_parameters s = 
+  let count = count_iargs s in
+    map (fun i -> (s,i)) (0-- (count - 1));;
+
+let get_idq s = 
+  find (fun idq -> idq.idv = s) !Prep.prep_ineqs;;
+
+let get_ineq s = 
+  (get_idq s).ineq;;
+
+let run_generic get_tactic needs_delta_ineq s = 
+  let t = get_ineq s in
+  let di = `delta_ineq_v6:bool` in
+  let b = needs_delta_ineq s in
+  let gt = if b then mk_imp(di,t) else t in
+  let _ = g gt in
+  let TAC = get_tactic s in
+  let _ = try e(TAC) with Failure m -> failwith (m^" "^s) in
+  let a,w = top_goal() in
+  let _ = (b && a = [di]) or (a =[]) or failwith ("unexpected assumption: "^s) in
+    w;;
+
+
+
 (* string,int *)
-report "65";;
+
 (* ********************************************************************** *)
 (* TEST CASE: "OXLZLEZ 6346351218 %d %d" *)
 (* ********************************************************************** *)
 
-(*
-let input_ineqs = ref ([]:(string*int)list);;
-
- let add_inequality i  = 
-   let _ = input_ineqs:= i :: !input_ineqs in
-  ();;
-
- let get_inequality s = 
-   filter (fun t -> fst t = s) (!input_ineqs);;
-*)
-
-report "oxl series";;
-
- let oxl_parameters (i,j) = 
-   let m = Printf.sprintf "prep-OXLZLEZ 6346351218 %d %d" i j in
-   let count = 
-     try count_case_list (snd(find (fun s -> fst s = m) !Break_case_log.break_data))
-     with Failure _ -> 1 in
-     map (fun i -> (m,i)) (0-- (count - 1));;
-
-let all_oxl_cases = List.flatten (map (fun i -> [(1,i);(2,i);(3,i);(4,i)]) (0--45));;
-
-let all_oxl_parameters = List.flatten (map oxl_parameters all_oxl_cases);;
- 
-List.length all_oxl_parameters;;
-
-let ineqm_mp_simple = prove_by_refinement(
-  `!a a' b c. ineqm a a' (b ==> c) <=> (b ==> ineqm a a' c)`,
-  (* {{{ proof *)
-  [
-    BY(REWRITE_TAC[Sphere.ineqm;Merge_ineq.ineq_mp_simple])
-  ]);;
-  (* }}} *)
+let all_oxl_idv = 
+  let ij = List.flatten (map (fun i -> [(1,i);(2,i);(3,i);(4,i)]) (0--45)) in
+  let p (i,j) = Printf.sprintf "prep-OXLZLEZ 6346351218 %d %d" i j in
+    map p ij;;
 
 (* generating OXL inequality series *)
 
@@ -719,59 +1173,21 @@ let POSTPREP_OXL_634_TAC =
   (*  (GSPECL_TAC (List.rev Optimize.x6list)); *)
   ];;
 
+let all_oxl_parameters = List.flatten (map idv_parameters all_oxl_idv);;
+ 
+List.length all_oxl_parameters = 7272;;
 
-let mk_post_prep_oxl s = 
-  let idq = get_prep s in
-  let _ = g idq.ineq in
-  let _ = e POSTPREP_OXL_634_TAC in
-  let b,inq = top_goal() in
-  let _ = b=[] or failwith s in
-    {idv = "2"^ idq.idv;
-     doc = idq.doc;
-     tags = idq.tags;
-     ineq = inq};;
-
-let mk_one (i,j) = 
-  mk_post_prep_oxl (Printf.sprintf "prep-OXLZLEZ 6346351218 %d %d" i j);;
-
-let get_one (s,i) = 
-  let idq = mk_post_prep_oxl s in
-  let iarg =  assocd s (!Break_case_log.break_data) (Iarg_leaf 1000) in
-  let cl = mk_case_list idq.ineq iarg in
-    List.nth cl i;;
-
-let get_nth j = 
-  get_one (List.nth all_oxl_parameters j);;
-
-(*
-map get_one all_oxl_parameters ;;
-*)
-
-get_nth (Random.int 5070);;
-
-
-List.length all_oxl_parameters;;
+let get_oxl_nth j = 
+  let get_tactic s = POSTPREP_OXL_634_TAC in
+  let needs_delta_ineq s = false in
+  let run = run_generic get_tactic needs_delta_ineq in
+    get_one_iarg run (List.nth all_oxl_parameters j);;
 
 
 (* ********************************************************************** *)
-(* TEST CASE: DELTA SERIES.  
-   In these inequalities, if delta_x1 x2 x3 x4 x5 x6 appears in 
-   a square root, denominator, or atn function, it is positive over the
-   entire domain of the inequality.
- *)
+(* Classification of non oxl cases. *)
 (* ********************************************************************** *)
 
-(* ********************************************************************** *)
-(* Classification of non oxl cases.
-   We skip quad cases for now.  *)
-(* ********************************************************************** *)
-report "delta series";;
-
-let get_idq s = 
-  find (fun idq -> idq.idv = s) !Prep.prep_ineqs;;
-
-let get_ineq s = 
-  (get_idq s).ineq;;
 
 let rec get_const_names tm = 
     match tm with       
@@ -791,32 +1207,18 @@ let some_const_name P t = not (all_const_name (not o P) t);;
 
 let has_match pat = (can ((term_match []) pat));;
 
-let tough_names = 
-  [
-    "quad_cross_diag2_x";
-    "arclength_x1";"arclength_x_123";
-    "eta2_126";"eta2_135";"eta2_456";
-    "taud_x";
-    "mud_126_x_v1";"mud_135_x_v1";"mud_234_x_v1";
-    "vol3f_x_lfun";"vol3f_x_sqrt2_lmplus";"vol3_x_sqrt";
-    "gamma23_full8_x";
-    "gamma23_keep135_x";
-  ];;
+let has_eulerA dj = mem (`eulerA_x x1 x2 x3 x4 x5 x6 < &0`) dj;;
 
- (* let has_quad = some_const_name ((=) "quad_cross_diag2_x");;   *)
+let has_delta4_squared_x dj = 
+  can (find (has_match `x1_delta_x x1 x2 x3 x4 x5 x6 * &4 +
+         delta4_squared_x x1 x2 x3 x4 x5 x6 * -- c <
+         &0`)) dj;;
 
-let has_tough = some_const_name (fun s -> mem s tough_names);;
-
-let reduced_prep_idq,tough_idq = 
-  let p1 = !Prep.prep_ineqs in
-  let p2 = filter (fun t -> not (Str.string_match (Str.regexp "prep-OXLZLEZ 6346351218 [1234]") t.idv 0)) p1 in
-    partition (fun t -> not ( has_tough t.ineq) ) p2 ;;
-
-let (sz,nth_term,nth_idv) = 
-  let p = reduced_prep_idq in
-    (List.length p,
-     (fun k->  (snd(strip_forall (List.nth p k).ineq))),
-     (fun k-> (List.nth p k).idv));;
+let has_delta_234_x dj = 
+  can (find (has_match `delta_234_x r (&4) (&4) x1 x2 x3 x4 x5
+           x6 +
+           unit6 x1 x2 x3 x4 x5 x6 * -- &98 <
+           &0`)) dj;;
 
 let ocaml_of_term = 
   let rec soh t = 
@@ -841,10 +1243,10 @@ let ocaml_of_term =
       with Failure s -> failwith (s^" .......   "^string_of_term t);;
 
 let ocaml_domain inq = 
-  let (_,axb,_) = simple_dest_ineq (snd (strip_forall inq)) in
+  let (_,axb,_) = simple_dest_ineq (strip_term inq) in
   let ab = map (fun (a,_,b) -> (a,b)) axb in
   let a,b = unzip ab in
-    let f = ((* rhs o concl o REAL_RAT_REDUCE_CONV o *) ocaml_of_term (* o ud*)) in
+    let f = ocaml_of_term in
     map f a,map f b;;
 
 let odom_table = 
@@ -887,7 +1289,7 @@ let include_domain (a1,b1) (a2,b2) =
     forall2 (fun x y -> x +. eps >= y) a1 a2 &&
       forall2 (fun x y -> x <= y +. eps) b1 b2;;
 
-let test_domain t = 
+let exists_domain t = 
   let (a,b) = (ocaml_domain t) in
   let v (dom,_) = include_domain (a,b) dom in
     exists v odom_table;;
@@ -897,27 +1299,7 @@ let find_domain t =
   let v (dom,_) = include_domain (a,b) dom in
     snd (find v odom_table);;
 
-let test_delta_explicit t = 
-  let (_,_,fs) = Optimize.dest_ineq t in
-   exists (has_match `delta_x x1 x2 x3 x4 x5 x6 + unit6 x1 x2 x3 x4 x5 x6 * -- y < &0`) fs;;
-
-let test_delta4_explicit t = 
-  let odom = ([6.;4.;4.;8.;4.;4.],[8.; 7.; 7.; 25.; 7.;7.]) in
-  let (a,b) = ocaml_domain t in
-  let (_,_,fs) = Optimize.dest_ineq t in
-    include_domain (a,b) odom && 
-   exists (has_match `x1_delta_x x1 x2 x3 x4 x5 x6 * &4 +
-     delta4_squared_x x1 x2 x3 x4 x5 x6 * -- y <
-     &0`) fs;;
-
-let test_eulerA_explicit t  = 
-  let odom = ([4.;4.;4.;9.;9.;9.],[6.3504; 6.3504; 6.3504; 15.328;15.328;15.328]) in
-  let (a,b) = ocaml_domain t in
-  let (_,_,fs) = Optimize.dest_ineq t in
-    include_domain (a,b) odom && 
-      exists (has_match `eulerA_x x1 x2 x3 x4 x5 x6 < &0`) fs;;
-
-let rec test_delta_inert  = 
+let rec is_delta_inert  = 
   let delta_strings = ["dih_x";"dih2_x";"dih3_x";"dih4_x";"dih5_x";"dih6_x";
 		       "ldih1_x";"ldih2_x";"ldih3_x";"ldih4_x";"ldih5_x";"ldih6_x";
 		       "gchi1_x";"gchi2_x";"gchi3_x";"gchi4_x";"gchi5_x";"gchi6_x";
@@ -925,32 +1307,122 @@ let rec test_delta_inert  =
 		       ] in
     all_const_name (fun s -> not (mem s delta_strings));;
 
-let test_delta_pos t = not(test_delta_inert t) && test_domain t;;
+let is_delta_pos t = not(is_delta_inert t) && exists_domain t;;
 
-let delta_pos_idv = 
-  map nth_idv (filter (test_delta_pos o nth_term) (0 -- (sz - 1)));;
+let tough_names = 
+  [
+    "quad_cross_diag2_x";
+    "arclength_x1";"arclength_x_123";
+    "eta2_126";"eta2_135";"eta2_456";
+    "taud_x";
+    "mud_126_x_v1";"mud_135_x_v1";"mud_234_x_v1";
+    "vol3f_x_lfun";"vol3f_x_sqrt2_lmplus";"vol3_x_sqrt";
+    "gamma23_full8_x";
+    "gamma23_keep135_x";
+  ];;
 
-let delta_inert_idv = 
-  map nth_idv (filter (test_delta_inert o nth_term) (0 -- (sz - 1)));;
+let oxl_idv,alpha_idv,beta_idv,gamma_idv,delta_idv = 
+  let has_tough = some_const_name (fun s -> mem s tough_names) in 
+  let all_idv = map (fun idq -> idq.idv) !Prep.prep_ineqs in
+  let oxl_idv,p2 = partition 
+    (fun t -> (Str.string_match (Str.regexp "prep-OXLZLEZ 6346351218 [1234]") t 0)) all_idv in
+  let reduced_prep_idv,tough_idv = partition (fun s -> not ( has_tough (get_ineq s) )) p2 in
+  let delta_pos_idv = 
+    filter (is_delta_pos o get_ineq) reduced_prep_idv in
+  let delta_inert_idv =   filter (is_delta_inert o get_ineq) reduced_prep_idv in
+  let delta_idv = setify (delta_pos_idv @ delta_inert_idv) in
+  let delta_nok_idv = subtract (reduced_prep_idv) delta_idv in
+  let beta_idv = delta_nok_idv @ ["prep-2314572187"; "prep-7550003505 0 0 2"; "prep-7550003505 0 1 2";
+   "prep-7550003505 0 2 2"; "prep-7550003505 0 2 3"; "prep-7550003505 0 2 4";
+   "prep-7550003505 1 1 2"; "prep-7550003505 1 2 2"; "prep-7550003505 1 2 3";
+   "prep-7550003505 1 2 4"; "prep-7550003505 2 2 2"; "prep-7550003505 2 2 3";
+   "prep-7550003505 2 2 4"; "prep-7550003505 2 3 3"; "prep-7550003505 2 3 4";
+   "prep-7550003505 2 4 4"] in
+  let gamma_idv = ["prep-TEWNSCJ split(1/2)"; "prep-TEWNSCJ split(0/2)";
+   "prep-PEMKWKU split(1/2)"; "prep-PEMKWKU split(0/2)";
+   "prep-QITNPEAv2 4003532128 split(1/2)";
+   "prep-QITNPEAv2 4003532128 split(0/2)"; "prep-TXQTPVC split(1/2)";
+   "prep-TXQTPVC split(0/2)"; "prep-IXPOTPA split(1/2)";
+   "prep-IXPOTPA split(0/2)"] in
+  let alpha_idv = subtract tough_idv (beta_idv @ gamma_idv) in
+  let _ = assert_test 
+    (setify all_idv = setify (oxl_idv @ alpha_idv @ beta_idv @ gamma_idv @ delta_idv)) 
+    "idv partition" in
+    (oxl_idv,alpha_idv,beta_idv,gamma_idv,delta_idv);;
 
-let delta_ok_idv = delta_pos_idv @ delta_inert_idv;;
+assert_test (oxl_idv = all_oxl_idv) "oxl list check";;
 
-let delta_nok_idv = subtract (map (fun idq -> idq.idv) reduced_prep_idq) delta_ok_idv;;
 
-List.length delta_ok_idv;;
+(* test code for delta *)
 
-let problematic_delta_cases = filter 
-  (fun i -> 
-     let t = nth_term i in
-       not (test_domain t) && not (test_delta_inert t) && 
-	 not (test_delta_explicit t) && not (test_delta4_explicit t) && 
-	 not (test_eulerA_explicit t)) (0 -- (sz-1));;
+let exists_delta_explicit t = 
+  let (_,_,fs) = Optimize.dest_ineq t in
+   exists (has_match `delta_x x1 x2 x3 x4 x5 x6 + unit6 x1 x2 x3 x4 x5 x6 * -- y < &0`) fs;;
 
-problematic_delta_cases = [];;
+let exists_delta4_explicit t = 
+  let odom = ([6.;4.;4.;8.;4.;4.],[8.; 7.; 7.; 25.; 7.;7.]) in
+  let odom2 = ([4.;4.;4.;4.;8.;4.],[7.; 7.; 7.; 7.; 25.;7.]) in
+  let (a,b) = ocaml_domain t in
+  let (_,_,fs) = Optimize.dest_ineq t in
+    (include_domain (a,b) odom or include_domain (a,b) odom2) && 
+   exists (has_match `x1_delta_x x1 x2 x3 x4 x5 x6 * &4 +
+     delta4_squared_x x1 x2 x3 x4 x5 x6 * -- y <
+     &0`) fs;;
+
+let exists_eulerA_explicit t  = 
+  let odom = ([4.;4.;4.;9.;9.;9.],[6.3504; 6.3504; 6.3504; 15.328;15.328;15.328]) in
+  let (a,b) = ocaml_domain t in
+  let (_,_,fs) = Optimize.dest_ineq t in
+    include_domain (a,b) odom && 
+      exists (has_match `eulerA_x x1 x2 x3 x4 x5 x6 < &0`) fs;;
+
+let exists_delta_234_x t = 
+  let (_,_,dj) = Optimize.dest_ineq t in
+    has_delta_234_x dj;;
+
+let test_delta_cases = 
+  let f = filter (fun t -> 
+		    let t = strip_term (get_ineq t) in
+		      not (exists_domain t) && not (is_delta_inert t) && 
+			not (exists_delta_explicit t) && not (exists_delta4_explicit t) && 
+			not (exists_eulerA_explicit t) &&
+		 not (exists_delta_234_x t)) (delta_idv @ beta_idv) in
+    f;;
+
+assert_test (test_delta_cases = [])  "delta_cases";;
+
+(* ********************************************************************** *)
+(* timing tests *)
+(* ********************************************************************** *)
+
+
+(* timing information *)
+
+let times idvs  = 
+  let preptime = map (fun (s,t) -> ("prep-"^s, t)) Scripts.times in
+    filter (fun (s,_) -> mem s idvs) preptime;;
+
+let total_nonquad_times = filter (fun (s,_) -> not (mem s Scripts.quad_enclosed)) Scripts.times;;
+
+let cohort_times,total_time = 
+  let a::b = map (fun (x1,x2)-> x1, (Scripts.hour o Scripts.total) x2 ) 
+    [("all",total_nonquad_times);("oxl",times oxl_idv);
+     ("alpha",times alpha_idv);
+     ("beta",times beta_idv);
+     ("gamma",times gamma_idv);
+     ("delta",times delta_idv);
+    ] 
+  in (b,a);;
+
+assert_test (forall (fun (s,_) ->  (mem ("prep-"^s) (oxl_idv @ alpha_idv @ beta_idv @ gamma_idv @ delta_idv))) total_nonquad_times) "missing timing information";;
 
 
 (* ********************************************************************** *)
-(* analysis of delta_ok cases *)
+(* TEST CASE: DELTA SERIES.  
+   In these inequalities, if delta_x1 x2 x3 x4 x5 x6 appears in 
+   a square root, denominator, or atn function, it is positive over the
+   entire domain of the inequality.
+ *)
 (* ********************************************************************** *)
 
 
@@ -1074,8 +1546,6 @@ problematic_delta_cases = [];;
       ("gamma3atn_x",Nonlin_def.gamma3atn_x);
     ];;
 
-  report "---c";;
-
   let nonlin_rewrites = map snd (rational_expansions @ sqrt_expansions @ trig_expansions);;
 
   let good_names = 
@@ -1104,117 +1574,6 @@ let bad_names t =
   filter (fun c -> not(mem c good_names)) (setify ( (get_const_names t')));;
 *)
 
-let hminus_pow_2_le = prove_by_refinement(
-  `!c d.  &0 <= c /\ c <= &2 /\ #6.3504 <= d ==> (c * hminus) * (c * hminus) <= d`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAKER_STRIP_TAC;
-  TYPIFY `(c * hminus ) * (c * hminus) <= #6.3504` ENOUGH_TO_SHOW_TAC;
-    BY(ASM_TAC THEN REAL_ARITH_TAC);
-  TYPIFY `#6.3504 = (&2 * #1.26) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
-    BY(REAL_ARITH_TAC);
-  TYPIFY `(c * hminus) * (c * hminus) = (c * hminus) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
-    BY(REAL_ARITH_TAC);
-  GMATCH_SIMP_TAC (GSYM Trigonometry2.POW2_COND);
-  GMATCH_SIMP_TAC REAL_LE_MUL;
-  GMATCH_SIMP_TAC REAL_LE_MUL2;
-  MP_TAC Nonlinear_lemma.hminus_lt_h0;
-  MP_TAC Nonlinear_lemma.hminus_prop;
-  REWRITE_TAC[Sphere.h0];
-  BY(ASM_TAC THEN REAL_ARITH_TAC)
-  ]);;
-  (* }}} *)
-
-let hminus4_pow_2_le = prove_by_refinement(
-  `!c d.  &0 <= c /\ c <= &2 /\ #25.4016 <= d ==> (&2 * c * hminus) * (&2 * c * hminus) <= d`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAKER_STRIP_TAC;
-  TYPIFY `(&2 * c * hminus ) * (&2 * c * hminus) <= #25.4016` ENOUGH_TO_SHOW_TAC;
-    BY(ASM_TAC THEN REAL_ARITH_TAC);
-  TYPIFY `#25.4016 = (&4 * #1.26) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
-    BY(REAL_ARITH_TAC);
-  TYPIFY `(&2 * c * hminus) * (&2 * c * hminus) = (&2 * c * hminus) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
-    BY(REAL_ARITH_TAC);
-  GMATCH_SIMP_TAC (GSYM Trigonometry2.POW2_COND);
-  REWRITE_TAC[REAL_MUL_ASSOC];
-  REWRITE_TAC[arith `&0 <= &4 * #1.26`];
-  GMATCH_SIMP_TAC REAL_LE_MUL;
-  GMATCH_SIMP_TAC REAL_LE_MUL2;
-  MP_TAC Nonlinear_lemma.hminus_lt_h0;
-  MP_TAC Nonlinear_lemma.hminus_prop;
-  REWRITE_TAC[Sphere.h0];
-  REPEAT WEAKER_STRIP_TAC;
-  BY(ASM_TAC THEN REAL_ARITH_TAC)
-  ]);;
-  (* }}} *)
-
-let hminus_pow_2_ge = prove_by_refinement(
-  `!c d.  &2 <= c /\ d <= #5.76 ==> d <= (c * hminus) * (c * hminus)`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAKER_STRIP_TAC;
-  TYPIFY `#5.76 <= (c * hminus ) * (c * hminus)` ENOUGH_TO_SHOW_TAC;
-    BY(ASM_TAC THEN REAL_ARITH_TAC);
-  TYPIFY `#5.76 = (&2 * #1.2) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
-    BY(REAL_ARITH_TAC);
-  TYPIFY `(c * hminus) * (c * hminus) = (c * hminus) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
-    BY(REAL_ARITH_TAC);
-  GMATCH_SIMP_TAC (GSYM Trigonometry2.POW2_COND);
-  GMATCH_SIMP_TAC REAL_LE_MUL;
-  GMATCH_SIMP_TAC REAL_LE_MUL;
-  GMATCH_SIMP_TAC REAL_LE_MUL2;
-  MP_TAC Nonlinear_lemma.hminus_prop;
-  BY(ASM_TAC THEN REAL_ARITH_TAC)
-  ]);;
-  (* }}} *)
-
-let hminus_pow_2_gt = prove_by_refinement(
-  `!c d.  &2 <= c /\ d < #5.76 ==> d < (c * hminus) * (c * hminus)`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAKER_STRIP_TAC;
-  TYPIFY `#5.76 <= (c * hminus ) * (c * hminus)` ENOUGH_TO_SHOW_TAC;
-    BY(ASM_TAC THEN REAL_ARITH_TAC);
-  TYPIFY `#5.76 = (&2 * #1.2) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
-    BY(REAL_ARITH_TAC);
-  TYPIFY `(c * hminus) * (c * hminus) = (c * hminus) pow 2` (C SUBGOAL_THEN SUBST1_TAC);
-    BY(REAL_ARITH_TAC);
-  GMATCH_SIMP_TAC (GSYM Trigonometry2.POW2_COND);
-  GMATCH_SIMP_TAC REAL_LE_MUL;
-  GMATCH_SIMP_TAC REAL_LE_MUL;
-  GMATCH_SIMP_TAC REAL_LE_MUL2;
-  MP_TAC Nonlinear_lemma.hminus_prop;
-  BY(ASM_TAC THEN REAL_ARITH_TAC)
-  ]);;
-  (* }}} *)
-
-
-let h_series = map MATCH_MP_TAC [hminus4_pow_2_le;hminus_pow_2_le;hminus_pow_2_ge;hminus_pow_2_gt];;
-
-let x_lb = prove_by_refinement(
-  `!x a b. a <= x ==> b <= a ==> b <= x`,
-  (* {{{ proof *)
-  [
-  REAL_ARITH_TAC;
-  ]);;
-  (* }}} *)
-
-let x_ub = prove_by_refinement(
-  `!x a b. x <= a ==> a <= b ==> x <= b`,
-  (* {{{ proof *)
-  [
-  REAL_ARITH_TAC;
-  ]);;
-  (* }}} *)
-
-let x_pos = prove_by_refinement(
-  `!x a b. a <= x ==> &0 < a ==> &0 < x`,
-  (* {{{ proof *)
-  [
-  REAL_ARITH_TAC;
-  ]);;
-  (* }}} *)
 
 let DOMAIN_X_MATCH_TAC x thm = 
   let t = SPEC x thm in
@@ -1224,8 +1583,6 @@ let DOMAIN_X_MATCH_TAC x thm =
 let x_ubs = map (C DOMAIN_X_MATCH_TAC x_ub)  Optimize.x6list;;
 let x_lbs = map (C DOMAIN_X_MATCH_TAC x_lb) Optimize.x6list;;
 let x_poss = map (C DOMAIN_X_MATCH_TAC x_pos) Optimize.x6list;;
-
-(* let onfirst tacs = [EVERY tacs;ALL_TAC];; *)
 
 let POSITIVE_DOMAIN_TAC =  (* proves a subgoal of the form `&0 < xi /\ &0 < xj /\ ... ` *)
   EVERY 
@@ -1252,239 +1609,443 @@ let DELTA_TAC delta_thm = EVERY [
   ASM_TAC THEN REWRITE_TAC[GSYM Nonlinear_lemma.ineq_expand6];
   ];;
 
-let process_delta_pos_idv s = 
-  let tt0 = get_ineq s in
-  let delta_thm = find_domain tt0 in
-  let DTAC = DELTA_TAC delta_thm in
-  let _ = g tt0 in
-  let _ = e(DTAC) in
-  let a,t' = top_goal() in
-  let _ = a = [] or failwith s in
-(*  let _ = (bad_names t' = []) or failwith s in *)
-    t';;
-
-let process_delta_inert_idv s = 
+let get_delta_tactic s = 
   let t = get_ineq s in
-(*  let _ = (bad_names t = []) or failwith s in *)
-    t;;
-
-(*
-setify (map process_delta_inert_idv delta_inert_idv);;    
-setify (map process_delta_pos_idv delta_pos_idv);;
-*)
-
-report "---d";;
-
- let idv_parameters s = 
-   let count = 
-     try count_case_list (snd(find (fun bd -> fst bd = s) !Break_case_log.break_data))
-     with Failure _ -> 1 in
-     map (fun i -> (s,i)) (0-- (count - 1));;
-
-let all_delta_ok_parameters = List.flatten (map idv_parameters delta_ok_idv);;
- 
-List.length all_delta_ok_parameters;;
-
-(* timing stats *)
-
-let oxl_times = filter (fun t,_ -> Str.string_match (Str.regexp "OXLZLEZ 6346351218 [1234]") t 0) (Scripts.times);;
-
-let delta_ok_times  = 
-  let preptime = map (fun (s,t) -> ("prep-"^s, t)) Scripts.times in
-    filter (fun (s,_) -> mem s delta_ok_idv) preptime;;
-
-let [oxl_time;delta_time;total_time] = map (Scripts.hour o Scripts.total) 
-  [oxl_times;delta_ok_times;Scripts.times];;
-
-let mk_post_prep_delta s = 
-  let t = get_ineq s in
-  let inert = mem s delta_inert_idv in
-  let pos = mem s delta_pos_idv in
+  let inert = is_delta_inert t in 
+  let pos = is_delta_pos t in
   let _ = inert or pos or failwith ("delta series expected: "^s) in
   let TAC = if pos then DELTA_TAC (find_domain t) else ALL_TAC in
-  let _ = g t in
-  let _ = e(TAC) in
-  let a,t' = top_goal() in
-  let _ = a = [] or failwith ("delta unexpected assumption: "^s) in
-    t';;
+    TAC;;
 
-let random_elt ls = 
-  let i = Random.int (List.length ls) in
-    List.nth ls i;;
+let all_delta_parameters = List.flatten (map idv_parameters delta_idv);;
 
-(* mk_post_prep_delta (random_elt (delta_ok_idv));; *)
-
-let get_one_delta (s,i) = 
-  let t = mk_post_prep_delta s in
-  let iarg =  assocd s (!Break_case_log.break_data) (Iarg_leaf 1000) in
-  let cl = mk_case_list t iarg in
-    List.nth cl i;;
-
+List.length all_delta_parameters = 6200;;
+ 
 let get_nth_delta j = 
-  get_one_delta (List.nth all_delta_ok_parameters j);;
-
-List.length all_delta_ok_parameters = 6200;;
-
-
-
+  let needs_delta_ineq s = false in
+  let run = run_generic get_delta_tactic needs_delta_ineq in
+    get_one_iarg run (List.nth all_delta_parameters j);;
 
 
 (* ********************************************************************** *)
-(* Theorems to reconstruct inequality on full domain from subdomains *)
+(* run_alpha  *)
 (* ********************************************************************** *)
 
-let bisect_left_rules = prove_by_refinement(
-  `!i h t. bisect_left i [] = [] /\
-      bisect_left 0 (h::t) = (pathL h)::t /\
-      bisect_left (SUC i) (h::t) = h :: bisect_left i t`,
-  (* {{{ proof *)
-  [
-  BY(REWRITE_TAC[Sphere.bisect_left;subat_rules;EL;HD;TL])
-  ]);;
-  (* }}} *)
+let POS_TAC t =     TYPIFY t  (C SUBGOAL_THEN MP_TAC) THENL [(* Break_case_exec. *) POSITIVE_DOMAIN_TAC;ALL_TAC];;
 
-let bisect_right_rules = prove_by_refinement(
-  `!i h t. bisect_right i [] = [] /\
-      bisect_right 0 (h::t) = (pathR h)::t /\
-      bisect_right (SUC i) (h::t) = h :: bisect_right i t`,
-  (* {{{ proof *)
-  [
-  BY(REWRITE_TAC[Sphere.bisect_right;subat_rules;EL;HD;TL])
-  ]);;
-  (* }}} *)
+let PREP_TAC =   EVERY[REPEAT DISCH_TAC;
+		       REPEAT GEN_TAC;
+  REWRITE_TAC[arith `a * b * a * b = (a * b) * (a * b)`];
+  REWRITE_TAC[Sphere.ineq] THEN REPEAT DISCH_TAC;];;
 
-let frac_left_rules = prove_by_refinement(
-  `!i h t r. frac_left i r [] = [] /\
-      frac_left 0 r (h::t) = (FST h,FST h * (&1 - r) + SND h * r)::t /\
-      frac_left (SUC i) r (h::t) = h :: frac_left i r t`,
-  (* {{{ proof *)
-  [
-  BY(REWRITE_TAC[Sphere.frac_left;subat_rules;EL;HD;TL;LET_THM;LAMBDA_PAIR;CONS_11])
-  ]);;
-  (* }}} *)
+let DELTA1_TAC delta_thm = EVERY [
+  COMMENT "delta_pos";
+  INTRO_TAC delta_thm [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST ANTS_TAC [      ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;      EVERY (* Break_case_exec. *) x_lbs;      EVERY (* Break_case_exec. *) x_ubs;      BY(REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN TRY (REAL_ARITH_TAC) THEN REPEAT ( FIRST (* Break_case_exec. *) h_series THEN REAL_ARITH_TAC))];
+  DISCH_TAC;
+  TYPIFY `&0 < x1 /\ &0 < x2 /\ &0 < x3 /\ &0 < x4 /\ &0 < x5 /\ &0 < x6` (C SUBGOAL_THEN ASSUME_TAC) THENL [(* Break_case_exec. *) POSITIVE_DOMAIN_TAC;ALL_TAC];
+  INTRO_TAC Functional_equation.delta_all_atn [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST ANTS_TAC [    BY(ASM_REWRITE_TAC[]) ];
+  SIMP_TAC[];
+  DISCH_THEN kill;
+  REPLICATE_TAC 2 (POP_ASSUM kill);
+  ];;
 
-let frac_right_rules = prove_by_refinement(
-  `!i h t r. frac_right i r [] = [] /\
-      frac_right 0 r (h::t) = (FST h * (&1 - r) + SND h * r,SND h)::t /\
-      frac_right (SUC i) r (h::t) = h :: frac_right i r t`,
-  (* {{{ proof *)
-  [
-  BY(REWRITE_TAC[Sphere.frac_right;subat_rules;EL;HD;TL;LET_THM;LAMBDA_PAIR;CONS_11])
-  ]);;
-  (* }}} *)
-
-report "---e";;
-
-let ineqm_rules = prove_by_refinement(
-  `ineqm [] [] f = f /\
-    ineqm (h::t) (h'::t') f = (FST h' <= h /\ h <= SND h' ==> ineqm t t' f)`,
-  (* {{{ proof *)
-  [
-  BY(REWRITE_TAC[Sphere.ineqm;MAP2;Sphere.ineq])
-  ]);;
-  (* }}} *)
-
-let LENGTH_subat = prove_by_refinement(
-  `!xs i y. LENGTH (subat i y xs) = LENGTH xs`,
-  (* {{{ proof *)
-  [
-  LIST_INDUCT_TAC THEN REWRITE_TAC[(* Break_case_exec. *) subat_rules;LENGTH];
-  BY(INDUCT_TAC THEN ASM_REWRITE_TAC[(* Break_case_exec. *) subat_rules;LENGTH])
-  ]);;
-  (* }}} *)
-
-let LENGTH_frac_left = prove_by_refinement(
-  `!xs i r. LENGTH(frac_left i r xs) = LENGTH xs`,
-  (* {{{ proof *)
-  [
-    BY(REWRITE_TAC[Sphere.frac_left;LENGTH_subat;LET_THM;LAMBDA_PAIR])
-  ]);;
-  (* }}} *)
-
-let LENGTH_frac_right = prove_by_refinement(
-  `!xs i r. LENGTH(frac_right i r xs) = LENGTH xs`,
-  (* {{{ proof *)
-  [
-    BY(REWRITE_TAC[Sphere.frac_right;LENGTH_subat;LET_THM;LAMBDA_PAIR])
-  ]);;
-  (* }}} *)
-
-let LENGTH_bisect_left = prove_by_refinement(
-  `!xs i. LENGTH(bisect_left i xs) = LENGTH xs`,
-  (* {{{ proof *)
-  [
-    BY(REWRITE_TAC[Sphere.bisect_left;LENGTH_subat;LET_THM;LAMBDA_PAIR])
-  ]);;
-  (* }}} *)
-
-let LENGTH_bisect_right = prove_by_refinement(
-  `!xs i. LENGTH(bisect_right i xs) = LENGTH xs`,
-  (* {{{ proof *)
-  [
-    BY(REWRITE_TAC[Sphere.bisect_right;LENGTH_subat;LET_THM;LAMBDA_PAIR])
-  ]);;
-  (* }}} *)
-
-
-let bisect_thm = prove_by_refinement(
-  `!d i x f. LENGTH x = LENGTH d ==>
-    ineqm x (bisect_left i d) f ==> ineqm x (bisect_right i d) f ==> ineqm x d f`,
-  (* {{{ proof *)
-  [
-  LIST_INDUCT_TAC;
-    BY(SIMP_TAC[bisect_left_rules]);
-  INDUCT_TAC;
-    SIMP_TAC[bisect_left_rules;bisect_right_rules];
-    LIST_INDUCT_TAC;
-      BY(REWRITE_TAC[LENGTH;arith `~(0 = SUC i)`]);
-    REWRITE_TAC[LENGTH;arith `SUC i = SUC j <=> i = j`];
-    TYPIFY `h` SPEC1_TAC;
-    REWRITE_TAC[FORALL_PAIR_THM];
-    REWRITE_TAC[ineqm_rules;Sphere.pathL;Sphere.pathR];
-    REPEAT WEAKER_STRIP_TAC;
-    TYPIFY `h' <= (p1+p2)/ &2` ASM_CASES_TAC;
-      FIRST_X_ASSUM_ST `ineqm` kill;
-      FIRST_X_ASSUM MATCH_MP_TAC;
+let vol3f_x_sqrt2_lmplus_TAC = 
+  EVERY [
+  INTRO_TAC Merge_ineq.eta2_delta_cases [`#1.34 * #1.34`;`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST 
+    ANTS_TAC 
+    [
+    ONFIRST
+      CONJ_TAC
+      [
+	BY(REAL_ARITH_TAC);
+      ];
+    REPEAT (GMATCH_SIMP_TAC (arith `x <= &15 ==> x < &16`));
+    ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    EVERY x_ubs;
+    EVERY x_lbs;
+    BY((REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN TRY (REAL_ARITH_TAC) THEN REPEAT ( FIRST (* Break_case_exec. *) h_series THEN REAL_ARITH_TAC)));
+    ];
+  DISCH_THEN DISJ_CASES_TAC THEN ASM_REWRITE_TAC[];
+  INTRO_TAC Nonlinear_lemma.vol3f_x_sqrt2_lmplus_alt [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST 
+    ANTS_TAC 
+    [
+      REWRITE_TAC[Sphere.h0];
       BY(ASM_TAC THEN REAL_ARITH_TAC);
-    FIRST_X_ASSUM MATCH_MP_TAC;
-    BY(ASM_TAC THEN REAL_ARITH_TAC);
-  REWRITE_TAC[bisect_left_rules;bisect_right_rules];
-  LIST_INDUCT_TAC;
-    BY(REWRITE_TAC[LENGTH;arith `~(0 = SUC i)`]);
-  REWRITE_TAC[LENGTH;arith `SUC i = SUC j <=> i = j`];
-  REWRITE_TAC[ineqm_rules];
-  BY(ASM_MESON_TAC[])
-  ]);;
-  (* }}} *)
-
-let ineqm_frac_thm = prove_by_refinement(
-  `!d i x f r. LENGTH x = LENGTH d ==>
-    ineqm x (frac_left i r d) f ==> ineqm x (frac_right i r d) f ==> ineqm x d f`,
-  (* {{{ proof *)
-  [
-  LIST_INDUCT_TAC;
-    BY(SIMP_TAC[frac_left_rules]);
-  INDUCT_TAC;
-    SIMP_TAC[frac_left_rules;frac_right_rules];
-    LIST_INDUCT_TAC;
-      BY(REWRITE_TAC[LENGTH;arith `~(0 = SUC i)`]);
-    REWRITE_TAC[LENGTH;arith `SUC i = SUC j <=> i = j`];
-    REWRITE_TAC[ineqm_rules];
-    REPEAT WEAKER_STRIP_TAC;
-    TYPIFY `h' <= FST h * (&1 - r) + SND h * r` ASM_CASES_TAC;
-      FIRST_X_ASSUM_ST `ineqm` kill;
-      FIRST_X_ASSUM MATCH_MP_TAC;
+    ];
+  SIMP_TAC[];
+  DISCH_THEN kill;
+  INTRO_TAC Functional_equation.delta_all_atn [`x1`;`x2`;`&2`;`&2`;`&2`;`x6`];
+  ONFIRST 
+    ANTS_TAC
+    [
+      ASM_REWRITE_TAC[];
       BY(ASM_TAC THEN REAL_ARITH_TAC);
-    FIRST_X_ASSUM MATCH_MP_TAC;
-    BY(ASM_TAC THEN REAL_ARITH_TAC);
-  REWRITE_TAC[frac_left_rules;frac_right_rules];
-  LIST_INDUCT_TAC;
-    BY(REWRITE_TAC[LENGTH;arith `~(0 = SUC i)`]);
-  REWRITE_TAC[LENGTH;arith `SUC i = SUC j <=> i = j`];
-  REWRITE_TAC[ineqm_rules];
-  BY(ASM_MESON_TAC[])
-  ]);;
-  (* }}} *)
+    ];
+  SIMP_TAC[];
+  (DISCH_THEN kill)];;
+
+let vol3f_x_lfun_TAC = 
+  EVERY [
+  INTRO_TAC Merge_ineq.eta2_delta_cases [`#1.34 * #1.34`;`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST 
+    ANTS_TAC 
+    [
+    ONFIRST
+      CONJ_TAC
+      [
+	BY(REAL_ARITH_TAC);
+      ];
+    REPEAT (GMATCH_SIMP_TAC (arith `x <= &15 ==> x < &16`));
+    ASM_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    EVERY x_ubs;
+    EVERY x_lbs;
+    BY((REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN TRY (REAL_ARITH_TAC) THEN REPEAT ( FIRST (* Break_case_exec. *) h_series THEN REAL_ARITH_TAC)));
+    ];
+  DISCH_THEN DISJ_CASES_TAC THEN ASM_REWRITE_TAC[];
+  INTRO_TAC Nonlinear_lemma.vol3f_x_lfun_alt [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST 
+    ANTS_TAC 
+    [
+      REWRITE_TAC[Sphere.h0];
+      BY(ASM_TAC THEN REAL_ARITH_TAC);
+    ];
+  SIMP_TAC[];
+  DISCH_THEN kill;
+  INTRO_TAC Functional_equation.delta_all_atn [`x1`;`x2`;`&2`;`&2`;`&2`;`x6`];
+  ONFIRST 
+    ANTS_TAC
+    [
+      ASM_REWRITE_TAC[];
+      BY(ASM_TAC THEN REAL_ARITH_TAC);
+    ];
+  SIMP_TAC[];
+  POP_ASSUM kill;
+  (DISCH_THEN kill)];;
+
+let PRE_DELTA_TAC gl = 
+  let (asm,w) = dest_goal gl in
+  let has s = some_const_name ((=) s) w in
+  let contac b tac = if b then tac else ALL_TAC in
+    EVERY [
+      contac (has "vol3f_x_sqrt2_lmplus") vol3f_x_sqrt2_lmplus_TAC;
+      contac (has "vol3f_x_lfun") vol3f_x_lfun_TAC;
+    ] gl;;
+
+let POS_SIMP_TAC gl = 
+  let (asm,w) = dest_goal gl in
+  let has s = some_const_name ((=) s) w in
+  let contac b tac = if b then tac else ALL_TAC in
+  let has_eta126 = has "eta2_126" in
+  let has_eta135 = has "eta2_135" in
+  let has_eta456 = has "eta2_456" in
+  let has_taudx = has "taud_x" in
+  let has_vol3x = has "vol3_x_sqrt" in
+  let TAC126 = contac has_eta126  (POS_TAC `&0 < x1 /\ &0 < x2 /\ &0 < x6`) in
+  let TAC_VOL3 = contac has_vol3x  (POS_TAC `&0 < x1 /\ &0 < x2 /\ &0 < x6`) in
+  let TAC_ARC = contac (has "arclength_x1") (EVERY [
+    REPEAT (GMATCH_SIMP_TAC Merge_ineq.arclength_x1x1');
+    REWRITE_TAC[CONJ_ASSOC];
+    ONFIRST CONJ_TAC [ASM_TAC THEN REAL_ARITH_TAC]  ]) in
+  let TAC_ARC123 = contac (has "arclength_x_123") (EVERY [
+    REPEAT (GMATCH_SIMP_TAC Merge_ineq.nonf_arclength_x_123);
+    REWRITE_TAC[CONJ_ASSOC];
+    ONFIRST CONJ_TAC [ASM_TAC THEN REAL_ARITH_TAC]  ]) in
+  let MUD_TAC = contac (some_const_name (fun s -> mem s ["mud_126_x_v1";"mud_135_x_v1";"mud_234_x_v1"]) w) (EVERY [
+  REPEAT (FIRST (map GMATCH_SIMP_TAC [Merge_ineq.nonf_mud_126_x_v1;Merge_ineq.nonf_mud_135_x_v1;Merge_ineq.nonf_mud_234_x_v1]));
+  REWRITE_TAC[CONJ_ASSOC];
+  ONFIRST CONJ_TAC [ASM_TAC THEN REAL_ARITH_TAC];
+]) in
+  let TAC135 = contac has_eta135 (POS_TAC `&0 < x1 /\ &0 < x3 /\ &0 < x5`) in
+  let TAC456 = contac has_eta456 (POS_TAC `&0 < x4 /\ &0 < x5 /\ &0 < x6`) in
+  let TAC123 = contac has_taudx (POS_TAC `&0 < x1 /\ &0 < x2 /\ &0 < x3`) in
+  let INTRO_0 = contac (has_eta126 or has_eta135 or has_eta456)
+      (INTRO_TAC Merge_ineq.eta_atn [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`] ) in
+  let INTRO_1 = contac has_taudx 
+    (INTRO_TAC Functional_equation.taud_x' [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`]) in
+  let INTRO_VOL3 = contac has_vol3x
+    (INTRO_TAC Nonlinear_lemma.vol3_vol_x [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`]) in
+    EVERY [
+      TAC_ARC;
+      TAC_ARC123;
+      MUD_TAC;
+      INTRO_0;
+      INTRO_1;
+      INTRO_VOL3;
+      TAC126;
+      TAC_VOL3;
+      TAC135;
+      TAC456;
+      TAC123;
+      ASM_SIMP_TAC[REAL_LT_IMP_LE];
+      REPEAT(DISCH_THEN kill);
+    ] gl;;
+
+let POST_TAC =   ASM_TAC THEN REWRITE_TAC[GSYM Nonlinear_lemma.ineq_expand6];;
+
+let bad_names t = 
+  let t' = concl (REWRITE_RULE nonlin_rewrites (ASSUME t)) in
+  filter (fun c -> not(mem c good_names)) (setify ( (get_const_names t')));;
+
+let data_of_run f s = 
+  let w = f s in
+    (s,bad_names w);;
+
+let get_alpha_tactic s = 
+  let t = get_ineq s in
+  let pos = (* Break_case_exec. *) is_delta_pos t in
+  let TAC = if pos then DELTA1_TAC (find_domain t) else ALL_TAC in
+    PREP_TAC THEN PRE_DELTA_TAC THEN TAC THEN POS_SIMP_TAC THEN POST_TAC;;
+
+let run_alpha s = 
+  let needs_delta_ineq s = false in
+    run_generic get_alpha_tactic needs_delta_ineq s;;
+
+let all_alpha_parameters = List.flatten (map idv_parameters alpha_idv);;
+
+List.length all_alpha_parameters = 2010;;
+ 
+let get_nth_alpha j = 
+    get_one_iarg run_alpha (List.nth all_alpha_parameters j);;  
+
+(* ********************************************************************** *)
+(* run_beta for beta_idv *)
+(* ********************************************************************** *)
+
+let needs_delta_ineq1 t = 
+  let (_,_,dj)= Optimize.dest_ineq (snd (strip_forall t)) in
+    not(is_delta_inert t) && not(exists_domain t) &&  has_eulerA dj
+
+let needs_delta_ineq2 t = 
+  let (_,_,dj)= Optimize.dest_ineq (snd (strip_forall t)) in
+    not(exists_domain t) &&  has_delta4_squared_x dj;;
+
+let needs_delta_ineq3 t = 
+  let (_,_,dj)= Optimize.dest_ineq (snd (strip_forall t)) in
+    not(exists_domain t) &&  has_delta_234_x dj;;
+
+let POST_DTAC = EVERY [
+  DISCH_TAC;
+  TYPIFY `&0 < x1 /\ &0 < x2 /\ &0 < x3 /\ &0 < x4 /\ &0 < x5 /\ &0 < x6` (C SUBGOAL_THEN ASSUME_TAC) THENL [(* Break_case_exec. *) POSITIVE_DOMAIN_TAC;ALL_TAC];
+  INTRO_TAC Functional_equation.delta_all_atn [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST ANTS_TAC [ BY(ASM_REWRITE_TAC[]) ];
+  SIMP_TAC[];
+  DISCH_THEN kill;
+];;
+
+let DELTA_TAC_PREP d = EVERY [
+  ASM_CASES_TAC d THENL [ASM_REWRITE_TAC[];ALL_TAC];
+  FIRST_X_ASSUM (MP_TAC o MATCH_MP Merge_ineq.delta_ineq_delta_bd);
+  ONFIRST ANTS_TAC [REAL_ARITH_TAC];
+  POST_DTAC;
+  REPLICATE_TAC 2 (POP_ASSUM kill)
+  ];;
+
+let EULERA_TAC_PREP = EVERY [
+  INTRO_TAC delta_ineq_eulerA [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+  ONFIRST ANTS_TAC [ ASM_REWRITE_TAC[] THEN ASM_TAC THEN REPEAT WEAKER_STRIP_TAC; EVERY (* Break_case_exec. *) x_lbs; EVERY (* Break_case_exec. *) x_ubs; BY(REPEAT STRIP_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN TRY (REAL_ARITH_TAC) THEN REPEAT ( FIRST (* Break_case_exec. *) h_series THEN REAL_ARITH_TAC))];
+  DISCH_THEN DISJ_CASES_TAC THEN ASM_REWRITE_TAC[];
+  POP_ASSUM MP_TAC;
+  POST_DTAC;
+  REPLICATE_TAC 2 (POP_ASSUM kill);
+  ];;
+
+let get_matching_disjunct tm w = 
+  let d = disjuncts w in
+    find  (has_match tm) d;;
+
+let DELTA_234_TAC gl = 
+  let (_,w) = dest_goal gl in
+  let hdd = get_matching_disjunct `delta_234_x r (&4) (&4) x1 x2 x3 x4 x5 x6 +	unit6 x1 x2 x3 x4 x5 x6 * -- c < &0` w in
+    EVERY [
+      ASM_CASES_TAC (hdd) THENL [ASM_REWRITE_TAC[];ALL_TAC];
+      FIRST_X_ASSUM (MP_TAC o MATCH_MP (UNDISCH_ALL delta_ineq_delta_234_x));
+      ONFIRST ANTS_TAC [ASM_TAC THEN REAL_ARITH_TAC];
+      POST_DTAC;
+      REPLICATE_TAC 2 (POP_ASSUM kill);
+    ] gl;;
+  
+let PROVE_INEQ_TAC = 
+  EVERY [ ASM_REWRITE_TAC[] THEN ASM_TAC THEN REPEAT WEAKER_STRIP_TAC; 
+	  EVERY (* Break_case_exec. *) x_lbs; 
+	  EVERY (* Break_case_exec. *) x_ubs; 
+	  RULE_ASSUM_TAC (REWRITE_RULE[arith `&4 * hminus = &2 * (&2 * hminus)`]); 
+	  REPEAT STRIP_TAC;
+	  TRY (MATCH_MP_TAC (arith `x <= n - &1 ==> x < n`));
+	  TRY (FIRST_X_ASSUM MATCH_MP_TAC);  
+	  TRY (REAL_ARITH_TAC); 
+	  REPEAT ( FIRST (* Break_case_exec. *) h_series THEN TRY REAL_ARITH_TAC)
+	];;
+
+let DELTA_X1_TAC gl = 
+  let (_,w) = dest_goal gl in
+    try 
+      let hdd = get_matching_disjunct `x1_delta_x x1 x2 x3 x4 x5 x6 * &4 +
+	delta4_squared_x x1 x2 x3 x4 x5 x6 * -- c <    &0` w in
+	EVERY [
+	  ASM_CASES_TAC (hdd) THENL [ASM_REWRITE_TAC[];ALL_TAC];
+	  FIRST_X_ASSUM (MP_TAC o MATCH_MP delta_ineq_delta4_x_squared2);
+	  ONFIRST ANTS_TAC [PROVE_INEQ_TAC];
+	] gl
+    with Failure _ -> MP_TAC TRUTH gl;;
+
+let DELTA_X1_TAC_WIDE gl = 
+  let (_,w) = dest_goal gl in
+  let hdd = get_matching_disjunct `x1_delta_x x1 x2 x3 x4 x5 x6 * &4 +
+    delta4_squared_x x1 x2 x3 x4 x5 x6 * -- c <    &0` w in
+    EVERY [
+      ASM_CASES_TAC (hdd) THENL [ASM_REWRITE_TAC[];ALL_TAC];
+      FIRST_X_ASSUM (MP_TAC o MATCH_MP delta_ineq_delta4_x_squared2_wide);
+      ONFIRST ANTS_TAC [ASM_REWRITE_TAC[] THEN ASM_TAC THEN REWRITE_TAC[Sphere.h0] THEN REAL_ARITH_TAC];
+    ] gl;;
+
+let Z_TAC gl =
+  let (_,w) = dest_goal gl in
+  let d = disjuncts w in
+    if has_eulerA d then EULERA_TAC_PREP gl else 
+      if has_delta_234_x d then DELTA_234_TAC gl else
+	if  has_delta4_squared_x d then 
+	  EVERY [DELTA_X1_TAC_WIDE;POST_DTAC;REPLICATE_TAC 2 (POP_ASSUM kill)] gl else
+	  let fl = filter  (has_match 
+			      `delta_x x1 x2 x3 x4 x5 x6 + unit6 x1 x2 x3 x4 x5 x6 * -- y < &0`) d in
+	    if fl=[] then ALL_TAC gl else DELTA_TAC_PREP (hd fl) gl;;
+
+let get_beta_tactic s = 
+  PREP_TAC THEN Z_TAC THEN POS_SIMP_TAC THEN POST_TAC THEN TRY DISCH_TAC;;
+
+let needs_beta s = 
+    let t = get_ineq s in
+      needs_delta_ineq1 t or needs_delta_ineq2 t or needs_delta_ineq3 t;;
+
+let run_beta s = 
+    run_generic get_beta_tactic needs_beta s;;
+
+let test_beta () = 
+  let beta_data = map (data_of_run run_beta) beta_idv in
+    forall (fun (_,ls) -> (ls = [])) beta_data;;
+
+let all_beta_parameters = List.flatten (map idv_parameters beta_idv);;
+
+List.length all_beta_parameters = 6928;;
+ 
+let get_nth_beta j = 
+    get_one_iarg run_beta (List.nth all_beta_parameters j);;  
+
+(* ********************************************************************** *)
+(* run_gamma for gamma_data *)
+(* ********************************************************************** *)
+
+let has_full8 t = some_const_name ((=) "gamma23_full8_x") t;;
+
+let has_keep135 t = some_const_name ((=) "gamma23_keep135_x") t;;
+
+
+let DTAC t = 
+    if exists_domain t 
+    then 
+      EVERY [
+        INTRO_TAC (find_domain t) [`x1`;`x2`;`x3`;`x4`;`x5`;`x6`];
+	ONFIRST ANTS_TAC [ PROVE_INEQ_TAC ];
+      ]
+    else DELTA_X1_TAC ;;
+
+let ETA126_TAC gl = 
+  let (_,w) = dest_goal gl in
+    try
+      let hdd = get_matching_disjunct  
+	`unit6 x1 x2 x3 x4 x5 x6 * c + eta_x x1 x2 x6 pow 2 * -- &1 < &0` w in
+	EVERY [
+	  ASM_CASES_TAC (hdd) THENL [ ASM_REWRITE_TAC[];ALL_TAC];
+	  FIRST_X_ASSUM (MP_TAC o MATCH_MP Merge_ineq.eta126_x_bd);
+	  ONFIRST ANTS_TAC [  ARITH_TAC ];
+	  DISCH_TAC;
+	] gl
+    with Failure _ -> ASSUME_TAC TRUTH gl;;
+
+let ETA135_TAC gl = 
+  let (_,w) = dest_goal gl in
+    try
+      let hdd = get_matching_disjunct  
+	`unit6 x1 x2 x3 x4 x5 x6 * c + eta_x x1 x3 x5 pow 2 * -- &1 < &0` w in 
+	EVERY [
+	  ASM_CASES_TAC (hdd) THENL [ ASM_REWRITE_TAC[];ALL_TAC];
+	  FIRST_X_ASSUM (MP_TAC o MATCH_MP Merge_ineq.eta135_x_bd);
+	  ONFIRST ANTS_TAC [  ARITH_TAC ];
+	  DISCH_TAC;
+	] gl
+    with Failure _ -> ASSUME_TAC TRUTH gl;;
+
+let FULL8_TAC  = EVERY[
+  GMATCH_SIMP_TAC Merge_ineq.nonf_gamma23f_full8_x;
+  ONFIRST CONJ_TAC [PROVE_INEQ_TAC];
+];;
+
+let KEEP135_TAC  = EVERY[
+  GMATCH_SIMP_TAC Merge_ineq.nonf_gamma23_keep135_x;
+  ONFIRST CONJ_TAC [PROVE_INEQ_TAC];
+];;
+
+let get_gamma_tactic s =
+  let t = get_ineq s in
+    PREP_TAC THEN DTAC t THEN POST_DTAC THEN 
+	    ETA126_TAC THEN ETA135_TAC THEN 
+	    TRY FULL8_TAC THEN TRY KEEP135_TAC THEN 
+	    REPLICATE_TAC 4 (POP_ASSUM kill) THEN POST_TAC THEN REPEAT DISCH_TAC;;
+
+let needs_gamma s = 
+  let t = get_ineq s in
+    needs_delta_ineq2 t;;
+
+let run_gamma s = 
+  run_generic get_gamma_tactic needs_gamma s;;
+
+let test_gamma() = 
+  let data = map (data_of_run run_gamma) gamma_idv in
+    forall (fun (_,ls) -> (ls = [])) data;;
+
+let all_gamma_parameters = List.flatten (map idv_parameters gamma_idv);;
+
+List.length all_gamma_parameters;;
+ 
+let get_nth_gamma j = 
+    get_one_iarg run_gamma (List.nth all_gamma_parameters j);;  
+
+(* ********************************************************************** *)
+(* Combine all cases *)
+(* ********************************************************************** *)
+
+let all_idv =     (oxl_idv @ alpha_idv @ beta_idv @ gamma_idv @ delta_idv);;
+
+let all_parameters = List.flatten (map idv_parameters all_idv);;
+
+List.length all_parameters = 23242;;
+
+let check_tac s gl = 
+  let (_,w) = dest_goal gl in
+  let _ = (bad_names w = []) or failwith ("bad names: "^s) in
+    ALL_TAC gl;;
+
+let get_nth = 
+  let noarg f x = f in
+  let cases = 
+    [(oxl_idv,noarg POSTPREP_OXL_634_TAC,noarg false);
+     (alpha_idv,get_alpha_tactic,noarg false);
+     (beta_idv,get_beta_tactic,needs_beta);
+     (gamma_idv,get_gamma_tactic,needs_gamma);
+     (delta_idv,get_delta_tactic,noarg false)] in 
+  fun j->
+  let (s,i) = List.nth all_parameters j in
+  let (_,tac,need) = find (fun (ls,_,_)-> mem s ls) cases in
+  let run = run_generic (fun s -> tac s THEN check_tac s) need in
+    get_one_iarg run (s,i);;
+
+(* ********************************************************************** *)
+(* reconstruct inequality on full domain from subdomains *)
+(* ********************************************************************** *)
+
 
 let rec prove_iargs tm = 
   let (_,[x;d;f]) = strip_comb tm in
@@ -1517,30 +2078,16 @@ let prove_iargs_cases tm iarg =
   let pthm = prove_iargs (rhs1) iarg in
     EQ_MP (SYM eq1) pthm;;
 
-
-report "---f";;
-
-(*  MOVED to .
-let postprocess t = 
-  let t2 = cconv (REWRITE_CONV [GSYM Nonlinear_lemma.sol0_over_pi_EQ_const1;ineqm_mp_simple]) t in
-  let t3 = snd(dest_imp t2) in
-    t3;;
-
-let postprocess_int i = 
-  let t1 = (* Break_case_exec. *) get_nth i in
-    postprocess1 t1;;
-*)
-
 let mk_i i = 
   try 
-    let _ = Serialization.mk_ser_thm ((* Break_case_exec. *) get_nth i) in
+    let _ = Serialization.mk_ser_thm ( get_nth i) in
       (true,i)
   with Failure _ ->  (false,i);;
 
 let prove_oxl_serialize_processed_idq t iarg = 
-  let cl = (* Break_case_exec. *) mk_case_list t iarg in
+  let cl =  mk_case_list t iarg in
   let cthms = map Serialization.mk_ser_thm cl in
-  let athm = (* Break_case_exec. *) prove_iargs_cases t iarg in
+  let athm =  prove_iargs_cases t iarg in
   let rthm = itlist (PROVE_HYP) cthms athm in
   let vthm = REWRITE_RULE 
     [LENGTH;LENGTH_bisect_left;LENGTH_bisect_right;LENGTH_frac_left;LENGTH_frac_right] 
@@ -1548,30 +2095,30 @@ let prove_oxl_serialize_processed_idq t iarg =
     vthm;;
 
 let prove_oxl_serialize_processed_idv s =
-  let idq = (* Break_case_exec. *) mk_post_prep_oxl s in
-  let iarg  = assocd s (!Break_case_log.break_data) (Iarg_leaf 1000) in  
-    prove_oxl_serialize_processed_idq idq.ineq iarg;;
+  let get_tactic s = POSTPREP_OXL_634_TAC in
+  let needs_delta_ineq s = false in
+  let run = run_generic get_tactic needs_delta_ineq in
+  let t =  run (* mk_post_prep_oxl *) s in
+  let iarg  = get_iarg s in 
+    prove_oxl_serialize_processed_idq t iarg;;
 
 let SERIAL_OXL_TAC s gl = 
   let t = goal_concl gl in
-  let iarg = assocd s (!Break_case_log.break_data) (Iarg_leaf 1000) in  
+  let iarg = get_iarg s in 
   let thm = prove_oxl_serialize_processed_idq t iarg in
     ACCEPT_TAC thm gl;;
 
 let prove_oxl_serialized_idv s = 
-  let idq = (* Break_case_exec. *) get_prep s in
-    prove(idq.ineq,(* Break_case_exec. *) POSTPREP_OXL_634_TAC THEN SERIAL_OXL_TAC s);;
+  let idq =  get_prep s in
+    prove(idq.ineq, POSTPREP_OXL_634_TAC THEN SERIAL_OXL_TAC s);;
 
-let prove_prep_oxl (i,j) = 
-  let s = Printf.sprintf "prep-OXLZLEZ 6346351218 %d %d" i j in
+let prove_prep_oxl s =
   let _ = report s in
     (s,prove_oxl_serialized_idv s);;
 
 (* This generates theorems for all the prop-OXLZLEZ series inequalities in prep.hl *)
 
 let exec_prove_all_prep_oxl () = 
-  map prove_prep_oxl (* Break_case_exec. *) all_oxl_cases;;
-
-report "---g";;
+  map prove_prep_oxl  all_oxl_idv;;
 
 end;;

@@ -713,6 +713,7 @@ let transform_assumption = new_definition'
     (good_list L /\ good_list_nodes L /\ marked_list L N r x ==> 
     marked_list L (ntrans L N r x 1) (rtrans L N r x 1) x))`;;
 
+(* replaced with loop_choice2, Jul 2, 2014
 let loop_choice = new_definition'
  `!g L N. loop_choice g (L:((num)list)list) N =
   (let f = minimalFace (nonFinals g) in
@@ -722,10 +723,12 @@ let loop_choice = new_definition'
    let r = find_list N d in
    let p = parts L r in
      (r,LAST (find_list p d)))`;;
+*)
 
 (* Feb 9, 2014
   rotate_to w not x.  It puts ys and zs in increasing order. *)
 
+(*
 let triple_data = new_definition'
   `!g L N. triple_data g L N = 
     (
@@ -737,6 +740,7 @@ let triple_data = new_definition'
       let zs = filter (\x. MEM x r /\ ~(prev_el f x = prev_el r x)) f in
       let zp = zip ys zs in
 	(MAP (\ (y,z). (y,z,betwn f y z)) zp))`;;
+*)
 
 let core_triple = new_definition'
   `core_triple g L N = 
@@ -905,6 +909,7 @@ let contour_list_connected = new_definition'
    2014-04-09 remove planegraphP from concl, add marked_list hyp. 
    2014-05-04, added ~final_list L r to hyp. *)
 
+(*
 let generatePolygon_reduction = new_definition'
   `generatePolygon_reduction_v6 <=> (!L:((num)list)list N N' g p fs f v k r x.  
       good_list L /\
@@ -923,6 +928,65 @@ let generatePolygon_reduction = new_definition'
       f = minimalFace fs /\
       v = minimalVertex g f /\
       (r,x) = loop_choice g L N   /\
+      k = transform_count L N r x /\
+      N' = ntrans L N r x k 
+    ==>
+      (?g' i. 
+	 match_quotient_list g' L N' /\
+	 // planegraphP p g' /\
+	 3 <= i /\ i <= maxGon p /\
+	 good_faces_v3 g' /\
+         vertices_set2 g' = elements_of_list (fgraph g') /\
+       MEM g' (generatePolygon i v f g)
+  ))`;;
+*)
+
+(* corrected loop_choice on Jul 2, 2014 : *)
+
+let loop_choice = new_definition'
+ `!g L N. loop_choice2 g (L:((num)list)list) N =
+  (let f = minimalFace (nonFinals g) in
+   let w = minimalVertex g f in
+   let v = prev_el (FST f) w in
+   let d = (v,w) in
+   let r = find_list N d in
+   let p = parts L r in
+     (r,LAST (find_list p d)))`;;
+
+let triple_data = new_definition'
+  `!g L N. triple_data2 g L N = 
+    (
+      let (r,x) = loop_choice2 g L N in
+      let k = transform_count L N r x in
+      let w = next_el r x in
+      let f = rotate_to (find_face L x) w in
+      let ys = filter (\x. MEM x r /\ ~(next_el f x = next_el r x)) f in
+      let zs = filter (\x. MEM x r /\ ~(prev_el f x = prev_el r x)) f in
+      let zp = zip ys zs in
+	(MAP (\ (y,z). (y,z,betwn f y z)) zp))`;;
+
+let core_triple = new_definition'
+  `core_triple2 g L N = 
+  MAP (\ (u,v,ns). (FST u,FST v,sizel ns)) (triple_data2 g L N)`;;
+
+let generatePolygon_reduction = new_definition'
+  `generatePolygon_reduction_v7 <=> (!L:((num)list)list N N' g p fs f v k r x.  
+      good_list L /\
+      good_list_nodes L /\
+      is_restricted (hypermap_of_list L) /\
+      newvertex_prepped L N r x /\
+      marked_list L N r x /\
+      ~final_list L r /\
+      match_quotient_list g L N /\ 
+      ~(finalGraph g) /\
+      planegraphP p g /\
+      good_faces_v3 g /\
+      vertices_set2 g = elements_of_list (fgraph g) /\
+      p = foldr maxn 0 (MAP sizel L) -3 /\
+      fs = nonFinals g /\
+      f = minimalFace fs /\
+      v = minimalVertex g f /\
+      (r,x) = loop_choice2 g L N   /\
       k = transform_count L N r x /\
       N' = ntrans L N r x k 
     ==>

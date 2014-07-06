@@ -11,7 +11,6 @@ flyspeck_needs "tame/tame_defs2.hl";;
 
 
 module Current = struct
-end;;
 
 open Hales_tactic;;
 open Tame_defs;;
@@ -299,7 +298,7 @@ let generatePolygon_explicit_reduction = prove_by_refinement(
   )) ==> generatePolygon_reduction_v7`,
   (* {{{ proof *)
   [
-  REWRITE_TAC[generatePolygon_reduction;generatePolygon_explicit];
+  REWRITE_TAC[generatePolygon_reduction;(* generatePolygon_explicit *)];
   REPEAT WEAKER_STRIP_TAC;
   TYPED_ABBREV_TAC `uvns = core_triple_v4 L N r x`;
   TYPED_ABBREV_TAC `g' = subdivFaceFinal2 g f uvns`;
@@ -1547,30 +1546,6 @@ let foldl_step_last_nonnil = prove_by_refinement(
   ]);;
   (* }}} *)
 
-let dest_triple0_cat = prove_by_refinement(
-  `!f s a b a' h. ~(a = []) /\
-    (~(s=[]) ==> ~(LAST s = [])) /\ 
-    dest_triple0 f (flatten s) a = rcons a' (SOME h) ==>
-       dest_triple0 f (flatten s) (cat a b) = cat a' (dest_triple0 f [SOME h] b)`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAKER_STRIP_TAC;
-  TYPIFY `~(LAST (foldl (dest_triple0_step f) s a) = [])` (C SUBGOAL_THEN ASSUME_TAC);
-    BY(ASM_MESON_TAC[foldl_step_last_nonnil]);
-  INTRO_TAC dest_triple0_foldl_steps[`cat a b`;`f`;`s`];
-  ASM_SIMP_TAC[];
-  REWRITE_TAC[Seq.foldl_cat];
-  DISCH_THEN kill;
-  INTRO_TAC (GSYM dest_triple0_foldl_steps) [`b`;`f`;`foldl (dest_triple0_step f) s a`];
-  INTRO_TAC (GSYM dest_triple0_foldl_steps) [`a`;`f`;`s`];
-  ASM_SIMP_TAC[];
-  REWRITE_TAC[GSYM Seq.cats1];
-  REPEAT (DISCH_THEN kill);
-  GMATCH_SIMP_TAC dest_triple0_cat;
-  BY(REWRITE_TAC[NOT_CONS_NIL])
-  ]);;
-  (* }}} *)
-
 
 let subdiv_single_step_betwn = prove_by_refinement(
   `!b f g u v. uniq (FST f) /\ b = betwn (FST f) u v /\
@@ -1872,6 +1847,32 @@ let dest_triple0_cat = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let dest_triple0_cat2 = prove_by_refinement(
+  `!f s a b a' h. ~(a = []) /\
+    (~(s=[]) ==> ~(LAST s = [])) /\ 
+    dest_triple0 f (flatten s) a = rcons a' (SOME h) ==>
+       dest_triple0 f (flatten s) (cat a b) = cat a' (dest_triple0 f [SOME h] b)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `~(LAST (foldl (dest_triple0_step f) s a) = [])` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[foldl_step_last_nonnil]);
+  INTRO_TAC dest_triple0_foldl_steps[`cat a b`;`f`;`s`];
+  ASM_SIMP_TAC[];
+  REWRITE_TAC[Seq.foldl_cat];
+  DISCH_THEN kill;
+  INTRO_TAC (GSYM dest_triple0_foldl_steps) [`b`;`f`;`foldl (dest_triple0_step f) s a`];
+  INTRO_TAC (GSYM dest_triple0_foldl_steps) [`a`;`f`;`s`];
+  ASM_SIMP_TAC[];
+  REWRITE_TAC[GSYM Seq.cats1];
+  REPEAT (DISCH_THEN kill);
+  GMATCH_SIMP_TAC dest_triple0_cat;
+  BY(REWRITE_TAC[NOT_CONS_NIL])
+  ]);;
+  (* }}} *)
+
+
+
 let size_dest_triple0_cons = prove_by_refinement(
   `!f u v n uvns.  MEM u f /\ MEM v f ==>
      sizel (dest_triple0 f [] ((u,v,n)::uvns)) = 
@@ -1974,7 +1975,7 @@ let size_vs = prove_by_refinement(
       indexf v (FST (ytrans L N r x 0)) (core L r) = 
       indexf (next_el (fx) x) (ytrans L N r x 0) (fx) /\
 	indexf (FST (ztrans L N r x (PRE k))) (FST x) (core L r) = 
-      indexf (ztrans L N r x (PRE k)) x (fx) //   /\
+      indexf (ztrans L N r x (PRE k)) x (fx)    /\
 	(!i. SUC i < k ==>
 	   indexf (FST (ztrans L N r x i)) (FST (ytrans L N r x (SUC i))) (core L r) = 
 	     indexf (ztrans L N r x i) (ytrans L N r x (SUC i)) (fx))
@@ -2076,7 +2077,7 @@ let size_vs = prove_by_refinement(
   POP_ASSUM MP_TAC THEN SIMP_TAC[size_core_triple];
   DISCH_TAC THEN DISCH_THEN kill;
   REWRITE_TAC[GSYM Seq.cats1];
-  INTRO_TAC dest_triple0_cat [`core L r`;`[]:(((num)option)list)list`];
+  INTRO_TAC dest_triple0_cat2 [`core L r`;`[]:(((num)option)list)list`];
   REWRITE_TAC[Seq.flatten0];
   DISCH_THEN (REPEAT o GMATCH_SIMP_TAC);
   FIRST_X_ASSUM_ST `sizel` MP_TAC;
@@ -2212,7 +2213,7 @@ let reduction_A = prove_by_refinement(
     ASM_REWRITE_TAC[];
     CONJ_TAC;
       BY(ASM_MESON_TAC[]);
-    INTRO_TAC loop_choice_props [`L`;`N`;`r`;`x`;`g`;`f`;`v`];
+    INTRO_TAC Reduction1.loop_choice_props [`L`;`N`;`r`;`x`;`g`;`f`;`v`];
     ASM_SIMP_TAC[];
     ANTS_TAC;
       BY(ASM_MESON_TAC[Tame_list.quotient_all_uniq;marked_list]);
@@ -2230,3 +2231,5 @@ let reduction_A = prove_by_refinement(
   BY(FIRST_X_ASSUM_ST `dest_triple_full` MP_TAC THEN ASM_SIMP_TAC[])
   ]);;
   (* }}} *)
+
+ end;;

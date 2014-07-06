@@ -489,19 +489,28 @@ let mk_ser_thm t =
 let report_not_found t = 
   if use_serialization then report ("(-:) "^string_of_term t);;
 
+let thm_list = ref [];;
+let add_thm th = 
+  let _ = thm_list := th :: !thm_list in
+    ();;
+
 let des_prove (t,tac) = 
   try 
     let th = mk_ser_thm t in
     let _ = report "(!:)" in
       th
-  with Failure s -> (report_not_found t ;Hol_pervasives.prove(t,tac));;
+  with Failure s -> (report_not_found t ;
+		     let thm = Hol_pervasives.prove(t,tac) in
+		    add_thm thm; thm);;
   
 let des_prove_by_refinement (t,tacs) = 
     try 
     let th = mk_ser_thm t in
     let _ = report "(!:)" in
       th
-  with Failure s -> (report_not_found t ;Prove_by_refinement.prove_by_refinement(t,tacs));;
+  with Failure s -> (report_not_found t ;
+		     let thm = Prove_by_refinement.prove_by_refinement(t,tacs) in
+		    add_thm thm; thm);;
 
 
 (*
@@ -520,8 +529,9 @@ time deserialize_all();;  (* 1237 secs, 1783 secs. 344 secs. *)
 *)
 
 let save_all_theorems() = 
-  let tt = map snd !theorems in
-  let tt2 = digest_thms tt in
+  let _ = update_database() in
+  let tt = (map snd !theorems) @ !thm_list in
+  let tt2 = nub (sort (<) (Theorem_digest.digest_list_extern @ digest_thms tt)) in
   let _ =   save_all tt2 in
     ();;
 

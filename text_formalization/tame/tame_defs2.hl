@@ -16,12 +16,6 @@ flyspeck_needs "../formal_lp/hypermap/computations/list_conversions2.hl";;
 
 module Tame_defs2 = struct
 
-(*
-open Hales_tactic;;
-open Hypermap;;
-open Import_tame_classification;;
-*)
-
 parse_as_infix("POWER",(24,"right"));;
 unparse_as_infix "iso";;
 
@@ -67,21 +61,6 @@ let good_graph = new_definition'
 	    good_faces_v3 g /\
             vertices_set2 g = elements_of_list (fgraph g)`;;
 
-
-(*
-let good_graph = new_definition'
- `!g. good_graph g <=>
-            good_list (fgraph g) /\
-            good_list_nodes (fgraph g) /\
-            finalGraph g /\
-            all uniq (fgraph g) /\
-            (!v. v IN vertices_set2 g
-                 ==> facesAt g v = FILTER (\f. MEM v (FST f)) (faces g)) /\
-            vertices_set2 g = elements_of_list (fgraph g)`;;
-*)
-
-
-
 let iso_list = new_definition' `!L N L' N'. iso_list (L,N) (L',N') <=>
    (?(phi:A->B).  inj_on phi (elements_of_list L) /\
       L' = MAP (MAP phi) L /\
@@ -93,13 +72,9 @@ let isop_list = new_definition' `!L N L' N'.
       L' = MAP (MAP phi) L /\
       N' = MAP (MAP (\u. phi (FST u),phi (SND u))) N)`;;
 
-(*
 let indexf = new_definition' `!s x y. indexf (x:A) y s = 
-   (indexl y s + (sizel s - indexl x s) MOD (sizel s))`;;
-*)
-
-let indexf = new_definition' `!s x y. indexf (x:A) y s = 
-  if (MEM x s /\ MEM y s) then (indexl y s + (sizel s - indexl x s)) MOD sizel s 
+  if (MEM x s /\ MEM y s) 
+  then (indexl y s + (sizel s - indexl x s)) MOD sizel s 
   else sizel s`;;
 
 let f_last = new_definition'
@@ -111,13 +86,6 @@ let one_step_list = new_definition' `one_step_list L (x:A#A) y =
 let loop_list = new_definition'
   `loop_list L (s:(A#A)list) <=>
     (all (\x. MEM x (list_of_darts L) /\ one_step_list L x (next_el s x)) s)`;;
-
-(* March 9, 2014. Def. no good.  next_el requires uniq s
-let contour_list = new_definition'
-  `contour_list L (s:(A#A) list) <=>
-    (all (\x. MEM x (list_of_darts L) /\ 
-       (x = LAST s \/ one_step_list L x (next_el s x))) s)`;;
-*)
 
 let contour_list = new_definition'
   `contour_list L (s:(A#A) list) <=>
@@ -157,12 +125,6 @@ let partition_into_atom0r = new_definition'
 let partition_into_atom = new_definition' `partition_into_atom n r =
   partition_into_atom0 (n:A->A) [] (rev r)`;;
 
-(* old:
-let parts = new_definition `parts L r = 
-  (let H = hypermap_of_list L in
-     partition_into_atom (inverse (node_map H)) r)`;;
-*)
-
 let parts = new_definition' `parts L (r:(A#A)list) = 
   partition_into_atom ((f_list L) o e_list) r`;;
 
@@ -188,11 +150,6 @@ let final_dart_list = new_definition' `final_dart_list (L:((A)list)list) N =
 
 let loop_of_list = new_definition' `loop_of_list (r:(A)list) = 
   loop(set_of_list r, next_el r)`;;
-
-(* next_el_permutes...
-let loop_of_list = new_definition' `loop_of_list (r:(A)list) = 
-  loop(set_of_list r, res (next_el r) (set_of_list r) )`;;
-*)
 
 let loop_family_of_list = new_definition' `loop_family_of_list (N:((A)list)list) = 
   set_of_list (map loop_of_list N )`;;
@@ -472,18 +429,6 @@ let generatePolygon = new_definition'
    let vertexLists = MAP (\is. indexToVertexList f v is) enumeration in
      MAP (\vs. subdivFace g f vs) vertexLists)`;;
 
-(* 1/2014 problem with this definition.  For there to be dart-uniqueness,
-   which is a property of good_lists, we must filter out the duplicate
-   edges.  So this doesn't work. *)
-
-(* deprecated: 
-let generatePolygon_relaxed = new_definition' 
-  `generatePolygon_relaxed n v (f:(num)list#bool) g = 
-  (let enumeration = enumerator n (LENGTH (vertices f)) in
-   let vertexLists = MAP (\is. indexToVertexList f v is) enumeration in
-     MAP (\vs. subdivFace g f vs) vertexLists)`;;
-*)
-
 let next_plane = new_definition'
   `next_plane p g = 
   (let fs = nonFinals g in
@@ -492,17 +437,6 @@ let next_plane = new_definition'
 	let v = minimalVertex g f in
 	  (flatten (MAP (\i. generatePolygon i v f g) 
 		      (upt 3 (SUC (maxGon p))) ))))`;;
-
-(*
-let next_plane_relaxed = new_definition'
-  `next_plane_relaxed p g = 
-  (let fs = nonFinals g in
-     if (fs = []) then [] else
-       (let f = minimalFace fs in
-	let v = minimalVertex g f in
-	  (flatten (MAP (\i. generatePolygon_relaxed i v f g) 
-		      (upt 3 (SUC (maxGon p))) ))))`;;
-*)
 
 let PlaneGraphsP = new_definition'
   `planeGraphsP p = 
@@ -526,19 +460,6 @@ let planegraph_relaxed = new_definition'
 let planegraphP = new_definition'
   `planegraphP p g = ((Seed p,g) IN RTranCl (next_plane p))`;;
 
-
-
-(* hyp'm: l'm *) (* was l'm *)
-
-(*
-let l_m = new_definition' `!L r (x:A#A). l'm L r x = 
-  (let r' = rotate_to r x in
-     min_num 
-       { m | ~(ITER (SUC(SUC m)) (next_el r') x = 
-	     f_list L (ITER (SUC m) (next_el r') x))  })`;;
-2/28/2014 changed.
-*)
-
 let l_m = new_definition' `!L r (x:A#A). l'm L r x = 
      min_num 
        { m | ~(ITER (SUC(SUC m)) (next_el r) x = 
@@ -554,24 +475,8 @@ let l_p = new_definition' `!L N r (x:A#A). l'p L N r x =
 let l_z = new_definition' `!L N r (x:A#A). l'z L N r x =
   (f_list L POWER (SUC (l'p L N r x))) (l'y L r x)`;;
 
-
-(* changed March 9, 2014.
-   hypermap.hl defines hyp'q by an existence theorem and never establishes
-   its minimality.  To be compatible with hypermap.hl, we do the same here.
-
-   Then we prove a theorem about its range of values.
-
-let l_q = new_definition' `!L N r (x:A#A). l'q L N r x = 
-  (let x' = find_list (parts L r) x in
-   let z' = find_list (parts L r) (l'z L N r x) in
-  min_num { q | l'm L r x < q /\ 
-		(next_el (parts L r) POWER (SUC q)) x' = z' })`;;
-
-*)
-
 let l_q = new_definition' `!L N r (x:A#A). l'q L N r x = 
     hyp'q (hypermap_of_list L) (loop_family_of_list N) (loop_of_list r) x`;;
-
 
 let transform_list = new_definition' `!L N r (x:A#A).
   transform_list L x (N, r)  = 
@@ -603,27 +508,9 @@ let transform_count = new_definition'
   `!L N r (x:A#A). transform_count L N r x = 
       min_num {i | final_list L (rtrans L N r x i) }`;;
 
-
-
-(* hyp'S: *)
-
-(* March 9, 2014.  
-let s_list = new_definition' `!L r (x:A#A). s_list L r x =
-  (let r' = rotate_to r x in
-     betwn r x (ITER (SUC (l'm L r x)) (next_el r') x))`;;
-
-let s_list = new_definition' `!L r (x:A#A). s_list L r x =
-     betwn r x (ITER (SUC (l'm L r x)) (next_el r) x)`;;
-
-This has size l'm:  f^1 x... f^(m) x
-*)
-
 let s_list = new_definition' `!L r (d:A#A).
      s_list L r d = 
     MAP (\i. (f_list L POWER i) d) (iota 1  (l'm L r d))`;;
-
-
-(* feb 28 2014 HD p -> LAST p, mar 10 2014 ~(s=[]) *)
 
 let s_flag_list = new_definition' `!L N r (x:A#A).
      s_flag_list L N r x <=>
@@ -642,8 +529,6 @@ let s_flag_list = new_definition' `!L N r (x:A#A).
           ~MEM y (s_list L r x)
           ==> MEM (e_list y) (cat (s_list L r x) (final_dart_list L N)))`;;
 
-(* was empty_flag_list, feb 28 2014 HD p -> LAST p, mar 10 2014 ~(s=[]) *)
-
 let flag_list = new_definition' `!L N.
      flag_list L N <=>
      (!(u:A#A) v.
@@ -660,14 +545,6 @@ let flag_list = new_definition' `!L N.
           ~final_list L r' 
           ==> MEM (e_list y) (final_dart_list L N))`;;
   
-
-(* was respect_final_exact.  The set of finals in g can
-   lag behind the set of finals in L//N. 
-
-  March 14, 2014. Definition updated. 
-  Was match_core_list.
-  *)
-
 let match_quotient_list = new_definition'
  `match_quotient_list g L N <=>
    (
@@ -713,45 +590,12 @@ let transform_assumption = new_definition'
     (good_list L /\ good_list_nodes L /\ marked_list L N r x ==> 
     marked_list L (ntrans L N r x 1) (rtrans L N r x 1) x))`;;
 
-(* replaced with loop_choice2, Jul 2, 2014
-let loop_choice = new_definition'
- `!g L N. loop_choice g (L:((num)list)list) N =
-  (let f = minimalFace (nonFinals g) in
-   let v = minimalVertex g f in
-   let w = nextVertex f v in
-   let d = (v,w) in
-   let r = find_list N d in
-   let p = parts L r in
-     (r,LAST (find_list p d)))`;;
-*)
-
-(* Feb 9, 2014
-  rotate_to w not x.  It puts ys and zs in increasing order. *)
-
-(*
-let triple_data = new_definition'
-  `!g L N. triple_data g L N = 
-    (
-      let (r,x) = loop_choice g L N in
-      let k = transform_count L N r x in
-      let w = next_el r x in
-      let f = rotate_to (find_face L x) w in
-      let ys = filter (\x. MEM x r /\ ~(next_el f x = next_el r x)) f in
-      let zs = filter (\x. MEM x r /\ ~(prev_el f x = prev_el r x)) f in
-      let zp = zip ys zs in
-	(MAP (\ (y,z). (y,z,betwn f y z)) zp))`;;
-
-
-let core_triple = new_definition'
-  `core_triple g L N = 
-  MAP (\ (u,v,ns). (FST u,FST v,sizel ns)) (triple_data g L N)`;;
-
-*)
-
+(* obsolete July 5, 2014
 let ordered_list = new_definition'
   `!vset extra. ordered_list vset extra <=>
       (let n = CARD vset in
 	 vset = (0.. (n-1)) /\ extra = upt n (n+sizel extra))`;;
+*)
 
 let dih2k_list =
   new_definition' `dih2k_list L <=> (?(u:A list). uniq u /\
@@ -765,7 +609,6 @@ let dih2k_list =
 
  *)
 
-(* was mk_triples0, mk_triples *)
 
 let mk_triple0 = new_recursive_definition list_RECURSION
     `mk_triple0 f u n sofar [] = rev sofar /\
@@ -782,8 +625,6 @@ let mk_triple1 = new_definition'
  `mk_triple1 f (vs:((A)option)list) = 
    if (vs = []) then [] else mk_triple0 f (the (HD vs)) 0 [] (TL vs)`;;
 
-(* was dest_triples0, dest_triple *)
-
 let dest_triple0 = new_recursive_definition list_RECURSION
    `dest_triple0 f sofar [] = sofar /\
     dest_triple0 f sofar (uvn::uvns) =
@@ -799,13 +640,6 @@ let dest_triple0 = new_recursive_definition list_RECURSION
 		  then dest_triple0 f (flatten[sofar;[SOME u];ns;[SOME v]]) uvns
 		  else (dest_triple0 f (flatten[sofar;b;[SOME u];ns;[SOME v]]) uvns)
 		 )))`;;
-
-
-
-(*
-let dest_triple = new_definition'
-  `dest_triple f uvns = dest_triple0 (f:(A)list) [] uvns`;;
-*)
 
 let dest_triple_full = new_definition'
   `dest_triple_full f v0 uvns = 
@@ -880,17 +714,6 @@ let atom_list = new_definition'
 let find_atom = new_definition'
    `find_atom L N (d:A#A) = atom_list L (find_list N d) d`;;
 
-(*
-let good_graph = new_definition `good_graph g <=> 
-   good_list (fgraph g) /\
-   good_list_nodes (fgraph g) /\
-   finalGraph g /\ 
-   all uniq (fgraph g) /\
-   (!v. v IN vertices_set2 g
-     ==> facesAt g v = FILTER (\f. MEM v (  FST f)) (faces g)) /\
-   (vertices_set2 g = elements_of_list (fgraph g)) `;;
-*)
-
 let facesAt_list = new_definition'
  `facesAt_list (L:((A)list)list) (v:A) =  FILTER (MEM v) L`;;
 
@@ -923,42 +746,6 @@ let contour_list_connected = new_definition'
     (?s. (~(s = []) /\ HD s = u /\ LAST s = v /\  contour_list L s /\
 	set_of_list s SUBSET X))`;;
 
-(* 2014-04-07 planegraph -> planegraphP p, p-> p - 3,
-   2014-04-09 remove planegraphP from concl, add marked_list hyp. 
-   2014-05-04, added ~final_list L r to hyp. *)
-
-(*
-let generatePolygon_reduction = new_definition'
-  `generatePolygon_reduction_v6 <=> (!L:((num)list)list N N' g p fs f v k r x.  
-      good_list L /\
-      good_list_nodes L /\
-      is_restricted (hypermap_of_list L) /\
-      newvertex_prepped L N r x /\
-      marked_list L N r x /\
-      ~final_list L r /\
-      match_quotient_list g L N /\ 
-      ~(finalGraph g) /\
-      planegraphP p g /\
-      good_faces_v3 g /\
-      vertices_set2 g = elements_of_list (fgraph g) /\
-      p = foldr maxn 0 (MAP sizel L) -3 /\
-      fs = nonFinals g /\
-      f = minimalFace fs /\
-      v = minimalVertex g f /\
-      (r,x) = loop_choice g L N   /\
-      k = transform_count L N r x /\
-      N' = ntrans L N r x k 
-    ==>
-      (?g' i. 
-	 match_quotient_list g' L N' /\
-	 // planegraphP p g' /\
-	 3 <= i /\ i <= maxGon p /\
-	 good_faces_v3 g' /\
-         vertices_set2 g' = elements_of_list (fgraph g') /\
-       MEM g' (generatePolygon i v f g)
-  ))`;;
-*)
-
 (* corrected loop_choice on Jul 2, 2014 : *)
 
 let loop_choice = new_definition'
@@ -970,21 +757,6 @@ let loop_choice = new_definition'
    let r = find_list N d in
    let p = parts L r in
      (r,LAST (find_list p d)))`;;
-
-(*
-let triple_data2 = new_definition'
-  `!g L N. triple_data2 g L N = 
-    (
-      let (r,x) = loop_choice2 g L N in
-      let k = transform_count L N r x in
-      let w = next_el r x in
-      let f = rotate_to (find_face L x) w in
-      let ys = filter (\x. MEM x r /\ ~(next_el f x = next_el r x)) f in
-      let zs = filter (\x. MEM x r /\ ~(prev_el f x = prev_el r x)) f in
-      let zp = zip ys zs in
-	(MAP (\ (y,z). (y,z,betwn f y z)) zp))`;;
-*)
-
 
 let generatePolygon_reduction = new_definition'
   `generatePolygon_reduction_v7 <=> (!L:((num)list)list N N' g p fs f v k r x.  

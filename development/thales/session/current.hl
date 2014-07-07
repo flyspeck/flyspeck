@@ -51,6 +51,26 @@ let core_split_normal_list = new_definition'
              (cat [FST z'] (cat (betwn (core L r) (FST z') (FST y)) [FST y]))
              newVs))`;;
 
+let core_split_normal_list_assumption = new_definition'
+  `!L.  core_split_normal_list_assumption L <=> 
+  (! N r (x:A#A).  good_list L /\
+  good_list_nodes L /\
+  marked_list L N r x /\
+  ~final_list L r 
+     ==> core_split_normal_list L N r x)`;;
+
+let r_trans_eq_assumption = new_definition'
+  `!L.  r_trans_eq_assumption L <=> 
+  (! N r (x:A#A).  good_list L /\
+  good_list_nodes L /\
+  marked_list L N r x /\
+  ~final_list L r 
+     ==> r_rtrans_eq L N r x)`;;
+
+let element_pre = new_definition'
+  `!L N. element_pre L N <=>
+    (elements_of_list (quotient_list L N) = 0..PRE (sizel (undup (MAP FST (flatten N)))))`;;
+
 
 (* subdivFace0C *)
 
@@ -2454,3 +2474,46 @@ let reduction_B = prove_by_refinement(
 
 
 
+let lnrx_induction = prove_by_refinement(
+  `!j L N r x.
+    core_split_normal_list_assumption L /\
+    r_trans_eq_assumption L /\
+    good_list L /\
+    good_list_nodes L /\
+    marked_list L N r x /\
+    newvertex_prepped L N r x /\
+    element_pre L N /\
+    j < transform_count L N r x ==>
+    newvertex_prepped L (ntrans L N r x j) (rtrans L N r x j) x /\
+    element_pre L (ntrans L N r x j)
+    `,
+  (* {{{ proof *)
+  [
+  INDUCT_TAC THEN SIMP_TAC[trans0];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY ` is_restricted (hypermap_of_list L)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[marked_list]);
+  TYPIFY `transform_assumption_v2 L` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(REWRITE_TAC[transform_assumption_v2_lemma]);
+  TYPIFY `marked_list L (ntrans L N r x j) (rtrans L N r x j) x` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Tame_list.AQIUNPP3]);
+  TYPIFY `j < transform_count L N r x` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_SIMP_TAC[arith `SUC j < k ==> j < k`]);
+  TYPIFY `~(final_list L (rtrans L N r x j))` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC Kbwpbhq.transform_count_not;
+    BY(ASM_REWRITE_TAC[]);
+  TYPIFY `r_rtrans_eq L (ntrans L N r x j) (rtrans L N r x j) x` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC [r_trans_eq_assumption]);
+  SUBCONJ2_TAC;
+    INTRO_TAC Reduction2.elements_of_list_ntrans [`L`;`ntrans L N r x j`;`rtrans L N r x j`;`x`];
+    ASM_REWRITE_TAC[GSYM element_pre];
+    REWRITE_TAC[GSYM trans_add;arith `1 + j = SUC j`];
+    DISCH_THEN MATCH_MP_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  INTRO_TAC Reduction2.newvertex_prepped_transform [`L`;`ntrans L N r x j`;`rtrans L N r x j`;`x`];
+  REWRITE_TAC[GSYM trans_add;arith `1 + j = SUC j`];
+  DISCH_THEN MATCH_MP_TAC;
+  BY(ASM_SIMP_TAC[GSYM element_pre])
+  ]);;
+  (* }}} *)

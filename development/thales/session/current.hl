@@ -3008,9 +3008,6 @@ let replace_filter3 = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
-
-
 (* 
 let mem_faceListAt_lemma = prove_by_refinement(
   `!g ram1 ram2 oldF news vs1 vs2 h i.
@@ -3175,8 +3172,8 @@ let mem_faceListAt_lemma = prove_by_refinement(
 let mem_faceListAt_lemma = prove_by_refinement(
   `!g ram1 ram2 oldF news vs1 vs2 h i.
   (let (f1,f2,g') = splitFace g ram1 ram2 oldF news in
-    ~(MEM f1 (flatten (faceListAt g))) /\
-      ~(MEM f2 (flatten (faceListAt g))) /\
+//    ~(MEM f1 (flatten (faceListAt g))) /\
+//      ~(MEM f2 (flatten (faceListAt g))) /\
       good_faces_v3 g /\
       countVertices g = sizel (faceListAt g) /\
        (!i. i < sizel (faceListAt g) /\ MEM i (FST f1) ==> MEM i (FST oldF)) /\
@@ -3347,22 +3344,227 @@ let mem_faceListAt_lemma = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let mem_flatten_facelistat = prove_by_refinement(
+  `!g f. countVertices g = sizel (faceListAt g) /\
+    good_faces_v3 g /\ (MEM f (flatten (faceListAt g))) ==> MEM f (faces g)`,
+  (* {{{ proof *)
+  [
+  SIMP_TAC[Seq2.mem_flatten;good_faces;GSYM vertices_set2_countVertices];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM_ST `faceListAt` (MP_TAC o (REWRITE_RULE[ MEM_EXISTS_EL;lower_case;GSYM facesAt]));
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `MEM f (facesAt_v2 g i)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Seq.perm_eq_mem]);
+  POP_ASSUM MP_TAC THEN REWRITE_TAC[facesAt_v2;lower_case;Seq.mem_filter];
+  BY(MESON_TAC[])
+  ]);;
+  (* }}} *)
 
+let splitFace_props = prove_by_refinement(
+    `!g ram1 ram2 oldF news vs1 vs2 h i.
+  (let (f1,f2,g') = splitFace g ram1 ram2 oldF news in
+      good_faces_v3 g /\
+      countVertices g = sizel (faceListAt g) /\
+       vertices_set2 g = elements_of_list (fgraph g) /\
+       MEM oldF (faces g) /\
+       ~(MEM f1 (faces g)) /\
+       ~(MEM f2 (faces g)) /\
+      uniq (FST oldF) /\
+      uniq (faces g) /\
+      MEM ram1 (FST oldF) /\
+      MEM ram2 (FST oldF) /\
+      ~(ram1 = ram2) /\
+      betwn (FST oldF) ram1 ram2 = vs1 /\
+      betwn (FST oldF) ram2 ram1 = vs2 /\
+       (!i. i < sizel (faceListAt g) ==> ~(MEM i news))
 
-let good_faces_transform_lemma = prove_by_refinement(
-  `!L N r x g g' fw h newVs w y z'.        good_list L /\
+       ==>
+     (!i. i < sizel (faceListAt g) <=> MEM i (flatten (fgraph g))) /\
+    ~(MEM f1 (flatten (faceListAt g))) /\
+      ~(MEM f2 (flatten (faceListAt g))) /\
+       (!i. i < sizel (faceListAt g) /\ MEM i (FST f1) ==> MEM i (FST oldF)) /\
+       (!i. i < sizel (faceListAt g) /\ MEM i (FST f2) ==> MEM i (FST oldF)) /\
+       MEM ram1 (FST f1) /\ MEM ram1 (FST f2) /\ MEM ram2 (FST f1) /\ MEM ram2 (FST f2) /\
+       (!i. MEM i vs2 ==> (MEM i (FST f2) /\ ~(MEM i (FST f1)))) /\
+       (!i. MEM i vs1 ==> (MEM i (FST f1) /\ ~(MEM i (FST f2)))) /\
+      ram1 < sizel (faceListAt g) /\
+      ram2 < sizel (faceListAt g) /\
+      ~(f1 = f2) /\
+       (MEM i vs1 ==> i < sizel (faceListAt g)) /\
+       (MEM i vs2 ==> i < sizel (faceListAt g))
+  )    
+ `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[splitFace];
+  LET_TAC;
+  POP_ASSUM MP_TAC THEN REPEAT LET_TAC;
+  REWRITE_TAC[PAIR_EQ];
+  REPEAT WEAKER_STRIP_TAC;
+  FULL_EXPAND_TAC "f1";
+  FULL_EXPAND_TAC "f2";
+  FULL_EXPAND_TAC "vs1";
+  FULL_EXPAND_TAC "vs2";
+  FIRST_X_ASSUM_ST `split_face` MP_TAC THEN REWRITE_TAC[split_face];
+  REWRITE_TAC[LET_THM;lower_case;PAIR_EQ];
+  REPEAT WEAKER_STRIP_TAC;
+  RULE_ASSUM_TAC(REWRITE_RULE[]);
+  TYPIFY `~MEM f1' (flatten Fs) /\  ~MEM f2' (flatten Fs) ` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[ mem_flatten_facelistat]);
+  ASM_REWRITE_TAC[];
+  REPEAT (FIRST_X_ASSUM_ST `replacefacesAt` kill);
+  TYPIFY `MEM ram1 (FST f1') /\ MEM ram1 (FST f2') /\ MEM ram2 (FST f1') /\ MEM ram2 (FST f2')` (C SUBGOAL_THEN ASSUME_TAC);
+    FULL_EXPAND_TAC "f1'";
+    FULL_EXPAND_TAC "f2'";
+    BY(REWRITE_TAC[FST;Seq.mem_cat;MEM;FACE]);
+  ASM_REWRITE_TAC[];
+  SUBCONJ_TAC;
+    TYPIFY_GOAL_THEN `!i. MEM i (flatten (fgraph g)) <=> MEM i (undup (flatten (fgraph g)))` (unlist REWRITE_TAC);
+      BY(REWRITE_TAC[Seq.mem_undup]);
+    REWRITE_TAC[GSYM List_hypermap.list_of_elements;GSYM IN_SET_OF_LIST;GSYM List_hypermap.elements_of_list];
+    BY(ASM_MESON_TAC[vertices_set2_countVertices]);
+  DISCH_TAC;
+  TYPIFY `!i. MEM i (FST oldF) ==> MEM i (flatten (fgraph g))` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[Seq2.mem_flatten];
+    BY(ASM_MESON_TAC[mem_faces_fgraph]);
+  TYPIFY `ram1 < sizel Fs /\ ram2 < sizel Fs` (C SUBGOAL_THEN ASSUME_TAC);
+    ASM_REWRITE_TAC[];
+    BY(CONJ_TAC THEN POP_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
+  FIRST_ASSUM (unlist REWRITE_TAC);
+  TYPIFY `!i. (MEM i vs1' ==> MEM i (FST oldF)) /\  (MEM i vs2' ==> MEM i (FST oldF))` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Tame_list.betwn_mem]);
+  TYPIFY `!i. (MEM i vs1' ==> i < sizel Fs) /\ (MEM i vs2' ==> i < sizel Fs)` (C SUBGOAL_THEN MP_TAC);
+    BY(ASM_MESON_TAC[]);
+  SIMP_TAC[];
+  DISCH_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `flatten` MP_TAC);
+  ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN REPEAT WEAKER_STRIP_TAC;
+  REPEAT (FIRST_X_ASSUM_ST `APPEND` kill);
+  REPEAT (FIRST_X_ASSUM_ST `~MEM f (flatten FF)` kill);
+  FIRST_X_ASSUM_ST `a /\ b /\ c /\ d` kill;
+  REPEAT (FIRST_X_ASSUM_ST `~MEM (f:((A)list # bool)) FF` kill);
+  FULL_EXPAND_TAC "f1'";
+  FULL_EXPAND_TAC "f2'";
+  ASM_REWRITE_TAC[FACE;FST;Seq.mem_cat;Seq.mem_rev;MEM];
+  RULE_ASSUM_TAC(REWRITE_RULE[]);
+  ASM_SIMP_TAC[];
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[]);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[betwn_disjoint;not_betwn1;not_betwn2]);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[betwn_disjoint;not_betwn1;not_betwn2]);
+  REWRITE_TAC[FACE;PAIR_EQ;DE_MORGAN_THM];
+  TYPIFY `news = []` ASM_CASES_TAC;
+    ASM_REWRITE_TAC[Seq.cat0s;GSYM Seq.catA;rev0;Seq.cat1s];
+    BY(ASM_REWRITE_TAC[Seq.cat0s;GSYM Seq.catA;rev0;Seq.cat1s;CONS_11]);
+  INTRO_TAC rcons_butlast [`news`];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN SUBST1_TAC;
+  REWRITE_TAC[Seq.rev_rcons;GSYM Seq.catA;Seq.cat1s;CONS_11;DE_MORGAN_THM;Seq.cat_cons];
+  DISJ1_TAC;
+  BY(ASM_MESON_TAC[MEM_LAST])
+  ]);;
+  (* }}} *)
+
+(* extends assumption_set2 *)
+
+let assumption_setK = new_definition'
+  `assumption_setK <=> (!L N r x k uvns vs vs' fx v.
+      good_list L /\
       good_list_nodes L /\
       is_restricted (hypermap_of_list L) /\
       newvertex_prepped L N r x /\
       marked_list L N r x /\
       ~final_list L r /\
-      match_quotient_list g L N /\
+      core_triple_v4 L N r x = uvns /\
+      dest_triple_full (core L r) v uvns = vs /\
+      MAP the (filter isSome vs) = vs' /\
+       transform_count L N r x = k /\
+        find_face L x = fx /\
+      prev_el (core L r) v,v = x 
+
+      ==> 
+
+      (!i. MEM i (MAP FST (flatten N)) ==> 
+	 ~(MEM i (MAP FST (betwn fx (ytrans L N r x 0) (ztrans L N r x 0))))) /\
+      (~(FST (ytrans L N r x 0) = FST (ztrans L N r x 0))) /\
+      (let (f1,f2) = split_normal_list L r fx (ytrans L N r x 0) (prev_el r (ztrans L N r x 0)) in
+	 ~MEM (core L f1) (quotient_list L N) /\
+	 ~MEM (core L f2) (quotient_list L N)) /\
+               ~(transform_count L N r x = 0) /\
+         0 < transform_count L N r x /\
+         FST x = prev_el (core L r) v /\
+         MEM x fx /\
+         uniq fx /\
+         1 <= sizel fx /\
+         1 < sizel (core L r) /\
+         (!i. SUC i < k
+              ==> indexf (ytrans L N r x 0) (ztrans L N r x i) fx <=
+                  indexf (ytrans L N r x 0) (ytrans L N r x (SUC i)) fx) /\
+         (!i. SUC i < k
+              ==> indexf (ytrans L N r x 0) (ytrans L N r x (SUC i)) fx <=
+                  indexf (ytrans L N r x 0) (ztrans L N r x (SUC i)) fx) /\
+         indexf (next_el fx x) (ztrans L N r x (PRE k)) fx <=
+         indexf (next_el fx x) x fx /\
+         indexf (next_el fx x) (ytrans L N r x 0) fx <=
+         indexf (next_el fx x) (ztrans L N r x (PRE k)) fx /\
+         MEM (next_el fx x) r /\
+         (!i. i < k ==> ~(ytrans L N r x i = ztrans L N r x i)) /\
+         (!i. i < k ==> MEM (ztrans L N r x i) r) /\
+         (!i. i < k ==> MEM (ytrans L N r x i) r) /\
+         MEM (next_el fx x) fx /\
+         (!i. i < k ==> MEM (ytrans L N r x i) fx) /\
+         (!i. i < k ==> MEM (ztrans L N r x i) fx) /\
+         uniq (core L r) /\
+         FST (next_el fx x) = v /\
+         (!u. MEM u r ==> MEM (FST u) (core L r)) /\
+         indexf v (FST (ytrans L N r x 0)) (core L r) =
+         indexf (next_el fx x) (ytrans L N r x 0) fx /\
+         indexf (FST (ztrans L N r x (PRE k))) (FST x) (core L r) =
+         indexf (ztrans L N r x (PRE k)) x fx /\
+         (!i. SUC i < k
+              ==> indexf (FST (ztrans L N r x i))
+                  (FST (ytrans L N r x (SUC i)))
+                  (core L r) =
+                  indexf (ztrans L N r x i) (ytrans L N r x (SUC i)) fx) /\
+	   (!i. SUC i < sizel vs'
+            ==> indexf v (EL i vs') (core L r) <
+           indexf v (EL (SUC i) vs') (core L r)) /\
+          (!i. (let d = the (EL i vs),the (EL (SUC i) vs) in
+             isSome (EL i vs) /\
+               isSome (EL (SUC i) vs) /\
+               SUC i < sizel vs /\
+               MEM d (list_of_darts (quotient_list L N))
+             ==> MEM d (list_pairs (core L r))))
+  )`;;
+
+let good_faces_transform_lemma = prove_by_refinement(
+  `!L N r x g g' fw h newVs v f fs w.        
+    assumption_setK /\
+    good_list L /\
+    good_list_nodes L /\
+    is_restricted (hypermap_of_list L) /\
+    newvertex_prepped L N r x /\
+    marked_list L N r x /\
+    ~final_list L r /\
+    match_quotient_list g L N /\
+    countVertices g = sizel (faceListAt g) /\
+    vertices_set2 g = elements_of_list (fgraph g) /\
     fgraph g' = quotient_list L (ntrans L N r x 1) /\
-        core L r = FST h /\
+    core L r = FST h /\
     MEM h (faces g) /\
     next_el (find_face L x) x = w /\
     rotate_to (find_face L x) w = fw /\
-    SND (SND (splitFace g (FST y) (FST z') h newVs)) = g' /\
+    nonFinals g  = fs/\
+    minimalFace fs  = f/\
+    minimalVertex g f = v /\
+    // loop_choice2 g L N - r,x /\
+
+    SND (SND (splitFace g (FST (ytrans L N r x 0)) (FST (ztrans L N r x 0)) h newVs)) = g' /\
     good_faces_v3 g ==>
     good_faces_v3 g' `,
   (* {{{ proof *)
@@ -3380,6 +3582,7 @@ let good_faces_transform_lemma = prove_by_refinement(
   art[]
   amt[marked_list]
   art[]
+
   intro all_uniq_faceListAt_lemma [`g`;`(FST y)`;`(FST z')`;`h`;`newVs`]
   repeat LET_TAC
   typ `g' = g''` sat

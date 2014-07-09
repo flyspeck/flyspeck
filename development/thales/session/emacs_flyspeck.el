@@ -27,6 +27,10 @@
 ; if option key doesn't work as alt-key:
 (setq mac-option-modifier 'meta)
 
+; turn on or off paren matching
+(show-paren-mode 1)
+(show-paren-mode nil)
+
 ; process control 
 (signal-process 6592 9)
 

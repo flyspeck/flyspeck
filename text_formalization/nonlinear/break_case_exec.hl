@@ -39,15 +39,26 @@ let ( MSEC_INC ) = 1000;; (* global parameter for msec target size *)
 let ERROR_TOLERANCE = 0.3;;  (* try for times within MSEC_INC * (1 +/- ERROR_TOLERANCE ). *)
 let verbose = true;;
 
+let get_idq s = 
+  find (fun idq -> idq.idv = s) !Prep.prep_ineqs;;
+
+let get_ineq s = 
+  (get_idq s).ineq;;
+
+
+(*
 let get_prep s = 
   let p1 = !Prep.prep_ineqs in
     (find (fun t -> (t.idv = s)) p1);;
+*)
+
+
 
 let delta_ineq = 
   let t1 = (hd(Ineq.getexact "7823243247")).ineq in
   let t2 = (hd(Ineq.getexact "5744538693")).ineq  in
-  let t3 = (get_prep "prep-2327525027").ineq in
-  let t4 = (get_prep "prep-4092227918").ineq in 
+  let t3 = (get_idq "prep-2327525027").ineq in
+  let t4 = (get_idq "prep-4092227918").ineq in 
   let t = end_itlist (curry mk_conj) [t1;t2;t3;t4] in
     Sphere.new_definition' (mk_eq (`delta_ineq_v6:bool`,t));;
 
@@ -1112,12 +1123,6 @@ let idv_parameters s =
   let count = count_iargs s in
     map (fun i -> (s,i)) (0-- (count - 1));;
 
-let get_idq s = 
-  find (fun idq -> idq.idv = s) !Prep.prep_ineqs;;
-
-let get_ineq s = 
-  (get_idq s).ineq;;
-
 let run_generic get_tactic needs_delta_ineq s = 
   let t = get_ineq s in
   let di = `delta_ineq_v6:bool` in
@@ -1129,6 +1134,7 @@ let run_generic get_tactic needs_delta_ineq s =
   let a,w = top_goal() in
   let _ = (b && a = [di]) or (a =[]) or failwith ("unexpected assumption: "^s) in
     w;;
+
 
 
 
@@ -1614,7 +1620,8 @@ let get_delta_tactic s =
   let inert = is_delta_inert t in 
   let pos = is_delta_pos t in
   let _ = inert or pos or failwith ("delta series expected: "^s) in
-  let TAC = if pos then DELTA_TAC (find_domain t) else ALL_TAC in
+  let TAC = if pos then DELTA_TAC (find_domain t) else REPEAT GEN_TAC 
+    (* changed July 8, 2014 ALL_TAC *) in
     TAC;;
 
 let all_delta_parameters = List.flatten (map idv_parameters delta_idv);;
@@ -2028,24 +2035,62 @@ let check_tac s gl =
   let _ = (bad_names w = []) or failwith ("bad names: "^s) in
     ALL_TAC gl;;
 
+let noarg f x = f;;
+
+let cases = 
+  [(oxl_idv,noarg POSTPREP_OXL_634_TAC,noarg false);
+   (alpha_idv,get_alpha_tactic,noarg false);
+   (beta_idv,get_beta_tactic,needs_beta);
+   (gamma_idv,get_gamma_tactic,needs_gamma);
+   (delta_idv,get_delta_tactic,noarg false)];;
+
+let get_case s = find (fun (ls,_,_)-> mem s ls) cases;;
+
 let get_nth = 
-  let noarg f x = f in
-  let cases = 
-    [(oxl_idv,noarg POSTPREP_OXL_634_TAC,noarg false);
-     (alpha_idv,get_alpha_tactic,noarg false);
-     (beta_idv,get_beta_tactic,needs_beta);
-     (gamma_idv,get_gamma_tactic,needs_gamma);
-     (delta_idv,get_delta_tactic,noarg false)] in 
   fun j->
   let (s,i) = List.nth all_parameters j in
-  let (_,tac,need) = find (fun (ls,_,_)-> mem s ls) cases in
+  let (_,tac,need) = get_case s in
   let run = run_generic (fun s -> tac s THEN check_tac s) need in
     get_one_iarg run (s,i);;
+
+(* old OXL material *)
+
+(*
+let mk_i i = 
+  try 
+    let _ = Serialization.mk_ser_thm ( get_nth i) in
+      (true,i)
+  with Failure _ ->  (false,i);;
+*)
+
+(*
+let prove_oxl_serialize_processed_idv s =
+  let get_tactic s = POSTPREP_OXL_634_TAC in
+  let needs_delta_ineq s = false in
+  let run = run_generic get_tactic needs_delta_ineq in
+  let t =  run (* mk_post_prep_oxl *) s in
+  let iarg  = get_iarg s in 
+    prove_serialize_processed_idq t iarg;;
+
+let SERIAL_OXL_TAC s gl = 
+  let t = goal_concl gl in
+  let iarg = get_iarg s in 
+  let thm = prove_oxl_serialize_processed_idq t iarg in
+    ACCEPT_TAC thm gl;;
+
+(* This generates theorems for all the prop-OXLZLEZ series inequalities in prep.hl *)
+
+let exec_prove_all_prep_oxl () = 
+  map prove_prep_oxl  all_oxl_idv;;
+
+*)
+
+
+
 
 (* ********************************************************************** *)
 (* reconstruct inequality on full domain from subdomains *)
 (* ********************************************************************** *)
-
 
 let rec prove_iargs tm = 
   let (_,[x;d;f]) = strip_comb tm in
@@ -2078,13 +2123,7 @@ let prove_iargs_cases tm iarg =
   let pthm = prove_iargs (rhs1) iarg in
     EQ_MP (SYM eq1) pthm;;
 
-let mk_i i = 
-  try 
-    let _ = Serialization.mk_ser_thm ( get_nth i) in
-      (true,i)
-  with Failure _ ->  (false,i);;
-
-let prove_oxl_serialize_processed_idq t iarg = 
+let prove_serialize_processed_idq t iarg = 
   let cl =  mk_case_list t iarg in
   let cthms = map Serialization.mk_ser_thm cl in
   let athm =  prove_iargs_cases t iarg in
@@ -2094,31 +2133,39 @@ let prove_oxl_serialize_processed_idq t iarg =
     (DISCH_ALL rthm) in
     vthm;;
 
-let prove_oxl_serialize_processed_idv s =
-  let get_tactic s = POSTPREP_OXL_634_TAC in
-  let needs_delta_ineq s = false in
-  let run = run_generic get_tactic needs_delta_ineq in
-  let t =  run (* mk_post_prep_oxl *) s in
-  let iarg  = get_iarg s in 
-    prove_oxl_serialize_processed_idq t iarg;;
-
-let SERIAL_OXL_TAC s gl = 
+let SERIAL_TAC s gl = 
   let t = goal_concl gl in
   let iarg = get_iarg s in 
-  let thm = prove_oxl_serialize_processed_idq t iarg in
+  let thm = prove_serialize_processed_idq t iarg in
     ACCEPT_TAC thm gl;;
 
-let prove_oxl_serialized_idv s = 
-  let idq =  get_prep s in
-    prove(idq.ineq, POSTPREP_OXL_634_TAC THEN SERIAL_OXL_TAC s);;
+(*
+let prove_serialized_idv s = 
+  let w =  get_ineq s in
+  let (_,PREP_TAC,nd) = get_case s in
+    if (nd s) then failwith "needs delta: " else
+    prove(w, PREP_TAC s THEN SERIAL_TAC s);;
+*)
 
-let prove_prep_oxl s =
+let prove_serialized_idv s = 
+  let t = get_ineq s in
+  let di = `delta_ineq_v6:bool` in
+  let (_,PREP_TAC,nd) = get_case s in
+  let gt = if (nd s) then mk_imp(di,t) else t in
+  let _ = g gt in
+      (prove(gt, PREP_TAC s THEN SERIAL_TAC s));;
+
+let prove_prep s =
   let _ = report s in
-    (s,prove_oxl_serialized_idv s);;
+    try
+      (s,prove_serialized_idv s)
+    with Failure m -> (report "FAIL"; (m^s,TRUTH));;
+	
+let test_prep s = 
+    try 
+      (prove_prep s; true)
+    with Failure _ -> (report ("fail "^s); false);;
 
-(* This generates theorems for all the prop-OXLZLEZ series inequalities in prep.hl *)
-
-let exec_prove_all_prep_oxl () = 
-  map prove_prep_oxl  all_oxl_idv;;
+let all_idv = setify (oxl_idv @ alpha_idv @ beta_idv @ gamma_idv @ delta_idv);;
 
 end;;

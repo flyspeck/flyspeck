@@ -9,7 +9,7 @@
 (* save theorems out to disk and reload *)
 
 needs "general/theorem_digest.hl";;
-needs "general/theorem_oxl_digest.hl";;
+needs "general/theorem_nonlinear_digest.hl";;
 needs "general/prove_by_refinement.hl";;
 
 (* #load "str.cma";; *)
@@ -453,7 +453,7 @@ let set_of_string sl =
 
 let mk_deserialize_thm = 
   let digest_set = set_of_string 
-    (Theorem_digest.digest_list_extern @ Theorem_oxl_digest.digest_list_extern) in
+    (Theorem_digest.digest_list_extern @ Theorem_nonlinear_digest.digest_list_extern) in
   let pseudo_thm = prove (`(\(x:bool). x) T`,MESON_TAC[]) in
   let abs_rep,rep_abs = Hol.new_basic_type_definition 
     "extern_bool8" ("serialize8","deserialize8") (pseudo_thm) in
@@ -470,10 +470,19 @@ let mk_deserialize_thm =
 
 let deserialization_axiom = 
   let t = mk_const (deserial,[]) in
+    fun () ->
+      try
+	find (fun u -> t = concl u && hyp u = []) (axioms())
+      with _ -> Hol.new_axiom t;;
+
+(* creates a new axiom each time. since ax is computed only once:
+let deserialization_axiom = 
+  let t = mk_const (deserial,[]) in
   let ax = axioms() in
   let found = filter (fun u -> t = concl u && hyp u = []) ax in
     fun () ->
       if (not(found=[])) then hd found else Hol.new_axiom t;;
+*)
 
 let use_serialization = 
   try

@@ -5289,6 +5289,10 @@ let main_induction = prove_by_refinement(
   simp[]
   dt
 
+    comment "B_NFGTRANS"
+    typ `b_nfgtrans0 f g L N r x (SUC i) = ((SOME (FST (ztrans L N r x (PRE (SUC i)))),0),(fi,gi))` ets
+  dthen (mp o orr[PAIR_EQ2])
+  simp[]
   (* now just the b_nfgtrans0 conclusions *)
 
 xxd
@@ -5297,3 +5301,477 @@ xxd
 
 Reduction2.splitFace_good_vertices_set2;;
 trans_add;;
+
+b_nfgtrans_suc:
+
+iota (sizel (undup (MAP FST (flatten (ntrans L N r x i)))))
+      (sizel (betwn fx (ytrans L N r x i) (ztrans L N r x i))) =
+      newVs /\
+MAP FST (betwn fx (ytrans L N r x i) (ztrans L N r x i)) = newVs /\
+i < transform_count L N r x /\
+0 < i
+      ==> FST (b_nfgtrans0 f g L N r x i) =
+          SOME (FST (ztrans L N r x (PRE i))),0 /\
+SND (b_nfgtrans0 f g L N r x i) = f',g' /\
+SND
+      (splitFace g' (FST (ytrans L N r x i)) (FST (ztrans L N r x i)) f'
+      newVs) =
+      fi,gi /\
+
+SND (nfgtrans' (countVertices g,f,g) L N r x i) = f',g' 
+
+SND (nfgtrans' (countVertices g,f,g) L N r x (SUC i)) = fi,gi /\
+
+==> b_nfgtrans0 f g L N r x (SUC i) =
+ (SOME (FST (ztrans L N r x (PRE (SUC i)))),0),fi,gi
+
+
+
+(* MORE DEFS *)
+
+let prebatch = new_definition' 
+  `!f0 L N r (x:A#A) i.
+         prebatch f0 L N r x i =
+         (foldl (dest_triple0_step f0) [] (take i (core_triple_v4 L N r x)))`;;
+
+let dest_triple0_rcons = new_definition'
+  `dest_triple0_rcons f s ((u:A),v,n) =
+    (let ns = nseq n NONE in
+       if (flatten s = []) then (flatten[[SOME u];ns;[SOME v]])
+       else 
+	 (let u0 = the (LAST (LAST s)) in
+	  let b = MAP SOME (betwn f u0 u) in
+	    if (u0 = u) then (flatten[ns;[SOME v]])
+	    else if (next_el f u0 = u) then (flatten[[SOME u];ns;[SOME v]])
+	    else (flatten[b;[SOME u];ns;[SOME v]])))`;;
+
+
+(* END DEFS *)
+
+let prebatch_batch = prove_by_refinement(
+  `!f0 L N r x i. flatten (prebatch f0 L N r x i) = batch0 f0 L N r x i`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[prebatch;batch])
+  ]);;
+  (* }}} *)
+
+let prebatch0 = prove_by_refinement(
+  `!f0 L N r x.
+    prebatch f0 L N r x 0 = []`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[prebatch;Seq.foldl;dest_triple0_step;Seq.take])
+  ]);;
+  (* }}} *)
+
+let prebatch_suc = prove_by_refinement(
+  `!f L N r x i.
+    good_list L /\
+    good_list_nodes L /\
+    is_restricted (hypermap_of_list L) /\
+    marked_list L N r x /\
+    ~final_list L r /\
+     i < transform_count L N r x 
+    ==>
+    prebatch f L N r x (SUC i) = dest_triple0_step f (prebatch f L N r x i)
+	(FST (ytrans L N r x i),
+	 FST (ztrans L N r x i),
+	 sizel (betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i)))`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[prebatch];
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC take_el;
+  ASM_SIMP_TAC[size_core_triple];
+  REWRITE_TAC[foldl_rcons];
+  REWRITE_TAC[GSYM prebatch];
+  GMATCH_SIMP_TAC el_core_triple;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+
+let dest_triple0_rcons_paired = prove_by_refinement(
+  `!f s p. dest_triple0_rcons f s p = 
+    (let ns = nseq (SND(SND p)) NONE in
+       if (flatten s = []) then (flatten[[SOME (FST p)];ns;[SOME (FST (SND p))]])
+       else 
+	 (let u0 = the (LAST (LAST s)) in
+	  let b = MAP SOME (betwn f u0 (FST p)) in
+	    if (u0 = (FST p)) then (flatten[ns;[SOME (FST (SND p))]])
+	    else if (next_el f u0 = (FST p)) then (flatten[[SOME (FST p)];ns;[SOME (FST (SND p))]])
+	    else (flatten[b;[SOME (FST p)];ns;[SOME (FST (SND p))]])))`,
+  (* {{{ proof *)
+  [
+  GEN_TAC THEN GEN_TAC;
+  BY(REWRITE_TAC[FORALL_PAIR_THM;dest_triple0_rcons])
+  ]);;
+  (* }}} *)
+
+let dest_triple0_step_rcons = prove_by_refinement(
+  `!f s (u:A) v n. (flatten s = [] ==> s = []) ==>
+    dest_triple0_step f s (u,v,n) = rcons s (dest_triple0_rcons f s (u,v,n))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[dest_triple0_step];
+  REPEAT LET_TAC;
+  REWRITE_TAC[dest_triple0_rcons;LET_THM];
+  COND_CASES_TAC THEN ASM_SIMP_TAC[Seq.rcons];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+  BY(COND_CASES_TAC THEN ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let dest_triple0_step_rcons_paired = prove_by_refinement(
+  `!f s p. (flatten s = [] ==> s = []) ==>
+    dest_triple0_step f s p = rcons s (dest_triple0_rcons f s p)`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  REWRITE_TAC[dest_triple0_step_paired];
+  REPEAT LET_TAC;
+  REWRITE_TAC[dest_triple0_rcons_paired;LET_THM];
+  COND_CASES_TAC THEN ASM_SIMP_TAC[Seq.rcons];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+  BY(COND_CASES_TAC THEN ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+let b_nfgtrans_suc = prove_by_refinement(
+  `!i f g L N r x.
+     good_list L /\
+    good_list_nodes L /\
+    marked_list L N r x /\
+    ~final_list L r /\
+    is_restricted (hypermap_of_list L) /\
+     i < transform_count L N r x /\
+   (batch0 (FST f) L N r x i = [] ==> prebatch (FST f) L N r x i = [])
+==>
+    (b_nfgtrans0 f g L N r x (SUC i) = foldl subdiv_single_step (b_nfgtrans0 f g L N r x i)
+ (dest_triple0_rcons (FST f) (prebatch (FST f) L N r x i)
+ (FST (ytrans L N r x i),
+  FST (ztrans L N r x i),
+  sizel (betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i)))))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPED_ABBREV_TAC `bb = b_nfgtrans0 f g L N r x i`;
+  ASM_REWRITE_TAC[b_nfgtrans;GSYM prebatch_batch];
+  REPEAT WEAKER_STRIP_TAC;
+  REPEAT LET_TAC;
+  GMATCH_SIMP_TAC prebatch_suc;
+  ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC dest_triple0_step_rcons_paired;
+  REWRITE_TAC[GSYM Seq.cats1;Seq.flatten_cat];
+  ASM_REWRITE_TAC[Seq.foldl_cat;prebatch_batch];
+  TYPIFY `(foldl subdiv_single_step ((fst_u0,0),f,g) (batch0 (FST f) L N r x i)) = b_nfgtrans0 f g L N r x i` (C SUBGOAL_THEN SUBST1_TAC);
+    ASM_REWRITE_TAC[b_nfgtrans;LET_THM];
+    ASM_REWRITE_TAC[Aq1.flatten_sing];
+    FULL_EXPAND_TAC "bb";
+    REWRITE_TAC[b_nfgtrans];
+    BY(ASM_REWRITE_TAC[LET_THM]);
+  BY(ASM_REWRITE_TAC[Aq1.flatten_sing])
+  ]);;
+  (* }}} *)
+
+let prebatch1 = prove_by_refinement(
+  `!f L N r x.
+     good_list L /\
+    good_list_nodes L /\
+    marked_list L N r x /\
+    ~final_list L r /\
+    is_restricted (hypermap_of_list L) /\
+     0 < transform_count L N r x ==>
+   (prebatch (FST f) L N r x 1 = [cat [SOME (FST (ytrans L N r x 0))]
+  (cat
+   (nseq
+    (sizel (betwn (find_face L x) (ytrans L N r x 0) (ztrans L N r x 0)))
+   NONE)
+  [SOME (FST (ztrans L N r x 0))])])`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[prebatch];
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC take1;
+  ASM_SIMP_TAC[core_triple_nonnil];
+  REWRITE_TAC[Seq.foldl;GSYM EL];
+  GMATCH_SIMP_TAC el_core_triple;
+  ASM_REWRITE_TAC[];
+  BY(REWRITE_TAC[dest_triple0_step;Seq.flatten0;LET_THM;Aq1.flatten_sing;Seq.flatten_cons])
+  ]);;
+  (* }}} *)
+
+let prebatch_suc_explicit = prove_by_refinement(
+  `!i f L N r x.
+     good_list L /\
+    good_list_nodes L /\
+    marked_list L N r x /\
+    ~final_list L r /\
+    is_restricted (hypermap_of_list L) /\
+   uniq (FST f) /\
+    (!i. i < transform_count L N r x ==> MEM (FST (ytrans L N r x i)) (FST f)) /\
+    (!i. i < transform_count L N r x ==> MEM (FST (ztrans L N r x i)) (FST f)) /\
+    0 < i /\
+     i < transform_count L N r x ==>
+   (prebatch (FST f) L N r x (SUC i) = 
+       cat (prebatch (FST f) L N r x i) [(
+      cat (if FST (ztrans L N r x (PRE i)) = FST (ytrans L N r x i) then []
+	   else (cat (MAP SOME (betwn (FST f) (FST (ztrans L N r x (PRE i))) (FST (ytrans L N r x i))))
+	([SOME (FST (ytrans L N r x i))])))
+  (cat
+   (nseq
+    (sizel (betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i)))
+   NONE)
+  [SOME (FST (ztrans L N r x i))]))])`,
+  (* {{{ proof *)
+  [
+  INDUCT_TAC THEN ASM_REWRITE_TAC[arith `~(0 < 0)`;arith `0 < SUC i`];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPED_ABBREV_TAC `j = SUC i`;
+  GMATCH_SIMP_TAC prebatch_suc;
+  ASM_REWRITE_TAC[];
+  TYPIFY `i=0` ASM_CASES_TAC;
+    FULL_EXPAND_TAC "j";
+    ASM_SIMP_TAC[arith `SUC 0 = 1`];
+    INTRO_TAC prebatch1 [`f`;`L`;`N`;`r`;`x`];
+    ASM_SIMP_TAC[];
+    ANTS_TAC;
+      BY(REPLICATE_TAC 3 (POP_ASSUM MP_TAC) THEN ARITH_TAC);
+    SIMP_TAC[];
+    DISCH_THEN kill;
+    GMATCH_SIMP_TAC dest_triple0_step_rcons;
+    CONJ_TAC;
+      BY(REWRITE_TAC[Seq.flatten_cons;cat_eq_nil;NOT_CONS_NIL]);
+    REWRITE_TAC[dest_triple0_rcons;LAST;arith `PRE 1 = 0`;Seq.flatten_cons;cat_eq_nil;NOT_CONS_NIL];
+    REWRITE_TAC[Seq.flatten0;Seq.cats0;Seq.catA;Seq.cats1;LAST_rcons;the_some];
+    REWRITE_TAC[LET_THM];
+    AP_TERM_TAC;
+    COND_CASES_TAC THEN ASM_REWRITE_TAC[Seq.cat0s];
+    COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+    INTRO_TAC Tame_list.betwn_nil [`FST f`;`(FST (ztrans L N r x 0))`;`FST (ytrans L N r x 1)`];
+    ASM_REWRITE_TAC[];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[arith `1 < k ==> 0  < k`; arith `SUC 0 = 1`]);
+    BY(SIMP_TAC[MAP;Seq.rcons]);
+  COMMENT "i pos";
+  GMATCH_SIMP_TAC dest_triple0_step_rcons;
+  FIRST_X_ASSUM_ST `SOME` (C INTRO_TAC [`f`;`L`;`N`;`r`;`x`]);
+  ANTS_TAC;
+    ASM_SIMP_TAC[];
+    BY(ASM_TAC THEN ARITH_TAC);
+  DISCH_TAC;
+  CONJ_TAC;
+    BY(ASM_REWRITE_TAC[Seq.flatten_cons;cat_eq_nil;NOT_CONS_NIL;Seq.flatten_cat]);
+  REWRITE_TAC[Seq.cats1];
+  AP_TERM_TAC;
+  TYPIFY `~(flatten (prebatch (FST f) L N r x j) = [])` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_REWRITE_TAC[Seq.flatten_cons;cat_eq_nil;NOT_CONS_NIL;Seq.flatten_cat]);
+  TYPIFY `the (LAST (LAST (prebatch (FST f) L N r x j))) = FST (ztrans L N r x i)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_REWRITE_TAC[Seq.flatten_cons;cat_eq_nil;Seq.catA;Seq.cats1;LAST_rcons;the_some]);
+  REPLICATE_TAC 2 (POP_ASSUM MP_TAC) THEN POP_ASSUM kill;
+  ASM_SIMP_TAC[dest_triple0_rcons_paired];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_SIMP_TAC[arith `SUC i = j /\ ~(i=0) ==> PRE j = i`];
+  REWRITE_TAC[LET_THM];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[Seq.cat0s;Seq.flatten_cons;Seq.cats1;Seq.flatten0;Seq.cats0];
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+    INTRO_TAC Tame_list.betwn_nil [`FST f`;`(FST (ztrans L N r x i))`;`FST (ytrans L N r x j)`];
+    ANTS_TAC;
+      BY(ASM_MESON_TAC[arith `SUC i = j /\ j < k ==> i < k`]);
+    BY(ASM_SIMP_TAC[MAP;Seq.rcons]);
+  BY(ASM_REWRITE_TAC[Seq.cat0s;Seq.flatten_cons;Seq.catA;GSYM Seq.cats1;Seq.flatten0;Seq.cats0])
+  ]);;
+  (* }}} *)
+
+let batch_nonnil = prove_by_refinement(
+  `!i f L N r x.
+     good_list L /\
+    good_list_nodes L /\
+    marked_list L N r x /\
+    ~final_list L r /\
+    is_restricted (hypermap_of_list L) /\
+   uniq (FST f) /\
+    (!i. i < transform_count L N r x ==> MEM (FST (ytrans L N r x i)) (FST f)) /\
+    (!i. i < transform_count L N r x ==> MEM (FST (ztrans L N r x i)) (FST f)) /\
+    0 < i /\
+     i < transform_count L N r x 
+ ==>    ~(batch0 (FST f) L N r x i = [])`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `i = 0` ASM_CASES_TAC;
+    BY(ASM_TAC THEN ARITH_TAC);
+  TYPIFY `i=1` ASM_CASES_TAC;
+    FIRST_X_ASSUM_ST `batch0` MP_TAC THEN ASM_REWRITE_TAC[GSYM prebatch_batch];
+    REPEAT ( GMATCH_SIMP_TAC prebatch1);
+    ASM_REWRITE_TAC[NOT_CONS_NIL;Seq.flatten_cons;cat_eq_nil];
+    BY(ASM_TAC THEN ARITH_TAC);
+  FIRST_X_ASSUM_ST `batch0` MP_TAC THEN ASM_REWRITE_TAC[GSYM prebatch_batch];
+  INTRO_TAC num_CASES [`i`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC THEN POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[];
+  REPEAT ( GMATCH_SIMP_TAC prebatch_suc_explicit);
+  ASM_REWRITE_TAC[NOT_CONS_NIL;Seq.flatten_cons;cat_eq_nil;Seq.flatten_cat];
+  BY(ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let batch_nil_prebatch_nil = prove_by_refinement(
+  `!i f L N r x.
+     good_list L /\
+    good_list_nodes L /\
+    marked_list L N r x /\
+    ~final_list L r /\
+    is_restricted (hypermap_of_list L) /\
+   uniq (FST f) /\
+    (!i. i < transform_count L N r x ==> MEM (FST (ytrans L N r x i)) (FST f)) /\
+    (!i. i < transform_count L N r x ==> MEM (FST (ztrans L N r x i)) (FST f)) /\
+     i < transform_count L N r x 
+ ==>    (batch0 (FST f) L N r x i = [] ==> prebatch (FST f) L N r x i = [])`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `i = 0` ASM_CASES_TAC;
+    BY(ASM_REWRITE_TAC[prebatch0]);
+  INTRO_TAC batch_nonnil [`i`;`f`;`L`;`N`;`r`;`x`];
+  ASM_SIMP_TAC[];
+  BY(POP_ASSUM MP_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let the_last_last_prebatch = prove_by_refinement(
+  `!i f L N r x.
+         good_list L /\
+    good_list_nodes L /\
+    marked_list L N r x /\
+    ~final_list L r /\
+    is_restricted (hypermap_of_list L) /\
+    uniq (FST f) /\
+    (!i. i < transform_count L N r x ==> MEM (FST (ytrans L N r x i)) (FST f)) /\
+    (!i. i < transform_count L N r x ==> MEM (FST (ztrans L N r x i)) (FST f)) /\
+    0 < i /\
+    i < transform_count L N r x ==>
+    the (LAST (LAST (prebatch (FST f) L N r x i))) = FST (ztrans L N r x (PRE i))`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `i=1` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+    GMATCH_SIMP_TAC prebatch1;
+    ASM_REWRITE_TAC[LAST_CLAUSES;Seq.catA;LAST_rcons;Seq.cats1;the_some;arith `PRE 1 = 0`];
+    BY(ASM_TAC THEN ARITH_TAC);
+  INTRO_TAC num_CASES [`i`];
+  ASM_SIMP_TAC[arith `0 < i ==> ~(i=0)`];
+  REPEAT WEAKER_STRIP_TAC THEN ASM_REWRITE_TAC[];
+  GMATCH_SIMP_TAC prebatch_suc_explicit;
+  ASM_REWRITE_TAC[];
+  ASM_REWRITE_TAC[LAST_CLAUSES;Seq.catA;LAST_rcons;Seq.cats1;the_some;arith `PRE (SUC n) = n`];
+  BY(ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
+let upt_iota_simple = prove_by_refinement(
+  `!a b. upt a (a + b) = iota a b`,
+  (* {{{ proof *)
+  [
+BY(REWRITE_TAC[Tame_defs.upt;arith `(a + b) - a = b:num`])
+  ]);;
+  (* }}} *)
+
+
+let b_nfgtrans_induction = prove_by_refinement(
+  `!i L N r x f g newVs f' g'. 
+     good_list L /\
+    good_list_nodes L /\
+    marked_list L N r x /\
+    ~final_list L r /\
+    is_restricted (hypermap_of_list L) /\
+    uniq (FST f) /\
+    uniq (FST f') /\
+    ~(next_el (FST f') (FST (ytrans L N r x i)) = FST (ztrans L N r x i) /\
+     sizel (betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i)) = 0) /\
+    ((betwn (FST f) (FST (ztrans L N r x (PRE i))) (FST (ytrans L N r x i))) = 
+    (betwn (FST f') (FST (ztrans L N r x (PRE i))) (FST (ytrans L N r x i)))) /\
+    (next_el (FST f') (FST (ztrans L N r x (PRE i))) =
+      FST (ytrans L N r x i) <=>
+	next_el (FST f) (FST (ztrans L N r x (PRE i))) =
+      FST (ytrans L N r x i)) /\
+    (!i. i < transform_count L N r x ==> MEM (FST (ytrans L N r x i)) (FST f)) /\
+    (!i. i < transform_count L N r x ==> MEM (FST (ztrans L N r x i)) (FST f)) /\
+    (!i. i < transform_count L N r x ==> MEM (FST (ytrans L N r x i)) (FST f')) /\
+    (!i. i < transform_count L N r x ==> MEM (FST (ztrans L N r x i)) (FST f')) /\
+    0 < i /\
+//    MEM (FST (ytrans L N r x i)) (FST f') /\
+//    MEM (FST (ztrans L N r x (PRE i))) (FST f') /\
+    i < transform_count L N r x /\
+    iota (countVertices g')
+      (sizel (betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i))) = newVs /\
+    b_nfgtrans0 f g L N r x i = ((SOME (FST (ztrans L N r x (PRE i))),0),f',g') ==>
+    b_nfgtrans0 f g L N r x (SUC i) = 
+	((SOME (FST (ztrans L N r x (PRE (SUC i)))),0),
+	 SND(splitFace g' (FST (ytrans L N r x i)) (FST (ztrans L N r x i)) f'
+      newVs))
+	 `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC b_nfgtrans_suc;
+  ASM_REWRITE_TAC[];
+  CONJ_TAC;
+    MATCH_MP_TAC batch_nil_prebatch_nil;
+    BY(ASM_REWRITE_TAC[]);
+  REWRITE_TAC[dest_triple0_rcons_paired];
+  REWRITE_TAC[LET_THM;prebatch_batch];
+  INTRO_TAC batch_nonnil [`i`;`f`;`L`;`N`;`r`;`x`];
+  ASM_SIMP_TAC[];
+  INTRO_TAC the_last_last_prebatch [`i`;`f`;`L`;`N`;`r`;`x`];
+  ASM_SIMP_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  ASM_SIMP_TAC[arith `PRE (SUC i) = i`];
+  TYPED_ABBREV_TAC `n = (sizel             (betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i)))`;
+  COMMENT "first case";
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+    REWRITE_TAC[Seq.flatten_cons;Seq.catA;Seq.flatten0;Seq.cats0;];
+    REWRITE_TAC[Seq.foldl_cat];
+    REWRITE_TAC[subdiv_single_step_nseg;Seq.foldl;arith `n+0=n`];
+    ASM_REWRITE_TAC[subdiv_single_step;not_some_none;the_some];
+    REWRITE_TAC[LET_THM;LAMBDA_PAIR;LAMBDA_TRIPLE];
+    BY(ASM_SIMP_TAC[Tame_list.nextVertex_next_el;upt_iota_simple]);
+  REWRITE_TAC[PAIR_EQ];
+  COMMENT "second case";
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[];
+    REWRITE_TAC[Seq.flatten_cons;Seq.catA;Seq.flatten0;Seq.cats0;];
+    REWRITE_TAC[Seq.foldl_cat;Seq.foldl];
+    ASM_REWRITE_TAC[subdiv_single_step;not_some_none;the_some;];
+    REWRITE_TAC[LET_THM;LAMBDA_TRIPLE];
+    GMATCH_SIMP_TAC nextVertex_next_el;
+    ASM_SIMP_TAC[arith `i < k ==> PRE i < k`];
+    ASM_REWRITE_TAC[subdiv_single_step_nseg;not_some_none;the_some;arith `n+0=n`];
+    ASM_REWRITE_TAC[subdiv_single_step;not_some_none;the_some];
+    REWRITE_TAC[LET_THM;LAMBDA_PAIR;LAMBDA_TRIPLE];
+    BY(ASM_SIMP_TAC[Tame_list.nextVertex_next_el;upt_iota_simple]);
+  COMMENT "final case";
+  REWRITE_TAC[Seq.flatten_cons;Seq.catA;Seq.flatten0;Seq.cats0;];
+  ASM_REWRITE_TAC[Seq.foldl_cat;Seq.foldl];
+  GMATCH_SIMP_TAC subdiv_single_step_betwn;
+  CONJ_TAC;
+    GEXISTL_TAC [`betwn (FST f') (FST (ztrans L N r x (PRE i))) (FST (ytrans L N r x i))`];
+    BY(ASM_SIMP_TAC[arith `i < k ==> PRE i < k`]);
+  ASM_REWRITE_TAC[subdiv_single_step;not_some_none;the_some;];
+  REWRITE_TAC[LET_THM;LAMBDA_TRIPLE];
+  GMATCH_SIMP_TAC nextVertex_next_el;
+  SUBCONJ_TAC;
+    MATCH_MP_TAC Seq2.mem_prev_el;
+    BY(ASM_SIMP_TAC[]);
+  DISCH_TAC;
+  TYPIFY `next_el (FST f') (prev_el (FST f') (FST (ytrans L N r x i))) =      FST (ytrans L N r x i)` (C SUBGOAL_THEN SUBST1_TAC);
+    BY(ASM_SIMP_TAC[Seq2.next_prev_id]);
+  REWRITE_TAC[];
+  ASM_REWRITE_TAC[subdiv_single_step_nseg;not_some_none;the_some;arith `n+0=n`];
+  ASM_REWRITE_TAC[subdiv_single_step;not_some_none;the_some];
+  REWRITE_TAC[LET_THM;LAMBDA_PAIR;LAMBDA_TRIPLE];
+  BY(ASM_SIMP_TAC[Tame_list.nextVertex_next_el;upt_iota_simple])
+  ]);;
+  (* }}} *)
+

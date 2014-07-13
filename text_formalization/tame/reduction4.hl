@@ -11,8 +11,6 @@
 
 module Reduction4 = struct
 
-
-
 open Hales_tactic;;
 open Tame_defs;;
 open Tame_defs2;;
@@ -23,6 +21,7 @@ open Reduction3;;
 
 
 (* ............... NEW DEFS *)
+
 
 let assumption_setK7 = new_definition'
   `assumption_setK7 <=> (!L N r x k uvns vs vs' fx v.
@@ -386,7 +385,7 @@ let reduction_K1 = prove_by_refinement(
   ASM_REWRITE_TAC[];
   REPEAT (FIRST_X_ASSUM_ST `uniq` MP_TAC);
   TYPIFY `core L r = core L (rtrans L N r x 0)` (C SUBGOAL_THEN SUBST1_TAC);
-    BY(REWRITE_TAC[trans0]);
+    BY(REWRITE_TAC[Reduction2.trans0]);
   BY(MESON_TAC[arith `0 <= k /\ (i < k ==> i <= k) /\ (k <= k)`])
   ]);;
   (* }}} *)
@@ -683,4 +682,127 @@ let final_assumption_size_core = prove_by_refinement(
   ]);;
   (* }}} *)
 
-end;;
+let reduction_K2 = prove_by_refinement(
+  `(!L N r x k. 
+
+     // ASSUMPTIONS HERE
+     good_list L /\
+     good_list_nodes L /\
+     is_restricted (hypermap_of_list L) /\
+     newvertex_prepped L N r x /\
+     marked_list L N r x /\
+     ~final_list L r /\
+     (transform_count L N r x = k) ==>
+     // END ASSUMPTIONS
+
+
+     // (V)
+     (!v. 
+	     (prev_el (core L r) v,v = x)  ==>
+	     (!i. i < k ==> prev_el (core L (rtrans L N r x i)) v,v = x ) /\
+	     (FST (next_el (find_face L x) x) = v)) /\
+
+     // (INDEX)
+     (indexf (FST (next_el (find_face L x) x)) (FST (ytrans L N r x 0)) (core L r) =
+         indexf (next_el (find_face L x) x) (ytrans L N r x 0) (find_face L x)) /\
+     (indexf (FST (ztrans L N r x (PRE k))) (FST x) (core L r) =
+         indexf (ztrans L N r x (PRE k)) x (find_face L x)) /\
+     (!i. SUC i < k
+      ==> indexf (FST (ztrans L N r x i)) (FST (ytrans L N r x (SUC i))) (core L r) =
+          indexf (ztrans L N r x i) (ytrans L N r x (SUC i)) (find_face L x)) /\
+     (!i. SUC i < k
+       ==> indexf (ytrans L N r x 0) (ztrans L N r x i) (find_face L x) <=
+       indexf (ytrans L N r x 0) (ytrans L N r x (SUC i)) (find_face L x)) /\
+      (!i. SUC i < k
+       ==> indexf (ytrans L N r x 0) (ytrans L N r x (SUC i)) (find_face L x) <=
+       indexf (ytrans L N r x 0) (ztrans L N r x (SUC i)) (find_face L x)) /\
+      (indexf (next_el (find_face L x) x) (ztrans L N r x (PRE k)) (find_face L x) <=
+	 indexf (next_el (find_face L x) x) x (find_face L x)) /\
+      (indexf (next_el (find_face L x) x) (ytrans L N r x 0) (find_face L x) <=
+         indexf (next_el (find_face L x) x) (ztrans L N r x (PRE k)) (find_face L x)) /\
+      (!i. 0 < i /\ i < k ==>
+	 (next_el (core L (rtrans L N r x i)) (FST (ztrans L N r x (PRE i))) =
+		FST (ytrans L N r x i) <=>
+		  next_el (core L r) (FST (ztrans L N r x (PRE i))) = FST (ytrans L N r x i)) ) /\
+
+     // (BETWN) 
+     (betwn (core L (rtrans L N r x k)) (FST (ztrans L N r x (PRE k))) (FST x) =
+	 betwn (core L r) (FST (ztrans L N r x (PRE k))) (FST x)) /\
+      (set_of_list (MAP FST (flatten (ntrans L N r x 1))) DIFF set_of_list (MAP FST (flatten N)) = 
+	  set_of_list (MAP FST (betwn (find_face L x) (ytrans L N r x 0) (ztrans L N r x 0)))) /\
+//      (!i. MEM i (MAP FST (flatten N)) ==> 
+//	 ~(MEM i (MAP FST (betwn (find_face L x) (ytrans L N r x 0) (ztrans L N r x 0))))) /\
+     ~(next_el (core L r) (FST (ytrans L N r x 0)) =
+	 FST (ztrans L N r x 0) /\
+	   sizel (betwn (find_face L x) (ytrans L N r x 0) (ztrans L N r x 0)) = 0) /\
+      (!i. 0 < i /\ i < k ==>
+	 ~(next_el (core L (rtrans L N r x i)) (FST (ytrans L N r x i)) =
+	      FST (ztrans L N r x i) /\
+		sizel (betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i)) = 0) /\
+	 (betwn (core L r) (FST (ztrans L N r x (PRE i))) (FST (ytrans L N r x i)) =
+	     betwn (core L (rtrans L N r x i)) (FST (ztrans L N r x (PRE i)))
+	       (FST (ytrans L N r x i)))) /\
+     
+     // (MEM)  
+     (!i j. 0 < i /\ i < k /\ j < k ==>
+	(MEM (FST (ytrans L N r x j)) (core L (rtrans L N r x i))) /\
+	MEM (FST (ztrans L N r x j)) (core L (rtrans L N r x i))) /\ 
+
+     // (PREPPED)
+      (!i. i < k ==> iota (sizel (undup (MAP FST (flatten (ntrans L N r x i))))) 
+	 (sizel (betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i))) = 
+	   MAP FST (betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i))) /\
+
+     // (split_normal_list)
+      (let (f1,f2) = split_normal_list L r 
+	 (find_face L x) (ytrans L N r x 0) (prev_el r (ztrans L N r x 0)) in
+	 ~MEM (core L f1) (quotient_list L N) /\
+	 ~MEM (core L f2) (quotient_list L N)) /\
+
+     // (UVNS)
+      (       
+		(!v. (prev_el (core L r) v,v = x) ==>
+		   let uvns = core_triple_v4 L N r x in
+		   let vs = dest_triple_full (core L r) v uvns in
+		   let vs' = MAP the (filter isSome vs) in
+	   	     (!i. SUC i < sizel vs'
+		      ==> indexf v (EL i vs') (core L r) <
+		      indexf v (EL (SUC i) vs') (core L r)) /\
+		       
+		       (!i. (let d = the (EL i vs),the (EL (SUC i) vs) in
+			       isSome (EL i vs) /\
+				 isSome (EL (SUC i) vs) /\
+				 SUC i < sizel vs /\
+				 MEM d (list_of_darts (quotient_list L N))
+			       ==> MEM d (list_pairs (core L r)))))
+		) // uvns 
+
+   ) ==> assumption_setK7`,
+  (* {{{ proof *)
+  [
+  DISCH_TAC;
+  MATCH_MP_TAC reduction_K1;
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`L`;`N`;`r`;`x`;`k`]);
+  ASM_SIMP_TAC[];
+  ASM_REWRITE_TAC[];
+  DISCH_THEN kill;
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[final_assumption_mem_x_core]);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[final_assumption_zpre_core_k]);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[final_assumption_mem_fst_core]);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[final_assumption_fsty_core]);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[final_assumption_fstz_core]);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[final_assumption_fst_z]);
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[final_assumption_fst_y_neq_fst_z]);
+  BY(ASM_MESON_TAC[final_assumption_y_ne_z;final_assumption_size_find_face;final_assumption_size_core ])
+  ]);;
+  (* }}} *)
+
+ end;;

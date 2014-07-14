@@ -18,7 +18,6 @@ needs "Multivariate/vectors.ml";;
 
 prioritize_real();;
 
-
 module type Arith_float_sig =
   sig
     val mk_num_exp : term -> term -> term
@@ -44,6 +43,11 @@ module type Arith_float_sig =
     val float_sub_hi : int -> term -> term -> thm
     val float_sqrt_lo : int -> term -> thm
     val float_sqrt_hi : int -> term -> thm
+
+    val float_prove_le : term -> term -> bool * thm
+    val float_prove_le_interval : term -> thm -> bool * thm
+    val float_prove_ge_interval : term -> thm -> bool * thm
+    val float_compare_interval : term -> thm -> int * thm
 
     val reset_stat : unit -> unit
     val reset_cache : unit -> unit
@@ -73,6 +77,7 @@ end;;
 
 module Arith_float : Arith_float_sig = struct
 
+open Num;;
 open Big_int;;
 open Arith_misc;;
 open Arith_nat;;
@@ -732,7 +737,6 @@ let num_exp_op_hi_lt p op tm1 tm2 =
 (* float *)
 
 let mod_plus = new_definition `mod_plus s1 s2 = (~(s1 /\ s2) /\ (s1 \/ s2))`;;
-
 
 (********************)
 (* Float operations *)
@@ -2703,10 +2707,110 @@ let float_sqrt_hi =
 	    result
   else
     Float_ops.float_sqrt_hi;;
-    
 
-(******************************************)
-(* float intervals *)
+
+
+(* ------------------------------------------------ *)
+(* Special comparison operations                    *)
+(* ------------------------------------------------ *)
+
+(* For a given floating-point term returns its components as OCaml objects *)
+let dest_float_raw f_tm =
+  let s, n_tm, e_tm = dest_float f_tm in
+  let sign = if s = "T" then true else false in
+    sign, raw_dest_hash n_tm, raw_dest_hash e_tm;;
+
+(* Compares raw representations of two floating-point numbers f1 and f2. *)
+(* Returns -1 if f1 < f2, 0 if f1 = f2, and 1 if f1 > f2.                *)
+let compare_floats_raw =
+  let denorm n e = n */ (Int  Arith_hash.arith_base **/ e) in
+  let cmp n1 e1 n2 e2 =
+    if e1 <= e2 then 
+      compare_num n1 (denorm n2 (e2 -/ e1))
+    else
+      compare_num (denorm n1 (e1 -/ e2)) n2 in
+    fun f1_tm f2_tm ->
+      let s1, n1, e1 = dest_float_raw f1_tm and
+	  s2, n2, e2 = dest_float_raw f2_tm in
+      let n1' = if s1 then minus_num n1 else n1 and
+	  n2' = if s2 then minus_num n2 else n2 in
+	cmp n1' e1 n2' e2;;
+
+(* Returns (true, |- f1 <= f2) when f1 <= f2; returns (false, |- T) otherwise *)
+let float_prove_le f1_tm f2_tm =
+  let r = compare_floats_raw f1_tm f2_tm in
+    if r <= 0 then
+      true, float_le f1_tm f2_tm
+    else
+      false, TRUTH;;
+
+(* Compares y and an interval a <= x <= b (|- interval_arith x (a, b)). *)
+(* Returns (true, |- y <= x) if y <= a.                                 *)     
+(* Returns (false, |- T) if y > a.                                      *)
+let float_prove_le_interval =
+  let le_interval = (UNDISCH_ALL o prove)(`interval_arith x (a,b) ==> (y <= a <=> T) ==> y <= x`,
+					  REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC) in
+    fun y_tm x_th ->
+      let x_tm, bounds = dest_interval_arith (concl x_th) in
+      let ltm, b_tm = dest_comb bounds in
+      let a_tm = rand ltm in
+      let flag, le_th = float_prove_le y_tm a_tm in
+	if flag then
+	  let th0 = INST[x_tm, x_var_real; y_tm, y_var_real;
+			 a_tm, a_var_real; b_tm, b_var_real] le_interval in
+	    true, MY_PROVE_HYP x_th (MY_PROVE_HYP le_th th0)
+	else
+	  false, TRUTH;;
+
+(* Compares y and an interval a <= x <= b (|- interval_arith x (a, b)). *)
+(* Returns (true, |- x <= y) if b <= y.                                 *)     
+(* Returns (false, |- T) if b > y.                                      *)
+let float_prove_ge_interval =
+  let ge_interval = (UNDISCH_ALL o prove)(`interval_arith x (a,b) ==> (b <= y <=> T) ==> x <= y`,
+					  REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC) in
+    fun y_tm x_th ->
+      let x_tm, bounds = dest_interval_arith (concl x_th) in
+      let ltm, b_tm = dest_comb bounds in
+      let a_tm = rand ltm in
+      let flag, le_th = float_prove_le b_tm y_tm in
+	if flag then
+	  let th0 = INST[x_tm, x_var_real; y_tm, y_var_real;
+			 a_tm, a_var_real; b_tm, b_var_real] ge_interval in
+	    true, MY_PROVE_HYP x_th (MY_PROVE_HYP le_th th0)
+	else
+	  false, TRUTH;;
+
+(* Compares y and an interval a <= x <= b (|- interval_arith x (a, b)). *)
+(* Returns (-1, |- y <= x) if y <= a.                                   *)     
+(* Returns (1, |- x <= y) if b <= y.                                    *)
+(* Returns (0, |- T ) otherwise.                                        *)
+let float_compare_interval =
+  let le_interval = (UNDISCH_ALL o prove)(`interval_arith x (a,b) ==> (y <= a <=> T) ==> y <= x`,
+					  REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC) in
+  let ge_interval = (UNDISCH_ALL o prove)(`interval_arith x (a,b) ==> (b <= y <=> T) ==> x <= y`,
+					  REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC) in
+    fun y_tm x_th ->
+      let x_tm, bounds = dest_interval_arith (concl x_th) in
+      let ltm, b_tm = dest_comb bounds in
+      let a_tm = rand ltm in
+      let inst th le_th =
+	let th0 = INST[x_tm, x_var_real; y_tm, y_var_real;
+		       a_tm, a_var_real; b_tm, b_var_real] th in
+	  MY_PROVE_HYP x_th (MY_PROVE_HYP le_th th0) in
+      let flag, le_th = float_prove_le y_tm a_tm in
+	if flag then 
+	  -1, inst le_interval le_th
+	else
+	  let flag, le_th = float_prove_le b_tm y_tm in
+	    if flag then
+	      1, inst ge_interval le_th
+	    else
+	      0, TRUTH;;
+
+
+(* ------------------------------------------------ *)
+(* Float interval operations                        *)
+(* ------------------------------------------------ *)
 
 let FLOAT_OF_NUM' = (SPEC_ALL o REWRITE_RULE[min_exp_def]) FLOAT_OF_NUM;;
 

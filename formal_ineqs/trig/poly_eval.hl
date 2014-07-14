@@ -54,6 +54,9 @@ let rec float_interval_calc pp expr_tm x_th =
 	if ltm = neg_op_real then
 	  let r_th = float_interval_calc pp r_tm x_th in
 	    float_interval_neg r_th
+	else if ltm = inv_op_real then
+	  let r_th = float_interval_calc pp r_tm x_th in
+	    float_interval_inv pp r_th
 	else
 	  mk_float_interval_num (dest_numeral r_tm);;
 
@@ -85,8 +88,10 @@ let mk_poly_coeffs =
 			   REWRITE_TAC[interval_arith] THEN 
 			     MP_TAC (SPECL[`n:num`; `e:num`] FLOAT_T_NEG) THEN
 			     REAL_ARITH_TAC) in
-  let mk_poly_coeff pp expr_tm =
-    let int_th = float_interval_const pp expr_tm in
+  let mk_poly_coeff pp cs_tm =
+    let eq_th = NUM_REDUCE_CONV cs_tm in
+    let expr_tm = (rand o concl) eq_th in
+    let int_th = REWRITE_RULE[GSYM eq_th] (float_interval_const pp expr_tm) in
 (*    let bounds_th = REWRITE_RULE[interval_arith] int_th in *)
 (*    let low_th, high_th = pair_of_list (CONJUNCTS bounds_th) in *)
     let c_tm, bounds = dest_interval_arith (concl int_th) in
@@ -233,6 +238,87 @@ let eval_low_poly_f_pos_pos =
       in
       let x_tm = rand (rand (concl x_th)) in
 	eval cs_tm cs_list x_tm x_th;;
+
+
+let eval_pow2_high =
+  let pow2_th = (UNDISCH_ALL o prove)(`x * x <= a ==> interval_arith (x pow 2) (&0, a)`,
+			REWRITE_TAC[interval_arith; REAL_POW_2; REAL_LE_SQUARE]) in
+    fun pp f_tm ->
+      let mul_th = float_mul_hi pp f_tm f_tm in
+      let a_tm = (rand o concl) mul_th in
+      let th0 = INST[f_tm, x_var_real; a_tm, a_var_real] pow2_th in
+	MY_PROVE_HYP mul_th th0;;
+
+let eval_pow2_low =
+  let pow2_th = (UNDISCH_ALL o prove)(`(&0 <= a <=> T) ==> a <= x * x 
+				      ==> interval_arith a (&0, x pow 2)`,
+			SIMP_TAC[interval_arith; REAL_POW_2]) in
+    fun pp f_tm ->
+      let mul_th = float_mul_lo pp f_tm f_tm in
+      let a_tm = (rand o rator o concl) mul_th in
+      let a_ge0_th = float_ge0 a_tm in
+      let th0 = INST[f_tm, x_var_real; a_tm, a_var_real] pow2_th in
+	MY_PROVE_HYP mul_th (MY_PROVE_HYP a_ge0_th th0);;
+
+let eval_pow4_high =
+  let pow4_th = (UNDISCH_ALL o prove)(`x * x <= a ==>
+					a * a <= b ==>
+					interval_arith (x pow 4) (&0, b)`,
+		      REWRITE_TAC[interval_arith; ARITH_RULE `4 = 2 + 2`; REAL_POW_ADD] THEN
+			REPEAT STRIP_TAC THENL [
+			  MATCH_MP_TAC REAL_LE_MUL THEN REWRITE_TAC[REAL_LE_POW_2];
+			  MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `a * a:real` THEN
+			    ASM_REWRITE_TAC[] THEN
+			    MATCH_MP_TAC REAL_LE_MUL2 THEN ASM_REWRITE_TAC[REAL_LE_POW_2; REAL_POW_2]
+			]) in
+    fun pp f_tm ->
+      let mul1_th = float_mul_hi pp f_tm f_tm in
+      let a_tm = (rand o concl) mul1_th in
+      let mul2_th = float_mul_hi pp a_tm a_tm in
+      let b_tm = (rand o concl) mul2_th in
+      let th0 = INST[f_tm, x_var_real; a_tm, a_var_real; b_tm, b_var_real] pow4_th in
+	MY_PROVE_HYP mul1_th (MY_PROVE_HYP mul2_th th0);;
+
+let eval_pow2_pow4_high =
+  let pow4_th = (UNDISCH_ALL o prove)(`interval_arith (x pow 2) (&0, a) ==>
+					a * a <= b ==>
+					==> interval_arith (x pow 4) (&0, b)`,
+		      REWRITE_TAC[interval_arith; ARITH_RULE `4 = 2 + 2`; REAL_POW_ADD] THEN
+			REPEAT STRIP_TAC THENL [
+			  MATCH_MP_TAC REAL_LE_MUL THEN REWRITE_TAC[REAL_LE_POW_2];
+			  MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `a * a:real` THEN
+			    ASM_REWRITE_TAC[] THEN
+			    MATCH_MP_TAC REAL_LE_MUL2 THEN ASM_REWRITE_TAC[REAL_LE_POW_2]
+			]) in
+    fun pp f_tm ->
+      let pow2_th = eval_pow2_high pp f_tm in
+      let a_tm = (rand o rand o concl) pow2_th in
+      let mul_th = float_mul_hi pp a_tm a_tm in
+      let b_tm = (rand o concl) mul_th in
+      let th0 = INST[f_tm, x_var_real; a_tm, a_var_real; b_tm, b_var_real] pow4_th in
+	pow2_th, MY_PROVE_HYP mul_th (MY_PROVE_HYP pow2_th th0);;
+
+let eval_pow2_pow4_low =
+  let pow4_th = (UNDISCH_ALL o prove)(`interval_arith a (&0, x pow 2) ==>
+					b <= a * a ==> 
+					(&0 <= b <=> T) ==> 
+					interval_arith b (&0, x pow 4)`,
+		      REWRITE_TAC[interval_arith; ARITH_RULE `4 = 2 + 2`; REAL_POW_ADD] THEN
+			REPEAT STRIP_TAC THENL [
+			  ASM_REWRITE_TAC[];
+			  MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `a * a:real` THEN
+			    ASM_REWRITE_TAC[] THEN
+			    MATCH_MP_TAC REAL_LE_MUL2 THEN ASM_REWRITE_TAC[REAL_LE_POW_2]
+			]) in
+    fun pp f_tm ->
+      let pow2_th = eval_pow2_low pp f_tm in
+      let a_tm = (rand o rator o concl) pow2_th in
+      let mul_th = float_mul_lo pp a_tm a_tm in
+      let b_tm = (rand o rator o concl) mul_th in
+      let b_ge0_th = float_ge0 b_tm in
+      let th0 = INST[f_tm, x_var_real; a_tm, a_var_real; b_tm, b_var_real] pow4_th in
+	pow2_th, MY_PROVE_HYP b_ge0_th (MY_PROVE_HYP mul_th (MY_PROVE_HYP pow2_th th0));;
+
 
 end;;	
 

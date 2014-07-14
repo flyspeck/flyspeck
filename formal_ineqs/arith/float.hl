@@ -2737,16 +2737,25 @@ let compare_floats_raw =
 	cmp n1' e1 n2' e2;;
 
 (* Returns (true, |- f1 <= f2) when f1 <= f2; returns (false, |- T) otherwise *)
+(* Returns (true, |- f1 <= f2 <=> T) when f1 <= f2; returns (false, |- f1 <= f2 <=> F) otherwise *)
+let float_prove_le f1_tm f2_tm =
+  let le_th = float_le f1_tm f2_tm in
+  let flag = (fst o dest_const o rand o concl) le_th = "T" in
+    flag, le_th;;
+
+(*
+(* Arith_hash.raw_dest_hash is too slow *)
 let float_prove_le f1_tm f2_tm =
   let r = compare_floats_raw f1_tm f2_tm in
     if r <= 0 then
       true, float_le f1_tm f2_tm
     else
       false, TRUTH;;
+*)
 
 (* Compares y and an interval a <= x <= b (|- interval_arith x (a, b)). *)
 (* Returns (true, |- y <= x) if y <= a.                                 *)     
-(* Returns (false, |- T) if y > a.                                      *)
+(* Returns (false, |- y <= a <=> F) if y > a.                           *)
 let float_prove_le_interval =
   let le_interval = (UNDISCH_ALL o prove)(`interval_arith x (a,b) ==> (y <= a <=> T) ==> y <= x`,
 					  REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC) in
@@ -2760,11 +2769,11 @@ let float_prove_le_interval =
 			 a_tm, a_var_real; b_tm, b_var_real] le_interval in
 	    true, MY_PROVE_HYP x_th (MY_PROVE_HYP le_th th0)
 	else
-	  false, TRUTH;;
+	  false, le_th;;
 
 (* Compares y and an interval a <= x <= b (|- interval_arith x (a, b)). *)
 (* Returns (true, |- x <= y) if b <= y.                                 *)     
-(* Returns (false, |- T) if b > y.                                      *)
+(* Returns (false, |- b <= y <=> F) if b > y.                           *)
 let float_prove_ge_interval =
   let ge_interval = (UNDISCH_ALL o prove)(`interval_arith x (a,b) ==> (b <= y <=> T) ==> x <= y`,
 					  REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC) in
@@ -2778,7 +2787,7 @@ let float_prove_ge_interval =
 			 a_tm, a_var_real; b_tm, b_var_real] ge_interval in
 	    true, MY_PROVE_HYP x_th (MY_PROVE_HYP le_th th0)
 	else
-	  false, TRUTH;;
+	  false, le_th;;
 
 (* Compares y and an interval a <= x <= b (|- interval_arith x (a, b)). *)
 (* Returns (-1, |- y <= x) if y <= a.                                   *)     

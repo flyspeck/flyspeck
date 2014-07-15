@@ -4,8 +4,9 @@ needs "misc/misc.hl";;
 needs "misc/vars.hl";;
 needs "arith/interval_arith.hl";;
 needs "arith/float_atn.hl";;
+needs "cos_bounds_eval.hl";;
 
-(*Module Cos_reduction = struct*)
+(*Module Cos_eval = struct*)
 
 open Arith_misc;;
 open Float_atn;;
@@ -13,6 +14,7 @@ open Float_theory;;
 open Interval_arith;;
 open More_float;;
 open Arith_float;;
+open Cos_bounds_eval;;
 open Misc_vars;;
 
 prioritize_real();;
@@ -29,6 +31,18 @@ let two_pi_array =
 			  let _, bounds = dest_interval_arith (concl th) in
 			  let lo_tm, hi_tm = dest_pair bounds in
 			    th, float_sub_hi i hi_tm lo_tm, (lo_tm, hi_tm));;
+
+let pi32_array =
+  let n = Array.length pi_approx_array in
+  let pi = pi_approx_array.(n - 1) in
+  let three = mk_float_interval_small_num 3 in
+  let pi32 = float_interval_div n (float_interval_mul n three pi) two_interval in
+    Array.init (n - 1) (fun i -> 
+			  let th = float_interval_round i pi32 in
+			  let _, bounds = dest_interval_arith (concl th) in
+			  let lo_tm, hi_tm = dest_pair bounds in
+			    th, (lo_tm, hi_tm));;
+
 
 (* Interval approximations of -pi *)
 let neg_pi_array =
@@ -73,6 +87,14 @@ let cos_minus_pi = prove(`!x. cos (x - pi) = -- cos x`,
 			 ONCE_REWRITE_TAC[GSYM (SPEC `x - pi` COS_PERIODIC)] THEN
 			   REWRITE_TAC[REAL_ARITH `a - b + &2 * b = a + b`] THEN
 			   REWRITE_TAC[COS_PERIODIC_PI]);;
+
+let cos_pi_minus = prove(`!x. cos (pi - x) = -- cos x`,
+			 ONCE_REWRITE_TAC[REAL_ARITH `a - b = --(b - a)`] THEN
+			   REWRITE_TAC[COS_NEG; cos_minus_pi]);;
+
+let cos_2pi_minus = prove(`cos (&2 * pi - x) = cos x`,
+			  REWRITE_TAC[COS_EQ] THEN EXISTS_TAC `&1` THEN
+			    REWRITE_TAC[INTEGER_CLOSED] THEN REAL_ARITH_TAC);;
 
 (* -1 *)
 let cos_full_interval = prove(`!x. interval_arith (cos x) (-- &1, &1)`,
@@ -278,6 +300,118 @@ let cos_reduction_neg_pi_0_2b = prove(`interval_arith x (a,b) /\
 
 let cos_case7 = case_rule cos_reduction_neg_pi_0_2b;;
 
+(* ---------------------------- *)
+(* Reduction to [0, pi / 2]     *)
+(* ---------------------------- *)
+
+let cos_high_trivial = (case_rule o prove)
+  (`cos x <= &1`,
+   REWRITE_TAC[COS_BOUNDS]);;
+
+let cos_low_trivial = (case_rule o prove)
+  (`-- &1 <= cos x`,
+   REWRITE_TAC[COS_BOUNDS]);;
+
+let interval_neg_pi_0 = (case_rule o prove)
+  (`interval_arith x (--pi, &0) /\ y = --x
+      ==> interval_arith y (&0, pi)`,
+   REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC);;
+
+let reduction_high_neg = (case_rule o prove)
+  (`y = --x /\ cos y <= high ==> cos x <= high`,
+   STRIP_TAC THEN POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[COS_NEG]);;
+
+let reduction_low_neg = (case_rule o prove)
+  (`y = --x /\ low <= cos y ==> low <= cos x`,
+   STRIP_TAC THEN POP_ASSUM MP_TAC THEN ASM_REWRITE_TAC[COS_NEG]);;
+
+let reduction_high_0_pi = (case_rule o prove)
+  (`interval_arith x (&0, pi) /\
+     interval_arith pi (lo, hi) /\
+     hi - x <= t /\ t <= pi /\
+     r <= cos t /\ high = --r
+	 ==> cos x <= high`,
+   REWRITE_TAC[interval_arith] THEN REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `--cos t` THEN ASM_REWRITE_TAC[REAL_LE_NEG] THEN
+     REWRITE_TAC[GSYM cos_pi_minus] THEN 
+     MATCH_MP_TAC COS_MONO_LE THEN ASM_REWRITE_TAC[] THEN
+     REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC);;
+
+let reduction_low_0_pi = (case_rule o prove)
+  (`interval_arith x (&0, pi) /\
+     interval_arith pi (lo, hi) /\
+     t <= lo - x /\ (&0 <= t <=> T) /\
+     cos t <= r /\ low = --r
+	 ==> low <= cos x`,
+   REWRITE_TAC[interval_arith] THEN REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `--cos t` THEN ASM_REWRITE_TAC[REAL_LE_NEG] THEN
+     REWRITE_TAC[GSYM cos_pi_minus] THEN 
+     MATCH_MP_TAC COS_MONO_LE THEN ASM_REWRITE_TAC[] THEN
+     REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC);;
+
+let reduction_high_pi_2pi_1 = (case_rule o prove)
+  (`interval_arith x (pi, &2 * pi) /\
+     interval_arith (&2 * pi) (lo, hi) /\
+     t <= lo - x /\ (&0 <= t <=> T) /\
+     cos t <= r
+     ==> cos x <= r`,
+   REWRITE_TAC[interval_arith] THEN REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `cos t` THEN ASM_REWRITE_TAC[] THEN
+     SUBGOAL_THEN `cos x = cos (&2 * pi - x)` (fun th -> ONCE_REWRITE_TAC[th]) THENL [
+       REWRITE_TAC[cos_2pi_minus];
+       ALL_TAC
+     ] THEN
+     MATCH_MP_TAC COS_MONO_LE THEN ASM_REWRITE_TAC[] THEN
+     REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC);;
+
+let reduction_low_pi_2pi_1 = (case_rule o prove)
+  (`interval_arith x (pi, &2 * pi) /\
+     interval_arith (&2 * pi) (lo, hi) /\
+     hi - x <= t /\ t <= pi /\
+     r <= cos t
+     ==> r <= cos x`,
+   REWRITE_TAC[interval_arith] THEN REPEAT STRIP_TAC THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `cos t` THEN ASM_REWRITE_TAC[] THEN
+     SUBGOAL_THEN `cos x = cos (&2 * pi - x)` (fun th -> ONCE_REWRITE_TAC[th]) THENL [
+       REWRITE_TAC[cos_2pi_minus];
+       ALL_TAC
+     ] THEN
+     MATCH_MP_TAC COS_MONO_LE THEN ASM_REWRITE_TAC[] THEN
+     REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC);;
+
+let reduction_high_pi_2pi_2 = (case_rule o prove)
+  (`interval_arith x (pi, &2 * pi) /\
+     interval_arith pi (lo, hi) /\
+     x - lo <= t /\ t <= pi /\
+     r <= cos t /\ high = --r
+     ==> cos x <= high`,
+   REWRITE_TAC[interval_arith] THEN REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `cos x = --cos (x - pi)` (fun th -> ONCE_REWRITE_TAC[th]) THENL [
+       REWRITE_TAC[cos_minus_pi; REAL_NEG_NEG];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[REAL_LE_NEG] THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `cos t` THEN ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC COS_MONO_LE THEN ASM_REWRITE_TAC[] THEN
+     REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC);;
+
+let reduction_low_pi_2pi_2 = (case_rule o prove)
+  (`interval_arith x (pi, &2 * pi) /\
+     interval_arith pi (lo, hi) /\
+     t <= x - hi /\ (&0 <= t <=> T) /\
+     cos t <= r /\ low = --r
+     ==> low <= cos x`,
+   REWRITE_TAC[interval_arith] THEN REPEAT STRIP_TAC THEN
+     SUBGOAL_THEN `cos x = --cos (x - pi)` (fun th -> ONCE_REWRITE_TAC[th]) THENL [
+       REWRITE_TAC[cos_minus_pi; REAL_NEG_NEG];
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[REAL_LE_NEG] THEN
+     MATCH_MP_TAC REAL_LE_TRANS THEN EXISTS_TAC `cos t` THEN ASM_REWRITE_TAC[] THEN
+     MATCH_MP_TAC COS_MONO_LE THEN ASM_REWRITE_TAC[] THEN
+     REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC);;
+
+
 
 (* Reduction theorems *)
 
@@ -384,8 +518,189 @@ let a1_case1 = (th_rule o prove)(`(&0 <= a1 <=> T) /\ a1 <= pi ==> interval_arit
 let a1_case2 = (th_rule o prove)(`(&0 <= a1 <=> F) /\ --pi <= a1 ==> interval_arith a1 (--pi, &0)`,
 				 REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC);;
 
+let b1_interval_0_pi_1 = (case_rule o prove)
+  (`(&0 <= b1 <=> T) /\ b1 <= pi ==> interval_arith b1 (&0, pi)`,
+   REWRITE_TAC[interval_arith]);;
 
-(* Reduction procedures *)
+let b1_interval_0_pi_2 = (case_rule o prove)
+  (`b1 <= pi /\ (&0 <= a1 <=> F) /\ b2 = --b1 /\ (a1 <= b2 <=> F)
+       ==> interval_arith b1 (&0, pi)`,
+   REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC);;
+
+let b1_interval_pi_2pi = (case_rule o prove)
+  (`&2 * pi <= a1 + b1 /\ a1 <= pi /\ b1 <= &2 * pi
+     ==> interval_arith b1 (pi, &2 * pi)`,
+   REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC);;
+
+let b1_interval_neg_pi_0 = (case_rule o prove)
+  (`(b1 <= &0 <=> T) /\ (a1 <= b1 <=> T) /\ --pi <= a1
+     ==> interval_arith b1 (--pi, &0)`,
+   REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC);;
+
+
+
+(* ------------------------------ *)
+(* Reduction procedures           *)
+(* ------------------------------ *)
+
+(* Upper bound for x in [0, pi] *)
+let eval_high_0_pi pp x_0_pi x_tm =
+  let pi2_th = pi2_approx_array.(pp) in
+  let flag, ge_pi2 = float_prove_ge_interval x_tm pi2_th in
+    if not flag then
+      float_cos_high_raw pp x_tm
+    else
+      let pi_th = pi_approx_array.(pp) in
+      let bounds = rand (concl pi_th) in
+      let ltm, hi_tm = dest_comb bounds in
+      let lo_tm = rand ltm in
+      let hi_sub_x = float_sub_hi pp hi_tm x_tm in
+      let t_tm = rand (concl hi_sub_x) in
+      let flag, t_le_pi = float_prove_le_interval t_tm pi_th in
+	if not flag then
+	  INST[x_tm, x_var_real] cos_high_trivial
+	else
+	  let cos_t = float_cos_low_raw pp t_tm in
+	  let r_tm = rand (rator (concl cos_t)) in
+	  let high_eq = float_neg r_tm in
+	  let high_tm = rand (rator (concl high_eq)) in
+	  let th0 = INST[x_tm, x_var_real; high_tm, high_var_real;
+			 lo_tm, lo_var_real; hi_tm, hi_var_real;
+			 r_tm, r_var_real; t_tm, t_var_real] reduction_high_0_pi in
+	    itlist MY_PROVE_HYP [high_eq; pi_th; x_0_pi; cos_t; t_le_pi; hi_sub_x] th0;;
+
+(* Lower bound for x in [0, pi] *)
+let eval_low_0_pi pp x_0_pi x_tm =
+  let pi2_th = pi2_approx_array.(pp) in
+  let flag, ge_pi2 = float_prove_ge_interval x_tm pi2_th in
+    if not flag then
+      float_cos_low_raw pp x_tm
+    else
+      let pi_th = pi_approx_array.(pp) in
+      let bounds = rand (concl pi_th) in
+      let ltm, hi_tm = dest_comb bounds in
+      let lo_tm = rand ltm in
+      let lo_sub_x = float_sub_lo pp lo_tm x_tm in
+      let t_tm = rand (rator (concl lo_sub_x)) in
+      let t_ge0 = float_ge0 t_tm in
+	if (fst o dest_const o rand o concl) t_ge0 = "F" then
+	  INST[x_tm, x_var_real] cos_low_trivial
+	else
+	  let cos_t = float_cos_high_raw pp t_tm in
+	  let r_tm = rand (concl cos_t) in
+	  let low_eq = float_neg r_tm in
+	  let low_tm = rand (rator (concl low_eq)) in
+	  let th0 = INST[x_tm, x_var_real; low_tm, low_var_real;
+			 lo_tm, lo_var_real; hi_tm, hi_var_real;
+			 r_tm, r_var_real; t_tm, t_var_real] reduction_low_0_pi in
+	    itlist MY_PROVE_HYP [low_eq; pi_th; x_0_pi; cos_t; t_ge0; lo_sub_x] th0;;
+
+(* Upper bound for x in [-pi, 0] *)
+let eval_high_neg_pi_0 pp x_neg_pi_0 x_tm =
+  let y_neg_x = float_neg x_tm in
+  let y_tm = rand (rator (concl y_neg_x)) in
+  let y_th0 = INST[x_tm, x_var_real; y_tm, y_var_real] interval_neg_pi_0 in
+  let y_int_th = MY_PROVE_HYP y_neg_x (MY_PROVE_HYP x_neg_pi_0 y_th0) in
+  let cos_y = eval_high_0_pi pp y_int_th y_tm in
+  let high_tm = rand (concl cos_y) in
+  let th0 = INST[x_tm, x_var_real; y_tm, y_var_real; high_tm, high_var_real] reduction_high_neg in
+    MY_PROVE_HYP y_neg_x (MY_PROVE_HYP cos_y th0);;
+
+(* Lower bound for x in [-pi, 0] *)
+let eval_low_neg_pi_0 pp x_neg_pi_0 x_tm =
+  let y_neg_x = float_neg x_tm in
+  let y_tm = rand (rator (concl y_neg_x)) in
+  let y_th0 = INST[x_tm, x_var_real; y_tm, y_var_real] interval_neg_pi_0 in
+  let y_int_th = MY_PROVE_HYP y_neg_x (MY_PROVE_HYP x_neg_pi_0 y_th0) in
+  let cos_y = eval_low_0_pi pp y_int_th y_tm in
+  let low_tm = rand (rator (concl cos_y)) in
+  let th0 = INST[x_tm, x_var_real; y_tm, y_var_real; low_tm, low_var_real] reduction_low_neg in
+    MY_PROVE_HYP y_neg_x (MY_PROVE_HYP cos_y th0);;
+
+(* Upper bound for x in [pi, 2 * pi] *)
+let eval_high_pi_2pi pp x_pi_2pi x_tm =
+  let _, (pi32_lo, _) = pi32_array.(pp) in
+  let flag, le_pi32 = float_prove_le x_tm pi32_lo in
+    if flag then
+      (* x in [pi, 3/2 * pi] ==> consider (x - pi) *)
+      let pi_th = pi_approx_array.(pp) in
+      let bounds = rand (concl pi_th) in
+      let ltm, hi_tm = dest_comb bounds in
+      let lo_tm = rand ltm in
+      let x_sub_lo = float_sub_hi pp x_tm lo_tm in
+      let t_tm = rand (concl x_sub_lo) in
+      let flag, t_le_pi = float_prove_le_interval t_tm pi_th in
+	if not flag then
+	  INST[x_tm, x_var_real] cos_high_trivial
+	else
+	  let cos_t = float_cos_low_raw pp t_tm in
+	  let r_tm = rand (rator (concl cos_t)) in
+	  let high_eq = float_neg r_tm in
+	  let high_tm = rand (rator (concl high_eq)) in
+	  let th0 = INST[x_tm, x_var_real; high_tm, high_var_real;
+			 lo_tm, lo_var_real; hi_tm, hi_var_real;
+			 r_tm, r_var_real; t_tm, t_var_real] reduction_high_pi_2pi_2 in
+	    itlist MY_PROVE_HYP [high_eq; pi_th; x_pi_2pi; cos_t; t_le_pi; x_sub_lo] th0
+    else
+      (* x in [3/2 * pi, pi] ==> consider (2 * pi - x) *)
+      let two_pi, _, (lo_tm, hi_tm) = two_pi_array.(pp) in
+      let lo_sub_x = float_sub_lo pp lo_tm x_tm in
+      let t_tm = rand (rator (concl lo_sub_x)) in
+      let t_ge0 = float_ge0 t_tm in
+	if (fst o dest_const o rand o concl) t_ge0 = "F" then
+	  INST[x_tm, x_var_real] cos_high_trivial
+	else
+	  let cos_t = float_cos_high_raw pp t_tm in
+	  let r_tm = rand (concl cos_t) in
+	  let th0 = INST[x_tm, x_var_real; 
+			 lo_tm, lo_var_real; hi_tm, hi_var_real;
+			 r_tm, r_var_real; t_tm, t_var_real] reduction_high_pi_2pi_1 in
+	    itlist MY_PROVE_HYP [t_ge0; x_pi_2pi; two_pi; lo_sub_x; cos_t] th0;;
+
+(* Lower bound for x in [pi, 2 * pi] *)
+let eval_low_pi_2pi pp x_pi_2pi x_tm =
+  let _, (pi32_lo, _) = pi32_array.(pp) in
+  let flag, le_pi32 = float_prove_le x_tm pi32_lo in
+    if flag then
+      (* x in [pi, 3/2 * pi] ==> consider (x - pi) *)
+      let pi_th = pi_approx_array.(pp) in
+      let bounds = rand (concl pi_th) in
+      let ltm, hi_tm = dest_comb bounds in
+      let lo_tm = rand ltm in
+      let x_sub_hi = float_sub_lo pp x_tm hi_tm in
+      let t_tm = rand (rator (concl x_sub_hi)) in
+      let t_ge0 = float_ge0 t_tm in
+	if (fst o dest_const o rand o concl) t_ge0 = "F" then
+	  INST[x_tm, x_var_real] cos_low_trivial
+	else
+	  let cos_t = float_cos_high_raw pp t_tm in
+	  let r_tm = rand (concl cos_t) in
+	  let low_eq = float_neg r_tm in
+	  let low_tm = rand (rator (concl low_eq)) in
+	  let th0 = INST[x_tm, x_var_real; low_tm, low_var_real;
+			 lo_tm, lo_var_real; hi_tm, hi_var_real;
+			 r_tm, r_var_real; t_tm, t_var_real] reduction_low_pi_2pi_2 in
+	    itlist MY_PROVE_HYP [low_eq; pi_th; x_pi_2pi; cos_t; t_ge0; x_sub_hi] th0
+    else
+      (* x in [3/2 * pi, pi] ==> consider (2 * pi - x) *)
+      let two_pi, _, (lo_tm, hi_tm) = two_pi_array.(pp) in
+      let hi_sub_x = float_sub_hi pp hi_tm x_tm in
+      let t_tm = rand (concl hi_sub_x) in
+      let flag, t_le_pi = float_prove_le_interval t_tm pi_th in
+	if not flag then
+	  INST[x_tm, x_var_real] cos_low_trivial
+	else
+	  let cos_t = float_cos_low_raw pp t_tm in
+	  let r_tm = rand (rator (concl cos_t)) in
+	  let th0 = INST[x_tm, x_var_real; 
+			 lo_tm, lo_var_real; hi_tm, hi_var_real;
+			 r_tm, r_var_real; t_tm, t_var_real] reduction_low_pi_2pi_1 in
+	    itlist MY_PROVE_HYP [t_le_pi; x_pi_2pi; two_pi; hi_sub_x; cos_t] th0;;
+
+
+(* ------------------------------ *)
+(* Interval reduction             *)
+(* ------------------------------ *)
 
 exception Correction_failed;;
 
@@ -541,78 +856,132 @@ let correct_ab =
 		       a_tm, a_var_real; b_tm, b_var_real] a_b_correction in
 	  itlist MY_PROVE_HYP [red_th; a2_le_a1; b1_le_b2] th0;;
 
+(* ----------------------------------- *)
+(* The main evaluation function        *)
+(* ----------------------------------- *)
 
-let reduce_cos pp a_tm b_tm =
-  try
-    let i = get_i a_tm in
-    let a1_tm, b1_tm, red_th = 
-      if i = 0 then reduction_zero a_tm b_tm 
-      else if i < 0 then reduction_neg pp i a_tm b_tm
-      else reduction_pos pp i a_tm b_tm in
+let float_interval_cos pp x_th =
+  let x_tm, bounds = dest_interval_arith (concl x_th) in
+  let ltm, b_tm = dest_comb bounds in
+  let a_tm = rand ltm in
+    try
+      (* Reduce the interval of x *)
+      let i = get_i a_tm in
+      let a1_tm, b1_tm, red_th = 
+	if i = 0 then reduction_zero a_tm b_tm 
+	else if i < 0 then reduction_neg pp i a_tm b_tm
+	else reduction_pos pp i a_tm b_tm in
+	
       (* Prove -pi <= a1; otherwise correct the value of a1 *)
-    let neg_pi_th = neg_pi_array.(pp) in
-    let flag, le_th = float_prove_ge_interval a1_tm neg_pi_th in
-    let a1_tm, b1_tm, red_th, neg_pi_le_a1_th =
-      if flag then
-	a1_tm, b1_tm, red_th, le_th
+      let neg_pi_th = neg_pi_array.(pp) in
+      let flag, le_th = float_prove_ge_interval a1_tm neg_pi_th in
+      let a1_tm, b1_tm, red_th, neg_pi_le_a1_th =
+	if flag then
+	  a1_tm, b1_tm, red_th, le_th
       else
 	let a1_tm', b1_tm', red_th' = correct_neg_pi pp red_th a_tm b_tm a1_tm b1_tm in
 	let flag, le_th = float_prove_ge_interval a1_tm' neg_pi_th in
 	let _ = if not flag then raise Correction_failed in
 	  a1_tm', b1_tm', red_th', le_th in
-
-    let a1_le0, a1_tm, neg_pi_le_a1_th, a1_le_pi_th = correct_pi pp a1_tm neg_pi_le_a1_th in
-    let a1_0_th = float_ge0 a1_tm in
-    let a1_case, a1_case_th =
-      let inst = MY_PROVE_HYP a1_0_th o INST[a1_tm, a1_var_real] in
-	if (fst o dest_const o rand o concl) a1_0_th = "T" then
-	  1, MY_PROVE_HYP a1_le_pi_th (inst a1_case1)
-	else
+	
+      (* Make sure that a1 <= pi *)
+      let a1_le0, a1_tm, neg_pi_le_a1_th, a1_le_pi_th = correct_pi pp a1_tm neg_pi_le_a1_th in
+      let a1_0_th = float_ge0 a1_tm in
+      let a1_case, a1_case_th =
+	let inst = MY_PROVE_HYP a1_0_th o INST[a1_tm, a1_var_real] in
+	  if (fst o dest_const o rand o concl) a1_0_th = "T" then
+	    1, MY_PROVE_HYP a1_le_pi_th (inst a1_case1)
+	  else
 	  -1, MY_PROVE_HYP neg_pi_le_a1_th (inst a1_case2) in
-
-      if a1_case > 0 then
-	let ab_sum_case, b1_le0, b1_tm, ab_sum_th = correct_ab_sum pp a1_tm b1_tm in
-	let red_th = correct_ab red_th a_tm b_tm a1_tm b1_tm a1_le0 b1_le0 in
-	let inst_tms = INST[a_tm, a_var_real; b_tm, b_var_real; a1_tm, a1_var_real; b1_tm, b1_var_real] in
-	let flag_b_pi, b_le_pi = float_prove_le_interval b1_tm pi_approx_array.(pp) in
-	let two_pi_th, _, _ = two_pi_array.(pp) in
-	let flag_b_2pi, b_le_2pi = float_prove_le_interval b1_tm two_pi_th in
-	  if flag_b_pi then
-	    let th0 = inst_tms cos_case0 in
-	      0, itlist MY_PROVE_HYP [red_th; a1_case_th; b_le_pi] th0
-	  else if ab_sum_case < 0 then
-	    let th0 = inst_tms cos_case2 in
-	      2, itlist MY_PROVE_HYP [red_th; a1_case_th; ab_sum_th] th0
-	  else if ab_sum_case > 0 && flag_b_2pi then
-	    let th0 = inst_tms cos_case3 in
-	      3, itlist MY_PROVE_HYP [red_th; a1_case_th; b_le_2pi; ab_sum_th] th0
-	  else
-	    -1, cos_case_neg1
-      else
-	let inst_tms = [a_tm, a_var_real; b_tm, b_var_real; a1_tm, a1_var_real; b1_tm, b1_var_real] in
-	let b1_0 = float_le0 b1_tm in
-	  if (fst o dest_const o rand o concl) b1_0 = "T" then
-	    let th0 = INST inst_tms cos_case4 in
-	      4, itlist MY_PROVE_HYP [red_th; a1_case_th; b1_0] th0
-	  else
-	    let neg_b_eq = float_neg b1_tm in
-	    let neg_b_tm = rand (rator (concl neg_b_eq)) in
-	    let ab_cmp = float_le a1_tm neg_b_tm in
-	      if (fst o dest_const o rand o concl) ab_cmp = "T" then
-		let th0 =  INST ((neg_b_tm, b2_var_real) :: inst_tms) cos_case6 in
-		  6, itlist MY_PROVE_HYP [red_th; a1_case_th; neg_b_eq; ab_cmp] th0
-	      else
-		let flag_b_pi, b_le_pi = float_prove_le_interval b1_tm pi_approx_array.(pp) in
-		  if flag_b_pi then
-		    let th0 =  INST ((neg_b_tm, b2_var_real) :: inst_tms) cos_case7 in
-		      7, itlist MY_PROVE_HYP [red_th; a1_case_th; neg_b_eq; ab_cmp; b_le_pi] th0
+	
+	(* Consider cases: 1) a1 in [0, pi], 2) a1 in [-pi, 0] *)
+	if a1_case > 0 then
+	  (* a1 in [0, pi] *)
+	  let ab_sum_case, b1_le0, b1_tm, ab_sum_th = correct_ab_sum pp a1_tm b1_tm in
+	  let red_th = correct_ab red_th a_tm b_tm a1_tm b1_tm a1_le0 b1_le0 in
+	  let inst_tms = [x_tm, x_var_real; a_tm, a_var_real; b_tm, b_var_real; 
+			  a1_tm, a1_var_real; b1_tm, b1_var_real] in
+	  let flag_b_pi, b_le_pi = float_prove_le_interval b1_tm pi_approx_array.(pp) in
+	  let two_pi_th, _, _ = two_pi_array.(pp) in
+	  let flag_b_2pi, b_le_2pi = float_prove_le_interval b1_tm two_pi_th in
+	    if flag_b_pi then
+	      (* b1 in [0, pi] *)
+	      let b1_ge0 = float_ge0 b1_tm in
+	      let b1_int = 
+		let th0 = INST[b1_tm, b1_var_real] b1_interval_0_pi_1 in
+		  MY_PROVE_HYP b1_ge0 (MY_PROVE_HYP b_le_pi th0) in
+	      let cos_b1 = eval_low_0_pi pp b1_int b1_tm and
+		  cos_a1 = eval_high_0_pi pp a1_case_th a1_tm in
+	      let low_tm = rand (rator (concl cos_b1)) and
+		  high_tm = rand (concl cos_a1) in
+	      let th0 = INST ([low_tm, low_var_real; high_tm, high_var_real] @ inst_tms) cos_case0 in
+		itlist MY_PROVE_HYP [red_th; a1_case_th; b_le_pi; x_th; cos_b1; cos_a1] th0
+	    else if ab_sum_case < 0 then
+	      (* a1 + b1 <= 2 * pi *)
+	      let cos_a1 = eval_high_0_pi pp a1_case_th a1_tm in
+	      let high_tm = rand (concl cos_a1) in
+	      let th0 = INST ([high_tm, high_var_real] @ inst_tms) cos_case2 in
+	      itlist MY_PROVE_HYP [red_th; a1_case_th; ab_sum_th; x_th; cos_a1] th0
+	    else if ab_sum_case > 0 && flag_b_2pi then
+	      (* a1 + b1 >= 2 * pi /\ b1 <= 2 * pi ==> b1 in [pi, 2 * pi] *)
+	      let b1_int =
+		let th0 = INST[b1_tm, b1_var_real; a1_tm, a1_var_real] b1_interval_pi_2pi in
+		  MY_PROVE_HYP ab_sum_th (MY_PROVE_HYP a1_le_pi_th (MY_PROVE_HYP b_le_2pi th0)) in
+	      let cos_b1 = eval_high_pi_2pi pp b1_int b1_tm in
+	      let high_tm = rand (concl cos_b1) in
+	      let th0 = INST ([high_tm, high_var_real] @ inst_tms) cos_case3 in
+		itlist MY_PROVE_HYP [red_th; a1_case_th; b_le_2pi; ab_sum_th; x_th; cos_b1] th0
+	    else
+	      INST[x_tm, x_var_real] cos_case_neg1
+	else
+	  (* a1 in [-pi, 0] *)
+	  let inst_tms = [x_tm, x_var_real; a_tm, a_var_real; b_tm, b_var_real; 
+			  a1_tm, a1_var_real; b1_tm, b1_var_real] in
+	  let b1_0 = float_le0 b1_tm in
+	    if (fst o dest_const o rand o concl) b1_0 = "T" then
+	      (* b1 <= 0 ==> b1 in [-pi, 0] *)
+	      let b1_int =
+		let th0 = INST[b1_tm, b1_var_real; a1_tm, a1_var_real] b1_interval_neg_pi_0 in
+		let a1_le_b1 = float_le a1_tm b1_tm in
+		  MY_PROVE_HYP a1_le_b1 (MY_PROVE_HYP b1_0 (MY_PROVE_HYP neg_pi_le_a1_th th0)) in
+	      let cos_a1 = eval_low_neg_pi_0 pp a1_case_th a1_tm and
+		  cos_b1 = eval_high_neg_pi_0 pp b1_int b1_tm in
+	      let low_tm = rand (rator (concl cos_a1)) and
+		  high_tm = rand (concl cos_b1) in
+	      let th0 = INST ([low_tm, low_var_real; high_tm, high_var_real] @ inst_tms) cos_case4 in
+		itlist MY_PROVE_HYP [red_th; a1_case_th; b1_0; x_th; cos_a1; cos_b1] th0
+	    else
+	      (* b1 >= 0 *)
+	      let neg_b_eq = float_neg b1_tm in
+	      let b2_tm = rand (rator (concl neg_b_eq)) in
+	      let ab_cmp = float_le a1_tm b2_tm in
+		if (fst o dest_const o rand o concl) ab_cmp = "T" then
+		  (* a1 <= --b1 *)
+		  let cos_a1 = eval_low_neg_pi_0 pp a1_case_th a1_tm in
+		  let low_tm = rand (rator (concl cos_a1)) in
+		  let th0 =  INST ([b2_tm, b2_var_real; low_tm, low_var_real] @ inst_tms) cos_case6 in
+		    itlist MY_PROVE_HYP [red_th; a1_case_th; neg_b_eq; ab_cmp; x_th; cos_a1] th0
+		else
+		  (* a1 >= --b1 *)
+		  let flag_b_pi, b_le_pi = float_prove_le_interval b1_tm pi_approx_array.(pp) in
+		    if flag_b_pi then
+		      (* b1 <= pi ==> b1 in [0, pi] *)
+		      let b1_int =
+			let th0 = INST[b1_tm, b1_var_real; a1_tm, a1_var_real; 
+				       b2_tm, b2_var_real] b1_interval_0_pi_2 in
+			  itlist MY_PROVE_HYP [b_le_pi; a1_0_th; neg_b_eq; ab_cmp] th0 in
+		      let cos_b1 = eval_low_0_pi pp b1_int b1_tm in
+		      let low_tm = rand (rator (concl cos_b1)) in
+		      let th0 =  INST ([b2_tm, b2_var_real; low_tm, low_var_real] @ inst_tms) cos_case7 in
+			itlist MY_PROVE_HYP [red_th; a1_case_th; neg_b_eq; ab_cmp; b_le_pi; x_th; cos_b1] th0
 		  else
-		    -1, cos_case_neg1
-  with Correction_failed -> 
-    let _ = warn true (Printf.sprintf "cos_reduction: reduction failed (%s, %s)"
-			 (string_of_term a_tm) (string_of_term b_tm)) in
-      -1, cos_case_neg1;;
+		    INST[x_tm, x_var_real] cos_case_neg1
+    with Correction_failed -> 
+      let _ = warn true (Printf.sprintf "float_interval_cos: reduction failed (%s, %s)"
+			   (string_of_term a_tm) (string_of_term b_tm)) in
+	INST[x_tm, x_var_real] cos_case_neg1;;
 
+;;
 (*end;;*)
 
 
@@ -639,6 +1008,38 @@ let pp = 5;;
 
 reduce_cos 10 a_tm b_tm;;
 test 1000 (reduce_cos 10 a_tm) b_tm;;
+
+(**************)
+
+let x_tm = mk_float 62 (-1);;
+let a_th = (INST[x_tm, x_var_real] o ASSUME) `interval_arith x (&0, pi)`;;
+let b_th = (INST[x_tm, x_var_real] o ASSUME) `interval_arith x (--pi, &0)`;;
+let c_th = (INST[x_tm, x_var_real] o ASSUME) `interval_arith x (pi, &2 * pi)`;;
+
+eval_low_pi_2pi 10 c_th x_tm;;
+
+eval_high_0_pi 5 a_th x_tm;;
+eval_high_pi_2pi 5 c_th x_tm;;
+
+
+
+
+
+float_cos_high_raw 2 x_tm;;
+
+eval_low_0_pi 6 a_th x_tm;;
+
+eval_high_neg_pi_0 4 b_th x_tm;;
+eval_low_neg_pi_0 3 b_th x_tm;;
+
+eval_low_0_pi 3 a_th x_tm;;
+eval_high_0_pi 4 a_th x_tm;;
+
+float_neg (mk_float 1 0);;
+      
+      
+
+;;
         
 
 (**************)
@@ -745,6 +1146,78 @@ let flag, n_le_th = float_prove_le n_tm lo_tm;;
 				     sub_th; n_sub_m; r_add_t; b1_add_z; n_le_th] th0 in
       let b1_le_b2, ge_2pi = pair_of_list (CONJUNCTS th1) in
 	1, [b1_le_b2], b2_tm, ge_2pi;;
+
+
+let reduce_cos pp a_tm b_tm =
+  try
+    let i = get_i a_tm in
+    let a1_tm, b1_tm, red_th = 
+      if i = 0 then reduction_zero a_tm b_tm 
+      else if i < 0 then reduction_neg pp i a_tm b_tm
+      else reduction_pos pp i a_tm b_tm in
+      (* Prove -pi <= a1; otherwise correct the value of a1 *)
+    let neg_pi_th = neg_pi_array.(pp) in
+    let flag, le_th = float_prove_ge_interval a1_tm neg_pi_th in
+    let a1_tm, b1_tm, red_th, neg_pi_le_a1_th =
+      if flag then
+	a1_tm, b1_tm, red_th, le_th
+      else
+	let a1_tm', b1_tm', red_th' = correct_neg_pi pp red_th a_tm b_tm a1_tm b1_tm in
+	let flag, le_th = float_prove_ge_interval a1_tm' neg_pi_th in
+	let _ = if not flag then raise Correction_failed in
+	  a1_tm', b1_tm', red_th', le_th in
+
+    let a1_le0, a1_tm, neg_pi_le_a1_th, a1_le_pi_th = correct_pi pp a1_tm neg_pi_le_a1_th in
+    let a1_0_th = float_ge0 a1_tm in
+    let a1_case, a1_case_th =
+      let inst = MY_PROVE_HYP a1_0_th o INST[a1_tm, a1_var_real] in
+	if (fst o dest_const o rand o concl) a1_0_th = "T" then
+	  1, MY_PROVE_HYP a1_le_pi_th (inst a1_case1)
+	else
+	  -1, MY_PROVE_HYP neg_pi_le_a1_th (inst a1_case2) in
+
+      if a1_case > 0 then
+	let ab_sum_case, b1_le0, b1_tm, ab_sum_th = correct_ab_sum pp a1_tm b1_tm in
+	let red_th = correct_ab red_th a_tm b_tm a1_tm b1_tm a1_le0 b1_le0 in
+	let inst_tms = INST[a_tm, a_var_real; b_tm, b_var_real; a1_tm, a1_var_real; b1_tm, b1_var_real] in
+	let flag_b_pi, b_le_pi = float_prove_le_interval b1_tm pi_approx_array.(pp) in
+	let two_pi_th, _, _ = two_pi_array.(pp) in
+	let flag_b_2pi, b_le_2pi = float_prove_le_interval b1_tm two_pi_th in
+	  if flag_b_pi then
+	    let th0 = inst_tms cos_case0 in
+	      0, itlist MY_PROVE_HYP [red_th; a1_case_th; b_le_pi] th0
+	  else if ab_sum_case < 0 then
+	    let th0 = inst_tms cos_case2 in
+	      2, itlist MY_PROVE_HYP [red_th; a1_case_th; ab_sum_th] th0
+	  else if ab_sum_case > 0 && flag_b_2pi then
+	    let th0 = inst_tms cos_case3 in
+	      3, itlist MY_PROVE_HYP [red_th; a1_case_th; b_le_2pi; ab_sum_th] th0
+	  else
+	    -1, cos_case_neg1
+      else
+	let inst_tms = [a_tm, a_var_real; b_tm, b_var_real; a1_tm, a1_var_real; b1_tm, b1_var_real] in
+	let b1_0 = float_le0 b1_tm in
+	  if (fst o dest_const o rand o concl) b1_0 = "T" then
+	    let th0 = INST inst_tms cos_case4 in
+	      4, itlist MY_PROVE_HYP [red_th; a1_case_th; b1_0] th0
+	  else
+	    let neg_b_eq = float_neg b1_tm in
+	    let neg_b_tm = rand (rator (concl neg_b_eq)) in
+	    let ab_cmp = float_le a1_tm neg_b_tm in
+	      if (fst o dest_const o rand o concl) ab_cmp = "T" then
+		let th0 =  INST ((neg_b_tm, b2_var_real) :: inst_tms) cos_case6 in
+		  6, itlist MY_PROVE_HYP [red_th; a1_case_th; neg_b_eq; ab_cmp] th0
+	      else
+		let flag_b_pi, b_le_pi = float_prove_le_interval b1_tm pi_approx_array.(pp) in
+		  if flag_b_pi then
+		    let th0 =  INST ((neg_b_tm, b2_var_real) :: inst_tms) cos_case7 in
+		      7, itlist MY_PROVE_HYP [red_th; a1_case_th; neg_b_eq; ab_cmp; b_le_pi] th0
+		  else
+		    -1, cos_case_neg1
+  with Correction_failed -> 
+    let _ = warn true (Printf.sprintf "cos_reduction: reduction failed (%s, %s)"
+			 (string_of_term a_tm) (string_of_term b_tm)) in
+      -1, cos_case_neg1;;
 
 
 *)

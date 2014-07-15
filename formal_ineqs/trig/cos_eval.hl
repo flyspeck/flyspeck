@@ -1,12 +1,15 @@
-needs "update_database.ml";;
-
 needs "misc/misc.hl";;
 needs "misc/vars.hl";;
 needs "arith/interval_arith.hl";;
 needs "arith/float_atn.hl";;
 needs "cos_bounds_eval.hl";;
 
-(*Module Cos_eval = struct*)
+module type Cos_eval_sig =
+  sig
+    val float_interval_cos : int -> thm -> thm
+  end;;
+
+module Cos_eval : Cos_eval_sig = struct
 
 open Arith_misc;;
 open Float_atn;;
@@ -412,8 +415,9 @@ let reduction_low_pi_2pi_2 = (case_rule o prove)
      REPEAT (POP_ASSUM MP_TAC) THEN REAL_ARITH_TAC);;
 
 
-
-(* Reduction theorems *)
+(* ----------------------------- *)
+(* Reduction theorems            *)
+(* ----------------------------- *)
 
 let reduction_zero_th = (th_rule o prove)
   (`?k. integer k /\ a <= a + (&2 * pi) * k /\ b + (&2 * pi) * k <= b`,
@@ -684,6 +688,7 @@ let eval_low_pi_2pi pp x_pi_2pi x_tm =
     else
       (* x in [3/2 * pi, pi] ==> consider (2 * pi - x) *)
       let two_pi, _, (lo_tm, hi_tm) = two_pi_array.(pp) in
+      let pi_th = pi_approx_array.(pp) in
       let hi_sub_x = float_sub_hi pp hi_tm x_tm in
       let t_tm = rand (concl hi_sub_x) in
       let flag, t_le_pi = float_prove_le_interval t_tm pi_th in
@@ -981,11 +986,21 @@ let float_interval_cos pp x_th =
 			   (string_of_term a_tm) (string_of_term b_tm)) in
 	INST[x_tm, x_var_real] cos_case_neg1;;
 
-;;
-(*end;;*)
+
+end;;
 
 
 (*
+(************)
+
+let x_int = float_interval_mul 10 (mk_float_interval_small_num 33) pi_approx_array.(10);;
+float_interval_cos 5 x_int;;
+
+let y_int = (ASSUME o mk_interval `x:real` o mk_pair) (mk_float (-100) 0, mk_float (-99) 0);;
+float_interval_cos 5 y_int;;
+
+test 100 (float_interval_cos 10) x_int;;
+
 (************)
 
 let a_tm = mk_float (int_of_float (-.(f_pi +. f_2_pi +. 0.0001) *. 10. ** 10.)) (-10);;

@@ -1,0 +1,87 @@
+
+(* Module Some_tests*)
+module Some_tests = struct
+
+prioritize_real();;
+let divides = GEN_ALL REAL_MUL_ASSOC;;
+
+(* Lemma test2 *)
+let test2 = section_proof ["n";"m"]
+`n < m \/ m <= n \/ T`
+[
+   ((THENL_FIRST) ((fun arg_tac -> arg_tac (Arg_term (`m <= n`))) (term_tac (wlog_tac ALL_TAC[`n`; `m`]))) ((ALL_TAC) THEN (done_tac)));
+   ((THENL_FIRST) (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`!x. x = x`))) (term_tac (have_gen_tac []ALL_TAC)))) ((ALL_TAC) THEN (done_tac)));
+   ((ALL_TAC) THEN (done_tac));
+];;
+
+(* Lemma test1 *)
+let test1 = section_proof ["P";"Q";"z"]
+`(!x:real. P x ==> Q) /\ P z ==> Q`
+[
+   (BETA_TAC THEN (case THEN ALL_TAC) THEN (move ["hP"]) THEN (move ["Pz"]));
+   (((fun arg_tac -> (use_arg_then "hP") (fun fst_arg -> (use_arg_then "z") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (exact_tac));
+];;
+
+(* Lemma test1 *)
+let test1 = section_proof ["P"]
+`?x. P x ==> (!y. P y)`
+[
+   ((THENL_ROT (-1)) ((THENL) (((fun arg_tac -> (use_arg_then "EXCLUDED_MIDDLE") (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`!z. P z`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN case) [(BETA_TAC THEN (move ["hP"])); ((((use_arg_then "NOT_FORALL_THM")(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN ((move ["x"]) THEN (move ["hnP"]))))]));
+   (((use_arg_then "x") (term_tac exists_tac)) THEN (((use_arg_then "hnP")(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((((fun arg_tac -> arg_tac (Arg_term (`@x. P x`))) (term_tac exists_tac)) THEN (move ["_"]) THEN (move ["y"])) THEN (((use_arg_then "hP")(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+];;
+
+(* Section MoreTests *)
+begin_section "MoreTests";;
+
+(* Lemma test0 *)
+let test0 = section_proof ["A";"B"]
+`A \/ (B /\ A) ==> A`
+[
+   (((THENL) case [(exact_tac); (BETA_TAC THEN (case THEN ALL_TAC) THEN (move ["_"]) THEN (repeat_tactic 1 9 (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))))]) THEN (done_tac));
+];;
+
+(* Section EvenMoreTests *)
+begin_section "EvenMoreTests";;
+
+(* Lemma test1 *)
+let test1 = section_proof ["A";"B"]
+`A /\ B ==> B /\ A`
+[
+   (BETA_TAC THEN (case THEN ((move ["hA"]) THEN (move ["hB"]))));
+   ((THENL_FIRST) (split_tac) (((((use_arg_then "hA") (disch_tac [])) THEN (clear_assumption "hA") THEN BETA_TAC) THEN (((use_arg_then "hB") (disch_tac [])) THEN (clear_assumption "hB") THEN BETA_TAC)) THEN (BETA_TAC THEN (simp_tac)) THEN (done_tac)));
+   (exact_tac);
+];;
+
+(* Lemma test2 *)
+let test2 = section_proof ["A";"C"]
+`(A \/ C) \/ (C \/ A \/ A) ==> C \/ A`
+[
+   ((THENL) ((THENL) ((THENL) case [((THENL) case [(move ["hA"]); (move ["hC"])]); (((THENL) case [(move ["hC"]); (move ["hA"])]) THEN ((TRY done_tac)))]) [(DISJ2_TAC); (DISJ1_TAC); (DISJ2_TAC)]) [(((use_arg_then "hA") (disch_tac [])) THEN (clear_assumption "hA") THEN (exact_tac)); (((use_arg_then "hC") (disch_tac [])) THEN (clear_assumption "hC") THEN (exact_tac)); (ALL_TAC)]);
+   (((use_arg_then "hA") (disch_tac [])) THEN (clear_assumption "hA") THEN BETA_TAC THEN (simp_tac));
+];;
+
+(* Lemma test *)
+let test = section_proof []
+`!P. P ==> P`
+[
+   (BETA_TAC THEN (move ["P"]) THEN (move ["ETA_AX"]));
+   (((use_arg_then "ETA_AX") (disch_tac [])) THEN (clear_assumption "ETA_AX") THEN ((use_arg_then "ETA_AX") (disch_tac [])) THEN (clear_assumption "ETA_AX") THEN BETA_TAC);
+   ((ALL_TAC) THEN (done_tac));
+];;
+
+(* Finalization of the section EvenMoreTests *)
+let test1 = finalize_theorem test1;;
+let test2 = finalize_theorem test2;;
+let test = finalize_theorem test;;
+end_section "EvenMoreTests";;
+
+(* Finalization of the section MoreTests *)
+let test0 = finalize_theorem test0;;
+let test1 = finalize_theorem test1;;
+let test2 = finalize_theorem test2;;
+let test = finalize_theorem test;;
+end_section "MoreTests";;
+
+(* Close the module *)
+end;;

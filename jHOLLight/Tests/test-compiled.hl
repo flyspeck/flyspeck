@@ -1,0 +1,152 @@
+needs "/home/monad/
+
+needs "Tests/test3-compiled.hl";;
+needs "Examples/ssrfun-compiled.hl";;
+prioritize_num();;
+
+(* Lemma test *)
+let test = section_proof ["n"]
+`(n = 2 ==> 3 = 2) ==> (!x. n = x) ==> 3 = 2`
+[
+   (BETA_TAC THEN (move ["eq"]) THEN ((fun arg_tac ->  (conv_thm_tac DISCH_THEN)  (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`2`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (thm_tac MP_TAC)));
+   (((DISCH_THEN (fun snd_th -> (use_arg_then "eq") (thm_tac (match_mp_then snd_th MP_TAC)))) THEN BETA_TAC) THEN (done_tac));
+];;
+
+(* Lemma test *)
+let test = section_proof ["P";"Q"]
+`(Q ==> ~P) ==> Q ==> (P ==> F) /\ (Q <=> T)`
+[
+   (BETA_TAC THEN (move ["hP"]) THEN (move ["hQ"]));
+   ((split_tac) THEN (((fun arg_tac ->(use_arg_then "hQ")(fun tmp_arg1 -> (fun arg_tac -> (use_arg_then "hP") (fun fst_arg -> (use_arg_then "hQ") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(fun tmp_arg2 -> arg_tac (Arg_theorem (CONJ (get_arg_thm tmp_arg1) (get_arg_thm tmp_arg2))))))(thm_tac (new_rewrite [] [])))));
+   (done_tac);
+   (done_tac);
+];;
+open Packing3;;
+open Pack_defs;;
+open Sphere;;
+prioritize_real();;
+
+(* Lemma VORONOI_CLOSED_EQ_LEMMA *)
+let VORONOI_CLOSED_EQ_LEMMA = section_proof []
+`!V u v. packing V /\ u IN V /\ v IN V /\ 
+			voronoi_closed V u = voronoi_closed V v ==> u = v`
+[
+   (((repeat_tactic 1 9 (((use_arg_then "voronoi_closed")(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then "EXTENSION")(thm_tac (new_rewrite [] []))))) THEN (move ["V"]) THEN (move ["u"]) THEN (move ["v"]));
+   (BETA_TAC THEN (case THEN (move ["pack"])) THEN (case THEN (move ["uV"])) THEN (case THEN (move ["vV"])) THEN (move ["eq"]));
+   (((fun arg_tac -> (use_arg_then "eq") (fun fst_arg -> (use_arg_then "v") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC);
+   ((((use_arg_then "IN_ELIM_THM")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "DIST_REFL")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "DIST_POS_LE")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (simp_tac));
+   (((fun arg_tac ->  (conv_thm_tac DISCH_THEN)  (fun fst_arg -> (use_arg_then "v") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (thm_tac MP_TAC)) THEN BETA_TAC);
+   ((((use_arg_then "vV") (disch_tac [])) THEN (clear_assumption "vV") THEN BETA_TAC) THEN ((((use_arg_then "IN")(thm_tac (new_rewrite [] [])))) THEN (move ["Vv"])));
+   (((fun arg_tac ->  (conv_thm_tac DISCH_THEN)  (fun fst_arg -> (use_arg_then "Vv") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (thm_tac MP_TAC)) THEN BETA_TAC);
+   (((((use_arg_then "DIST_REFL")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "DIST_LE_0")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "EQ_SYM_EQ")(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+];;
+
+(* Lemma rewrite_test *)
+let rewrite_test = section_proof []
+`!x y. ~(y = &0) ==> (y * inv y) * x = x`
+[
+   (BETA_TAC THEN (move ["x"]) THEN (move ["y"]) THEN (move ["yn0"]));
+   (((((use_arg_then "REAL_MUL_LID")(gsym_then (thm_tac (new_rewrite [2] [(`x`)]))))) THEN (((use_arg_then "REAL_EQ_MUL_RCANCEL")(thm_tac (new_rewrite [] []))))) THEN (DISJ1_TAC));
+   (((use_arg_then "REAL_MUL_RINV") (disch_tac [])) THEN (clear_assumption "REAL_MUL_RINV") THEN (exact_tac));
+];;
+
+(* Lemma ODIGPXU_lemma *)
+let ODIGPXU_lemma = section_proof []
+`!P f f2 p0 p (q : real^N) t s.
+	polyhedron P /\ p0 IN P /\ ~(p0 IN f UNION f2) /\
+	f facet_of P /\ f2 facet_of P /\
+	p IN f /\ q IN f2 /\
+	&0 < t /\ &0 < s /\
+	(&1 - t) % p0 + t % p = (&1 - s) % p0 + s % q ==> s <= t`
+[
+   (BETA_TAC THEN (move ["P"]) THEN (move ["f"]) THEN (move ["f2"]) THEN (move ["p0"]) THEN (move ["p"]) THEN (move ["q"]) THEN (move ["t"]) THEN (move ["s"]));
+   (BETA_TAC THEN (case THEN (move ["polyP"])) THEN (case THEN (move ["p0P"])) THEN (case THEN (move ["p0_ff2"])) THEN (case THEN (move ["fP"])) THEN (case THEN (move ["f2P"])) THEN (case THEN (move ["pf"])) THEN (case THEN (move ["qf2"])) THEN (case THEN (move ["t0"])) THEN (case THEN (move ["s0"])));
+   (repeat_tactic 1 9 (((fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL VECTOR_SUB_RDISTRIB)))(thm_tac (new_rewrite [] [])))));
+   (((fun arg_tac -> arg_tac (Arg_theorem (VECTOR_ARITH `!a. a - t % (p0 : real^N) + t % p = a - s % p0 + s % q <=>
+	t % (p - p0) = s % (q - p0)`)))(thm_tac (new_rewrite [] []))));
+   (((fun arg_tac -> arg_tac (Arg_theorem (REAL_ARITH `s <= t \/ t < s`))) (disch_tac [])) THEN case THEN (move ["cond"]) THEN ((TRY done_tac)));
+   ((fun arg_tac -> arg_tac (Arg_term (`!(f:real^N->real^N) x y. (x = y) ==> (f x = f y)`))) (term_tac (have_gen_tac [](move ["ap_term"]))));
+   ((BETA_TAC THEN (simp_tac)) THEN (done_tac));
+   (((DISCH_THEN (fun snd_th -> (fun arg_tac -> (use_arg_then "ap_term") (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`\x:real^N. inv t % x`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN BETA_TAC THEN ((TRY done_tac))) THEN (repeat_tactic 1 9 (((use_arg_then "VECTOR_MUL_ASSOC")(thm_tac (new_rewrite [] []))))));
+   ((fun arg_tac -> arg_tac (Arg_term (`~(t = &0)`))) (term_tac (have_gen_tac [](move ["tn0"]))));
+   (((fun arg_tac -> arg_tac (Arg_theorem (REAL_ARITH `&0 < t ==> ~(t = &0)`))) (disch_tac [])) THEN (exact_tac));
+   ((((use_arg_then "REAL_MUL_LINV")(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then "VECTOR_MUL_LID")(thm_tac (new_rewrite [] [])))));
+   ((fun arg_tac -> arg_tac (Arg_term (`inv t * s`))) (term_tac (set_tac "r")));
+   ((fun arg_tac -> arg_tac (Arg_term (`&1 < r`))) (term_tac (have_gen_tac [](move ["lt_1r"]))));
+   ((((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then "REAL_LT_LMUL_EQ") (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`&1`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "r") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "t") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then "r_def")(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then "REAL_MUL_ASSOC")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "REAL_MUL_RID")(thm_tac (new_rewrite [] [])))));
+   (((((use_arg_then "REAL_MUL_RINV")(thm_tac (new_rewrite [] [])))) THEN ((TRY done_tac)) THEN (((use_arg_then "REAL_MUL_LID")(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((((fun arg_tac -> (fun arg_tac -> (use_arg_then "FACET_OF_POLYHEDRON") (fun fst_arg -> (use_arg_then "P") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "f2") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC) THEN ((((use_arg_then "polyP")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "f2P")(thm_tac (new_rewrite [] [])))) THEN (simp_tac)));
+   ((((use_arg_then "SUBSET")(thm_tac (new_rewrite [] [])))) THEN ALL_TAC THEN (case THEN (move ["a"])) THEN (case THEN (move ["b"])) THEN (case THEN (move ["an0"])) THEN (case THEN ((move ["H"]) THEN (move ["f2_eq"]))) THEN (move ["eq2"]));
+   ((fun arg_tac -> arg_tac (Arg_term (`a dot p0 < b`))) (term_tac (have_gen_tac [](move ["dot_lt_b"]))));
+   (((fun arg_tac -> arg_tac (Arg_theorem (REAL_ARITH `!x y. x < y <=> x <= y /\ ~(x = y)`)))(thm_tac (new_rewrite [] []))));
+   ((((fun arg_tac -> (use_arg_then "H") (fun fst_arg -> (use_arg_then "p0") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC) THEN ((((use_arg_then "p0P")(thm_tac (new_rewrite [] [])))) THEN (simp_tac)));
+   (((((use_arg_then "IN_ELIM_THM")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (simp_tac)) THEN (move ["_"]));
+   (((use_arg_then "p0_ff2") (disch_tac [])) THEN (clear_assumption "p0_ff2") THEN BETA_TAC);
+   (((((use_arg_then "CONTRAPOS_THM")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "IN_UNION")(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then "f2_eq")(thm_tac (new_rewrite [] []))))) THEN (move ["a_dot_p0"]));
+   (DISJ2_TAC);
+   (((((use_arg_then "IN_INTER")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "IN_ELIM_THM")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg])))) THEN (done_tac));
+   (((use_arg_then "eq2") (disch_tac [])) THEN (clear_assumption "eq2") THEN BETA_TAC);
+   ((((fun arg_tac -> arg_tac (Arg_theorem (VECTOR_ARITH `!x. p - p0 = x <=> p = p0 + x : real^N`)))(thm_tac (new_rewrite [] [])))) THEN (move ["p_eq"]));
+   (((fun arg_tac -> (use_arg_then "FACET_OF_IMP_SUBSET") (fun fst_arg -> (use_arg_then "fP") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC);
+   (((use_arg_then "SUBSET")(thm_tac (new_rewrite [] []))));
+   (((fun arg_tac -> (fun arg_tac ->  (conv_thm_tac DISCH_THEN)  (fun fst_arg -> (use_arg_then "p") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "pf") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (thm_tac MP_TAC)) THEN BETA_TAC);
+   (((use_arg_then "p_eq")(thm_tac (new_rewrite [] []))));
+   ((DISCH_THEN (fun snd_th -> (use_arg_then "H") (thm_tac (match_mp_then snd_th MP_TAC)))) THEN BETA_TAC);
+   ((((use_arg_then "IN_ELIM_THM")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "DOT_RADD")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "DOT_RMUL")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "DOT_RSUB")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))));
+   (((use_arg_then "f2_eq") (disch_tac [])) THEN (clear_assumption "f2_eq") THEN BETA_TAC);
+   (((use_arg_then "EXTENSION")(thm_tac (new_rewrite [] []))));
+   ((((fun arg_tac ->  (conv_thm_tac DISCH_THEN)  (fun fst_arg -> (use_arg_then "q") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (thm_tac MP_TAC)) THEN BETA_TAC) THEN ((((use_arg_then "qf2")(thm_tac (new_rewrite [] [])))) THEN (simp_tac)));
+   ((((use_arg_then "IN_INTER")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "IN_ELIM_THM")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))));
+   (case THEN (move ["_"]) THEN (move ["a_dot_eq"]));
+   (((use_arg_then "a_dot_eq")(thm_tac (new_rewrite [] []))));
+   (((fun arg_tac -> arg_tac (Arg_theorem (REAL_ARITH `!x. x + r * (b - x) <= b <=> (r - &1) * b <= (r - &1) * x`)))(thm_tac (new_rewrite [] []))));
+   ((THENL_FIRST) (((use_arg_then "REAL_LE_LMUL_EQ")(thm_tac (new_rewrite [] [])))) ((((use_arg_then "lt_1r") (disch_tac [])) THEN (clear_assumption "lt_1r") THEN BETA_TAC) THEN (arith_tac) THEN (done_tac)));
+   ((((use_arg_then "dot_lt_b") (disch_tac [])) THEN (clear_assumption "dot_lt_b") THEN BETA_TAC) THEN (arith_tac) THEN (done_tac));
+];;
+
+(* Section ListTest *)
+begin_section "ListTest";;
+(add_section_var (mk_var ("c", (`:(B)list`))));;
+
+(* Lemma append_nil *)
+let append_nil = section_proof []
+`!a:(B)list. APPEND a [] = a`
+[
+   ((THENL_FIRST) ((((fun arg_tac -> (use_arg_then "list_INDUCT") (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_type (`:B`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac)) THEN (split_tac)) ((((fun arg_tac -> arg_tac (Arg_theorem (CONJUNCT1 APPEND)))(thm_tac (new_rewrite [] [])))) THEN (done_tac)));
+   (BETA_TAC THEN (move ["_"]) THEN (move ["_"]) THEN (move ["IH"]));
+   (((((use_arg_then "APPEND")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "IH")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg])))) THEN (done_tac));
+];;
+(add_section_hyp "test" (`LENGTH c = 2`));;
+
+(* Lemma test *)
+let test = section_proof []
+`!a (b:(A)list). LENGTH (APPEND a b) = LENGTH a + LENGTH b`
+[
+   (BETA_TAC THEN (move ["a"]) THEN (move ["b"]));
+   (((use_arg_then "b") (disch_tac [])) THEN (clear_assumption "b") THEN ((use_arg_then "a") (disch_tac [])) THEN (clear_assumption "a") THEN BETA_TAC);
+   ((THENL_FIRST) ((THENL) elim [(move ["b"]); ((move ["h"]) THEN (move ["t"]) THEN (move ["IH"]))]) (((((use_arg_then "APPEND")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "LENGTH")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "ADD")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg])))) THEN (done_tac)));
+   ((THENL_FIRST) ((THENL) elim [ALL_TAC; ((move ["h2"]) THEN (move ["t2"]) THEN (move ["_"]))]) (((((use_arg_then "append_nil")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "LENGTH")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "ADD_0")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg])))) THEN (done_tac)));
+   ((((use_arg_then "APPEND")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "LENGTH")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "IH")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "LENGTH")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))));
+   ((arith_tac) THEN (done_tac));
+];;
+
+(* Finalization of the section ListTest *)
+let append_nil = finalize_theorem append_nil;;
+let test = finalize_theorem test;;
+end_section "ListTest";;
+
+(* Lemma ODIGPXU *)
+let ODIGPXU = section_proof []
+`!P f f2 p0 p (q : real^N) t s.
+	polyhedron P /\ p0 IN P /\ ~(p0 IN f UNION f2) /\
+	f facet_of P /\ f2 facet_of P /\
+	p IN f /\ q IN f2 /\
+	&0 < t /\ &0 < s /\
+	(&1 - t) % p0 + t % p = (&1 - s) % p0 + s % q ==> s = t`
+[
+   (BETA_TAC THEN (move ["P"]) THEN (move ["f"]) THEN (move ["f'"]) THEN (move ["p0"]) THEN (move ["p"]) THEN (move ["q"]) THEN (move ["t"]) THEN (move ["s"]) THEN (case THEN (move ["polyP"])) THEN (case THEN (move ["p0P"])) THEN (case THEN (move ["p0_ff'"])) THEN (case THEN (move ["fP"])) THEN (case THEN (move ["f'P"])) THEN (case THEN (move ["pf"])) THEN (case THEN (move ["qf'"])) THEN (case THEN (move ["t0"])) THEN (case THEN ((move ["s0"]) THEN (move ["eq"]))));
+   (((fun arg_tac -> arg_tac (Arg_theorem (REAL_ARITH `s <= t /\ t <= s ==> s = (t:real)`))) (disch_tac [])) THEN (DISCH_THEN apply_tac));
+   ((THENL_FIRST) (split_tac) ((((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then "ODIGPXU_lemma") (fun fst_arg -> (use_arg_then "P") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "f") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "f'") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "p0") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "p") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "q") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "t") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "s") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac) THEN ((TRY done_tac))) THEN (done_tac)));
+   (((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then "ODIGPXU_lemma") (fun fst_arg -> (use_arg_then "P") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "f'") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "f") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "p0") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "q") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "p") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "s") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then "t") (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac) THEN ((TRY done_tac)));
+   ((((use_arg_then "UNION_COMM")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (((use_arg_then "p0_ff'")(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN ((TRY done_tac)));
+];;

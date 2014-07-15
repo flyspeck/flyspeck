@@ -16,6 +16,7 @@ needs "jordan/taylor_atn.hl";;
 
 needs "arith/float.hl";;
 needs "list/more_list.hl";;
+needs "trig/poly.hl";;
 
 module type Float_atn_sig =
   sig
@@ -25,6 +26,7 @@ module type Float_atn_sig =
 
     val float_interval_atn : int -> thm -> thm
     val float_interval_acs : int -> thm -> thm
+    val float_interval_asn : int -> thm -> thm
 end;;
 
 module Float_atn : Float_atn_sig = struct
@@ -35,6 +37,7 @@ open Float_theory;;
 open Arith_float;;
 open Taylor_atn;;
 open More_list;;
+open Poly;;
 
 (******************************)
 let x_var_real = `x:real` and
@@ -112,25 +115,28 @@ let rec float_interval_calc pp expr x_th =
 	  mk_float_interval_num (dest_numeral r_tm);;
 
 
+(* Moved to trig/poly.hl
 (*************************************)
 (* Polynomial functions *)
 let poly_f = new_definition `poly_f cs x = ITLIST (\c s. c + x * s) cs (&0)`;;
 
 (* Even function *)
-let poly_f_even = new_definition `poly_f_even cs x = ITLIST (\c s. c + (x * x) * s) cs (&0)`;;
+let poly_f_even = new_definition `poly_f_even cs x = poly_f cs (x * x)`;;
+
 (* Odd function *)
 let poly_f_odd = new_definition `poly_f_odd cs x = x * poly_f_even cs x`;;
-let poly_f_odd' = SPECL[`t:(real)list`; `x:real`] poly_f_odd;;
+
 
 let NUMERALS_TO_NUM = Arith_nat.NUMERALS_TO_NUM;;
 
 let POLY_F_EMPTY = (NUMERALS_TO_NUM o prove) (`poly_f [] x = &0`, REWRITE_TAC[poly_f; ITLIST]) and
     POLY_F_CONS = prove(`poly_f (CONS h t) x = h + x * poly_f t x`, REWRITE_TAC[poly_f; ITLIST]);;
 
-let POLY_F_EVEN_EMPTY = (NUMERALS_TO_NUM o prove) (`poly_f_even [] x = &0`, REWRITE_TAC[poly_f_even; ITLIST]) and
+let POLY_F_EVEN_EMPTY = (NUMERALS_TO_NUM o prove) (`poly_f_even [] x = &0`, REWRITE_TAC[poly_f_even; POLY_F_EMPTY]) and
     POLY_F_EVEN_CONS = prove(`poly_f_even (CONS h t) x = h + (x * x) * poly_f_even t x`, REWRITE_TAC[poly_f_even; ITLIST]);;
 
 let POLY_F_ODD_EMPTY = (NUMERALS_TO_NUM o prove) (`poly_f_odd [] x = &0`, REWRITE_TAC[poly_f_odd; poly_f_even; ITLIST; REAL_MUL_RZERO]);;
+*)
 
 (* TABLE *)
 let rec reverse_table_conv tm =
@@ -159,66 +165,14 @@ let mk_atn_co_table pp n =
   let list = (rand o concl) th in
     th, map (fun tm -> float_interval_calc pp tm float_interval_1) (dest_list list);;
 
-let POLY_F_EVEN_ALT = prove(`poly_f_even cs x = poly_f cs (x * x)`,
-			    REWRITE_TAC[poly_f_even; poly_f]);;
-
-let POLY_F_APPEND = prove(`!x b a. poly_f (APPEND a b) x = poly_f a x + x pow (LENGTH a) * poly_f b x`,
-   GEN_TAC THEN GEN_TAC THEN
-     MATCH_MP_TAC list_INDUCT THEN
-     REPEAT STRIP_TAC THENL
-     [
-       REWRITE_TAC[APPEND; poly_f; ITLIST; LENGTH] THEN
-	 REWRITE_TAC[real_pow; REAL_MUL_LID; REAL_ADD_LID];
-       ALL_TAC
-     ] THEN
-     
-     REWRITE_TAC[APPEND; poly_f; ITLIST] THEN
-     ASM_REWRITE_TAC[GSYM poly_f] THEN
-     REWRITE_TAC[LENGTH; real_pow] THEN
-     REAL_ARITH_TAC);;
-
-let POLY_F_EVEN_APPEND = prove(`!x b a. poly_f_even (APPEND a b) x = poly_f_even a x + x pow (2 * LENGTH a) * poly_f_even b x`,
-   REWRITE_TAC[POLY_F_EVEN_ALT; POLY_F_APPEND] THEN 
-     REWRITE_TAC[GSYM REAL_POW_2; REAL_POW_POW]);;
-
-let POLY_F_ODD_APPEND = prove(`!x b a. poly_f_odd (APPEND a b) x = poly_f_odd a x + x pow (2 * LENGTH a) * poly_f_odd b x`,
-   REPEAT GEN_TAC THEN
-     REWRITE_TAC[poly_f_odd] THEN
-     REWRITE_TAC[POLY_F_EVEN_APPEND] THEN
-     REAL_ARITH_TAC);;
-
 let ATN_SUM_TABLE = prove(`!x n. sum (0..n) (halfatn4_co x) = poly_f_odd (atn_co_table n) (halfatn4 x)`,
-   GEN_TAC THEN INDUCT_TAC THENL
-     [
-       REWRITE_TAC[SUM_SING_NUMSEG; atn_co_table; TABLE; REVERSE_TABLE; REVERSE; APPEND] THEN
-	 REWRITE_TAC[ARITH_EVEN] THEN
-	 REWRITE_TAC[poly_f_odd; poly_f_even; ITLIST] THEN
-	 REWRITE_TAC[halfatn4_co; REAL_MUL_RZERO; REAL_ADD_RID] THEN
-	 REWRITE_TAC[MULT_CLAUSES; ARITH_ADD; REAL_POW_1; real_pow] THEN
-	 REAL_ARITH_TAC;
+   REPEAT GEN_TAC THEN
+     SUBGOAL_THEN `halfatn4_co x = (\i. halfatn4_co x i)` (fun th -> ONCE_REWRITE_TAC[th]) THENL [
+       REWRITE_TAC[ETA_AX];
        ALL_TAC
      ] THEN
-
-     REWRITE_TAC[SUM_CLAUSES_NUMSEG; atn_co_table; TABLE; LE_0] THEN
-     ONCE_REWRITE_TAC[REVERSE_TABLE] THEN
-     ONCE_REWRITE_TAC[REVERSE] THEN
-     REWRITE_TAC[GSYM TABLE; GSYM atn_co_table] THEN
-     ASM_REWRITE_TAC[POLY_F_ODD_APPEND] THEN
-     REWRITE_TAC[REAL_EQ_ADD_LCANCEL] THEN
-     REWRITE_TAC[atn_co_table; LENGTH_TABLE; halfatn4_co] THEN
-     REWRITE_TAC[poly_f_odd; poly_f_even; ITLIST; REAL_MUL_RZERO; REAL_ADD_RID] THEN
-     REWRITE_TAC[real_div; REAL_MUL_ASSOC] THEN
-     REWRITE_TAC[REAL_EQ_MUL_RCANCEL] THEN
-     DISJ1_TAC THEN
-     REWRITE_TAC[REAL_MUL_AC] THEN
-     REWRITE_TAC[GSYM real_pow; ARITH_RULE `2 * SUC n + 1 = SUC (2 * SUC n)`] THEN
-     GEN_REWRITE_TAC LAND_CONV [REAL_MUL_AC] THEN
-     REWRITE_TAC[REAL_EQ_MUL_RCANCEL] THEN
-     DISJ1_TAC THEN
-     REWRITE_TAC[REAL_POW_NEG; real_pow; REAL_POW_ONE; REAL_MUL_RID]);;
-
-let POLY_F_SING = prove(`poly_f [c] x = c`,
-   REWRITE_TAC[poly_f; ITLIST; REAL_MUL_RZERO; REAL_ADD_RID]);;
+    REWRITE_TAC[halfatn4_co; ARITH_RULE `a * b / c = (a / c) * b`] THEN
+    REWRITE_TAC[sum_eq_poly_f_odd; atn_co_table; REAL_POW_NEG; REAL_POW_ONE]);;
 
 (********************)
 let c_var_real = `c:real` and
@@ -227,6 +181,9 @@ let c_var_real = `c:real` and
     t_var_list = `t:(real)list`;;
 
 let interval_const = `interval_arith`;;
+
+let POLY_F_SING = SPEC_ALL poly_f_sing and
+    POLY_F_CONS = SPEC_ALL poly_f_cons;;
 
 let rec float_interval_poly_f pp (cs, l) x_th = 
   if length l = 0 then
@@ -249,6 +206,9 @@ let rec float_interval_poly_f pp (cs, l) x_th =
 	let th1 = float_interval_add pp first (float_interval_mul pp x_th r_th) in
 	let bounds = rand (concl th1) in
 	  EQ_MP (SYM (AP_THM (AP_TERM interval_const th0) bounds)) th1;;
+
+let POLY_F_EVEN_ALT = SPEC_ALL poly_f_even;;
+let poly_f_odd' = SPECL[`t:(real)list`; `x:real`] poly_f_odd;;
 
 let float_interval_poly_f_even pp (cs, l) x_th =
   let x_tm = (rand o rator o concl) x_th in
@@ -577,6 +537,62 @@ let float_interval_acs_0 pp (cs_th, l) eps1_th x_th =
 
 let float_interval_acs pp x_th = 
   float_interval_acs_0 pp atn_co_array.(pp) eps1_array.(pp) x_th;;
+
+(* ----------------------------------- *)
+(* asn                                 *)
+(* ----------------------------------- *)
+
+let float_interval_asn_th = prove(`interval_arith (atn(x / sqrt(&1 - x * x))) bounds /\
+				    interval_arith (&1 - x * x) (float_num F n e, hi) /\
+				    ~(n = 0)
+				  ==> interval_arith (asn x) bounds`,
+   REWRITE_TAC[GSYM REAL_POW_2] THEN   
+     STRIP_TAC THEN
+     MP_TAC (SPEC_ALL ASN_ATN) THEN
+     ANTS_TAC THENL
+     [
+       POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+	 REWRITE_TAC[interval_arith] THEN
+	 REWRITE_TAC[REAL_ARITH `-- &1 < x /\ x < &1 <=> abs x < abs (&1)`] THEN
+	 REWRITE_TAC[REAL_LT_SQUARE_ABS] THEN
+	 REWRITE_TAC[REAL_ARITH `&1 pow 2 = &1`] THEN
+	 REPEAT STRIP_TAC THEN
+	 REWRITE_TAC[REAL_ARITH `a < &1 <=> &0 < &1 - a`] THEN
+
+	 MP_TAC (SPEC_ALL FLOAT_F_LT) THEN
+	 ASM_REWRITE_TAC[] THEN
+	 UNDISCH_TAC `float_num F n e <= &1 - x pow 2` THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     DISCH_THEN (fun th -> ASM_REWRITE_TAC[th]));;
+
+let FLOAT_INTERVAL_ASN' = (UNDISCH_ALL o 
+			     PURE_ONCE_REWRITE_RULE[TAUT `~P <=> (P <=> F)`] o
+			     REWRITE_RULE[ZERO_EQ_ZERO_CONST; GSYM IMP_IMP]) float_interval_asn_th;;
+
+let float_interval_asn_0 pp (cs_th, l) eps1_th x_th = 
+  let int1 = float_interval_sub pp float_interval_1 (float_interval_mul pp x_th x_th) in
+  let int2 = float_interval_div pp x_th (float_interval_sqrt pp int1) in
+  let asn_int = float_interval_atn_0 pp (cs_th, l) eps1_th int2 in
+
+  let x_tm = (rand o rator o concl) x_th in
+  let bounds = (rand o concl) asn_int in
+  let int1_bounds = (rand o concl) int1 in
+  let lo_tm, hi_tm = dest_pair int1_bounds in
+  let s, n_tm, e_tm = dest_float lo_tm in
+    if s <> "F" then
+      failwith "float_interval_acs_0: &1 - x pow 2 < &1 is not satisfied"
+    else
+      let n_th = Arith_nat.raw_eq0_hash_conv n_tm in
+      let th0 = INST[x_tm, x_var_real; bounds, bounds_var_pair;
+		     n_tm, n_var_num; e_tm, e_var_num;
+		     hi_tm, hi_var_real] FLOAT_INTERVAL_ASN' in
+	MY_PROVE_HYP asn_int (MY_PROVE_HYP int1 (MY_PROVE_HYP n_th th0));;
+
+let float_interval_asn pp x_th = 
+  float_interval_asn_0 pp atn_co_array.(pp) eps1_array.(pp) x_th;;
+
 
 (****************************************)
 end;;

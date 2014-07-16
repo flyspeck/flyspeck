@@ -28,10 +28,33 @@ module Mk_all_ineq = struct
 (* relate `nonlinear` to `the_nonlinear_inequalities` *)
 (* ********************************************************************** *)
 
+(* from break_case_exec.hl *)
 
-let quad_enclosed = Scripts.quad_enclosed;;
+let rec get_const_names tm = 
+    match tm with       
+        Var(s,t) -> []
+      | Const(s,t) ->  [s] 
+      | Comb (t1,t2) -> get_const_names t1 @ get_const_names t2 
+      | Abs (t1,t2) -> get_const_names t1 @ get_const_names t2 ;;
 
-let disregard = Scripts.disregard;;
+let rec all_const_name P = 
+    function
+      | Abs(_,t) -> all_const_name P t
+      | Comb(u,v) -> all_const_name P u && all_const_name P v
+      | Var _ -> true
+      | Const(s,_) -> P s;;
+
+let some_const_name P t = not (all_const_name (not o P) t);;
+
+let has_quad t = some_const_name (fun s -> mem s ["enclosed";"tauq"]) t;;
+
+let quad_enclosed = 
+  let has_quad_idq = filter (fun idq -> has_quad idq.ineq) !Ineq.ineqs in
+    setify (map (fun idq -> idq.idv) has_quad_idq);;
+    
+(* let quad_enclosed = Scripts.quad_enclosed;; *)
+
+let disregard = quad_enclosed;;
 
 let get_ineq s = (find (fun t -> t.idv = s) !Ineq.ineqs).ineq;;
 
@@ -40,25 +63,28 @@ let deprecated_quad_inequalities =
   let ineq_conj = end_itlist (curry mk_conj) ineql in
     new_definition (mk_eq (`deprecated_quad_inequalities:bool`,ineq_conj));;
 
-let the_nonlinear_inequalities = new_definition
+let the_nonlinear_inequalities = new_definition'
   `the_nonlinear_inequalities <=>
   (pack_nonlinear_non_ox3q1h /\ ox3q1h /\ 
      main_nonlinear_terminal_v11 /\ lp_ineqs /\ pack_ineq_def_a /\
     kcblrqc_ineq_def)`;;
 
-let mk_nonlinear = 
-  let ineqs = filter (fun t -> not (mem t.idv (disregard)) !Ineq.ineqs in
+let mk_nonlinear() = 
+  let ineqs = filter (fun t -> not (mem t.idv (disregard))) !Ineq.ineqs in
   let ineql = map (fun idv -> idv.ineq) ineqs in
   let ineq_conj = end_itlist (curry mk_conj) ineql in
-  let _ = new_definition (mk_eq (`nonlinear:bool`,ineq_conj)) in
-    ();;
+  let d = new_definition (mk_eq (`nonlinear:bool`,ineq_conj)) in
+    d;;
 
 let get_nonlinear = 
+  let th = mk_nonlinear() in
   let ineqs = filter (fun t -> not (mem t.idv disregard)) !Ineq.ineqs in
-  let sl = map (fun ind -> ind.idv) ineqs in
+(*
   let ineql = map (fun idv -> idv.ineq) ineqs in
   let ineq_conj = end_itlist (curry mk_conj) ineql in
   let th = new_definition (mk_eq (`nonlinear:bool`,ineq_conj)) in
+*)
+  let sl = map (fun ind -> ind.idv) ineqs in
   let th1 = UNDISCH (MATCH_MP (TAUT `(a <=> b) ==> (a ==> b)`) th) in
   let co1 thm = if (is_conj (concl thm)) then CONJUNCT1 thm else thm in
     fun s ->
@@ -163,23 +189,29 @@ let mk_pack_nonlinear =
   let th = new_definition (mk_eq (`pack_nonlinear_non_ox3q1h:bool`,packing_ineq_conj)) in
     th;;
 
-(* XX doesn't work for some strange reason *)
+let dequad xs = filter (fun s -> not (mem s quad_enclosed)) xs;;
+
+(* XX We need to eliminated deprecated_quad_inequalities here.
+     doesn't work in module mode for some strange reason *)
 
 report "this will take a few minutes...";;
 
 let nonlinear_imp_the_nonlinear_inequalities = Prove_by_refinement.prove_by_refinement(
-  `nonlinear ==> the_nonlinear_inequalities`,
+  `deprecated_quad_inequalities /\ nonlinear ==> the_nonlinear_inequalities`,
   (* {{{ proof *)
   [
   REWRITE_TAC[the_nonlinear_inequalities];
-  DISCH_TAC;
+  REPEAT WEAKER_STRIP_TAC;
   nCONJ_TAC 5;
-    REWRITE_TAC[Tame_lemmas.kcblrqc_ineq_def];
-    BY(REWRITE_TAC (map get_nonlinear kcblrqc_ineq_s));
+    MP_TAC deprecated_quad_inequalities;
+    ASM_REWRITE_TAC[Tame_lemmas.kcblrqc_ineq_def];
+    BY(ASM_SIMP_TAC (map get_nonlinear (dequad kcblrqc_ineq_s)));
   nCONJ_TAC 4;
     BY(REWRITE_TAC (Ysskqoy.pack_ineq_def_a :: map get_nonlinear pack_ineq_s));
   nCONJ_TAC 3;
-    BY(REWRITE_TAC (Lp_ineqs.lp_ineqs_def :: map get_nonlinear lp_ineqs_s));
+    MP_TAC deprecated_quad_inequalities;
+    ASM_REWRITE_TAC[] THEN DISCH_TAC;
+    BY(ASM_SIMP_TAC (Lp_ineqs.lp_ineqs_def :: map get_nonlinear (dequad lp_ineqs_s)));
   nCONJ_TAC 2;
     BY(REWRITE_TAC (main_nonlinear :: map get_nonlinear get_main_nonlinear_s));
   nCONJ_TAC 1;
@@ -305,14 +337,19 @@ let exec_results = exec();;
 let prepared_nonlinear_imp_nonlinear = 
   let inn = map (fun (_,x) -> UNDISCH x) exec_results in
   let ineq_nn = end_itlist (CONJ) inn in
-  let ineqs = !Ineq.ineqs in
-  let ineql = map (fun idv -> idv.ineq) ineqs in
-  let ineq_conj = end_itlist (curry mk_conj) ineql in
-  let def = new_definition (mk_eq (`nonlinear:bool`,ineq_conj)) in
+  let def = mk_inequality() in
     EQ_MP (SYM def) ineq_nn;;
 
 *)
 
 
+(* tests for quads: *)
+
+(*
+has_quad (concl main_nonlinear);;
+has_quad (concl Lp_ineqs.lp_ineqs_def);;
+has_quad (concl (Merge_ineq.ox3q1h()));;
+has_quad (concl mk_pack_nonlinear);;
+*)
 
  end;;

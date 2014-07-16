@@ -1,0 +1,142 @@
+(* =========================================================== *)
+(* Informal arithmetic procedures: atn, acs, asn               *)
+(* Author: Alexey Solovyev                                     *)
+(* Date: 2012-10-27                                            *)
+(* =========================================================== *)
+
+(* Dependencies *)
+needs "informal/informal_interval.hl";;
+
+(* atn *)
+module type Informal_atn_sig =
+  sig
+    val atn_interval : int -> Informal_interval.interval -> Informal_interval.interval
+    val acs_interval : int -> Informal_interval.interval -> Informal_interval.interval
+    val asn_interval : int -> Informal_interval.interval -> Informal_interval.interval
+    val pi_approx_array : Informal_interval.interval array
+    val pi2_approx_array : Informal_interval.interval array
+  end;;
+
+
+module Informal_atn : Informal_atn_sig = struct
+
+open Informal_float;;
+open Informal_interval;;
+
+
+let rec poly_f_interval pp l x =
+  if length l = 0 then
+    failwith "poly_f_interval: an empty coefficient list"
+  else 
+    let first = hd l in
+      if length l = 1 then 
+	first 
+      else
+	let r = poly_f_interval pp (tl l) x in
+	  add_interval pp first (mul_interval pp x r);;
+	
+    
+let poly_f_even_interval pp l x =
+  let xx = mul_interval pp x x in
+    poly_f_interval pp l xx;;
+
+
+let poly_f_odd_interval pp l x =
+  let even = poly_f_even_interval pp l x in
+    mul_interval pp x even;;
+
+
+let halfatn_interval pp x =
+  let xx = mul_interval pp x x in
+  let one_xx = add_interval pp one_interval xx in
+  let sqrt = sqrt_interval pp one_xx in
+  let one_sqrt = add_interval pp sqrt one_interval in
+    div_interval pp x one_sqrt;;
+
+
+let halfatn4_interval pp x =
+  (halfatn_interval pp o halfatn_interval pp o halfatn_interval pp o halfatn_interval pp) x;;
+
+
+(* Computes an interval for 16 * sum(0..n) (halfatn4_co x) *)
+let atn_sum_interval =
+  let interval_16 = mk_small_num_interval 16 in
+    fun pp l x ->
+      let halfatn4 = halfatn4_interval pp x in
+      let poly = poly_f_odd_interval pp l halfatn4 in
+	mul_interval pp interval_16 poly;;
+
+
+let atn0_interval pp l eps x =
+  let sum = atn_sum_interval pp l x in
+  let a, b = dest_interval sum in
+  let _, d = dest_interval eps in
+  let hi = add_float_hi pp b d in
+  let lo = sub_float_lo pp a d in
+    mk_interval (lo, hi);;
+
+
+(* Computes an interval for 2 ^ -(6n + 5) *)
+let compute_eps1 pp n =
+  let pow = pow_interval pp (6 * n + 5) two_interval in
+    inv_interval pp pow;;
+
+
+let mk_atn_co_table pp n =
+  let get_val k =
+    let l = if (k land 1) = 0 then one_interval else neg_interval (one_interval) in
+    let r = mk_small_num_interval (2 * k + 1) in
+      div_interval pp l r in
+    map get_val (0--n);;
+
+(* Lookup tables *)
+let n_of_p pp =
+  let x = (float_of_int (pp + 1) *. log (float_of_int Informal_nat.arith_base) /. log (2.0) -. 5.0) /. 6.0 in
+  let n = (int_of_float o ceil) x in
+    if n < 1 then 1 else n;;
+
+let atn_co_array = Array.init 21 (fun i -> mk_atn_co_table (i + 1) (n_of_p i));;
+let eps1_array = Array.init 21 (fun i -> compute_eps1 (i + 1) (n_of_p i));;
+
+
+let atn_interval pp x =
+  atn0_interval pp atn_co_array.(pp) eps1_array.(pp) x;;
+
+
+(* pi approximation *)
+let pi_approx_array, pi2_approx_array =
+  let pp = 20 in
+  let x = one_interval in
+  let r1 = atn_interval pp x in
+  let r2 = mul_interval pp (mk_small_num_interval 4) r1 in
+  let float_pi = r2 in
+  let float_pi2 = div_interval pp float_pi two_interval in
+  let pi_int0 = mk_small_num_interval 0 in
+  let pi2_int0 = pi_int0 in
+    Array.init 19 (fun i -> if i = 0 then pi_int0 else round_interval i float_pi),
+  Array.init 19 (fun i -> if i = 0 then pi2_int0 else round_interval i float_pi2);;
+
+
+(* acs *)
+let acs0_interval pp l eps1 x =
+  let int1 = sub_interval pp one_interval (mul_interval pp x x) in
+  let int2 = div_interval pp x (sqrt_interval pp int1) in
+  let acs_int = atn0_interval pp l eps1 int2 in
+    sub_interval pp pi2_approx_array.(pp + 1) acs_int;;
+
+let acs_interval pp x =
+  acs0_interval pp atn_co_array.(pp) eps1_array.(pp) x;;
+
+
+(* asn *)
+let asn0_interval pp l eps1 x =
+  let int1 = sub_interval pp one_interval (mul_interval pp x x) in
+  let int2 = div_interval pp x (sqrt_interval pp int1) in
+    atn0_interval pp l eps1 int2;;
+
+let asn_interval pp x =
+  asn0_interval pp atn_co_array.(pp) eps1_array.(pp) x;;
+
+
+end;;
+

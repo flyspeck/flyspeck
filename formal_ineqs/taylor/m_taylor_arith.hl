@@ -19,6 +19,8 @@ open Arith_nat;;
 open Arith_float;;
 open More_float;;
 open Float_atn;;
+open Cos_eval;;
+open Sin_eval;;
 open Float_theory;;
 open M_taylor;;
 open Misc_vars;;
@@ -26,7 +28,10 @@ open Misc_vars;;
 
 let sqrt_tm = `sqrt` and
     atn_tm = `atn` and
-    acs_tm = `acs`;;
+    acs_tm = `acs` and
+    asn_tm = `asn` and
+    sin_tm = `sin` and
+    cos_tm = `cos`;;
 
 
 (*************************************)
@@ -958,6 +963,102 @@ let MK_M_TAYLOR_ATN' = (UNDISCH_ALL o PURE_REWRITE_RULE[float1_eq; float2_eq; nu
      new_rewrite [] [`f x pow 2`] REAL_POW_2 THEN
      ASM_SIMP_TAC[]);;
 
+(* cos *)
+let MK_M_TAYLOR_COS' = (UNDISCH_ALL o PURE_REWRITE_RULE[float1_eq; float2_eq; num2_eq] o DISCH_ALL o 
+			  MY_RULE_FLOAT o prove)
+  (`m_cell_domain domain (y:real^N) w ==>
+     diff2c_domain domain f ==>
+     interval_arith (cos (f y)) bounds ==>
+     all_n 1 d_bounds_list (\i int. interval_arith (--sin (f y) * partial i f y) int) ==>
+     (!x. x IN interval [domain] ==> all_n 1 dd_bounds_list (\i list_i. all_n 1 list_i 
+	(\j int. interval_arith (--((cos (f x) * partial j f x) * partial i f x 
+				    + sin (f x) * partial2 j i f x)) int))) ==>
+     m_taylor_interval (\x. cos (f x)) domain y w bounds d_bounds_list dd_bounds_list`,
+   REWRITE_TAC[m_taylor_interval; m_lin_approx; second_bounded; ETA_AX] THEN
+     REPEAT DISCH_TAC THEN
+     SUBGOAL_THEN `lift o f differentiable at (y:real^N)` ASSUME_TAC THENL [
+       UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+	 REWRITE_TAC[diff2c_domain_alt; diff2_domain] THEN STRIP_TAC THEN
+	 new_rewrite [] [] diff2_imp_diff THEN REWRITE_TAC[] THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 MATCH_MP_TAC y_in_domain THEN EXISTS_TAC `w:real^N` THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THENL [
+       UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+	 REWRITE_TAC[diff2c_domain] THEN REPEAT STRIP_TAC THEN
+	 ONCE_REWRITE_TAC[GSYM o_THM] THEN REWRITE_TAC[ETA_AX] THEN
+	 apply_tac diff2c_cos_compose THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
+       new_rewrite [] [`cos _`] (GSYM o_THM) THEN REWRITE_TAC[ETA_AX] THEN
+	 apply_tac diff_uni_compose THEN ASM_REWRITE_TAC[] THEN
+	 REWRITE_TAC[REAL_DIFFERENTIABLE_AT_COS];
+       new_rewrite [] [`cos _`] (GSYM o_THM) THEN REWRITE_TAC[ETA_AX] THEN
+	 MP_TAC (ISPECL [`y:real^N`; `f:real^N->real`] partial_uni_compose') THEN
+	 ASM_REWRITE_TAC[] THEN
+	 DISCH_THEN (MP_TAC o SPEC `cos`) THEN REWRITE_TAC[REAL_DIFFERENTIABLE_AT_COS] THEN
+	 ASM_SIMP_TAC[derivative_cos];
+       ALL_TAC
+     ] THEN
+
+     UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+     REWRITE_TAC[diff2c_domain_alt; diff2_domain] THEN
+     DISCH_THEN (MP_TAC o SPEC `x:real^N` o CONJUNCT1) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+     MP_TAC (ISPECL [`x:real^N`; `f:real^N->real`] second_partial_uni_compose') THEN
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (MP_TAC o SPEC `cos`) THEN
+     REWRITE_TAC[diff2_cos] THEN
+     new_rewrite [] [`cos _`] (GSYM o_THM) THEN REWRITE_TAC[ETA_AX] THEN
+     ASM_SIMP_TAC[second_derivative_cos; derivative_cos] THEN
+     ASM_SIMP_TAC[REAL_ARITH `(--c * p1) * p2 + --s * p3 = --((c * p1) * p2 + s * p3)`]);;
+
+(* sin *)
+let MK_M_TAYLOR_SIN' = (UNDISCH_ALL o PURE_REWRITE_RULE[float1_eq; float2_eq; num2_eq] o DISCH_ALL o 
+			  MY_RULE_FLOAT o prove)
+  (`m_cell_domain domain (y:real^N) w ==>
+     diff2c_domain domain f ==>
+     interval_arith (sin (f y)) bounds ==>
+     all_n 1 d_bounds_list (\i int. interval_arith (cos (f y) * partial i f y) int) ==>
+     (!x. x IN interval [domain] ==> all_n 1 dd_bounds_list (\i list_i. all_n 1 list_i 
+	(\j int. interval_arith (((--sin (f x)) * partial j f x) * partial i f x
+				   + cos (f x) * partial2 j i f x) int))) ==>
+     m_taylor_interval (\x. sin (f x)) domain y w bounds d_bounds_list dd_bounds_list`,
+   REWRITE_TAC[m_taylor_interval; m_lin_approx; second_bounded; ETA_AX] THEN
+     REPEAT DISCH_TAC THEN
+     SUBGOAL_THEN `lift o f differentiable at (y:real^N)` ASSUME_TAC THENL [
+       UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+	 REWRITE_TAC[diff2c_domain_alt; diff2_domain] THEN STRIP_TAC THEN
+	 new_rewrite [] [] diff2_imp_diff THEN REWRITE_TAC[] THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 MATCH_MP_TAC y_in_domain THEN EXISTS_TAC `w:real^N` THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THENL [
+       UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+	 REWRITE_TAC[diff2c_domain] THEN REPEAT STRIP_TAC THEN
+	 ONCE_REWRITE_TAC[GSYM o_THM] THEN REWRITE_TAC[ETA_AX] THEN
+	 apply_tac diff2c_sin_compose THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
+       new_rewrite [] [`sin _`] (GSYM o_THM) THEN REWRITE_TAC[ETA_AX] THEN
+	 apply_tac diff_uni_compose THEN ASM_REWRITE_TAC[] THEN
+	 REWRITE_TAC[REAL_DIFFERENTIABLE_AT_SIN];
+       new_rewrite [] [`sin _`] (GSYM o_THM) THEN REWRITE_TAC[ETA_AX] THEN
+	 MP_TAC (ISPECL [`y:real^N`; `f:real^N->real`] partial_uni_compose') THEN
+	 ASM_REWRITE_TAC[] THEN
+	 DISCH_THEN (MP_TAC o SPEC `sin`) THEN REWRITE_TAC[REAL_DIFFERENTIABLE_AT_SIN] THEN
+	 ASM_SIMP_TAC[derivative_sin];
+       ALL_TAC
+     ] THEN
+
+     UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+     REWRITE_TAC[diff2c_domain_alt; diff2_domain] THEN
+     DISCH_THEN (MP_TAC o SPEC `x:real^N` o CONJUNCT1) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+     MP_TAC (ISPECL [`x:real^N`; `f:real^N->real`] second_partial_uni_compose') THEN
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (MP_TAC o SPEC `sin`) THEN
+     REWRITE_TAC[diff2_sin] THEN
+     new_rewrite [] [`sin _`] (GSYM o_THM) THEN REWRITE_TAC[ETA_AX] THEN
+     ASM_SIMP_TAC[second_derivative_sin; derivative_sin]);;
 
 (* acs *)
 let iabs_lemma = GEN_REWRITE_RULE (RAND_CONV o RAND_CONV) [GSYM float1_eq] (REFL `iabs f_bounds < &1`);;
@@ -1044,6 +1145,89 @@ let MK_M_TAYLOR_ACS' = (UNDISCH_ALL o PURE_ONCE_REWRITE_RULE[iabs_lemma] o
      new_rewrite [] [`acs _`] (GSYM o_THM) THEN REWRITE_TAC[ETA_AX] THEN
      ASM_SIMP_TAC[second_derivative_acs; derivative_acs; REAL_MUL_LNEG; GSYM real_sub] THEN
      ASM_SIMP_TAC[GSYM REAL_MUL_LNEG]);;
+
+(* asn *)
+let MK_M_TAYLOR_ASN' = (UNDISCH_ALL o PURE_ONCE_REWRITE_RULE[iabs_lemma] o
+			  PURE_REWRITE_RULE[float1_eq; num3_eq] o DISCH_ALL o 
+			  MY_RULE_FLOAT o prove)
+  (`m_cell_domain domain (y:real^N) w ==>
+     (!x. x IN interval [domain] ==> interval_arith (f x) f_bounds) ==>
+     iabs f_bounds < &1 ==>
+     diff2c_domain domain f ==>
+     interval_arith (asn (f y)) bounds ==>
+     all_n 1 d_bounds_list 
+     (\i int. interval_arith (inv (sqrt (&1 - f y * f y)) * partial i f y) int) ==>
+     (!x. x IN interval [domain] ==> all_n 1 dd_bounds_list (\i list_i. all_n 1 list_i 
+	(\j int. interval_arith (((f x / sqrt ((&1 - f x * f x) pow 3)) * partial j f x) * partial i f x +
+				   inv (sqrt (&1 - f x * f x)) * partial2 j i f x) int))) ==>
+     m_taylor_interval (\x. asn (f x)) domain y w bounds d_bounds_list dd_bounds_list`,
+   REWRITE_TAC[m_taylor_interval; m_lin_approx; second_bounded; ETA_AX] THEN
+     REPEAT DISCH_TAC THEN
+     SUBGOAL_THEN `lift o f differentiable at (y:real^N)` ASSUME_TAC THENL
+     [
+       UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+	 REWRITE_TAC[diff2c_domain_alt; diff2_domain] THEN STRIP_TAC THEN
+	 new_rewrite [] [] diff2_imp_diff THEN REWRITE_TAC[] THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 MATCH_MP_TAC y_in_domain THEN EXISTS_TAC `w:real^N` THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `!x:real^N. x IN interval [domain] ==> abs (f x) < &1` ASSUME_TAC THENL
+     [
+       GEN_TAC THEN DISCH_TAC THEN
+	 apply_tac interval_arith_abs THEN
+	 EXISTS_TAC `f_bounds:real#real` THEN
+	 ASM_REWRITE_TAC[] THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     SUBGOAL_THEN `abs (f (y:real^N)) < &1` ASSUME_TAC THENL
+     [
+       FIRST_X_ASSUM MATCH_MP_TAC THEN
+	 MATCH_MP_TAC y_in_domain THEN EXISTS_TAC `w:real^N` THEN
+	 ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     REPEAT STRIP_TAC THEN ASM_REWRITE_TAC[] THENL
+     [
+       UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+	 REWRITE_TAC[diff2c_domain] THEN REPEAT STRIP_TAC THEN
+	 ONCE_REWRITE_TAC[GSYM o_THM] THEN REWRITE_TAC[ETA_AX] THEN
+	 apply_tac diff2c_asn_compose THEN CONJ_TAC THEN FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
+       new_rewrite [] [`asn _`] (GSYM o_THM) THEN REWRITE_TAC[ETA_AX] THEN
+	 apply_tac diff_uni_compose THEN ASM_REWRITE_TAC[] THEN
+	 MATCH_MP_TAC REAL_DIFFERENTIABLE_AT_ASN THEN ASM_REWRITE_TAC[];
+       new_rewrite [] [`asn _`] (GSYM o_THM) THEN REWRITE_TAC[ETA_AX] THEN
+	 MP_TAC (ISPECL [`y:real^N`; `f:real^N->real`] partial_uni_compose') THEN
+	 ASM_REWRITE_TAC[] THEN
+	 DISCH_THEN (MP_TAC o SPEC `asn`) THEN
+	 ANTS_TAC THENL
+	 [
+	   MATCH_MP_TAC REAL_DIFFERENTIABLE_AT_ASN THEN ASM_REWRITE_TAC[];
+	   ALL_TAC
+	 ] THEN
+	 ASM_SIMP_TAC[derivative_asn];
+       ALL_TAC
+     ] THEN
+
+     UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+     REWRITE_TAC[diff2c_domain_alt; diff2_domain] THEN
+     DISCH_THEN (MP_TAC o SPEC `x:real^N` o CONJUNCT1) THEN ASM_REWRITE_TAC[] THEN DISCH_TAC THEN
+     MP_TAC (ISPECL [`x:real^N`; `f:real^N->real`] second_partial_uni_compose') THEN
+     ASM_REWRITE_TAC[] THEN
+     DISCH_THEN (MP_TAC o SPEC `asn`) THEN
+     ANTS_TAC THENL
+     [
+       MATCH_MP_TAC diff2_asn THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+
+     new_rewrite [] [`asn _`] (GSYM o_THM) THEN REWRITE_TAC[ETA_AX] THEN
+     ASM_SIMP_TAC[second_derivative_asn; derivative_asn]);;
 
 
 
@@ -1462,6 +1646,402 @@ let eval_m_taylor_atn n p_lin p_second taylor1_th =
   let eq_th = unary_beta_gen_eq f1_tm x_var atn_tm in
     m_taylor_interval_norm th eq_th;;
 
+
+(***************************************)
+(* eval_m_taylor_cos *)
+
+let cos_partial_lemma' = 
+  prove(`interval_arith (--sin (f y) * partial i f (y:real^N)) int <=>
+	  (\i int. interval_arith (--sin (f y) * partial i f y) int) i int`,
+	REWRITE_TAC[]);;
+
+
+let cos_second_lemma' = 
+  prove(`interval_arith (--((cos (f x) * partial j f (x:real^N)) * partial i f x
+			      + sin (f x) * partial2 j i f x)) int <=>
+	  (\j int. interval_arith (--((cos (f x) * partial j f x) * partial i f x
+					+ sin (f x) * partial2 j i f x)) int) j int`,
+	REWRITE_TAC[]);;
+
+
+let cos_second_lemma'' = (PURE_REWRITE_RULE[float1_eq; float2_eq; num2_eq] o NUMERALS_TO_NUM o 
+			    PURE_REWRITE_RULE[FLOAT_OF_NUM; min_exp_def] o prove)
+  (`all_n 1 list 
+     (\j int. interval_arith (--((cos (f x) * partial j f (x:real^N)) * partial i f x
+			      + sin (f x) * partial2 j i f x)) int) <=>
+     (\i list. all_n 1 list 
+	(\j int. interval_arith (--((cos (f x) * partial j f (x:real^N)) * partial i f x
+			      + sin (f x) * partial2 j i f x)) int)) i list`,
+   REWRITE_TAC[]);;
+
+
+let eval_m_taylor_cos n p_lin p_second taylor1_th = 
+  let domain_th, diff2_f1_th, lin1_th, second1_th = dest_m_taylor_thms n taylor1_th in
+  let f1_tm = (rand o concl) diff2_f1_th in
+  let domain_tm, y_tm, w_tm = dest_m_cell_domain (concl domain_th) in
+  let ty = type_of y_tm in
+
+  let x_var = mk_var ("x", ty) and
+      y_var = mk_var ("y", ty) and
+      w_var = mk_var ("w", ty) and
+      f_var = mk_var ("f", type_of f1_tm) and
+      domain_var = mk_var ("domain", type_of domain_tm) in
+
+  let undisch = UNDISCH o SPEC x_var in
+
+  let f1_bound0 = eval_m_taylor_bound n p_second taylor1_th in
+  let f1_bound = undisch f1_bound0 in
+
+  let _, bounds1_th, df1_th = m_lin_approx_components n lin1_th in
+    
+  let bounds_th = float_interval_cos p_lin bounds1_th in
+  let bounds_tm = (rand o concl) bounds_th in
+
+  (* partial_lemma' *)
+  let u_lemma0 = (INST[f1_tm, f_var; y_tm, y_var] o 
+		    INST_TYPE[n_type_array.(n), nty]) cos_partial_lemma' in
+
+  let u_bounds = 
+    let sin, neg = float_interval_sin p_lin, float_interval_neg in
+      neg (sin bounds1_th) in
+
+  let u_lin th1 =
+    (* partial *)
+    let u_th =
+      let ( * ) = float_interval_mul p_lin in
+	u_bounds * th1 in
+    let int_tm = rand (concl u_th) in
+    let i_tm = (rand o rator o rator o lhand) (concl th1) in
+    let th0 = INST[i_tm, i_var_num; int_tm, int_var] u_lemma0 in
+      EQ_MP th0 u_th in
+
+  let df_th = eval_all_n df1_th true u_lin in
+  let d_bounds_list = (rand o rator o concl) df_th in
+
+  let dd1 = second_bounded_components n second1_th in
+    
+  (* second_lemma', second_lemma'' *)
+  let u_second_lemma0 = (INST[f1_tm, f_var] o 
+			   INST_TYPE[n_type_array.(n), nty]) cos_second_lemma' in
+
+  let u_second_lemma1 = (INST[f1_tm, f_var] o
+			   INST_TYPE[n_type_array.(n), nty]) cos_second_lemma'' in
+
+  let d1_bounds = map (fun i -> 
+			 let th0 = eval_m_taylor_partial_bound n p_second i taylor1_th in
+			   undisch th0) (1--n) in
+
+  (* u'(f x), u''(f x) *)
+  let d1_th0, d2_th0 =
+    let cos, sin = float_interval_cos p_second, float_interval_sin p_second in
+      sin f1_bound, cos f1_bound in
+
+  let u_second2 th1 =
+    let i_tm = (rand o rator o concl) th1 in
+    let i_int = (Num.int_of_num o raw_dest_hash) i_tm in
+    let di1 = List.nth d1_bounds (i_int - 1) in
+    let th1 = MY_BETA_RULE th1 in
+    let lemma = INST[i_tm, i_var_num] u_second_lemma0 in
+    let u_second th1 =
+      let j_tm = (rand o rator o rator o rator o lhand) (concl th1) in
+      let j_int = (Num.int_of_num o raw_dest_hash) j_tm in
+      let dj1 = List.nth d1_bounds (j_int - 1) in
+	
+      (* partial2 *)
+      let u_th = 
+	let ( * ), ( + ) = float_interval_mul p_second, float_interval_add p_second in
+	let neg = float_interval_neg in
+	  neg ((d2_th0 * dj1) * di1 + d1_th0 * th1) in
+
+      let int_tm = rand (concl u_th) in
+      let th0 = INST[j_tm, j_var_num; int_tm, int_var] lemma in
+	EQ_MP th0 u_th in
+    
+    let u_th = eval_all_n th1 true u_second in
+    let list_tm = (rand o rator o concl) u_th in
+    let lemma1 = INST[i_tm, i_var_num; list_tm, list_var_real_pair] u_second_lemma1 in
+      EQ_MP lemma1 u_th in
+
+  let dd_th0 = eval_all_n dd1 false u_second2 in
+  let dd_list = (rand o rator o concl) dd_th0 in
+  let dd_th = GEN x_var (DISCH_ALL dd_th0) in
+
+  let th = (MY_PROVE_HYP dd_th o MY_PROVE_HYP diff2_f1_th o 
+	      MY_PROVE_HYP bounds_th o MY_PROVE_HYP df_th o MY_PROVE_HYP domain_th o 
+	      INST[f1_tm, f_var; 
+		   domain_tm, domain_var; y_tm, y_var; w_tm, w_var;
+		   bounds_tm, bounds_var; d_bounds_list, d_bounds_list_var; 
+		   dd_list, dd_bounds_list_var] o
+	      INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_COS' in
+  let eq_th = unary_beta_gen_eq f1_tm x_var cos_tm in
+    m_taylor_interval_norm th eq_th;;
+
+
+(***************************************)
+(* eval_m_taylor_sin *)
+
+let sin_partial_lemma' = 
+  prove(`interval_arith (cos (f y) * partial i f (y:real^N)) int <=>
+	  (\i int. interval_arith (cos (f y) * partial i f y) int) i int`,
+	REWRITE_TAC[]);;
+
+
+let sin_second_lemma' = 
+  prove(`interval_arith ((--sin (f x) * partial j f (x:real^N)) * partial i f x
+			      + cos (f x) * partial2 j i f x) int <=>
+	  (\j int. interval_arith ((--sin (f x) * partial j f x) * partial i f x
+					+ cos (f x) * partial2 j i f x) int) j int`,
+	REWRITE_TAC[]);;
+
+
+let sin_second_lemma'' = (PURE_REWRITE_RULE[float1_eq; float2_eq; num2_eq] o NUMERALS_TO_NUM o 
+			    PURE_REWRITE_RULE[FLOAT_OF_NUM; min_exp_def] o prove)
+  (`all_n 1 list 
+     (\j int. interval_arith ((--sin (f x) * partial j f (x:real^N)) * partial i f x
+			      + cos (f x) * partial2 j i f x) int) <=>
+     (\i list. all_n 1 list 
+	(\j int. interval_arith ((--sin (f x) * partial j f (x:real^N)) * partial i f x
+			      + cos (f x) * partial2 j i f x) int)) i list`,
+   REWRITE_TAC[]);;
+
+
+let eval_m_taylor_sin n p_lin p_second taylor1_th = 
+  let domain_th, diff2_f1_th, lin1_th, second1_th = dest_m_taylor_thms n taylor1_th in
+  let f1_tm = (rand o concl) diff2_f1_th in
+  let domain_tm, y_tm, w_tm = dest_m_cell_domain (concl domain_th) in
+  let ty = type_of y_tm in
+
+  let x_var = mk_var ("x", ty) and
+      y_var = mk_var ("y", ty) and
+      w_var = mk_var ("w", ty) and
+      f_var = mk_var ("f", type_of f1_tm) and
+      domain_var = mk_var ("domain", type_of domain_tm) in
+
+  let undisch = UNDISCH o SPEC x_var in
+
+  let f1_bound0 = eval_m_taylor_bound n p_second taylor1_th in
+  let f1_bound = undisch f1_bound0 in
+
+  let _, bounds1_th, df1_th = m_lin_approx_components n lin1_th in
+    
+  let bounds_th = float_interval_sin p_lin bounds1_th in
+  let bounds_tm = (rand o concl) bounds_th in
+
+  (* partial_lemma' *)
+  let u_lemma0 = (INST[f1_tm, f_var; y_tm, y_var] o 
+		    INST_TYPE[n_type_array.(n), nty]) sin_partial_lemma' in
+
+  let u_bounds = 
+    let cos = float_interval_cos p_lin in
+      cos bounds1_th in
+
+  let u_lin th1 =
+    (* partial *)
+    let u_th =
+      let ( * ) = float_interval_mul p_lin in
+	u_bounds * th1 in
+    let int_tm = rand (concl u_th) in
+    let i_tm = (rand o rator o rator o lhand) (concl th1) in
+    let th0 = INST[i_tm, i_var_num; int_tm, int_var] u_lemma0 in
+      EQ_MP th0 u_th in
+
+  let df_th = eval_all_n df1_th true u_lin in
+  let d_bounds_list = (rand o rator o concl) df_th in
+
+  let dd1 = second_bounded_components n second1_th in
+    
+  (* second_lemma', second_lemma'' *)
+  let u_second_lemma0 = (INST[f1_tm, f_var] o 
+			   INST_TYPE[n_type_array.(n), nty]) sin_second_lemma' in
+
+  let u_second_lemma1 = (INST[f1_tm, f_var] o
+			   INST_TYPE[n_type_array.(n), nty]) sin_second_lemma'' in
+
+  let d1_bounds = map (fun i -> 
+			 let th0 = eval_m_taylor_partial_bound n p_second i taylor1_th in
+			   undisch th0) (1--n) in
+
+  (* u'(f x), u''(f x) *)
+  let d1_th0, d2_th0 =
+    let cos, sin = float_interval_cos p_second, float_interval_sin p_second in
+    let neg = float_interval_neg in
+      cos f1_bound, neg (sin f1_bound) in
+
+  let u_second2 th1 =
+    let i_tm = (rand o rator o concl) th1 in
+    let i_int = (Num.int_of_num o raw_dest_hash) i_tm in
+    let di1 = List.nth d1_bounds (i_int - 1) in
+    let th1 = MY_BETA_RULE th1 in
+    let lemma = INST[i_tm, i_var_num] u_second_lemma0 in
+    let u_second th1 =
+      let j_tm = (rand o rator o rator o rator o lhand) (concl th1) in
+      let j_int = (Num.int_of_num o raw_dest_hash) j_tm in
+      let dj1 = List.nth d1_bounds (j_int - 1) in
+	
+      (* partial2 *)
+      let u_th = 
+	let ( * ), ( + ) = float_interval_mul p_second, float_interval_add p_second in
+	  (d2_th0 * dj1) * di1 + d1_th0 * th1 in
+
+      let int_tm = rand (concl u_th) in
+      let th0 = INST[j_tm, j_var_num; int_tm, int_var] lemma in
+	EQ_MP th0 u_th in
+    
+    let u_th = eval_all_n th1 true u_second in
+    let list_tm = (rand o rator o concl) u_th in
+    let lemma1 = INST[i_tm, i_var_num; list_tm, list_var_real_pair] u_second_lemma1 in
+      EQ_MP lemma1 u_th in
+
+  let dd_th0 = eval_all_n dd1 false u_second2 in
+  let dd_list = (rand o rator o concl) dd_th0 in
+  let dd_th = GEN x_var (DISCH_ALL dd_th0) in
+
+  let th = (MY_PROVE_HYP dd_th o MY_PROVE_HYP diff2_f1_th o 
+	      MY_PROVE_HYP bounds_th o MY_PROVE_HYP df_th o MY_PROVE_HYP domain_th o 
+	      INST[f1_tm, f_var; 
+		   domain_tm, domain_var; y_tm, y_var; w_tm, w_var;
+		   bounds_tm, bounds_var; d_bounds_list, d_bounds_list_var; 
+		   dd_list, dd_bounds_list_var] o
+	      INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_SIN' in
+  let eq_th = unary_beta_gen_eq f1_tm x_var sin_tm in
+    m_taylor_interval_norm th eq_th;;
+
+
+(***************************************)
+(* eval_m_taylor_asn *)
+
+let asn_partial_lemma' = 
+  prove(`interval_arith (inv (sqrt (&1 - f y * f y)) * partial i f (y:real^N)) int <=>
+	  (\i int. interval_arith (inv (sqrt (&1 - f y * f y)) * partial i f y) int) i int`,
+	REWRITE_TAC[]);;
+
+
+let asn_second_lemma' = 
+  prove(`interval_arith (((f x / sqrt ((&1 - f x * f x) pow 3)) * partial j f x) * partial i f (x:real^N) + inv (sqrt (&1 - f x * f x)) * partial2 j i f x) int <=>
+
+	  (\j int. interval_arith (((f x / sqrt ((&1 - f x * f x) pow 3)) * partial j f x) * partial i f (x:real^N) + inv (sqrt (&1 - f x * f x)) * partial2 j i f x) int) j int`,
+	REWRITE_TAC[]);;
+
+
+let asn_second_lemma'' = (PURE_REWRITE_RULE[float1_eq; float2_eq; num3_eq; num2_eq] o NUMERALS_TO_NUM o 
+			    PURE_REWRITE_RULE[FLOAT_OF_NUM; min_exp_def] o prove)
+  (`all_n 1 list 
+     (\j int. interval_arith (((f x / sqrt ((&1 - f x * f x) pow 3)) * partial j f x) * partial i f (x:real^N) + inv (sqrt (&1 - f x * f x)) * partial2 j i f x) int) <=>
+     (\i list. all_n 1 list 
+	(\j int. interval_arith (((f x / sqrt ((&1 - f x * f x) pow 3)) * partial j f x) * partial i f (x:real^N) + inv (sqrt (&1 - f x * f x)) * partial2 j i f x) int)) i list`,
+   REWRITE_TAC[]);;
+
+
+let eval_m_taylor_asn n p_lin p_second taylor1_th =
+  let domain_th, diff2_f1_th, lin1_th, second1_th = dest_m_taylor_thms n taylor1_th in
+  let f1_tm = (rand o concl) diff2_f1_th in
+  let domain_tm, y_tm, w_tm = dest_m_cell_domain (concl domain_th) in
+  let ty = type_of y_tm in
+
+  let x_var = mk_var ("x", ty) and
+      y_var = mk_var ("y", ty) and
+      w_var = mk_var ("w", ty) and
+      f_var = mk_var ("f", type_of f1_tm) and
+      domain_var = mk_var ("domain", type_of domain_tm) in
+
+  let undisch = UNDISCH o SPEC x_var in
+
+  let f1_bound0 = eval_m_taylor_bound n p_second taylor1_th in
+  let f1_bound = undisch f1_bound0 in
+  let f_bounds_tm = (rand o concl) f1_bound in
+
+  (* cond *)
+  let cond_th = EQT_ELIM (check_interval_iabs f_bounds_tm one_float) in
+
+  let _, bounds1_th, df1_th = m_lin_approx_components n lin1_th in
+    
+  let bounds_th = float_interval_asn p_lin bounds1_th in
+  let bounds_tm = (rand o concl) bounds_th in
+
+  (* partial_lemma' *)
+  let u_lemma0 = (INST[f1_tm, f_var; y_tm, y_var] o 
+		    INST_TYPE[n_type_array.(n), nty]) asn_partial_lemma' in
+
+  let u_bounds = 
+    let inv, sqrt = float_interval_inv p_lin, float_interval_sqrt p_lin in
+    let ( * ), (-) = float_interval_mul p_lin, float_interval_sub p_lin in
+      inv (sqrt (one_interval - bounds1_th * bounds1_th)) in
+
+  let u_lin th1 =
+    (* partial *)
+    let u_th =
+      let ( * ) = float_interval_mul p_lin in
+	u_bounds * th1 in
+    let int_tm = rand (concl u_th) in
+    let i_tm = (rand o rator o rator o lhand) (concl th1) in
+    let th0 = INST[i_tm, i_var_num; int_tm, int_var] u_lemma0 in
+      EQ_MP th0 u_th in
+
+  let df_th = eval_all_n df1_th true u_lin in
+  let d_bounds_list = (rand o rator o concl) df_th in
+
+
+  let dd1 = second_bounded_components n second1_th in
+    
+  (* second_lemma', second_lemma'' *)
+  let u_second_lemma0 = (INST[f1_tm, f_var] o 
+			   INST_TYPE[n_type_array.(n), nty]) asn_second_lemma' in
+
+  let u_second_lemma1 = (INST[f1_tm, f_var] o
+			   INST_TYPE[n_type_array.(n), nty]) asn_second_lemma'' in
+
+  let d1_bounds = map (fun i -> 
+			 let th0 = eval_m_taylor_partial_bound n p_second i taylor1_th in
+			   undisch th0) (1--n) in
+
+  (* u'(f x), u''(f x) *)
+  let d1_th0, d2_th0 =
+    let sqrt, inv = float_interval_sqrt p_second, float_interval_inv p_second in
+    let (-), ( * ), (/) = float_interval_sub p_second, float_interval_mul p_second, float_interval_div p_second in
+    let pow3 = float_interval_pow_simple p_second 3 in
+    let ff_1 = one_interval - f1_bound * f1_bound in
+      inv (sqrt ff_1),
+      f1_bound / sqrt (pow3 ff_1) in
+
+  let u_second2 th1 =
+    let i_tm = (rand o rator o concl) th1 in
+    let i_int = (Num.int_of_num o raw_dest_hash) i_tm in
+    let di1 = List.nth d1_bounds (i_int - 1) in
+    let th1 = MY_BETA_RULE th1 in
+    let lemma = INST[i_tm, i_var_num] u_second_lemma0 in
+    let u_second th1 =
+      let j_tm = (rand o rator o rator o rator o lhand) (concl th1) in
+      let j_int = (Num.int_of_num o raw_dest_hash) j_tm in
+      let dj1 = List.nth d1_bounds (j_int - 1) in
+	
+	(* partial2 *)
+      let u_th = 
+	let ( * ), ( + ) = float_interval_mul p_second, float_interval_add p_second in
+	  (d2_th0 * dj1) * di1 + d1_th0 * th1 in
+
+      let int_tm = rand (concl u_th) in
+      let th0 = INST[j_tm, j_var_num; int_tm, int_var] lemma in
+	EQ_MP th0 u_th in
+    
+    let u_th = eval_all_n th1 true u_second in
+    let list_tm = (rand o rator o concl) u_th in
+    let lemma1 = INST[i_tm, i_var_num; list_tm, list_var_real_pair] u_second_lemma1 in
+      EQ_MP lemma1 u_th in
+
+  let dd_th0 = eval_all_n dd1 false u_second2 in
+  let dd_list = (rand o rator o concl) dd_th0 in
+  let dd_th = GEN x_var (DISCH_ALL dd_th0) in
+
+  let th = (MY_PROVE_HYP dd_th o MY_PROVE_HYP diff2_f1_th o 
+	      MY_PROVE_HYP cond_th o MY_PROVE_HYP f1_bound0 o
+	      MY_PROVE_HYP bounds_th o MY_PROVE_HYP df_th o MY_PROVE_HYP domain_th o 
+	      INST[f1_tm, f_var; f_bounds_tm, f_bounds_var; 
+		   domain_tm, domain_var; y_tm, y_var; w_tm, w_var;
+		   bounds_tm, bounds_var; d_bounds_list, d_bounds_list_var; 
+		   dd_list, dd_bounds_list_var] o
+	      INST_TYPE[n_type_array.(n), nty]) MK_M_TAYLOR_ASN' in
+  let eq_th = unary_beta_gen_eq f1_tm x_var asn_tm in
+    m_taylor_interval_norm th eq_th;;
 
 
 (***************************************)

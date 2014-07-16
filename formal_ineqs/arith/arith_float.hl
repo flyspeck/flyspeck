@@ -5,18 +5,16 @@
 (* =========================================================== *)
 
 (* Dependencies *)
-needs "arith/nat.hl";;
+needs "arith/arith_nat.hl";;
 needs "arith/num_exp_theory.hl";;
 needs "arith/float_theory.hl";;
 needs "arith/interval_arith.hl";;
-needs "misc/vars.hl";;
+needs "misc/misc_vars.hl";;
 
 (* FLOOR_DIV_DIV *)
 needs "Library/floor.ml";;
 (* sqrt and its properties *)
 needs "Multivariate/vectors.ml";;
-
-prioritize_real();;
 
 module type Arith_float_sig =
   sig
@@ -79,12 +77,14 @@ module Arith_float : Arith_float_sig = struct
 
 open Num;;
 open Big_int;;
-open Arith_misc;;
+open Misc_functions;;
 open Arith_nat;;
 open Num_exp_theory;;
 open Float_theory;;
 open Interval_arith;;
 open Misc_vars;;
+
+prioritize_real();;
 
 (* interval *)
 
@@ -93,17 +93,17 @@ let APPROX_INTERVAL' = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o SPEC_ALL) APP
 let interval_const = `interval_arith` and
     num_exp_const = `num_exp`;;
 
-let b0_const = (fst o dest_comb o lhand o concl) (Arith_hash.def_array.(0));;
+let b0_const = (fst o dest_comb o lhand o concl) (Arith_num.def_array.(0));;
 let b0_name = (fst o dest_const) b0_const;;
-let base_const = mk_small_numeral Arith_hash.arith_base;;
+let base_const = mk_small_numeral Arith_num.arith_base;;
 
-let NUM_REMOVE = prove(mk_eq(mk_comb(Arith_hash.num_const, n_var_num), n_var_num), 
-		       REWRITE_TAC[Arith_hash.num_def; NUMERAL]);;
+let NUM_REMOVE = prove(mk_eq(mk_comb(Arith_num.num_const, n_var_num), n_var_num), 
+		       REWRITE_TAC[Arith_num.num_def; NUMERAL]);;
 
 (* B0 n = base * n *)
 let b0_thm = prove(mk_eq(mk_comb(b0_const, n_var_num),
                          mk_binop mul_op_num base_const n_var_num),
-                   REWRITE_TAC[Arith_hash.def_array.(0)] THEN
+                   REWRITE_TAC[Arith_num.def_array.(0)] THEN
                      TRY ARITH_TAC THEN
                      GEN_REWRITE_TAC (LAND_CONV o DEPTH_CONV) [BIT0] THEN
                      ARITH_TAC);;
@@ -135,7 +135,7 @@ let NUM_EXP_LT' = (UNDISCH_ALL o SPEC_ALL) NUM_EXP_LT;;
 
 (* B0 n = num_exp n bits *)
 let normal_lemma1 = prove(mk_eq(mk_comb(b0_const, n_var_num), `num_exp n 1`),
-   REWRITE_TAC[Arith_hash.def_array.(0); num_exp] THEN
+   REWRITE_TAC[Arith_num.def_array.(0); num_exp] THEN
      TRY ARITH_TAC THEN
      GEN_REWRITE_TAC (LAND_CONV o DEPTH_CONV) [BIT0] THEN
      ARITH_TAC);;
@@ -220,51 +220,51 @@ let rec comb_number tm n =
 
 let make_lo_thm i =
   let th_concl = mk_binop `(<=):num->num->bool`
-    (mk_comb (Arith_hash.const_array.(0), n_var_num))
-    (mk_comb (Arith_hash.const_array.(i), n_var_num)) in
+    (mk_comb (Arith_num.const_array.(0), n_var_num))
+    (mk_comb (Arith_num.const_array.(i), n_var_num)) in
     prove(th_concl,
-          REWRITE_TAC[Arith_hash.def_array.(i); Arith_hash.def_array.(0)] THEN
+          REWRITE_TAC[Arith_num.def_array.(i); Arith_num.def_array.(0)] THEN
             REWRITE_TAC[ARITH_LE; LE_REFL] THEN
             ARITH_TAC);;
 
-let lo_thm_array = Array.init Arith_hash.arith_base make_lo_thm;;
-let lo_thm_table = Hashtbl.create Arith_hash.arith_base;;
+let lo_thm_array = Array.init Arith_num.arith_base make_lo_thm;;
+let lo_thm_table = Hashtbl.create Arith_num.arith_base;;
 
-for i = 0 to Arith_hash.arith_base - 1 do
-  Hashtbl.add lo_thm_table Arith_hash.const_array.(i) lo_thm_array.(i);
+for i = 0 to Arith_num.arith_base - 1 do
+  Hashtbl.add lo_thm_table Arith_num.const_array.(i) lo_thm_array.(i);
 done;;
 
 let make_lo_thm2 i =
   let th_concl = mk_imp (`n <= m:num`,
                          mk_binop `(<=):num->num->bool`
-                          (mk_comb (Arith_hash.const_array.(0), n_var_num))
-                          (mk_comb (Arith_hash.const_array.(i), m_var_num))) in
+                          (mk_comb (Arith_num.const_array.(0), n_var_num))
+                          (mk_comb (Arith_num.const_array.(i), m_var_num))) in
     (UNDISCH_ALL o prove) (th_concl,
-          REWRITE_TAC[Arith_hash.def_array.(i); Arith_hash.def_array.(0); ARITH_LE] THEN
+          REWRITE_TAC[Arith_num.def_array.(i); Arith_num.def_array.(0); ARITH_LE] THEN
                           ARITH_TAC);;
 
-let lo_thm2_array = Array.init Arith_hash.arith_base make_lo_thm2;;
-let lo_thm2_table = Hashtbl.create Arith_hash.arith_base;;
+let lo_thm2_array = Array.init Arith_num.arith_base make_lo_thm2;;
+let lo_thm2_table = Hashtbl.create Arith_num.arith_base;;
 
-for i = 0 to Arith_hash.arith_base - 1 do
-  Hashtbl.add lo_thm2_table Arith_hash.const_array.(i) lo_thm2_array.(i);
+for i = 0 to Arith_num.arith_base - 1 do
+  Hashtbl.add lo_thm2_table Arith_num.const_array.(i) lo_thm2_array.(i);
 done;;
 
 
 let make_hi_thm i =
   let th_concl = mk_imp (`n < m:num`,
                          mk_binop `(<):num->num->bool`
-                          (mk_comb (Arith_hash.const_array.(i), n_var_num))
-                          (mk_comb (Arith_hash.const_array.(0), m_var_num))) in
+                          (mk_comb (Arith_num.const_array.(i), n_var_num))
+                          (mk_comb (Arith_num.const_array.(0), m_var_num))) in
     (UNDISCH_ALL o prove) (th_concl,
-                           REWRITE_TAC[Arith_hash.def_array.(i); Arith_hash.def_array.(0); ARITH_LT] THEN
+                           REWRITE_TAC[Arith_num.def_array.(i); Arith_num.def_array.(0); ARITH_LT] THEN
                              ARITH_TAC);;
 
-let hi_thm_array = Array.init Arith_hash.arith_base make_hi_thm;;
-let hi_thm_table = Hashtbl.create Arith_hash.arith_base;;
+let hi_thm_array = Array.init Arith_num.arith_base make_hi_thm;;
+let hi_thm_table = Hashtbl.create Arith_num.arith_base;;
 
-for i = 0 to Arith_hash.arith_base - 1 do
-  Hashtbl.add hi_thm_table Arith_hash.const_array.(i) hi_thm_array.(i);
+for i = 0 to Arith_num.arith_base - 1 do
+  Hashtbl.add hi_thm_table Arith_num.const_array.(i) hi_thm_array.(i);
 done;;
 
 (***************************************)
@@ -2251,7 +2251,7 @@ let rec float_sqrt_lo pp tm =
 	  let x_tm = rand(concl f1_2) in
 	  let x = raw_dest_hash x_tm in
 	  let f1' = Big_int.sqrt_big_int (big_int_of_num x) in
-	  let f1 = num_of_big_int (big_int_round_lo Arith_hash.arith_base pp f1') in
+	  let f1 = num_of_big_int (big_int_round_lo Arith_num.arith_base pp f1') in
 	  let f1_tm = rand(mk_numeral_array f1) in
 	  let f1_num_exp = to_num_exp f1_tm in
 
@@ -2318,7 +2318,7 @@ let rec float_sqrt_hi pp tm =
 	  let x = raw_dest_hash x_tm in
 	  let x' = big_int_of_num x in
 	  let f1' = sqrt_big_int x' in
-	  let f1 = (num_of_big_int o big_int_round_hi Arith_hash.arith_base pp)
+	  let f1 = (num_of_big_int o big_int_round_hi Arith_num.arith_base pp)
 	    (if eq_big_int (mult_big_int f1' f1') x' then f1' else succ_big_int f1') in
 	      
 	  let f1_tm = rand(mk_numeral_array f1) in
@@ -2723,7 +2723,7 @@ let dest_float_raw f_tm =
 (* Compares raw representations of two floating-point numbers f1 and f2. *)
 (* Returns -1 if f1 < f2, 0 if f1 = f2, and 1 if f1 > f2.                *)
 let compare_floats_raw =
-  let denorm n e = n */ (Int  Arith_hash.arith_base **/ e) in
+  let denorm n e = n */ (Int  Arith_num.arith_base **/ e) in
   let cmp n1 e1 n2 e2 =
     if e1 <= e2 then 
       compare_num n1 (denorm n2 (e2 -/ e1))
@@ -2744,7 +2744,7 @@ let float_prove_le f1_tm f2_tm =
     flag, le_th;;
 
 (*
-(* Arith_hash.raw_dest_hash is too slow *)
+(* Arith_num.raw_dest_hash is too slow *)
 let float_prove_le f1_tm f2_tm =
   let r = compare_floats_raw f1_tm f2_tm in
     if r <= 0 then
@@ -3963,10 +3963,10 @@ let FLOAT_TO_NUM_CONV tm =
     if (fst o dest_const o rator) f_tm <> "float_num" then
       failwith "FLOAT_TO_NUM_CONV"
     else
-      let n_th' = SYM (INST[n_tm, n_var_num] Arith_hash.NUM_THM) in
-      let e_th' = SYM (INST[e_tm, n_var_num] Arith_hash.NUM_THM) in
-      let n_th = TRANS n_th' (NUM_TO_NUMERAL_CONV (mk_comb(Arith_hash.num_const, n_tm))) in
-      let e_th = TRANS e_th' (NUM_TO_NUMERAL_CONV (mk_comb(Arith_hash.num_const, e_tm))) in
+      let n_th' = SYM (INST[n_tm, n_var_num] Arith_num.NUM_THM) in
+      let e_th' = SYM (INST[e_tm, n_var_num] Arith_num.NUM_THM) in
+      let n_th = TRANS n_th' (NUM_TO_NUMERAL_CONV (mk_comb(Arith_num.num_const, n_tm))) in
+      let e_th = TRANS e_th' (NUM_TO_NUMERAL_CONV (mk_comb(Arith_num.num_const, e_tm))) in
       let th0 = MK_COMB (AP_TERM f_tm n_th, e_th) in
       let tm0 = rand(concl th0) in
       let th1 = REWRITE_CONV[float; num_exp; REAL_MUL_LID; GSYM REAL_OF_NUM_MUL; GSYM REAL_OF_NUM_POW; min_exp_def] tm0 in
@@ -3983,12 +3983,12 @@ end;;
 let print_float fmt tm =
   try
     let s, m_tm, e_tm = Arith_float.dest_float tm in
-    let m = Arith_hash.raw_dest_hash m_tm and
-	e = Arith_hash.raw_dest_hash e_tm -/ Num.num_of_int Float_theory.min_exp in
+    let m = Arith_num.raw_dest_hash m_tm and
+	e = Arith_num.raw_dest_hash e_tm -/ Num.num_of_int Float_theory.min_exp in
     let s_str = if s = "T" then "-" else "" in
     let m_str = Num.string_of_num m in
     let e_str = if e = num_0 then "" 
-    else "*" ^ string_of_int Arith_hash.arith_base ^ "^" ^ Num.string_of_num e in
+    else "*" ^ string_of_int Arith_num.arith_base ^ "^" ^ Num.string_of_num e in
     let str = "##" ^ s_str ^ m_str ^ e_str in
       Format.pp_print_string fmt str
   with _ -> failwith "print_float";;

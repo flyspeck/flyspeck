@@ -12,11 +12,15 @@ needs "informal/informal_nat.hl";;
 module type Informal_float_sig =
   sig
     type ifloat
-	val min_exp : int
-    val mk_float : num -> int -> ifloat
-    val mk_num_float : num -> ifloat
+    val min_exp : int
+    val print_ifloat_fmt : Format.formatter -> ifloat -> unit
+    val print_ifloat : ifloat -> unit
+    val mk_float : Num.num -> int -> ifloat
+    val mk_num_float : Num.num -> ifloat
     val mk_small_num_float : int -> ifloat
-    val dest_float : ifloat -> bool * num * int
+    val dest_float : ifloat -> bool * Num.num * int
+    val num_of_ifloat : ifloat -> Num.num
+    val float_of_ifloat : ifloat -> float
     val sign_float : ifloat -> bool
       (* Compares representations, not numbers themselves *)
     val eq_float : ifloat -> ifloat -> bool
@@ -47,14 +51,33 @@ module type Informal_float_sig =
 
 module Informal_float : Informal_float_sig = struct
 
+open Num;;
 open Informal_nat;;
 
 type ifloat = bool * nat * int;;
 
 let min_exp = !Arith_options.min_exp;;
 
-(* Creates a non-negative float *)
-let mk_float n e : ifloat = false, mk_nat n, e + min_exp;;
+let print_ifloat_fmt fmt (s, n, e) =
+  let k = e - min_exp in
+  let n_str = string_of_num (dest_nat n) in
+  let s_str = if s then "-" else "" in
+  let str = 
+    if k = 0 then
+      Printf.sprintf "%s%s" s_str n_str
+    else
+      Printf.sprintf "%s%s*%d^%d" s_str n_str arith_base k in
+    Format.pp_print_string fmt str;;
+
+let print_ifloat = print_ifloat_fmt Format.std_formatter;;
+
+
+(* Creates a floating-point value *)
+let mk_float n e : ifloat = 
+  if sign_num n < 0 then
+    true, mk_nat (minus_num n), e + min_exp
+  else
+    false, mk_nat n, e + min_exp;;
 
 let mk_num_float n = false, mk_nat n, min_exp;;
 
@@ -64,6 +87,17 @@ let zero_float = mk_small_num_float 0;;
 
 let dest_float ((s, n, e) : ifloat) = s, dest_nat n, e;;
 
+let num_of_ifloat =
+  let b = num_of_int arith_base in
+    fun ((s, n, e) : ifloat) ->
+      let r = (dest_nat n) */ (b **/ Int (e - min_exp)) in
+	if s then minus_num r else r;;
+
+let float_of_ifloat f = 
+  let n = num_of_ifloat f in
+  let a = approx_num_exp 30 n in
+    float_of_string a;;
+    
 let sign_float ((s,_,_) : ifloat) = s;;
 
 let eq_float (s1,n1,e1) (s2,n2,e2) = s1 = s2 && eq_nat n1 n2 && e1 = e2;;

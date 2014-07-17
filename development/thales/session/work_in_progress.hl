@@ -165,7 +165,6 @@ let next_el_ifbetwn = prove_by_refinement(
   TYPIFY `betwn (rotate_to s x) x y = betwn s x y` ENOUGH_TO_SHOW_TAC;
     BY(ASM_MESON_TAC[]);
   BY(ASM_MESON_TAC[Seq.index_size;Reduction2.betwn_rot])
-
   ]);;
   (* }}} *)
 
@@ -247,6 +246,75 @@ let uvns_mem_core = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let el_cat_nseq_none = prove_by_refinement(
+  `!i (a:(A option)list) n. 
+    SUC i < sizel (cat a (nseq n NONE)) /\ isSome (EL i (cat a (nseq n NONE))) /\
+    isSome (EL (SUC i) (cat a (nseq n NONE)))
+  ==> (?j. SUC j < sizel a /\
+                  EL i (cat a (nseq n NONE)) = EL j a /\
+                  EL (SUC i) (cat a (nseq n NONE)) = EL (SUC j) a)    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC el_cat_suc [`i`;`a`;`nseq n (NONE:(A)option)`];
+  ASM_SIMP_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  POP_ASSUM DISJ_CASES_TAC THEN ASM_REWRITE_TAC[];
+  PROOF_BY_CONTR_TAC;
+  POP_ASSUM kill;
+  POP_ASSUM MP_TAC THEN REWRITE_TAC[NOT_EXISTS_THM;DE_MORGAN_THM];
+  CONJ_TAC THEN REPEAT WEAKER_STRIP_TAC;
+    TYPIFY `SUC j < sizel (nseq n (NONE:(A)option))` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+    REPEAT (GMATCH_SIMP_TAC Reduction3.el_nseq);
+    BY(ASM_MESON_TAC[Ssrbool.isSome;Seq.size_nseq;arith `SUC j < n ==> j < n`]);
+  TYPIFY `a = []` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  TYPIFY `nseq n (NONE:(A)option) = []` ASM_CASES_TAC THEN ASM_REWRITE_TAC[];
+  DISJ2_TAC;
+  REWRITE_TAC[GSYM EL];
+  GMATCH_SIMP_TAC Reduction3.el_nseq;
+  BY(ASM_MESON_TAC[arith `~(n=0) ==> 0 < n`;Ssrbool.isSome;Seq.size_eq0;Seq.size_nseq])
+  ]);;
+  (* }}} *)
+
+let el_cat_nseq_the_none = prove_by_refinement(
+  `!i (a:(A option)list) n. 
+    SUC i < sizel (cat a (nseq n NONE)) /\ isSome (EL i (cat a (nseq n NONE))) /\
+    isSome (EL (SUC i) (cat a (nseq n NONE)))
+  ==> (?j. SUC j < sizel a /\
+                  the (EL i (cat a (nseq n NONE))) = EL j (MAP the a) /\
+                  the (EL (SUC i) (cat a (nseq n NONE))) = EL (SUC j) (MAP the a))    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC el_cat_nseq_none [`i`;`a`;`n`];
+  ASM_SIMP_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `j` EXISTS_TAC THEN ASM_SIMP_TAC[];
+  BY(REPEAT (GMATCH_SIMP_TAC EL_MAP) THEN ASM_SIMP_TAC[GSYM Seq.size;arith `SUC j < n ==> j < n`])
+  ]);;
+  (* }}} *)
+
+let nseq_eq_nil = prove_by_refinement(
+  `!n x. nseq n x = [] <=> (n=0)`,
+  (* {{{ proof *)
+  [
+    BY(INDUCT_TAC THEN REWRITE_TAC[nseq0;nseq_suc;NOT_CONS_NIL;arith `~(SUC n = 0)`])
+  ]);;
+  (* }}} *)
+
+let last_nseq = prove_by_refinement(
+  `!n x. ~(n=0) ==> LAST (nseq n x) = x`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  GMATCH_SIMP_TAC LAST_EL;
+  ASM_REWRITE_TAC[nseq_eq_nil;lower_case];
+  GMATCH_SIMP_TAC el_nseq;
+  REWRITE_TAC[Seq.size_nseq];
+  BY(ASM_TAC THEN ARITH_TAC)
+  ]);;
+  (* }}} *)
+
 let final_assumption_uvns = prove_by_refinement(
   `!L N r (x:num#num) k. 
      good_list L /\
@@ -255,7 +323,7 @@ let final_assumption_uvns = prove_by_refinement(
      marked_list L N r x /\
      ~final_list L r /\
      (transform_count L N r x = k) /\
-    T // new here
+    (!i. i < k /\  (betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i) =[]) ==> ~(MEM ((FST (ytrans L N r x i)) ,(FST (ztrans L N r x i))) (list_of_darts (quotient_list L N)))) // new here
   ==>      
     (       
 		(!v. (prev_el (core L r) v,v = x) ==>
@@ -272,35 +340,35 @@ let final_assumption_uvns = prove_by_refinement(
   (* {{{ proof *)
   [
 
-  REPEAT WEAKER_STRIP_TAC;
+ REPEAT WEAKER_STRIP_TAC;
   REWRITE_TAC[LET_THM];
   TYPED_ABBREV_TAC `dtf = (dest_triple_full (core L r) v (core_triple_v4 L N r x))`;
   REPEAT WEAKER_STRIP_TAC;
-  mmp next_el_core_list_pairs
-  typ `N` ex
-  art[]
-  subconj
-  amt[marked_list]
-  dt
-  subconj
-  amt[Hypermap.is_restricted]
-  dt
-  subconj
-  amt[marked_list]
-    dt
-  subconj
-  amt[Tame_list.is_restricted_all_uniq]
-    dt
-  subconj
-    amt[marked_list_uniq_core]
-  dt  
-    TYPIFY `SND x = v` (C SUBGOAL_THEN ASSUME_TAC);
+  MATCH_MP_TAC next_el_core_list_pairs;
+  TYPIFY `N` EXISTS_TAC;
+  ASM_REWRITE_TAC[];
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[marked_list]);
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[Hypermap.is_restricted]);
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[marked_list]);
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[Tame_list.is_restricted_all_uniq]);
+  DISCH_TAC;
+  SUBCONJ_TAC;
+    BY(ASM_MESON_TAC[marked_list_uniq_core]);
+  DISCH_TAC;
+  TYPIFY `SND x = v` (C SUBGOAL_THEN ASSUME_TAC);
     BY(ASM_MESON_TAC[marked_x_exists ;PAIR;FST;SND]);
-  intro uvns_mem_core [`L`;`N`;`r`;`x`;`k`;`i`]
-  asimp[LET_THM;arith `SUC i < n ==> i < n`]
-  dt
+  INTRO_TAC uvns_mem_core [`L`;`N`;`r`;`x`;`k`;`i`];
+  ASM_SIMP_TAC[LET_THM;arith `SUC i < n ==> i < n`];
+  DISCH_TAC;
 
-  COMMENT "mem";
+  PRINT_TAC "mem";
   TYPIFY `MEM v (core L r)` (C SUBGOAL_THEN ASSUME_TAC);
     BY(ASM_MESON_TAC[mem_snd_x_core]);
   TYPIFY `(!i. i <= k ==> MEM (ftrans L N r x i) (core L r))` (C SUBGOAL_THEN ASSUME_TAC);
@@ -315,30 +383,94 @@ let final_assumption_uvns = prove_by_refinement(
     BY(ASM_MESON_TAC[Reduction3.transform_count_non0]);
   TYPIFY `PRE k < k` (C SUBGOAL_THEN ASSUME_TAC);
     BY(POP_ASSUM MP_TAC THEN ARITH_TAC);
+  PRINT_TAC "intro";
+  INTRO_TAC dest_triple_full_ifbetwn [`L`;`N`;`r`;`x`;`k`];
+  ASM_SIMP_TAC[];
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_TAC;
+  PRINT_TAC "split into cases";
+  INTRO_TAC el_cat_suc [`i`;`(flatten  (MAP  (\i. cat       (MAP SOME       (ftrans L N r x i ::        ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i))))       (nseq        (sizel (betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i)))       NONE)) (iota 0 k)))` ;`(MAP SOME (ftrans L N r x k :: ifbetwn (core L r) (ftrans L N r x k) (FST x))) `];
+  ASM_SIMP_TAC[];
+  ANTS_TAC;
+    BY(ASM_MESON_TAC[]);
+  DISCH_THEN DISJ_CASES_TAC THEN POP_ASSUM MP_TAC THEN REPEAT WEAKER_STRIP_TAC THEN ASM_SIMP_TAC[];
+    REPEAT (FIRST_X_ASSUM_ST `isSome` MP_TAC) THEN REPEAT (FIRST_X_ASSUM_ST `list_of_darts` MP_TAC) THEN ASM_SIMP_TAC[];
+    REPLICATE_TAC 2 (POP_ASSUM kill);
+    INTRO_TAC el_flatten [` (MAP  (\i. cat       (MAP SOME       (ftrans L N r x i ::        ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i))))       (nseq        (sizel (betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i)))       NONE)) (iota 0 k)) `;`j`];
+    ASM_SIMP_TAC[];
+    ANTS_TAC;
+      REWRITE_TAC[GSYM Seq.allP;MEM_MAP;Seq.mem_iota;arith `0 <= i /\ 0+i=i`];
+      REPEAT WEAKER_STRIP_TAC;
+      BY(POP_ASSUM MP_TAC THEN ASM_SIMP_TAC[cat_eq_nil;MAP_EQ_NIL;NOT_CONS_NIL]);
+    DISCH_THEN DISJ_CASES_TAC THEN POP_ASSUM MP_TAC THEN REPEAT WEAKER_STRIP_TAC THEN ASM_SIMP_TAC[];
+      FIRST_X_ASSUM_ST `MEM r' (MAP f xs)` MP_TAC;
+      REWRITE_TAC[MEM_MAP;Seq.mem_iota;arith `0 <= i /\ 0 +i=i`];
+      DISCH_THEN (MP_TAC o GSYM);
+      REPEAT WEAKER_STRIP_TAC THEN ASM_SIMP_TAC[];
+      REPEAT (FIRST_X_ASSUM_ST `isSome` MP_TAC) THEN REPEAT (FIRST_X_ASSUM_ST `list_of_darts` MP_TAC) THEN ASM_SIMP_TAC[];
+      REPEAT WEAKER_STRIP_TAC;
 
-  intro dest_triple_full_ifbetwn [`L`;`N`;`r`;`x`;`k`]
-  asimp[]
-  ants
-  amt[]
-  dt
-  intro el_cat_suc [`i`;`(flatten  (MAP  (\i. cat       (MAP SOME       (ftrans L N r x i ::        ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i))))       (nseq        (sizel (betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i)))       NONE)) (iota 0 k)))` ;`(MAP SOME (ftrans L N r x k :: ifbetwn (core L r) (ftrans L N r x k) (FST x))) `]
-asimp[]
-ants
+      PRINT_TAC "complete first case dest_triple0";
+      INTRO_TAC el_cat_nseq_the_none [`j'`;`(MAP SOME      (ftrans L N r x x' ::       ifbetwn (core L r) (ftrans L N r x x') (FST (ytrans L N r x x'))))`;`(sizel (betwn (find_face L x) (ytrans L N r x x') (ztrans L N r x x')))`];
+      ASM_SIMP_TAC[];
+      REPEAT WEAKER_STRIP_TAC THEN POP_ASSUM MP_TAC THEN ASM_SIMP_TAC[];
+      DISCH_THEN kill THEN POP_ASSUM kill;
+      REWRITE_TAC[GSYM MAP_o];
+      TYPIFY `((the o SOME):(num) -> (num)) = I` (C SUBGOAL_THEN SUBST1_TAC);
+        BY(REWRITE_TAC[FUN_EQ_THM;o_THM;the_some;I_THM]);
+      REWRITE_TAC[MAP_I;I_THM];
+      MATCH_MP_TAC next_el_ifbetwn;
+      ASM_SIMP_TAC[arith ` i < n ==> i <= n:num`];
+      BY(POP_ASSUM MP_TAC THEN ASM_SIMP_TAC[lower_case;Seq.size_map]);
+
+    (COMMENT "second case last+hd on dest_triple0")
+    REPEAT (FIRST_X_ASSUM_ST `isSome` MP_TAC) THEN REPEAT (FIRST_X_ASSUM_ST `list_of_darts` MP_TAC) THEN ASM_SIMP_TAC[];
+    REPLICATE_TAC 2 (POP_ASSUM kill);
+    st/r
+    fxast `SUC j' < n` mp then rt[rr[Seq.map_MAP] Seq.size_map;Seq.size_iota]
+    dt
+    fxast `list_of_darts` mp
+
+
+    repeat (gm EL_MAP) then asimp[sym Seq.size;Seq.size_iota;arith `SUC j < k ==> j < k`]
+    repeat (gm el_iota) then asimp[arith `SUC j < k ==> j < k`;arith `0 + j = j`]
+      rt[MAP;Seq.cat_cons;HD;the_some]
+    typ `ftrans L N r x (SUC j') = FST (ztrans L N r x j')` s1
+    rt[ftrans;arith `~(SUC j = 0)`;arith `PRE (SUC j) = j`]
+    comment "split again on nseq=[]"
+  typ `(sizel (betwn (find_face L x) (ytrans L N r x j') (ztrans L N r x j'))) = 0` asmcase then art[]
+  rt[Reduction3.nseq0;Seq.cats0]  
+  typ `the (LAST (SOME (ftrans L N r x j') ::    (MAP SOME  (ifbetwn (core L r) (ftrans L N r x j') (FST (ytrans L N r x j')))) )) = the (SOME (LAST (ftrans L N r x j' ::   (ifbetwn (core L r) (ftrans L N r x j') (FST (ytrans L N r x j')))) ))` s1
+  apterm
+  mt[MAP;EL_MAP;LAST_MAP;NOT_CONS_NIL]
+  rt[the_some]
+  repeat (gm last_ifbetwn)
+  asimp[arith `SUC j < k ==> j <= k /\ j< k`]
+  fxast `list_of_darts` (C intro [`j'`])
+  art[sym Seq.size_eq0]
+  asimp[arith `SUC j' < k ==> j' < k`]
+  dthen kill
+  contr then pop kill
+  fxast `HD` kill
+  fxast `LAST` mp
+  rt[]
+   repeat (gm EL_MAP) then asimp[sym Seq.size;Seq.size_iota;arith `SUC j < k ==> j < k`]
+    repeat (gm el_iota) then asimp[arith `SUC j < k ==> j < k`;arith `0 + j = j`]
+  gm last_cat
+  art[Seq.size_eq0;nseq_eq_nil]
+  gm last_nseq
+  art[Ssrbool.isSome]
+
+  comment "back to 1"
+
+  (* comment .   *)
+  
+xxd
+
+
+
 amt[]
-comment "first case"
-dthen disjcase then pop mp then st/r then asimp[]
-rep 2 (pop kill)
- intro el_flatten [` (MAP  (\i. cat       (MAP SOME       (ftrans L N r x i ::        ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i))))       (nseq        (sizel (betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i)))       NONE)) (iota 0 k)) `;`j`]
-asimp[]
-ants
-amt[]
-rt[sym Seq.allP;MEM_MAP;Seq.mem_iota;arith `0 <= i /\ 0+i=i`]
-st/r
-pop mp then asimp[cat_eq_nil;MAP_EQ_NIL;NOT_CONS_NIL]
-dthen disjcase then pop mp then st/r then asimp[]
-fxast `MEM` mp
-rt[MEM_MAP;Seq.mem_iota;arith `0 <= i /\ 0 +i=i`]
-st/r then asimp[]
 
 ...
   (* use *)
@@ -346,6 +478,8 @@ st/r then asimp[]
   ]);;
   (* }}} *)
 
+bb 5;;
+el_cat_nseq_none;;
 el_cat_suc;;
 
 

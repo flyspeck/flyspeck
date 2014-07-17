@@ -18,12 +18,17 @@
 
  *)
 
-needs "verifier/interval_m/interval.ml";;
+needs "verifier/interval_m/interval_ops.hl";;
  
 module Univariate = struct
 
-open Interval_types;;
-open Interval;;
+open Interval_ops;;
+
+type univariate = {
+  u : Interval.interval -> Interval.interval;
+  du : Interval.interval -> Interval.interval;
+  ddu : Interval.interval -> Interval.interval;
+};;
 
 let eval uni x  = function 
   | 0 -> uni.u x
@@ -32,7 +37,7 @@ let eval uni x  = function
 
 let mk_univariate (u1,du1,ddu1) = { u = u1; du = du1; ddu = ddu1; };;
 
-let raise_zero x = bounded_from_zero x or  raise Unstable ;;
+let raise_zero x = bounded_from_zero x or raise Unstable ;;
 
 (* here are a couple of examples *)
 
@@ -75,6 +80,29 @@ let uinv =
 	    two / ( x * (x * x)))
     );;
 
+let ucos = 
+  mk_univariate(
+      icos,
+
+      (fun x -> 
+	 ineg (isin x)),
+
+      (fun x ->
+	 ineg (icos x))
+    );;
+
+let usin = 
+  mk_univariate(
+      isin,
+
+      (fun x -> 
+	 icos x),
+
+      (fun x ->
+	 ineg (isin x))
+    );;
+
+
 let uatan = 
   let ( / ) = idiv in
   let ( * ) = imul in
@@ -89,8 +117,21 @@ let uatan =
 	 let t = one / (one + x * x) in
 	   (ineg two * x) * (t * t))
     );;
-	
-	
+
+
+let uasin =
+  let ( / ) = idiv in
+  let ( * ) = imul in
+  let ( - ) = isub in
+    mk_univariate(
+      iasin,
+      (fun x ->
+	 one / isqrt (one - x * x)),
+      (fun x ->
+	 let t = one - x * x in
+	   x / isqrt (t * t * t))
+    );;
+
 let uacos =
   let ( / ) = idiv in
   let ( * ) = imul in

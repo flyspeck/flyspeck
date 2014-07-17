@@ -8,13 +8,13 @@ needs "verifier/interval_m/verifier.hl";;
 needs "verifier/m_verifier.hl";;
 needs "verifier/m_verifier_build.hl";;
 needs "taylor/m_taylor_arith2.hl";;
-needs "misc/vars.hl";;
+needs "misc/misc_vars.hl";;
 
-#load "unix.cma";;
+(*#load "unix.cma";;*)
 
 module M_verifier_main = struct
 
-open Arith_misc;;
+open Misc_functions;;
 open Interval_arith;;
 open Eval_interval;;
 open More_float;;
@@ -51,18 +51,20 @@ type verification_parameters =
   (* (this parameter will be eliminated when the search procedure is corrected) *)
   eps : float;
 
+  eps_width : float;
   test_certificate : bool;
 };;
 
 let default_params =
 {
-  allow_derivatives = false;
+  allow_derivatives = true;
   convex_flag = false;
-  mono_pass_flag = false;
+  mono_pass_flag = true;
   raw_intervals_flag = true;
   adaptive_precision = true;
-  eps = 1e-12;
+  eps = 0.0;
 
+  eps_width = 1e-12;
   test_certificate = false;
 };;
 
@@ -145,7 +147,7 @@ let rec mk_funs =
 	 Informal_taylor.eval_m_taylor_add p1 p2 a b) in
     (* sub *)
   let mk_sub n (f1, tf1, ti1) (f2, tf2, ti2) =
-    let neg_one = Interval.mk_interval(-1.0, -1.0) in
+    let neg_one = Interval_ops.mk_interval(-1.0, -1.0) in
       (fun p1 p2 x -> 
 	 let a = f1 p1 p2 x and
 	     b = f2 p1 p2 x in
@@ -171,7 +173,7 @@ let rec mk_funs =
     (fun p1 p2 x -> 
        let a = f1 p1 p2 x in
 	 eval_m_taylor_neg2 n a),
-    Scale (tf1, Interval.mk_interval (-1.0, -1.0)),
+    Scale (tf1, Interval_ops.mk_interval (-1.0, -1.0)),
     (fun p1 p2 x ->
        let a = ti1 p1 p2 x in
 	 Informal_taylor.eval_m_taylor_neg a) in
@@ -480,6 +482,7 @@ let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_t
 	Verifier.allow_convex_flag = !params.convex_flag;
 	Verifier.mono_pass_flag = !params.mono_pass_flag;
 	Verifier.raw_interval_flag = !params.raw_intervals_flag;
+	Verifier.eps_width = !params.eps_width;
 	Verifier.epsilon = !params.eps;
       } in
       let certificate = Verifier.run_test [tf] xx_float zz_float opt0 in
@@ -581,7 +584,6 @@ let verify_disj_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewr
 			  allow_derivatives = false} in
 
       let eval_fs_list, tf_list, ti_list = unzip3 (map (mk_verification_functions params pp) fun_tms) in
-
       let _ = !info_print_level < 1 or (report0 "Constructing a solution certificate... "; true) in
       let opt0 = {
 	Verifier.min_flag = false;
@@ -590,20 +592,23 @@ let verify_disj_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewr
 	Verifier.allow_convex_flag = !params.convex_flag;
 	Verifier.mono_pass_flag = !params.mono_pass_flag;
 	Verifier.raw_interval_flag = !params.raw_intervals_flag;
+	Verifier.eps_width = !params.eps_width;
 	Verifier.epsilon = !params.eps;
       } in
-      let certificate = Verifier.run_test tf_list xx_float zz_float opt0 in
-      let stats = Verifier.result_stats certificate in
-
-      let _ = !info_print_level < 1 or (report0 " done\n"; true) in
-      let _ = !info_print_level < 1 or (Verifier.report_stats stats; true) in
 
       let _ = if params0.test_certificate then
+	let _ = report0 "\nTest certificate:\n" in
 	let certificate2 = Verifier.run_test tf_list xx_float zz_float {opt0 with Verifier.allow_d = true} in
 	let stats2 = Verifier.result_stats certificate2 in
 	let _ = Verifier.report_stats stats2 in
 	  ()
       else () in
+
+      let certificate = Verifier.run_test tf_list xx_float zz_float opt0 in
+      let stats = Verifier.result_stats certificate in
+
+      let _ = !info_print_level < 1 or (report0 " done\n"; true) in
+      let _ = !info_print_level < 1 or (Verifier.report_stats stats; true) in
 
       let c1 = certificate in
       let start, finish, result =

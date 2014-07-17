@@ -18,16 +18,28 @@ Sometimes a tfunction f is used to represent an inequality f < 0.
 (See recurse.hl.
 *)
 
-needs "verifier/interval_m/line_interval.ml";;
-needs "verifier/interval_m/univariate.ml";;
+needs "verifier/interval_m/line_interval.hl";;
+needs "verifier/interval_m/univariate.hl";;
 
 module Taylor = struct
 
-open Interval_types;;
-open Interval;;
+open Interval_ops;;
 open Univariate;;
 open Line_interval;;
 
+
+(*
+  represents approximation data for a function f on a rectangular domain [x,z].
+  l gives the value and partial derivatives of f at some point y in the domain.
+  dd gives interval bounds on the second derivatives over the entire domain.
+  w i is an upper bound on widths (z i - y i) and (y i - x i).
+*)
+
+type taylor_interval = {
+  l : line;
+  w : float list;
+  dd : Interval.interval list list;
+};;
 
 (* general utilities *)
 
@@ -38,8 +50,8 @@ let m8_sum =
 	map r8_sum (zip dd1 dd2);;
 
 let center_form(x,z) =
-  let ( + ) , ( - ), ( / ) = up(); upadd,upsub,updiv in
-  let y = table (fun i -> if (mth x i=mth z i) then mth x i else (mth x i + mth z i)/ 2.0)  in
+  let ( + ) , ( - ), ( / ) = Fpu.fadd_high, Fpu.fsub_high, Fpu.fdiv_high in
+  let y = table (fun i -> if (mth x i=mth z i) then mth x i else (mth x i + mth z i) / 2.0)  in
   let w = table (fun i -> max (mth z i - mth y i) (mth y i - mth x i))  in
   let _ = (minl w >= 0.0) or failwith "centerform" in
      (y,w);;
@@ -58,7 +70,7 @@ let ti_scale (ti,t) =
 
 
 let taylor_error ti =
-  let ( + ), ( * ) , ( / )= up(); upadd, upmul, updiv in
+  let ( + ), ( * ) , ( / ) = Fpu.fadd_high, Fpu.fmul_high, Fpu.fdiv_high in
   let dot_abs_row r = List.fold_left2 (fun a b c -> a + b * iabs c) 0.0 ti.w r in
   let dots = map dot_abs_row (ti.dd) in
     (List.fold_left2 (fun a b c -> a + b * c) 0.0 ti.w dots) / 2.0;;
@@ -66,27 +78,27 @@ let taylor_error ti =
 
 let upper_bound ti = 
   let e = taylor_error ti in
-  let ( + ), ( * ) = up(); upadd, upmul in
-  let t = ti.l.f.hi + e in
+  let ( + ), ( * ) = Fpu.fadd_high, Fpu.fmul_high in
+  let t = sup (ti.l.f) + e in
     t + List.fold_left2 (fun a b c -> a + b * iabs c) 0.0 ti.w ti.l.df;;
 
 let lower_bound ti = 
   let e = taylor_error ti in
-  let ( + ), ( * ),(- ) = down(); downadd,downmul,downsub in
-  let t = ti.l.f.lo - e in
+  let ( + ), ( * ),(- ) = Fpu.fadd_low, Fpu.fmul_low, Fpu.fsub_low in
+  let t = inf (ti.l.f) - e in
     t + List.fold_left2 (fun a b c -> a + ( ~-. b) * iabs c) 0.0 ti.w ti.l.df;;
 
 let upper_partial ti i = 
-  let ( + ), ( * ) =   up(); upadd,upmul in
-    let err = List.fold_left2 (fun a b c -> a + b*(max c.hi (~-. (c.lo)))) 
+  let ( + ), ( * ) = Fpu.fadd_high, Fpu.fmul_high in
+    let err = List.fold_left2 (fun a b c -> a + b * max (sup c) (~-. (inf c)))
       0.0 ti.w (mth ti.dd i) in
-      err + Interval.sup ( mth ti.l.df i);;
+      err + sup ( mth ti.l.df i);;
 
 let lower_partial ti i = 
-  let ( + ), ( * ), ( - ) = down();downadd,downmul,downsub in
-    let err = List.fold_left2 (fun a b c -> a + b * min c.lo (~-. (c.hi))) 
+  let ( + ), ( * ), ( - ) = Fpu.fadd_low, Fpu.fmul_low, Fpu.fsub_low in
+    let err = List.fold_left2 (fun a b c -> a + b * min (inf c) (~-. (sup c))) 
       0.0 ti.w (mth ti.dd i) in
-      Interval.inf ( mth ti.l.df i) + err;;
+      inf ( mth ti.l.df i) + err;;
 
 
 let ti_mul (ti1,ti2) =
@@ -109,9 +121,9 @@ let ti_mul (ti1,ti2) =
 (* primitive A *)
 
 type primitiveA = {
-  f_df : int -> float list -> float list -> interval;
+  f_df : int -> float list -> float list -> Interval.interval;
   hfn : float list -> line;
-  second : float list -> float list -> interval list list;
+  second : float list -> float list -> Interval.interval list list;
 };;
 
 let make_primitiveA (f,h1,s1) = {f_df = f; hfn = h1; second = s1; };;
@@ -167,7 +179,7 @@ type tfunction =
   | Uni of primitiveU
   | Plus of tfunction * tfunction
   | Product of tfunction * tfunction
-  | Scale of tfunction * interval
+  | Scale of tfunction * Interval.interval
   | Uni_compose of univariate * tfunction
   | Composite of tfunction *  (* F(g1,g2,g3,g4,g5,g6,g7,g8) *)
       tfunction *tfunction *tfunction *
@@ -230,10 +242,10 @@ let eval_composite =
       let p = [p1;p2;p3;p4;p5;p6;p7;p8] in
 	(* wide and narrow ranges of p *)
       let (aw,bw) = map (lower_bound) p, map (upper_bound) p  in 
-      let (a,b) = map (fun p -> p.l.f.lo) p, map (fun p -> p.l.f.hi) p in 
+      let (a,b) = map (fun p -> inf p.l.f) p, map (fun p -> sup p.l.f) p in 
 	(* wide and narrow widths from a to b *)
       let (u,wu,wf) = 
-	let ( + ),( - ),( / ) = up();upadd,upsub,updiv in
+	let ( + ),( - ),( / ) = Fpu.fadd_high, Fpu.fsub_high, Fpu.fdiv_high in
 	let u = table (fun i -> (mth a i + mth b i) / 2.0)  in
 	let wu = table (fun i -> max (mth bw i - mth u i) (mth u i - mth aw i))  in
 	let wf = table (fun i -> max (mth b i - mth u i) (mth u i - mth a i))  in
@@ -337,7 +349,7 @@ let rec evalf0 tf i x z = match tf with
 	    imul (eval uf itf 1) i_df
   | Composite (h,g1,g2,g3,g4,g5,g6,g7,g8) ->
       let gs = [g1;g2;g3;g4;g5;g6;g7;g8] in
-      let ps = map (fun t -> let int = evalf0 t 0 x z in int.lo, int.hi) gs in
+      let ps = map (fun t -> let int = evalf0 t 0 x z in inf int, sup int) gs in
       let x', z' = unzip ps in
 	if i = 0 then evalf0 h 0 x' z'
 	else

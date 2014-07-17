@@ -18,14 +18,13 @@ a pass on each piece of the partition.
 
 *)
 
-needs "verifier/interval_m/taylor.ml";;
-needs "verifier/interval_m/report.ml";;
+needs "verifier/interval_m/taylor.hl";;
+needs "verifier/interval_m/report.hl";;
 needs "verifier_options.hl";;
 
 module Recurse = struct
 
-open Interval_types;;
-open Interval;;
+open Interval_ops;;
 open Univariate;;
 open Line_interval;;
 open Taylor;;
@@ -47,6 +46,7 @@ type cellOption = {
   mono_pass : bool;
   convex_flag : bool;
   raw_int_flag : bool;
+  eps_width : float;
   eps : float;
 };;
 
@@ -151,7 +151,7 @@ let check_limit opt depth =
    ( opt.iteration_count < opt.iteration_limit or opt.iteration_limit = 0 ) &&
      (depth < opt.recursion_depth);;
 
-let sgn x = if (x.lo > 0.0) then 1 else if (x.hi < 0.0) then -1 else 0;;
+let sgn x = if (inf x > 0.0) then 1 else if (sup x < 0.0) then -1 else 0;;
 
 let rec same_sgn x y = (x = []) or (sgn (hd x) = sgn (hd y) && same_sgn (tl x) (tl y));;
 
@@ -171,7 +171,7 @@ let rec set_targets (x,z,x0,z0,tfs,tis,opt,mono,maxwidth,has_unstable) =
 	try evalf0 tf 0 x z with Unstable -> one
       else
 	one in
-    let _ = target0.hi >= ~-.(opt.eps) or return (Cell_pass (mono, (index, true))) in
+    let _ = sup target0 >= ~-.(opt.eps) or return (Cell_pass (mono, (index, true))) in
       try
 	let target = evalf tf x z in
 	let _ = upper_bound target >= ~-.(opt.eps) or return (Cell_pass (mono, (index, false))) in
@@ -210,8 +210,8 @@ let rec has_monotone opt tis domain0 x z x0 z0 is found = match is with
 	    tis
 	else
 	  [mk_interval (-1.0, 1.0)] in
-      let allpos_df0 = List.fold_left (fun a i -> a && i.lo >= opt.eps) true df_ints and
-	  allneg_df0 = List.fold_left (fun a i -> a && i.hi < ~-.(opt.eps)) true df_ints in
+      let allpos_df0 = List.fold_left (fun a i -> a && inf i >= opt.eps) true df_ints and
+	  allneg_df0 = List.fold_left (fun a i -> a && sup i < ~-.(opt.eps)) true df_ints in
       let allpos_ti = List.fold_left (fun a ti -> a && lower_partial (fst ti) j >= opt.eps) true tis and
 	  allneg_ti = List.fold_left (fun a ti -> a && upper_partial (fst ti) j < ~-.(opt.eps)) true tis in
 
@@ -241,8 +241,8 @@ let rec going_strong(x,z,x0,z0,tfs,opt,mono) =
   let (y,w) = center_form (x,z) in
   let maxwidth = maxl w in
   let tis = set_targets (x,z,x0,z0,tfs,[],opt,mono,maxwidth,false) in
-  let epsilon_width = 1.0e-12 in
-  let _ = (maxwidth >= epsilon_width) or report_fatal(x,z,Printf.sprintf "maxwidth %e" maxwidth) in
+  let epsilon_width = opt.eps_width in
+  let _ = (maxwidth >= epsilon_width) or report_fatal(x,z,Printf.sprintf "maxwidth %.20e" maxwidth) in
 (* return Cell_counterexample in *)
   let tis = delete_false [] tis in
   let _ = (List.length tis > 0) or return Cell_counterexample in
@@ -339,7 +339,7 @@ let recursive_verifier (x,z,x0,z0,tfs,opt) =
     
   let rec rec_verifier (depth,x,z,x0,z0,w0,tfs) =
     let split_and_verify tfs j x z x0 z0 convex_flag =
-      let ( ++ ), ( / ) = up(); upadd, updiv in
+      let ( ++ ), ( / ) = Fpu.fadd_high, Fpu.fdiv_high in
       let yj = (mth x j ++  mth z j) / 2.0 in
       let delta b v = table (fun i-> if (i = j && b) then yj else mth v i) in
       let x1, z1 =
@@ -390,7 +390,7 @@ let recursive_verifier (x,z,x0,z0,tfs,opt) =
 *)		
 	| Cell_inconclusive_ti _ -> failwith "Convexity is not supported"
 	| Cell_inconclusive (tfs, (mono,x,z,x0,z0)) ->
-	    let w2 = List.map2 upsub z x in 
+	    let w2 = List.map2 Fpu.fsub_high z x in 
 	    let maxwidth2 = maxl w2 in
 	    let j_wide =  try( find (fun i -> mth w2 i = maxwidth2) iter8) with
 	      | _ -> failwith "recursive_verifier find" in

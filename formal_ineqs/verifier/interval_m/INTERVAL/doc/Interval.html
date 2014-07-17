@@ -1,0 +1,336 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Fpu_rename_all.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Fpu" rel="Chapter" href="Fpu.html">
+<link title="Fpu_rename" rel="Chapter" href="Fpu_rename.html">
+<link title="Fpu_rename_all" rel="Chapter" href="Fpu_rename_all.html">
+<link title="Interval" rel="Chapter" href="Interval.html"><title>Interval</title>
+</head>
+<body>
+<div class="navbar"><a href="Fpu_rename_all.html">Previous</a>
+&nbsp;<a href="index.html">Up</a>
+&nbsp;</div>
+<center><h1>Module <a href="type_Interval.html">Interval</a></h1></center>
+<br>
+<pre><span class="keyword">module</span> Interval: <code class="code">sig</code> <a href="Interval.html">..</a> <code class="code">end</code></pre>Interval library in OCAML. ONLY FOR INTEL PROCESSORS.
+<p>
+
+All operations use correct rounding.
+<p>
+
+It is not mandatory, but still wise, to read the documentation of the 
+<code class="code">Fpu</code> module
+<p>
+
+WARNING: even if some functions have been associated with operators, such as 
+the interval addition which is associated with the <code class="code">+$</code> operator, the 
+priority order between +, * and functions is not maintained. You HAVE to 
+use parenthesis if you want to be sure that <code class="code">a +$ b *$ c</code> is properly 
+computed as <code class="code">a +$ (b *$ c)</code>.
+<p>
+
+This library has been mainly designed to be used in a branch and bound 
+optimization algorithm. So, some choices have been made: 
+<ul>
+<li>NaN is never used. We either extend functions by pseudo continuity or raise exceptions. For example,  <code class="code">{low=2.;high=3.} /$ {low=0.;high=2.}</code> returns <code class="code">{low=1.;high=Inf}</code>, while <code class="code">{low=2.;high=3.} /$ {low=0.;high=0.}</code> or <code class="code">{low=0.;high=0.} /$ {low=0.;high=0.}</code> raise a failure.</li>
+<li>Intervals [+Inf,+Inf] or [-Inf,-Inf] are never used and never returned.</li>
+<li>When using a float in the following operations, it must never be equal to  +Inf or -Inf or Nan</li>
+<li>Functions such as <code class="code">log</code>, <code class="code">sqrt</code>, <code class="code">acos</code> or <code class="code">asin</code> are restricted to their definition domain but raise an exception rather than returning an empty interval: for example <code class="code">sqrt_I {low=-4;high=4}</code> returns <code class="code">{low=0;high=2}</code> while <code class="code">sqrt_I {low=-4;high=-2}</code> will raise an exception.</li>
+</ul>
+
+<p>
+
+Another design choice was to have non mutable elements in interval structure, and to maintain an "ordinary" syntax for operations, such as ''let a = b+$c in'' thus mapping interval computation formula on airthmetic formula. We could have instead chosen to have mutable elements, and to write for example (add_I_I a b c) to perform ''a=b+$c''. The first choice is, to our point of view, more elegant and easier to use. The second is more efficient, especially when computing functions with many temporary results, which force the GC to create and destroy lot of intervals when using the implementation we chose. Nothing's perfect.
+<p>
+
+The library is implemented in x87 assembly mode and is quite efficient (see below).
+<p>
+
+Intel Atom 230 Linux 32 bits:
+<ul>
+<li>     ftan speed (10000000 calls):2.528158</li>
+<li>     fcos speed (10000000 calls):2.076129</li>
+<li>     fsin speed (10000000 calls):1.972123</li>
+<li>    tan_I speed (10000000 calls):4.416276</li>
+<li>    cos_I speed (10000000 calls):4.936308</li>
+<li>    sin_I speed (10000000 calls):5.396338</li>
+<li>     fadd speed (10000000 calls):0.980062</li>
+<li>     fsub speed (10000000 calls):0.980061</li>
+<li>     fmul speed (10000000 calls):0.980061</li>
+<li>     fdiv speed (10000000 calls):1.424089</li>
+<li>       +$ speed (10000000 calls):1.656103</li>
+<li>       -$ speed (10000000 calls):1.636103</li>
+<li>       *$ speed (10000000 calls):4.568285</li>
+<li>       /$ speed (10000000 calls):4.552285</li>
+</ul>
+
+<p>
+
+Intel 980X Linux 64 bits:
+<ul>
+<li>     ftan speed (10000000 calls):0.472029</li>
+<li>     fcos speed (10000000 calls):0.400025</li>
+<li>     fsin speed (10000000 calls):0.400025</li>
+<li>    tan_I speed (10000000 calls):0.752047</li>
+<li>    cos_I speed (10000000 calls):1.036065</li>
+<li>    sin_I speed (10000000 calls):1.104069</li>
+<li>     fadd speed (10000000 calls):0.124008</li>
+<li>     fsub speed (10000000 calls):0.120008</li>
+<li>     fmul speed (10000000 calls):0.128008</li>
+<li>     fdiv speed (10000000 calls):0.156010</li>
+<li>       +$ speed (10000000 calls):0.340021</li>
+<li>       -$ speed (10000000 calls):0.332021</li>
+<li>       *$ speed (10000000 calls):0.556035</li>
+<li>       /$ speed (10000000 calls):0.468029</li>
+</ul>
+<br>
+<hr width="100%">
+<br><code><span id="TYPEinterval"><span class="keyword">type</span> <code class="type"></code>interval</span> = {</code><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>low&nbsp;: <code class="type">float</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >low bound</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code>high&nbsp;: <code class="type">float</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >high bound</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+}
+
+<div class="info">
+The interval type. Be careful however when creating intervals. For example,
+the following code:
+<code class="code">let a = {low=1./.3.;high=1./.3.}</code> creates an interval which does NOT contain the mathematical object 1/3.
+<p>
+
+If you want to create an interval representing 1/3, you have to write <code class="code">let a = 1. /.$ {low=3.0;high=3.0}</code> 
+because rounding will then be properly set<br>
+</div>
+
+<pre><span id="VALzero_I"><span class="keyword">val</span> zero_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+Neutral element for addition<br>
+</div>
+<pre><span id="VALone_I"><span class="keyword">val</span> one_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+Neutral element for multiplication<br>
+</div>
+<pre><span id="VALpi_I"><span class="keyword">val</span> pi_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">pi</code> with bounds properly rounded<br>
+</div>
+<pre><span id="VALe_I"><span class="keyword">val</span> e_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">e</code> with bounds properly rounded<br>
+</div>
+<pre><span id="VALprintf_I"><span class="keyword">val</span> printf_I</span> : <code class="type">(float -> string, unit, string) Pervasives.format -><br>       <a href="Interval.html#TYPEinterval">interval</a> -> unit</code></pre><div class="info">
+Prints an interval with the same format applied to both endpoints.
+Formats follow the same specification than the one used for the regular printf
+function<br>
+</div>
+<pre><span id="VALfprintf_I"><span class="keyword">val</span> fprintf_I</span> : <code class="type">Pervasives.out_channel -><br>       (float -> string, unit, string) Pervasives.format -><br>       <a href="Interval.html#TYPEinterval">interval</a> -> unit</code></pre><div class="info">
+Prints an interval into an out_channel with the same format applied to both endpoints<br>
+</div>
+<pre><span id="VALsprintf_I"><span class="keyword">val</span> sprintf_I</span> : <code class="type">(float -> string, unit, string) Pervasives.format -><br>       <a href="Interval.html#TYPEinterval">interval</a> -> string</code></pre><div class="info">
+Returns a string holding the interval printed with the same format applied to both 
+endpoints<br>
+</div>
+<pre><span id="VALfloat_i"><span class="keyword">val</span> float_i</span> : <code class="type">int -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+Returns the interval containing the float conversion of an integer<br>
+</div>
+<pre><span id="VALcompare_I_f"><span class="keyword">val</span> compare_I_f</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> float -> int</code></pre><div class="info">
+<code class="code">compare_I_f a x</code> returns <code class="code">1</code> if <code class="code">a.high&lt;x</code>, <code class="code">0</code> if <code class="code">a.low&lt;=x&lt;=a.high</code> and <code class="code">-1</code> if  <code class="code">x&lt;a.low</code><br>
+</div>
+<pre><span id="VALsize_I"><span class="keyword">val</span> size_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> float</code></pre><div class="info">
+<code class="code">size_I a</code> returns <code class="code">a.high-a.low</code><br>
+</div>
+<pre><span id="VALsgn_I"><span class="keyword">val</span> sgn_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">sgn_I a</code> returns <code class="code">{low=float (compare a.low 0.);high=float (compare a.high 0.)}</code><br>
+</div>
+<pre><span id="VALtruncate_I"><span class="keyword">val</span> truncate_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">truncate_I a</code> returns <code class="code">{low=floor a.low;high=ceil a.high}</code><br>
+</div>
+<pre><span id="VALabs_I"><span class="keyword">val</span> abs_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">abs_I a</code> returns <code class="code">{low=a.low;high=a.high}</code> if <code class="code">a.low&gt;=0.</code>, <code class="code">{low=-a.high;high=-a.low}</code> if <code class="code">a.high&lt;=0.</code>, and <code class="code">{low=0.;high=max -a.low a.high}</code>
+otherwise<br>
+</div>
+<pre><span id="VALunion_I_I"><span class="keyword">val</span> union_I_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">union_I_I a b</code> returns <code class="code">{low=min a.low b.low;high=max a.high b.high}</code><br>
+</div>
+<pre><span id="VALmax_I_I"><span class="keyword">val</span> max_I_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">max_I_I a b</code> returns <code class="code">{low=max a.low b.low;high=max a.high b.high}</code><br>
+</div>
+<pre><span id="VALmin_I_I"><span class="keyword">val</span> min_I_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">min_I_I a b</code> returns <code class="code">{low=min a.low b.low;high=min a.high b.high}</code><br>
+</div>
+<pre><span id="VAL(+$)"><span class="keyword">val</span> (+$)</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">a +$ b</code> returns <code class="code">{low=a.low+.b.low;high=a.high+.b.high}</code><br>
+</div>
+<pre><span id="VAL(+$.)"><span class="keyword">val</span> (+$.)</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> float -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">a +$. x</code> returns <code class="code">{low=a.low+.x;high=a.high+.x}</code><br>
+</div>
+<pre><span id="VAL(+.$)"><span class="keyword">val</span> (+.$)</span> : <code class="type">float -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">x +.$ a</code> returns <code class="code">{low=a.low+.x;high=a.high+.x}</code><br>
+</div>
+<pre><span id="VAL(-$)"><span class="keyword">val</span> (-$)</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">a -$ b</code> returns <code class="code">{low=a.low-.b.high;high=a.high-.b.low}</code><br>
+</div>
+<pre><span id="VAL(-$.)"><span class="keyword">val</span> (-$.)</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> float -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">a -$. x</code> returns <code class="code">{low=a.low-.x;high=a.high-.x}</code><br>
+</div>
+<pre><span id="VAL(-.$)"><span class="keyword">val</span> (-.$)</span> : <code class="type">float -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">x -.$ a</code> returns <code class="code">{low=x-.a.high;high=x-.a.low}</code><br>
+</div>
+<pre><span id="VAL(~-$)"><span class="keyword">val</span> (~-$)</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">~-$ a</code> returns <code class="code">{low=-a.high;high=-a.low}</code><br>
+</div>
+<pre><span id="VAL( *$. )"><span class="keyword">val</span> ( *$. )</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> float -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">a *$. x</code> multiplies <code class="code">a</code> by <code class="code">x</code> according to interval arithmetic and returns the proper result. 
+If <code class="code">x=0.</code> then <code class="code">zero_I</code> is returned<br>
+</div>
+<pre><span id="VAL( *.$ )"><span class="keyword">val</span> ( *.$ )</span> : <code class="type">float -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">x *$. a</code> multiplies <code class="code">a</code> by <code class="code">x</code> according to interval arithmetic and returns the proper result. 
+If <code class="code">x=0.</code> then <code class="code">zero_I</code> is returned<br>
+</div>
+<pre><span id="VAL( *$ )"><span class="keyword">val</span> ( *$ )</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">a *$ b</code>
+multiplies <code class="code">a</code> by <code class="code">b</code> according to interval arithmetic and returns the proper result. 
+If <code class="code">a=zero_I</code> or <code class="code">b=zero_I</code> then <code class="code">zero_I</code> is returned<br>
+</div>
+<pre><span id="VAL(/$.)"><span class="keyword">val</span> (/$.)</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> float -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">a /$. x</code> divides <code class="code">a</code> by <code class="code">x</code> according to interval arithmetic and returns the proper result. 
+Raise <code class="code">Failure "/$."</code> if <code class="code">x=0.</code><br>
+</div>
+<pre><span id="VAL(/.$)"><span class="keyword">val</span> (/.$)</span> : <code class="type">float -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">x /.$ a</code> divides <code class="code">x</code> by <code class="code">a</code> according to interval arithmetic and returns the result. 
+Raise <code class="code">Failure "/.$"</code> if <code class="code">a=zero_I</code><br>
+</div>
+<pre><span id="VAL(/$)"><span class="keyword">val</span> (/$)</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">a /$ b</code> divides the first interval by the second according to interval arithmetic and returns the proper result.
+Raise <code class="code">Failure "/$"</code> if <code class="code">b=zero_I</code><br>
+</div>
+<pre><span id="VALmod_I_f"><span class="keyword">val</span> mod_I_f</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> float -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">mod_I_f a f</code> returns <code class="code">a</code> mod <code class="code">f</code> according to interval arithmetic et ocaml mod_float definition. 
+Raise <code class="code">Failure "mod_I_f"</code> if <code class="code">f=0.</code><br>
+</div>
+<pre><span id="VALinv_I"><span class="keyword">val</span> inv_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">inv_I a</code> returns <code class="code">1. /.$ a</code>.
+Raise <code class="code">Failure "inv_I"</code> if <code class="code">a=zero_I</code><br>
+</div>
+<pre><span id="VALsqrt_I"><span class="keyword">val</span> sqrt_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">sqrt_I a</code> returns <code class="code">{low=sqrt a;high=sqrt b}</code> if <code class="code">a&gt;=0.</code>, <code class="code">{low=0.;high=sqrt b}</code> if <code class="code">a&lt;0.&lt;=b</code>.
+Raise <code class="code">Failure "sqrt_I"</code> if <code class="code">b&lt;0.</code><br>
+</div>
+<pre><span id="VALpow_I_i"><span class="keyword">val</span> pow_I_i</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> int -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">Pow_I_i a n</code> with <code class="code">n</code> integer returns interval <code class="code">a</code> raised to nth power according to interval arithmetic.
+If <code class="code">n=0</code> then <code class="code">{low=1.;high=1.}</code> is returned. Raise <code class="code">Failure "pow_I_f"</code> if <code class="code">n&lt;=0</code> and <code class="code">a=zero_I</code>. 
+Computed with exp-log in base2<br>
+</div>
+<pre><span id="VAL( **$. )"><span class="keyword">val</span> ( **$. )</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> float -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">a **$. f</code> returns interval <code class="code">a</code> raised to f power according to interval arithmetic.
+If <code class="code">f=0.</code> then <code class="code">{low=1.;high=1.}</code> is returned. Raise <code class="code">Failure "**$."</code> if <code class="code">f&lt;=0. and a=zero_I</code> or if <code class="code">f is not an integer value and a.high&lt;0.</code>.
+Computed with exp-log in base2<br>
+</div>
+<pre><span id="VAL( **$ )"><span class="keyword">val</span> ( **$ )</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">a **$ b</code> returns interval <code class="code">a</code> raised to <code class="code">b</code> power according to interval arithmetic, considering the restriction of x power y to x &gt;= 0.
+Raise <code class="code">Failure "**$"</code> if <code class="code">a.high &lt; 0</code> or <code class="code">(a.high=0. and b.high&lt;=0.)</code><br>
+</div>
+<pre><span id="VAL( **.$ )"><span class="keyword">val</span> ( **.$ )</span> : <code class="type">float -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">x **.$ a</code> returns float <code class="code">x</code> raised to interval <code class="code">a</code> power according to interval arithmetic, considering the restiction of x power y to x &gt;= 0.
+Raise <code class="code">Failure "**.$"</code> if <code class="code">x &lt; 0</code> and <code class="code">a.high &lt;= 0</code><br>
+</div>
+<pre><span id="VALlog_I"><span class="keyword">val</span> log_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">log_I a</code> returns <code class="code">{low=log a.low; high=log a.high}</code> if <code class="code">a.low&gt;0.</code>, <code class="code">{low=neg_infinity; high=log a.high}</code> if <code class="code">a.low&lt;0&lt;=a.high</code>. Raise <code class="code">Failure "log_I"</code> if <code class="code">a.high&lt;=0.</code><br>
+</div>
+<pre><span id="VALexp_I"><span class="keyword">val</span> exp_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">exp_I a</code> returns <code class="code">{low=exp a.high;high=exp b.high}</code><br>
+</div>
+<pre><span id="VALcos_I"><span class="keyword">val</span> cos_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">cos_I a</code>  returns the proper extension of cos to arithmetic interval 
+Returns [-1,1] if one of the bounds is greater or lower than +/-2**53<br>
+</div>
+<pre><span id="VALsin_I"><span class="keyword">val</span> sin_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">sin_I a</code>  returns the proper extension of sin to arithmetic interval
+Returns [-1,1] if one of the bounds is greater or lower than +/-2**53<br>
+</div>
+<pre><span id="VALtan_I"><span class="keyword">val</span> tan_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">tan_I a</code>  returns the proper extension of tan to arithmetic interval 
+Returns [-Inf,Inf] if one of the bounds is greater or lower than +/-2**53<br>
+</div>
+<pre><span id="VALacos_I"><span class="keyword">val</span> acos_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">acos_I a</code> raise <code class="code">Failure "acos_I"</code> if <code class="code">a.low&gt;1. or a.high&lt;-1.</code>, else returns <code class="code">{low=if a.high&lt;1. then acos a.high else 0; high=if a.low&gt;-1. then acos a.low else pi}</code>. All values are in [0,pi].<br>
+</div>
+<pre><span id="VALasin_I"><span class="keyword">val</span> asin_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">asin_I a</code> raise <code class="code">Failure "asin_I"</code> if <code class="code">a.low&gt;1. or a.high&lt;-1.</code> else returns <code class="code">{low=if a.low&gt;-1. then asin a.low else -pi/2; high=if a.low&lt;1. then asin a.high else pi/2}</code>. All values are in [-pi/2,pi/2].<br>
+</div>
+<pre><span id="VALatan_I"><span class="keyword">val</span> atan_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">atan_I a</code>  returns <code class="code">{low=atan a.low;high=atan a.high}</code><br>
+</div>
+<pre><span id="VALatan2mod_I_I"><span class="keyword">val</span> atan2mod_I_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+<code class="code">atan2mod_I_I y x</code> returns the proper extension of interval arithmetic to atan2 but with values in [-pi,2 pi] instead of [-pi,pi]. This can happen 
+when y.low&lt;0 and y.high&gt;0 and x.high&lt;0: then the returned interval is 
+<code class="code">{low=atan2 y.high x.high;high=(atan2 y.low x.high)+2 pi}</code>. This preserves the best inclusion function possible but is not compatible with 
+the standard definition of atan2<br>
+</div>
+<pre><span id="VALatan2_I_I"><span class="keyword">val</span> atan2_I_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+Same function as above but when y.low&lt;0 and y.high&gt;0 and x.high&lt;0 the returned interval is [-pi,pi].
+This does not preserve the best inclusion function but is compatible with the
+atan2 regular definition<br>
+</div>
+<pre><span id="VALcosh_I"><span class="keyword">val</span> cosh_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+cosh_I is the proper extension of interval arithmetic to cosh<br>
+</div>
+<pre><span id="VALsinh_I"><span class="keyword">val</span> sinh_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+sinh_I is the proper extension of interval arithmetic to sinh<br>
+</div>
+<pre><span id="VALtanh_I"><span class="keyword">val</span> tanh_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+tanh_I is the proper extension of interval arithmetic to tanh<br>
+</div>
+<pre><span id="VALsize_max_X"><span class="keyword">val</span> size_max_X</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> array -> float</code></pre><div class="info">
+Computes the size of the largest interval of the interval vector<br>
+</div>
+<pre><span id="VALsize_mean_X"><span class="keyword">val</span> size_mean_X</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> array -> float</code></pre><div class="info">
+Computes the mean of the size of intervals of the interval vector<br>
+</div>
+<pre><span id="VALprintf_X"><span class="keyword">val</span> printf_X</span> : <code class="type">(float -> string, unit, string) Pervasives.format -><br>       <a href="Interval.html#TYPEinterval">interval</a> array -> unit</code></pre><div class="info">
+Prints an interval vector with the same format applied to all endpoints.<br>
+</div>
+<pre><span id="VALfprintf_X"><span class="keyword">val</span> fprintf_X</span> : <code class="type">Pervasives.out_channel -><br>       (float -> string, unit, string) Pervasives.format -><br>       <a href="Interval.html#TYPEinterval">interval</a> array -> unit</code></pre><div class="info">
+Prints an interval vector into an out_channel 
+with the same format applied to all endpoints<br>
+</div>
+<pre><span id="VALsprintf_X"><span class="keyword">val</span> sprintf_X</span> : <code class="type">(float -> string, unit, string) Pervasives.format -><br>       <a href="Interval.html#TYPEinterval">interval</a> array -> string</code></pre><div class="info">
+Returns a string holding the interval vector printed with the same format applied to all
+endpoints<br>
+</div>
+<pre><span id="VALprint_X"><span class="keyword">val</span> print_X</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> array -> unit</code></pre><div class="info">
+Deprecated<br>
+</div>
+<pre><span id="VALprint_I"><span class="keyword">val</span> print_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> unit</code></pre><div class="info">
+Deprecated<br>
+</div>
+<pre><span id="VALsize_X"><span class="keyword">val</span> size_X</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> array -> float</code></pre><div class="info">
+Deprecated<br>
+</div>
+<pre><span id="VALsize2_X"><span class="keyword">val</span> size2_X</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> array -> float</code></pre><div class="info">
+Deprecated<br>
+</div>
+<pre><span id="VAL(<$.)"><span class="keyword">val</span> (&lt;$.)</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> float -> int</code></pre><div class="info">
+Deprecated<br>
+</div>
+<pre><span id="VALpow_I_f"><span class="keyword">val</span> pow_I_f</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> float -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+Deprecated<br>
+</div>
+<pre><span id="VALpow_I_I"><span class="keyword">val</span> pow_I_I</span> : <code class="type"><a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a> -> <a href="Interval.html#TYPEinterval">interval</a></code></pre><div class="info">
+Deprecated<br>
+</div>
+</body></html>

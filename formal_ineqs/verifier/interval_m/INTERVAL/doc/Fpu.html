@@ -1,0 +1,263 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="next" href="Fpu_rename.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Fpu" rel="Chapter" href="Fpu.html">
+<link title="Fpu_rename" rel="Chapter" href="Fpu_rename.html">
+<link title="Fpu_rename_all" rel="Chapter" href="Fpu_rename_all.html">
+<link title="Interval" rel="Chapter" href="Interval.html"><title>Fpu</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a href="index.html">Up</a>
+&nbsp;<a href="Fpu_rename.html">Next</a>
+</div>
+<center><h1>Module <a href="type_Fpu.html">Fpu</a></h1></center>
+<br>
+<pre><span class="keyword">module</span> Fpu: <code class="code">sig</code> <a href="Fpu.html">..</a> <code class="code">end</code></pre>Access to low level floating point functions.
+THIS LIBRARY ONLY WORKS FOR INTEL PROCESSORS. 
+<p>
+
+Almost all low 
+level functions are implemented using the x87 functions and x87 rounding
+modes. There are unfortunately a few problems to understand. The x87 is 
+supposed to be able to return a nearest value and a upper and a lower bound 
+for each elementary operation it can perform. This is not always true. Some 
+functions such as cos(), sin() or tan() are not properly implemented 
+everywhere. 
+<p>
+
+For example, for the angle a=
+1.570 796 326 794 896 557 998 981 734 272 092 580 795 288 085 937 5 
+the following values are computed for cos(a), by 
+(1) the MPFI library (with 128 bits precision), 
+(2) the x87 in low mode,
+(3) the x87 in nearest mode (default value for the C and Ocaml library on 
+32 bits linux), 
+(4) the x87 in high mode, 
+(5) the SSE2 implementation (default value for the C and Ocaml library on
+64 bits linux):
+<p>
+
+(1) 6.123 233 995 736 765 886 130 329 661 375 001 464 640 377 798 836e-17
+<p>
+
+(2) 6.123 031 769 111 885 058 461 925 285 082 049 859 451 216 355 021e-17
+<p>
+
+(3) 6.123 031 769 111 886 291 057 089 692 912 995 815 277 099 609 375e-17
+<p>
+
+(4) 6.123 031 769 111 886 291 057 089 692 912 995 815 277 099 609 375e-17
+<p>
+
+(5) 6.123 233 995 736 766 035 868 820 147 291 983 023 128 460 623 387e-17
+<p>
+
+The upper bound (4) computed by the x87 is clearly incorrect, as it
+ is lower than the correct value computed by the MPFI library.
+<p>
+
+The value computed by the SSE2 (5) is much more precise than the one
+computed by the x87. Unfortunately, there is no way to get an upper and 
+lower bound value, and we are thus stuck with the x87 for computing these 
+(sometimes incorrect) bounds.
+<p>
+
+The problem here is that the value computed by the standard, C-lib (or ocaml)
+cos function doesn't always lie in the lower/upper bound interval returned by 
+the x87 functions, and this can be a very serious problem when executing 
+Branch and Bound algorithms which expect the mid-value to be inside the 
+lower/upper interval.
+<p>
+
+We solved the problem by rewritting the trigonometric functions in
+order to make them both consistant and correct. We used the following property:
+when -pi/4&lt;=a&lt;=pi/4 the rounding in 64 bits of the 80 bits low/std/high value returned
+by the x87 are correct. Moreover, when 0&lt;a&lt;2**53 then (a mod (2Pi_low)) and
+(a mod (2Pi_high)) are in the same quadrant. 
+Last, (a mod Pi/2_High) &lt;= (a mod Pi/2) &lt;= (a mod Pi/2_Low). With this implementation, the lower and upper bounds are properly set and they are always lower 
+(resp. higher) than the value computed by the standard cos functions on 32 
+and 64 bits architecture.
+This rewritting has been done in assembly language and is quite efficient.
+<p>
+
+Keep in mind that values returned by the standard (C-lib or Ocaml) cos(), 
+sin() or tan() functions are still 
+different on 32 and 64 bits architecture. If you want to have a program which 
+behaves exactly in the same way on both architectures, you can use the <code class="code">Fpu</code> 
+module <code class="code">fcos</code>, <code class="code">fsin</code> or <code class="code">ftan</code> functions which always return the same values on all 
+architectures, or even use the <code class="code">Fpu_rename</code> or <code class="code">Fpu_rename_all</code> modules to transparently
+rename the floating point functions.
+<p>
+
+The functions are quite efficient (see below). However, they have a
+serious disadvantage compared to their standard counterparts. When
+the compiler compiles instruction ''a+.b'', the code of the
+operation is inlined, while when it compiles ''(fadd a b)'', the
+compiler generates a function call, which is expensive.
+<p>
+
+Intel Atom 230 Linux 32 bits
+<ul>
+<li>      tan speed (10000000 calls):2.380149</li>
+<li>     ftan speed (10000000 calls):2.528158</li>
+<li>      cos speed (10000000 calls):1.804113</li>
+<li>     fcos speed (10000000 calls):2.076129</li>
+<li>      sin speed (10000000 calls):1.844116</li>
+<li>     fsin speed (10000000 calls):1.972123</li>
+<li>       +. speed (10000000 calls):0.604037</li>
+<li>     fadd speed (10000000 calls):0.980062</li>
+<li>       -. speed (10000000 calls):0.644040</li>
+<li>     fsub speed (10000000 calls):0.980061</li>
+<li>       *. speed (10000000 calls):0.604038</li>
+<li>     fmul speed (10000000 calls):0.980061</li>
+<li>       /. speed (10000000 calls):0.992062</li>
+<li>     fdiv speed (10000000 calls):1.424089</li>
+<li>       ** speed (10000000 calls):15.420964</li>
+<li>      pow speed (10000000 calls):4.528283</li>
+<li>mod_float speed (10000000 calls):1.996125</li>
+<li>     fmod speed (10000000 calls):1.236077</li>
+</ul>
+
+<p>
+
+Intel 980X Linux 64 bits
+<ul>
+<li>      tan speed (10000000 calls):0.896056</li>
+<li>     ftan speed (10000000 calls):0.472029</li>
+<li>      cos speed (10000000 calls):0.520033</li>
+<li>     fcos speed (10000000 calls):0.400025</li>
+<li>      sin speed (10000000 calls):0.524033</li>
+<li>     fsin speed (10000000 calls):0.400025</li>
+<li>       +. speed (10000000 calls):0.068005</li>
+<li>     fadd speed (10000000 calls):0.124008</li>
+<li>       -. speed (10000000 calls):0.068004</li>
+<li>     fsub speed (10000000 calls):0.120008</li>
+<li>       *. speed (10000000 calls):0.068004</li>
+<li>     fmul speed (10000000 calls):0.128008</li>
+<li>       /. speed (10000000 calls):0.096006</li>
+<li>     fdiv speed (10000000 calls):0.156010</li>
+<li>       ** speed (10000000 calls):0.668041</li>
+<li>      pow speed (10000000 calls):1.028064</li>
+<li>mod_float speed (10000000 calls):0.224014</li>
+<li>     fmod speed (10000000 calls):0.152010</li>
+</ul>
+<br>
+<hr width="100%">
+<pre><span id="VALffloat"><span class="keyword">val</span> ffloat</span> : <code class="type">int -> float</code></pre><pre><span id="VALffloat_high"><span class="keyword">val</span> ffloat_high</span> : <code class="type">int -> float</code></pre><pre><span id="VALffloat_low"><span class="keyword">val</span> ffloat_low</span> : <code class="type">int -> float</code></pre><div class="info">
+float() functions. The float function is exact on 32 bits machine
+but not on 64 bits machine with ints larger than 53 bits<br>
+</div>
+<pre><span id="VALfadd"><span class="keyword">val</span> fadd</span> : <code class="type">float -> float -> float</code></pre><pre><span id="VALfadd_low"><span class="keyword">val</span> fadd_low</span> : <code class="type">float -> float -> float</code></pre><pre><span id="VALfadd_high"><span class="keyword">val</span> fadd_high</span> : <code class="type">float -> float -> float</code></pre><div class="info">
+Floating point addition in nearest, low and high mode<br>
+</div>
+<pre><span id="VALfsub"><span class="keyword">val</span> fsub</span> : <code class="type">float -> float -> float</code></pre><pre><span id="VALfsub_low"><span class="keyword">val</span> fsub_low</span> : <code class="type">float -> float -> float</code></pre><pre><span id="VALfsub_high"><span class="keyword">val</span> fsub_high</span> : <code class="type">float -> float -> float</code></pre><div class="info">
+Floating point substraction in nearest, low and high mode<br>
+</div>
+<pre><span id="VALfmul"><span class="keyword">val</span> fmul</span> : <code class="type">float -> float -> float</code></pre><pre><span id="VALfmul_low"><span class="keyword">val</span> fmul_low</span> : <code class="type">float -> float -> float</code></pre><pre><span id="VALfmul_high"><span class="keyword">val</span> fmul_high</span> : <code class="type">float -> float -> float</code></pre><div class="info">
+Floating point multiplication in nearest, low and high mode<br>
+</div>
+<pre><span id="VALfdiv"><span class="keyword">val</span> fdiv</span> : <code class="type">float -> float -> float</code></pre><pre><span id="VALfdiv_low"><span class="keyword">val</span> fdiv_low</span> : <code class="type">float -> float -> float</code></pre><pre><span id="VALfdiv_high"><span class="keyword">val</span> fdiv_high</span> : <code class="type">float -> float -> float</code></pre><div class="info">
+Floating point division in nearest, low and high mode<br>
+</div>
+<pre><span id="VALfmod"><span class="keyword">val</span> fmod</span> : <code class="type">float -> float -> float</code></pre><div class="info">
+Modulo (result is supposed to be exact)<br>
+</div>
+<pre><span id="VALfsqrt"><span class="keyword">val</span> fsqrt</span> : <code class="type">float -> float</code></pre><pre><span id="VALfsqrt_low"><span class="keyword">val</span> fsqrt_low</span> : <code class="type">float -> float</code></pre><pre><span id="VALfsqrt_high"><span class="keyword">val</span> fsqrt_high</span> : <code class="type">float -> float</code></pre><div class="info">
+Floating point square root in nearest, low and high mode<br>
+</div>
+<pre><span id="VALfexp"><span class="keyword">val</span> fexp</span> : <code class="type">float -> float</code></pre><pre><span id="VALfexp_low"><span class="keyword">val</span> fexp_low</span> : <code class="type">float -> float</code></pre><pre><span id="VALfexp_high"><span class="keyword">val</span> fexp_high</span> : <code class="type">float -> float</code></pre><div class="info">
+Floating point exponential in nearest, low and high mode<br>
+</div>
+<pre><span id="VALflog"><span class="keyword">val</span> flog</span> : <code class="type">float -> float</code></pre><pre><span id="VALflog_low"><span class="keyword">val</span> flog_low</span> : <code class="type">float -> float</code></pre><pre><span id="VALflog_high"><span class="keyword">val</span> flog_high</span> : <code class="type">float -> float</code></pre><div class="info">
+Floating point log in nearest, low and high mode<br>
+</div>
+<pre><span id="VALflog_pow"><span class="keyword">val</span> flog_pow</span> : <code class="type">float -> float -> float</code></pre><pre><span id="VALflog_pow_low"><span class="keyword">val</span> flog_pow_low</span> : <code class="type">float -> float -> float</code></pre><pre><span id="VALflog_pow_high"><span class="keyword">val</span> flog_pow_high</span> : <code class="type">float -> float -> float</code></pre><div class="info">
+Computes x^y for 0 &lt; x &lt; infinity and neg_infinity &lt; y &lt; infinity<br>
+</div>
+<pre><span id="VALfpow"><span class="keyword">val</span> fpow</span> : <code class="type">float -> float -> float</code></pre><pre><span id="VALfpow_low"><span class="keyword">val</span> fpow_low</span> : <code class="type">float -> float -> float</code></pre><pre><span id="VALfpow_high"><span class="keyword">val</span> fpow_high</span> : <code class="type">float -> float -> float</code></pre><div class="info">
+Computes x^y expanded to its mathematical limit when it exists<br>
+</div>
+<pre><span id="VALfsin"><span class="keyword">val</span> fsin</span> : <code class="type">float -> float</code></pre><pre><span id="VALfsin_low"><span class="keyword">val</span> fsin_low</span> : <code class="type">float -> float</code></pre><pre><span id="VALfsin_high"><span class="keyword">val</span> fsin_high</span> : <code class="type">float -> float</code></pre><div class="info">
+Computes sin(x) for x in ]-2^63, 2^63[<br>
+</div>
+<pre><span id="VALfcos"><span class="keyword">val</span> fcos</span> : <code class="type">float -> float</code></pre><pre><span id="VALfcos_low"><span class="keyword">val</span> fcos_low</span> : <code class="type">float -> float</code></pre><pre><span id="VALfcos_high"><span class="keyword">val</span> fcos_high</span> : <code class="type">float -> float</code></pre><div class="info">
+Computes cos(x) for x in ]-2^63, 2^63[<br>
+</div>
+<pre><span id="VALftan"><span class="keyword">val</span> ftan</span> : <code class="type">float -> float</code></pre><pre><span id="VALftan_low"><span class="keyword">val</span> ftan_low</span> : <code class="type">float -> float</code></pre><pre><span id="VALftan_high"><span class="keyword">val</span> ftan_high</span> : <code class="type">float -> float</code></pre><div class="info">
+Computes tan(x) for x in ]-2^63, 2^63[<br>
+</div>
+<pre><span id="VALfatan"><span class="keyword">val</span> fatan</span> : <code class="type">float -> float -> float</code></pre><pre><span id="VALfatan_low"><span class="keyword">val</span> fatan_low</span> : <code class="type">float -> float -> float</code></pre><pre><span id="VALfatan_high"><span class="keyword">val</span> fatan_high</span> : <code class="type">float -> float -> float</code></pre><div class="info">
+fatan x y computes atan2 y x<br>
+</div>
+<pre><span id="VALfacos"><span class="keyword">val</span> facos</span> : <code class="type">float -> float</code></pre><pre><span id="VALfacos_low"><span class="keyword">val</span> facos_low</span> : <code class="type">float -> float</code></pre><pre><span id="VALfacos_high"><span class="keyword">val</span> facos_high</span> : <code class="type">float -> float</code></pre><div class="info">
+arc-cosine functions<br>
+</div>
+<pre><span id="VALfasin"><span class="keyword">val</span> fasin</span> : <code class="type">float -> float</code></pre><pre><span id="VALfasin_low"><span class="keyword">val</span> fasin_low</span> : <code class="type">float -> float</code></pre><pre><span id="VALfasin_high"><span class="keyword">val</span> fasin_high</span> : <code class="type">float -> float</code></pre><div class="info">
+arc-sinus functions<br>
+</div>
+<pre><span id="VALfsinh"><span class="keyword">val</span> fsinh</span> : <code class="type">float -> float</code></pre><pre><span id="VALfsinh_low"><span class="keyword">val</span> fsinh_low</span> : <code class="type">float -> float</code></pre><pre><span id="VALfsinh_high"><span class="keyword">val</span> fsinh_high</span> : <code class="type">float -> float</code></pre><div class="info">
+Computes sinh(x)<br>
+</div>
+<pre><span id="VALfcosh"><span class="keyword">val</span> fcosh</span> : <code class="type">float -> float</code></pre><pre><span id="VALfcosh_low"><span class="keyword">val</span> fcosh_low</span> : <code class="type">float -> float</code></pre><pre><span id="VALfcosh_high"><span class="keyword">val</span> fcosh_high</span> : <code class="type">float -> float</code></pre><div class="info">
+Computes cosh(x)<br>
+</div>
+<pre><span id="VALftanh"><span class="keyword">val</span> ftanh</span> : <code class="type">float -> float</code></pre><pre><span id="VALftanh_low"><span class="keyword">val</span> ftanh_low</span> : <code class="type">float -> float</code></pre><pre><span id="VALftanh_high"><span class="keyword">val</span> ftanh_high</span> : <code class="type">float -> float</code></pre><div class="info">
+Computes tanh(x)<br>
+</div>
+<pre><span id="VALis_neg"><span class="keyword">val</span> is_neg</span> : <code class="type">float -> bool</code></pre><div class="info">
+is_neg x returns if x has its sign bit set (true for -0.)<br>
+</div>
+<br>
+Below, we have functions for changing the rounding mode.
+The default mode for rounding is NEAREST.
+<p>
+
+BE VERY CAREFUL: using these functions unwisely can ruin all your
+computations. Remember also that on 64 bits machine these functions won't
+change the behaviour of the SSE instructions.
+<p>
+
+When setting the rounding mode to UPWARD or DOWNWARD, it is better to set it 
+immediately back to NEAREST. However  we have no guarantee 
+on how the compiler will reorder the instructions generated. 
+It is ALWAYS better to write:
+<p>
+
+let a = set_high(); let res = 1./.3. in set_nearest (); res;;
+<p>
+
+The above code will NOT work on linux-x64 where many floating point 
+functions are implemented using SSE instructions.
+These three functions should only be used when there is no other
+solution, and you really know what tou are doing, and this should never happen.
+Please use the regular functions of the fpu module for computations. 
+For example prefer:
+<p>
+
+let a = fdiv_high 1. 3.;;
+<p>
+
+PS: The Interval module and the fpu module functions correctly set and 
+restore the rounding mode 
+for all interval computations, so you don't really need these functions.
+<p>
+
+PPS: Please, don't use them...<br>
+<pre><span id="VALset_low"><span class="keyword">val</span> set_low</span> : <code class="type">unit -> unit</code></pre><div class="info">
+Sets the rounding mod to DOWNWARD (towards minus infinity)<br>
+</div>
+<pre><span id="VALset_high"><span class="keyword">val</span> set_high</span> : <code class="type">unit -> unit</code></pre><div class="info">
+Sets the rounding mod to UPWARD (towards infinity)<br>
+</div>
+<pre><span id="VALset_nearest"><span class="keyword">val</span> set_nearest</span> : <code class="type">unit -> unit</code></pre><div class="info">
+Sets the rounding mod to NEAREST (default mode)<br>
+</div>
+</body></html>

@@ -30,8 +30,8 @@ let ifbetwn = new_definition'
   `!s (x:A) y. ifbetwn s x y = if MEM x s /\ MEM y s /\ ~(x=y) then rcons (betwn s x y) y else []`;;
 
 
-let assumption_setK9 = new_definition'
-  `assumption_setK9 <=> (!L N r x k uvns vs vs' fx v.
+let assumption_setK10 = new_definition'
+  `assumption_setK10 <=> (!L N r x k uvns vs vs' fx v.
       good_list L /\
       good_list_nodes L /\
       is_restricted (hypermap_of_list L) /\
@@ -76,9 +76,16 @@ let assumption_setK9 = new_definition'
 	  ~(next_el (core L (rtrans L N r x i)) (FST (ytrans L N r x i)) =
 	      FST (ztrans L N r x i) /\
 		sizel (betwn fx (ytrans L N r x i) (ztrans L N r x i)) = 0) /\
-	  betwn (core L r) (FST (ztrans L N r x (PRE i))) (FST (ytrans L N r x i)) =
-	  betwn (core L (rtrans L N r x i)) (FST (ztrans L N r x (PRE i)))
-	    (FST (ytrans L N r x i)) /\
+	  	  // corrected July 19 2014
+	  // corrected July 19 2014
+	  (~((FST (ztrans L N r x (PRE i))) =  (FST (ytrans L N r x i))) ==>
+	     betwn (core L r) (FST (ztrans L N r x (PRE i))) (FST (ytrans L N r x i)) =
+	       betwn (core L (rtrans L N r x i)) (FST (ztrans L N r x (PRE i)))
+	    (FST (ytrans L N r x i))) /\
+
+//	  betwn (core L r) (FST (ztrans L N r x (PRE i))) (FST (ytrans L N r x i)) =
+//	  betwn (core L (rtrans L N r x i)) (FST (ztrans L N r x (PRE i)))
+//	    (FST (ytrans L N r x i)) /\
 	    (next_el (core L (rtrans L N r x i)) (FST (ztrans L N r x (PRE i))) =
 		FST (ytrans L N r x i) <=>
 		  next_el (core L r) (FST (ztrans L N r x (PRE i))) = FST (ytrans L N r x i)) /\
@@ -306,9 +313,17 @@ let reduction_K1 = prove_by_refinement(
 	 ~(next_el (core L (rtrans L N r x i)) (FST (ytrans L N r x i)) =
 	      FST (ztrans L N r x i) /\
 		sizel (betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i)) = 0) /\
-	 (betwn (core L r) (FST (ztrans L N r x (PRE i))) (FST (ytrans L N r x i)) =
-	     betwn (core L (rtrans L N r x i)) (FST (ztrans L N r x (PRE i)))
-	       (FST (ytrans L N r x i)))) /\
+
+	  // corrected July 19 2014
+	  (~((FST (ztrans L N r x (PRE i))) =  (FST (ytrans L N r x i))) ==>
+	     betwn (core L r) (FST (ztrans L N r x (PRE i))) (FST (ytrans L N r x i)) =
+	       betwn (core L (rtrans L N r x i)) (FST (ztrans L N r x (PRE i)))
+	    (FST (ytrans L N r x i)))) /\
+
+	 // old19
+	 // (betwn (core L r) (FST (ztrans L N r x (PRE i))) (FST (ytrans L N r x i)) =
+	   //  betwn (core L (rtrans L N r x i)) (FST (ztrans L N r x (PRE i)))
+	    //   (FST (ytrans L N r x i))) /\
      
      // (MEM)
      MEM (FST x) (core L (rtrans L N r x k)) /\ // final_assumption_mem_x_core
@@ -356,11 +371,11 @@ let reduction_K1 = prove_by_refinement(
 			       ==> MEM d (list_pairs (core L r)))))
 		) // uvns 
 
-   ) ==> assumption_setK9`,
+   ) ==> assumption_setK10`,
   (* {{{ proof *)
   [
   DISCH_TAC;
-  REWRITE_TAC[assumption_setK9];
+  REWRITE_TAC[assumption_setK10];
   REPEAT WEAKER_STRIP_TAC;
   FIRST_X_ASSUM_ST `is_restricted` (C INTRO_TAC [`L`;`N`;`r`;`x`;`k`]);
   ASM_REWRITE_TAC[];
@@ -1310,10 +1325,18 @@ let reduction_K2 = prove_by_refinement(
      (betwn (find_face L x) (ytrans L N r x 0) (ztrans L N r x 0) = []
 	 ==> ~(next_el (core L (rtrans L N r x 0)) (FST (ztrans L N r x 0)) =
              FST (ytrans L N r x 0))) /\
-     (!i. SUC i < k ==> 
+
+     // July 19 2014 corrected.
+     (!i. SUC i < k /\  ~(FST (ztrans L N r x i) = FST (ytrans L N r x (SUC i))) ==>
 	(betwn (core L r) (FST (ztrans L N r x (i))) (FST (ytrans L N r x (SUC i))) =
-	     betwn (core L (rtrans L N r x (SUC i))) (FST (ztrans L N r x (i)))
-	       (FST (ytrans L N r x (SUC i))))) /\
+	    betwn (core L (rtrans L N r x (SUC i))) (FST (ztrans L N r x (i)))
+	      (FST (ytrans L N r x (SUC i))))) /\
+
+     // old19
+//     (!i. SUC i < k ==> 
+//	(betwn (core L r) (FST (ztrans L N r x (i))) (FST (ytrans L N r x (SUC i))) =
+//	     betwn (core L (rtrans L N r x (SUC i))) (FST (ztrans L N r x (i)))
+//	       (FST (ytrans L N r x (SUC i))))) /\
 
      // (UVNS)
       (       
@@ -1333,7 +1356,7 @@ let reduction_K2 = prove_by_refinement(
 			       ==> MEM d (list_pairs (core L r)))))
 		) // uvns 
 
-   ) ==> assumption_setK9`,
+   ) ==> assumption_setK10`,
   (* {{{ proof *)
   [
   DISCH_TAC;
@@ -1366,13 +1389,14 @@ let reduction_K2 = prove_by_refinement(
     BY(ASM_MESON_TAC[]);
   CONJ_TAC;
     BY(ASM_MESON_TAC[Reduction2.trans0]);
-  CONJ_TAC;
+  CONJ_TAC;  (*19*)
     REPEAT WEAKER_STRIP_TAC;
     CONJ_TAC;
       BY(ASM_MESON_TAC[]);
     INTRO_TAC num_CASES [`i`];
     ASM_SIMP_TAC[arith `0 < i ==> ~(i=0)`];
     REPEAT WEAKER_STRIP_TAC;
+    POP_ASSUM MP_TAC;
     ASM_REWRITE_TAC[];
     ASM_REWRITE_TAC[arith `PRE (SUC n) = n`];
     POP_ASSUM (ASSUME_TAC o GSYM) THEN FULL_EXPAND_TAC "i";
@@ -3203,10 +3227,17 @@ let reduction_K3 = prove_by_refinement(
      (betwn (find_face L x) (ytrans L N r x 0) (ztrans L N r x 0) = []
 	 ==> ~(next_el (core L (rtrans L N r x 0)) (FST (ztrans L N r x 0)) =
              FST (ytrans L N r x 0))) /\
-     (!i. SUC i < k ==> 
+
+     // July 19 2014 corrected.
+     (!i. SUC i < k /\  ~(FST (ztrans L N r x i) = FST (ytrans L N r x (SUC i))) ==>
 	(betwn (core L r) (FST (ztrans L N r x (i))) (FST (ytrans L N r x (SUC i))) =
-	     betwn (core L (rtrans L N r x (SUC i))) (FST (ztrans L N r x (i)))
-	       (FST (ytrans L N r x (SUC i))))) /\
+	    betwn (core L (rtrans L N r x (SUC i))) (FST (ztrans L N r x (i)))
+	      (FST (ytrans L N r x (SUC i))))) /\
+
+//     (!i. SUC i < k ==> 
+//	(betwn (core L r) (FST (ztrans L N r x (i))) (FST (ytrans L N r x (SUC i))) =
+//	     betwn (core L (rtrans L N r x (SUC i))) (FST (ztrans L N r x (i)))
+//	       (FST (ytrans L N r x (SUC i))))) /\
 
      // (NEW)
     ~(MEM (SND x) ((ifbetwn (core L r) (FST (ztrans L N r x (PRE k))) (FST x)))) /\
@@ -3222,7 +3253,7 @@ let reduction_K3 = prove_by_refinement(
                    (list_of_darts (quotient_list L N)))
 
 
-   ) ==> assumption_setK9`,
+   ) ==> assumption_setK10`,
   (* {{{ proof *)
   [
   DISCH_TAC;
@@ -3285,41 +3316,57 @@ let reduction_K4 = prove_by_refinement(
      (transform_count L N r x = k) ==>
      // END ASSUMPTIONS
 
-     // (MISC) 
-    (!i. i < k     ==> MEM (ztrans L N r x 0) (rtrans L N r x i)) /\
+     // index_snd_x
+     (!i. i < k ==>  
+	indexf (SND x) (FST (ytrans L N r x i)) (core L r) < 
+	indexf (SND x) (FST (ztrans L N r x i)) (core L r)) /\ 
 
-     // (BETWN)
+     // mem_z0_ri
+     (!i. i < k     ==> MEM (ztrans L N r x 0) (rtrans L N r x i)) /\
+
+     // betwn_corek_z_x
      (~(FST(ztrans L N r x (PRE k)) = FST x) ==>  
 	(betwn (core L (rtrans L N r x k)) (FST (ztrans L N r x (PRE k))) (FST x) =
-	 betwn (core L r) (FST (ztrans L N r x (PRE k))) (FST x))) /\
-      (set_of_list (MAP FST (flatten (ntrans L N r x 1))) DIFF set_of_list (MAP FST (flatten N)) = 
-	  set_of_list (MAP FST (betwn (find_face L x) (ytrans L N r x 0) (ztrans L N r x 0)))) /\
-     (!i. i < k /\ betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i) = [] ==>
-	 ~(next_el (core L (rtrans L N r x i)) (FST (ytrans L N r x i)) =
-	      FST (ztrans L N r x i))) /\
+	    betwn (core L r) (FST (ztrans L N r x (PRE k))) (FST x))) /\
+
+     // betwn_core0_z_y
+     // July 19 2014 corrected.
+     (!i. SUC i < k /\  ~(FST (ztrans L N r x i) = FST (ytrans L N r x (SUC i))) ==>
+	(betwn (core L r) (FST (ztrans L N r x (i))) (FST (ytrans L N r x (SUC i))) =
+	    betwn (core L (rtrans L N r x (SUC i))) (FST (ztrans L N r x (i)))
+	      (FST (ytrans L N r x (SUC i))))) /\
+
+     // not_next_core0_z_y
      (betwn (find_face L x) (ytrans L N r x 0) (ztrans L N r x 0) = []
 	 ==> ~(next_el (core L (rtrans L N r x 0)) (FST (ztrans L N r x 0)) =
              FST (ytrans L N r x 0))) /\
-     (!i. SUC i < k ==> 
-	(betwn (core L r) (FST (ztrans L N r x (i))) (FST (ytrans L N r x (SUC i))) =
-	     betwn (core L (rtrans L N r x (SUC i))) (FST (ztrans L N r x (i)))
-	       (FST (ytrans L N r x (SUC i))))) /\
 
-     // (NEW)
-    ~(MEM (SND x) ((ifbetwn (core L r) (FST (ztrans L N r x (PRE k))) (FST x)))) /\
-    (!i. i < k ==> // new
-       ~MEM (SND x) (ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i)))) /\
-    (!i. i < k ==>  // new
-       indexf (SND x) (FST (ytrans L N r x i)) (core L r) < 
-       indexf (SND x) (FST (ztrans L N r x i)) (core L r)) /\ 
-   (!i. i < k /\
-              betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i) =
-              []
-              ==> ~MEM (FST (ytrans L N r x i),FST (ztrans L N r x i))
-                   (list_of_darts (quotient_list L N)))
+     // not_next_corei_yi
+     (!i. i < k /\ betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i) = [] ==>
+	 ~(next_el (core L (rtrans L N r x i)) (FST (ytrans L N r x i)) =
+	     FST (ztrans L N r x i))) /\
+
+     // not_mem_yi_zi_list_of_darts
+     (!i. i < k /\
+        betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i) = []
+         ==> ~MEM (FST (ytrans L N r x i),FST (ztrans L N r x i))
+         (list_of_darts (quotient_list L N))) /\
+
+     // n1_diff_n0
+     (set_of_list (MAP FST (flatten (ntrans L N r x 1))) DIFF set_of_list (MAP FST (flatten N)) = 
+	 set_of_list (MAP FST (betwn (find_face L x) (ytrans L N r x 0) (ztrans L N r x 0)))) /\
+
+     // not_mem_snd_x_zx
+     ~(MEM (SND x) ((ifbetwn (core L r) (FST (ztrans L N r x (PRE k))) (FST x)))) /\
+
+     // not_mem_snd_x_fy
+     (!i. i < k ==> 
+	~MEM (SND x) (ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i))))
 
 
-   ) ==> assumption_setK9`,
+
+
+   ) ==> assumption_setK10`,
   (* {{{ proof *)
   [
   REPEAT WEAKER_STRIP_TAC;

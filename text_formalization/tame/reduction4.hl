@@ -420,6 +420,7 @@ let reduction_K1 = prove_by_refinement(
   ]);;
   (* }}} *)
 
+(* moved to tame_list.hl:
 let uniq_flatten_all_uniq = prove_by_refinement(
   `!s. uniq (flatten s) ==> all uniq s`,
   (* {{{ proof *)
@@ -430,6 +431,7 @@ let uniq_flatten_all_uniq = prove_by_refinement(
   BY(ASM_MESON_TAC[])
   ]);;
   (* }}} *)
+*)
 
 let final_assumption_y_ne_z = prove_by_refinement(
   `!L N r x k. 
@@ -3733,6 +3735,52 @@ let list_of_darts_reduction = prove_by_refinement(
   ]);;
   (* }}} *)
 
+let final_reduction_mem_z0_ri = prove_by_refinement(
+  `!L i N r (x:num#num) k. 
+     good_list L /\
+     good_list_nodes L /\
+     is_restricted (hypermap_of_list L) /\
+     marked_list L N r x /\
+     ~final_list L r /\
+     i < k /\
+     (transform_count L N r x = k) ==>
+      (MEM (ztrans L N r x 0) (rtrans L N r x i))
+`,
+  (* {{{ proof *)
+  [
+  GEN_TAC;
+  INTRO_TAC Reduction2.transform_assumption_v2_lemma [`L`];
+  DISCH_TAC;
+  INDUCT_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    MATCH_MP_TAC Pwssrat.mem_ztrans_rtrans;
+    BY(ASM_REWRITE_TAC[Reduction2.trans0]);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Ncvibwu.NCVIBWU [`L`;`N`;`r`;`find_face L x`;`next_el (find_face L x) x`;`x`;`i`;`indexf (next_el (find_face L x) x) (ztrans L N r x 0) (find_face L x)` ];
+  ASM_SIMP_TAC[];
+  SUBANTS_TAC;
+    GMATCH_SIMP_TAC Kbwpbhq.transform_count_not;
+    ASM_SIMP_TAC[arith `SUC i < k ==> i < k`];
+    INTRO_TAC (GEN_ALL More_lemmas.indexf_ztrans_lt_find_face) [`next_el (find_face L x) x`;`find_face L x`;`L`;`N`;`r`;`x`];
+    ASM_SIMP_TAC[];
+    DISCH_THEN MATCH_MP_TAC;
+    BY(ASM_SIMP_TAC[arith `SUC i < k ==> i < k`]);
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `ztrans L N r x 0 = ((next_el (find_face L x) POWER        indexf (next_el (find_face L x) x) (ztrans L N r x 0) (find_face L x))      (next_el (find_face L x) x))` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[]);
+  GMATCH_SIMP_TAC indexf_n;
+  SUBCONJ_TAC;
+    MATCH_MP_TAC Seq2.mem_next_el;
+    REWRITE_TAC[GSYM List_hypermap.dart_in_face];
+    BY(ASM_MESON_TAC[Pplhulj.marked_list_of_dart]);
+  DISCH_TAC;
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[Hojodcm.ztran_me_f_v0]);
+  MATCH_MP_TAC List_hypermap.uniq_find_face;
+  BY(ASM_MESON_TAC[List_hypermap.good_list])
+  ]);;
+  (* }}} *)
+
 let reduction_K4 = prove_by_refinement(
   `(!L N r (x:num#num) k. 
 
@@ -3745,13 +3793,8 @@ let reduction_K4 = prove_by_refinement(
      (transform_count L N r x = k) ==>
      // END ASSUMPTIONS
 
-     // index_snd_x
-     (!i. i < k ==>  
-	indexf (SND x) (FST (ytrans L N r x i)) (core L r) < 
-	indexf (SND x) (FST (ztrans L N r x i)) (core L r)) /\ 
-
      // mem_z0_ri
-     (!i. i < k     ==> MEM (ztrans L N r x 0) (rtrans L N r x i)) /\
+     // (!i. i < k     ==> MEM (ztrans L N r x 0) (rtrans L N r x i)) /\
 
      // betwn_corek_z_x
      (~(FST(ztrans L N r x (PRE k)) = FST x) ==>  
@@ -3794,6 +3837,11 @@ let reduction_K4 = prove_by_refinement(
 //     (set_of_list (MAP FST (flatten (ntrans L N r x 1))) DIFF set_of_list (MAP FST (flatten N)) = 
 //	 set_of_list (MAP FST (betwn (find_face L x) (ytrans L N r x 0) (ztrans L N r x 0)))) /\
 
+     // index_snd_x
+     (!i. i < k ==>  
+	indexf (SND x) (FST (ytrans L N r x i)) (core L r) < 
+	indexf (SND x) (FST (ztrans L N r x i)) (core L r)) /\ 
+
      // not_mem_snd_x_zx
      ~(MEM (SND x) ((ifbetwn (core L r) (FST (ztrans L N r x (PRE k))) (FST x)))) /\
 
@@ -3820,6 +3868,8 @@ let reduction_K4 = prove_by_refinement(
   COMMENT "cases";
   (ASM_SIMP_TAC[]);
   REPEAT WEAKER_STRIP_TAC;
+  CONJ_TAC;
+    BY(ASM_MESON_TAC[final_reduction_mem_z0_ri]);
   BY(ASM_SIMP_TAC[n1_diff_n0])
   ]);;
   (* }}} *)

@@ -2562,7 +2562,8 @@ let final_assumption_uvns_vs'  = prove_by_refinement(
          ~final_list L r /\
          transform_count L N r x = k /\
     ~(MEM (SND x) ((ifbetwn (core L r) (FST (ztrans L N r x (PRE k))) (FST x)))) /\
-    (!i. i < k ==> // new
+// test July 22 2014
+    (!i. i < k /\ 1 < sizel (ftrans L N r x i :: ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i))) ==> // new
        ~MEM (SND x) (ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i)))) /\
     (!i. i < k ==>  // new
        indexf (SND x) (FST (ytrans L N r x i)) (core L r) < 
@@ -2621,7 +2622,9 @@ let final_assumption_uvns_vs'  = prove_by_refinement(
       TYPIFY `r'` FULL_LEFT_EXPAND_TAC;
       MATCH_MP_TAC indexf_ifbetwn;
       ASM_SIMP_TAC[];
-      BY(ASM_MESON_TAC[arith `i < j ==> i <= j:num`]);
+      CONJ_TAC;
+        BY(ASM_MESON_TAC[arith `i < j ==> i <= j:num`]);
+      BY(ASM_MESON_TAC[arith `SUC j < n ==> 1 < n`]);
     REPEAT (GMATCH_SIMP_TAC EL_MAP) THEN ASM_REWRITE_TAC[lower_case;Seq.size_iota];
     REPEAT (GMATCH_SIMP_TAC Tame_list.el_iota);
     REWRITE_TAC[HD];
@@ -2657,7 +2660,6 @@ let final_assumption_uvns_vs'  = prove_by_refinement(
   BY(ASM_MESON_TAC[])
   ]);;
   (* }}} *)
-
 
 let dest_triple_full_ifbetwn = prove_by_refinement(
   `!L N r (x:A#A) k. 
@@ -3139,11 +3141,21 @@ let final_assumption_uvns_combined = prove_by_refinement(
           betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i) = []
           ==> ~MEM (FST (ytrans L N r x i),FST (ztrans L N r x i))
                (list_of_darts (quotient_list L N))) /\
+     // 22x
+     (!i. i < k /\
+              1 <
+              sizel
+              (ftrans L N r x i ::
+               ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i)))
+              ==> ~MEM (SND x)
+                   (ifbetwn (core L r) (ftrans L N r x i)
+                   (FST (ytrans L N r x i)))) /\
+
      ~MEM (SND x) (ifbetwn (core L r) (FST (ztrans L N r x (PRE k))) (FST x)) /\
-     (!i. i < k
-          ==> ~MEM (SND x)
-               (ifbetwn (core L r) (ftrans L N r x i)
-               (FST (ytrans L N r x i)))) /\
+//     (!i. i < k // replaced with Jul 22
+//          ==> ~MEM (SND x)
+//               (ifbetwn (core L r) (ftrans L N r x i)
+//               (FST (ytrans L N r x i)))) /\
      (!i. i < k
           ==> indexf (SND x) (FST (ytrans L N r x i)) (core L r) <
               indexf (SND x) (FST (ztrans L N r x i)) (core L r))
@@ -3169,7 +3181,7 @@ let final_assumption_uvns_combined = prove_by_refinement(
     ASM_REWRITE_TAC[LET_THM];
     BY(ASM_MESON_TAC[]);
   INTRO_TAC final_assumption_uvns_vs' [`L`;`N`;`r`;`x`;`k`;`v`];
-  BY(ASM_REWRITE_TAC[LET_THM])
+  (ASM_REWRITE_TAC[LET_THM])
   ]);;
   (* }}} *)
 
@@ -3240,8 +3252,20 @@ let reduction_K3 = prove_by_refinement(
 
      // (NEW)
     ~(MEM (SND x) ((ifbetwn (core L r) (FST (ztrans L N r x (PRE k))) (FST x)))) /\
-    (!i. i < k ==> // new
-       ~MEM (SND x) (ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i)))) /\
+
+     // July 22 2014 replaced
+   (!i. i < k /\
+              1 <
+              sizel
+              (ftrans L N r x i ::
+               ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i)))
+              ==> ~MEM (SND x)
+                   (ifbetwn (core L r) (ftrans L N r x i)
+                   (FST (ytrans L N r x i)))) /\
+//    (!i. i < k ==> // old 
+ //      ~MEM (SND x) (ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i)))) /\
+
+
     (!i. i < k ==>  // new
        indexf (SND x) (FST (ytrans L N r x i)) (core L r) < 
        indexf (SND x) (FST (ztrans L N r x i)) (core L r)) /\ 
@@ -3261,7 +3285,7 @@ let reduction_K3 = prove_by_refinement(
   FIRST_X_ASSUM (C INTRO_TAC [`L`;`N`;`r`;`x`;`k`]);
   ASM_SIMP_TAC[];
   DISCH_TAC;
-  TYPIFY `(~MEM (SND x) (ifbetwn (core L r) (FST (ztrans L N r x (PRE k))) (FST x)) /\  (!i. i < k       ==> ~MEM (SND x)            (ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i)))) /\  (!i. i < k       ==> indexf (SND x) (FST (ytrans L N r x i)) (core L r) <           indexf (SND x) (FST (ztrans L N r x i)) (core L r))) /\ (!i. i < k /\               betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i) =               []               ==> ~MEM (FST (ytrans L N r x i),FST (ztrans L N r x i))                    (list_of_darts (quotient_list L N)))` (C SUBGOAL_THEN ASSUME_TAC);
+  TYPIFY `(!i. i < k /\              1 <              sizel              (ftrans L N r x i ::               ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i)))              ==> ~MEM (SND x)                   (ifbetwn (core L r) (ftrans L N r x i)                   (FST (ytrans L N r x i)))) /\ (~MEM (SND x) (ifbetwn (core L r) (FST (ztrans L N r x (PRE k))) (FST x)) /\    (!i. i < k       ==> indexf (SND x) (FST (ytrans L N r x i)) (core L r) <           indexf (SND x) (FST (ztrans L N r x i)) (core L r))) /\ (!i. i < k /\               betwn (find_face L x) (ytrans L N r x i) (ztrans L N r x i) =               []               ==> ~MEM (FST (ytrans L N r x i),FST (ztrans L N r x i))                    (list_of_darts (quotient_list L N)))` (C SUBGOAL_THEN ASSUME_TAC);
     BY(ASM_MESON_TAC[]);
   COMMENT "pick off last conjunct";
   REWRITE_TAC[CONJ_ASSOC];
@@ -3845,9 +3869,17 @@ let reduction_K4 = prove_by_refinement(
      // not_mem_snd_x_zx
      ~(MEM (SND x) ((ifbetwn (core L r) (FST (ztrans L N r x (PRE k))) (FST x)))) /\
 
-     // not_mem_snd_x_fy
-     (!i. i < k ==> 
-	~MEM (SND x) (ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i))))
+     // not_mem_snd_x_fy replaced Jul 22 2014.
+     (!i. i < k /\
+              1 <
+              sizel
+              (ftrans L N r x i ::
+               ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i)))
+              ==> ~MEM (SND x)
+                   (ifbetwn (core L r) (ftrans L N r x i)
+                   (FST (ytrans L N r x i)))) 
+//     (!i. i < k ==> 
+//	~MEM (SND x) (ifbetwn (core L r) (ftrans L N r x i) (FST (ytrans L N r x i))))
 
 
 

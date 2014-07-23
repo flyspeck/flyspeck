@@ -15,7 +15,124 @@ open Hales_tactic;;
 open Tame_defs;;
 open Tame_defs2;;
 open Tame_list;;
-open Reduction3;;
+
+let betwn_core_reduction_lemma = prove_by_refinement(
+  `!L N r x k.
+    uniq (core L r) /\
+    ~(k = 0) /\
+    (!i. i < k /\
+        betwn (find_face L x) (ytrans L N r x i)
+                   (ztrans L N r x i) =
+                   []
+                   ==> ~(next_el (core L r) (FST (ytrans L N r x i)) = FST (ztrans L N r x i))) ==>
+    (betwn (find_face L x) (ytrans L N r x 0) (ztrans L N r x 0) =
+               []
+               ==> ~(next_el (core L r) (FST (ytrans L N r x 0)) =
+                     FST (ztrans L N r x 0))) /\
+   (!i. i < k /\
+        betwn (find_face L x) (ytrans L N r x i)
+                   (ztrans L N r x i) =
+                   []
+                   ==> ~MEM (FST (ytrans L N r x i),FST (ztrans L N r x i))
+                        (list_pairs (core L r))) 
+   
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  CONJ2_TAC;
+    REPEAT WEAKER_STRIP_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [`i`]) THEN ASM_REWRITE_TAC[];
+    INTRO_TAC List_hypermap.mem_list_pairs_explicit [`FST (ytrans L N r x i)`;`FST (ztrans L N r x i)`;`core L r`];
+    BY(ASM_SIMP_TAC[]);
+  DISCH_TAC;
+  FIRST_X_ASSUM MATCH_MP_TAC;
+  BY(ASM_SIMP_TAC[arith `0 < k <=> ~(k=0)`])
+  ]);;
+  (* }}} *)
+
+let reduction_K5 = prove_by_refinement(
+  `(!L N r (x:num#num) k.
+          good_list L /\
+          good_list_nodes L /\
+          is_restricted (hypermap_of_list L) /\
+          marked_list L N r x /\
+          ~final_list L r /\
+          transform_count L N r x = k
+          ==> 
+
+	 // (~(FST (ztrans L N r x (PRE k)) = FST x)
+         //      ==> betwn (core L (rtrans L N r x k))
+         //          (FST (ztrans L N r x (PRE k)))
+         //          (FST x) =
+         //          betwn (core L r) (FST (ztrans L N r x (PRE k))) (FST x)) /\
+
+	      // betwn_core0_z_y
+              (!i. SUC i < k /\
+                   ~(FST (ztrans L N r x i) = FST (ytrans L N r x (SUC i)))
+                   ==> betwn (core L r) (FST (ztrans L N r x i))
+                       (FST (ytrans L N r x (SUC i))) =
+                       betwn (core L (rtrans L N r x (SUC i)))
+                       (FST (ztrans L N r x i))
+                       (FST (ytrans L N r x (SUC i)))) /\
+
+     // not_next_core0_z_y
+              (betwn (find_face L x) (ytrans L N r x 0) (ztrans L N r x 0) =
+               []
+               ==> ~(next_el (core L (rtrans L N r x 0))
+                     (FST (ztrans L N r x 0)) =
+                     FST (ytrans L N r x 0))) /\
+
+	 // not_next_core_0_i
+	 (!i. i < k /\
+            betwn (find_face L x) (ytrans L N r x i)
+            (ztrans L N r x i) =
+             []
+             ==> ~(next_el (core L r) (FST (ytrans L N r x i)) = 
+		 FST (ztrans L N r x i))) 
+   )
+
+
+//              (betwn (find_face L x) (ytrans L N r x 0) (ztrans L N r x 0) =
+//               []
+//               ==> ~(next_el (core L r) (FST (ytrans L N r x 0)) =
+//                     FST (ztrans L N r x 0))) /\
+
+
+//              (!i. i < k /\
+//                   betwn (find_face L x) (ytrans L N r x i)
+//                   (ztrans L N r x i) =
+//                   []
+//                   ==> ~MEM (FST (ytrans L N r x i),FST (ztrans L N r x i))
+//                        (list_pairs (core L r)))) 
+
+  ==>     assumption_setK10`,
+  (* {{{ proof *)
+  [
+  DISCH_TAC;
+  MATCH_MP_TAC Reduction4.reduction_K4;
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`L`;`N`;`r`;`x`;`k`]);
+  ASM_SIMP_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `~(k=0)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[Reduction3.transform_count_non0]);
+  COMMENT "cases";
+  CONJ_TAC;
+    DISCH_TAC;
+    INTRO_TAC Betwn_corek_z_x.betwn_corek_z_x [`L`;`N`;`r`;`x`];
+    DISCH_THEN MATCH_MP_TAC;
+    BY(ASM_SIMP_TAC[arith `~(k=0) ==> 0 < k`]);
+  COMMENT "core_reduction";
+  TYPIFY `uniq (core L r)` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[marked_list_uniq_core]);
+  MATCH_MP_TAC betwn_core_reduction_lemma;
+  BY(ASM_SIMP_TAC[])
+  ]);;
+  (* }}} *)
+
+
+
 
 
 end;;

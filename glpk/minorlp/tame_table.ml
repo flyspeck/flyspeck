@@ -19,7 +19,7 @@ It also computes the constant a(5,0,1).
 
 flyspeck_needs "strictbuild.hl";;
 flyspeck_needs "../glpk/glpk_link.ml";;
-flyspeck_needs "../graph_generator/graph_control.hl";;
+flyspeck_needs "../informal_code/graph_generator/graph_control.hl";;
 
 module Tame_table = struct
 

@@ -43,8 +43,11 @@ module type Arith_float_sig =
     val float_sqrt_hi : int -> term -> thm
 
     val float_prove_le : term -> term -> bool * thm
+    val float_prove_lt : term -> term -> bool * thm
     val float_prove_le_interval : term -> thm -> bool * thm
     val float_prove_ge_interval : term -> thm -> bool * thm
+    val float_prove_lt_interval : term -> thm -> bool * thm
+    val float_prove_gt_interval : term -> thm -> bool * thm
     val float_compare_interval : term -> thm -> int * thm
 
     val reset_stat : unit -> unit
@@ -2736,15 +2739,20 @@ let compare_floats_raw =
 	  n2' = if s2 then minus_num n2 else n2 in
 	cmp n1' e1 n2' e2;;
 
-(* Returns (true, |- f1 <= f2) when f1 <= f2; returns (false, |- T) otherwise *)
 (* Returns (true, |- f1 <= f2 <=> T) when f1 <= f2; returns (false, |- f1 <= f2 <=> F) otherwise *)
 let float_prove_le f1_tm f2_tm =
   let le_th = float_le f1_tm f2_tm in
   let flag = (fst o dest_const o rand o concl) le_th = "T" in
     flag, le_th;;
 
+(* Returns (true, |- f1 < f2 <=> T) when f1 < f2; returns (false, |- f1 < f2 <=> F) otherwise *)
+let float_prove_lt f1_tm f2_tm =
+  let lt_th = float_lt f1_tm f2_tm in
+  let flag = (fst o dest_const o rand o concl) lt_th = "T" in
+    flag, lt_th;;
+
 (*
-(* Arith_num.raw_dest_hash is too slow *)
+(* Arith_num.raw_dest_hash is too slow (need to retest without caching) *)
 let float_prove_le f1_tm f2_tm =
   let r = compare_floats_raw f1_tm f2_tm in
     if r <= 0 then
@@ -2788,6 +2796,42 @@ let float_prove_ge_interval =
 	    true, MY_PROVE_HYP x_th (MY_PROVE_HYP le_th th0)
 	else
 	  false, le_th;;
+
+(* Compares y and an interval a <= x <= b (|- interval_arith x (a, b)). *)
+(* Returns (true, |- y < x) if y < a.                                   *)     
+(* Returns (false, |- y < a <=> F) if y >= a.                           *)
+let float_prove_lt_interval =
+  let lt_interval = (UNDISCH_ALL o prove)(`interval_arith x (a,b) ==> (y < a <=> T) ==> y < x`,
+					  REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC) in
+    fun y_tm x_th ->
+      let x_tm, bounds = dest_interval_arith (concl x_th) in
+      let ltm, b_tm = dest_comb bounds in
+      let a_tm = rand ltm in
+      let flag, lt_th = float_prove_lt y_tm a_tm in
+	if flag then
+	  let th0 = INST[x_tm, x_var_real; y_tm, y_var_real;
+			 a_tm, a_var_real; b_tm, b_var_real] lt_interval in
+	    true, MY_PROVE_HYP x_th (MY_PROVE_HYP lt_th th0)
+	else
+	  false, lt_th;;
+
+(* Compares y and an interval a <= x <= b (|- interval_arith x (a, b)). *)
+(* Returns (true, |- x < y) if b < y.                                   *)     
+(* Returns (false, |- b < y <=> F) if b >= y.                           *)
+let float_prove_gt_interval =
+  let gt_interval = (UNDISCH_ALL o prove)(`interval_arith x (a,b) ==> (b < y <=> T) ==> x < y`,
+					  REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC) in
+    fun y_tm x_th ->
+      let x_tm, bounds = dest_interval_arith (concl x_th) in
+      let ltm, b_tm = dest_comb bounds in
+      let a_tm = rand ltm in
+      let flag, lt_th = float_prove_lt b_tm y_tm in
+	if flag then
+	  let th0 = INST[x_tm, x_var_real; y_tm, y_var_real;
+			 a_tm, a_var_real; b_tm, b_var_real] gt_interval in
+	    true, MY_PROVE_HYP x_th (MY_PROVE_HYP lt_th th0)
+	else
+	  false, lt_th;;
 
 (* Compares y and an interval a <= x <= b (|- interval_arith x (a, b)). *)
 (* Returns (-1, |- y <= x) if y <= a.                                   *)     

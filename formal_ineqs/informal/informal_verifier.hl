@@ -135,7 +135,22 @@ let m_verify_raw (report_start, total_size) p_split p_min p_max fs_list certific
     match p_list with
       | [] -> failwith "find_p: no good p found"
       | p :: ps -> 
-	  let flag = (try p_fun p with Failure _ -> false | Division_by_zero -> false) in
+	  let _ = if !info_print_level >= 2 then
+	    report (sprintf "Testing p = %d (other: %d)" p (length ps))
+	  else () in
+	  let flag =  
+	    (try p_fun p 
+	     with 
+	       | Failure msg -> 
+		   let _ = if !info_print_level >= 2 then 
+		     report (sprintf "Failure at p = %d: %s" p msg)
+		   else () in
+		     false 
+	       | Division_by_zero -> 
+		   let _ = if !info_print_level >= 2 then
+		     report (sprintf "Failure at p = %d: Division_by_zero" p)
+		   else () in
+		     false) in
 	    if flag then 
 	      let _ = if !info_print_level >= 2 then report (sprintf "p = %d" p) else () in p
 	    else find_p p_fun ps in
@@ -217,7 +232,7 @@ let m_verify_raw (report_start, total_size) p_split p_min p_max fs_list certific
 	    (try
 	       let pp = find_p (pass_test domain (j, f0_flag)) ps in
 		 P_result_pass ({pp = pp}, j, f0_flag), [j]
-	     with Failure _ -> failwith "pass: failed")
+	     with Failure msg -> failwith ("pass: failed: " ^ msg))
 
       | Result_glue (i, convex_flag, r1, r2) ->
 	  let domain1, domain2 =

@@ -16,6 +16,7 @@ open Informal_interval;;
 open Informal_float;;
 open Informal_atn;;
 open Informal_sin_cos;;
+open Informal_matan;;
 open Informal_eval_interval;;
 
 
@@ -319,6 +320,36 @@ let eval_m_taylor_sqrt p_lin p_second ti =
       inv_interval p_second, mul_interval p_second in
     let two_sqrt_f = two_interval * sqrt f1_bound in
       inv two_sqrt_f, neg (inv (two_sqrt_f * (two_interval * f1_bound))) in
+  let ddf = 
+    let ( * ), ( + ) = mul_interval p_second, add_interval p_second in
+      map2 (fun dd_list di1 ->
+	      my_map2 (fun dd dj1 ->
+			 (d2 * dj1) * di1 + d1 * dd) dd_list d1_bounds) ti.ddf d1_bounds in
+    {
+      n = n;
+      domain = ti.domain;
+      f = bounds;
+      df = df;
+      ddf = ddf;
+    };;
+
+
+(* matan *)
+let eval_m_taylor_matan p_lin p_second ti =
+  let n = ti.n in
+  let ns = 1--n in
+  let f1_bound = eval_m_taylor_bound p_second ti in
+  let bounds = matan_interval p_lin ti.f in
+  let u_bounds =
+    let dmatan = dmatan_interval p_lin in
+      dmatan (bounds) in
+  let df =
+    let ( * ) = mul_interval p_lin in
+      map (fun d -> u_bounds * d) ti.df in
+  let d1_bounds = map (fun i -> eval_m_taylor_partial_bound p_second i ti) ns in
+  let d1, d2 =
+    let dmatan, ddmatan = dmatan_interval p_second, ddmatan_interval p_second in
+      dmatan f1_bound, ddmatan f1_bound in
   let ddf = 
     let ( * ), ( + ) = mul_interval p_second, add_interval p_second in
       map2 (fun dd_list di1 ->

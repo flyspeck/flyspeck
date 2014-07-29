@@ -1,0 +1,117 @@
+(* =========================================================== *)
+(* Informal arithmetic procedures: matan                       *)
+(* Author: Alexey Solovyev                                     *)
+(* Date: 2014-07-29                                            *)
+(* =========================================================== *)
+
+(* Dependencies *)
+needs "informal/informal_atn.hl";;
+
+(* matan *)
+module type Informal_matan_sig =
+  sig
+    val matan_interval : int -> Informal_interval.interval -> Informal_interval.interval
+    val dmatan_interval : int -> Informal_interval.interval -> Informal_interval.interval
+    val ddmatan_interval : int -> Informal_interval.interval -> Informal_interval.interval
+  end;;
+
+module Informal_matan : Informal_matan_sig = struct
+
+open Num;;
+open Informal_float;;
+open Informal_interval;;
+open Informal_atn;;
+
+
+let matan_interval =
+  let one = mk_small_num_interval 1 and
+      three = mk_small_num_interval 3 and
+      five = mk_small_num_interval 5 and
+      fseven = mk_small_num_float 7 and
+      fone = mk_small_num_float 1 in
+  let t = mk_small_num_float 100000000 in
+(*  let tt = mul_float_eq t t in *)
+  let t1 = div_float_hi 10 (mk_small_num_float 1) t and
+      t2 = div_float_lo 10 (mk_small_num_float 9) (mk_small_num_float 10) in
+    fun pp x ->
+      let ( * ) = mul_interval pp and
+	  ( / ) = div_interval pp and
+	  ( + ) = add_interval pp and
+	  ( - ) = sub_interval pp in
+      let lo, hi = dest_interval x in
+	if lt_float lo t1 then
+	  if lt_float lo (neg_float t2) or lt_float t2 hi then
+	    failwith "matan_interval: the argument is out of range"
+	  else
+	    let x2 = x * x in
+	    let s = one - x / three + x2 / five in
+	    let u = abs_interval x in
+	    let u3 = mul_float_hi pp u (mul_float_hi pp u u) in
+	    let r1 = sub_float_hi pp fone u in
+	    let r2 = mul_float_hi pp fseven r1 in
+	    let err = div_float_hi pp u3 r2 in
+	    let low', high' = dest_interval s in
+	    let low = sub_float_lo pp low' err and
+		high = add_float_hi pp high' err in
+	      mk_interval (low, high)
+	else
+	  let r = sqrt_interval pp x in
+	  let r2 = atn_interval pp r in
+	    r2 / r;;
+
+
+let dmatan_interval =
+  let one = mk_small_num_interval 1 and
+      two = mk_small_num_interval 2 and
+      three = mk_small_num_interval 3 and
+      five = mk_small_num_interval 5 and
+      ftwo = mk_small_num_float 2 and
+      fone = mk_small_num_float 1 in
+  let t = mk_small_num_float 100000000 in
+  let t1 = div_float_hi 10 (mk_small_num_float 1) t and
+      t2 = div_float_lo 10 (mk_small_num_float 9) (mk_small_num_float 10) in
+    fun pp x ->
+      let ( * ) = mul_interval pp and
+	  ( / ) = div_interval pp and
+	  ( + ) = add_interval pp and
+	  ( - ) = sub_interval pp in
+      let lo, hi = dest_interval x in
+	if lt_float lo t1 then
+	  if lt_float lo (neg_float t2) or lt_float t2 hi then
+	    failwith "dmatan_interval: the argument is out of range"
+	  else
+	    let s = two * x / five - one / three in
+	    let u = abs_interval x in
+	    let u2 = mul_float_hi pp u u in
+	    let r1 = sub_float_hi pp fone u in
+	    let r2 = mul_float_hi pp ftwo r1 in
+	    let err = div_float_hi pp u2 r2 in
+	    let low', high' = dest_interval s in
+	    let low = sub_float_lo pp low' err and
+		high = add_float_hi pp high' err in
+	      mk_interval (low, high)
+	else
+	  let r = sqrt_interval pp x in
+	  let two_x = two * x in
+	  let s1 = inv_interval pp (two_x * (x + one)) in
+	  let s2 = atn_interval pp r / (two_x * r) in
+	    s1 - s2;;
+
+
+let ddmatan_interval =
+  let t2 = neg_float (div_float_lo 10 (mk_small_num_float 2) (mk_small_num_float 10)) in
+  let v1 = mk_small_num_interval 65 and
+      v2 = mk_small_num_interval 100 in
+  let v = div_interval 20 v1 v2 in
+  let v0 = mk_small_num_float 1 in
+  let vs = Array.init 20 
+    (fun i -> if i = 0 then v0 else snd (dest_interval (round_interval i v))) in
+    fun pp x ->
+      let lo, _ = dest_interval x in
+	if lt_float lo t2 then
+	  failwith "ddmatan_interval: the argument is out of range"
+	else
+	  let v = vs.(pp) in
+	    mk_interval (neg_float v, v);;
+
+end;;

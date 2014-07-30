@@ -22,6 +22,7 @@ open More_float;;
 open Float_atn;;
 open Cos_eval;;
 open Sin_eval;;
+open Matan_eval;;
 open Float_theory;;
 open M_taylor;;
 open M_taylor_arith;;
@@ -91,6 +92,8 @@ let gen_asn_thm =
   let pow3_lemma = (SYM o REWRITE_CONV[SYM num3_eq]) `x pow 3` in
     gen_taylor_arith_thm MK_M_TAYLOR_ASN' (REWRITE_RULE[iabs_lemma] o REWRITE_RULE[float1_eq; pow3_lemma]);;
 
+let gen_matan_thm = gen_taylor_arith_thm MK_M_TAYLOR_MATAN' (CONV_RULE ALL_CONV);;
+
 let add_ths_array,
   sub_ths_array,
   mul_ths_array,
@@ -101,7 +104,8 @@ let add_ths_array,
   cos_ths_array,
   sin_ths_array,
   acs_ths_array,
-  asn_ths_array = 
+  asn_ths_array,
+  matan_ths_array =
   let gen = fun f -> Array.init (max_dim + 1) (fun i -> if i = 0 then TRUTH else f i) in
     gen gen_add_thm,
   gen gen_sub_thm,
@@ -113,7 +117,8 @@ let add_ths_array,
   gen gen_cos_thm,
   gen gen_sin_thm,
   gen gen_acs_thm,
-  gen gen_asn_thm;;
+  gen gen_asn_thm,
+  gen gen_matan_thm;;
 
 
 (*********************)
@@ -956,6 +961,88 @@ let eval_m_taylor_acs2 n p_lin p_second taylor1_th =
     m_taylor_interval_norm th1 eq_th;;
 
 
+(******************************)
+(* matan *)
+
+let eval_m_taylor_matan2 n p_lin p_second taylor1_th =
+  let domain_th, diff2_f1_th, lin1_th, second1_th = dest_m_taylor_thms n taylor1_th in
+  let f1_tm = (rand o concl) diff2_f1_th in
+  let domain_tm, y_tm, w_tm = dest_m_cell_domain (concl domain_th) in
+
+  let ty = type_of y_tm in
+  let x_var = mk_var ("x", ty) and
+      y_var = mk_var ("y", ty) and
+      w_var = mk_var ("w", ty) and
+      f_var = mk_var ("f", type_of f1_tm) and
+      domain_var = mk_var ("domain", type_of domain_tm) in
+
+  let undisch = UNDISCH o SPEC x_var in
+
+  let f1_bound0 = eval_m_taylor_bound n p_second taylor1_th in
+  let f1_bound = undisch f1_bound0 in
+  let f_bounds_tm = (rand o concl) f1_bound in
+
+  (* cond *)
+  let cond_th = check_interval_gt neg_one_float f_bounds_tm in
+
+  let _, bounds1_th, df1_th = m_lin_approx_components n lin1_th in
+    
+  let bounds_th = float_interval_matan p_lin bounds1_th in
+  let bounds_tm = (rand o concl) bounds_th in
+
+  (* first partials *)
+  let u_bounds = 
+    float_interval_dmatan p_lin bounds1_th in
+
+  let df1_ths' = all_n_components2 n df1_th in
+  let df1_ths = map MY_BETA_RULE df1_ths' in
+
+  let df_ths = 
+    let ( * ) = float_interval_mul p_lin in
+      map (fun th1 -> u_bounds * th1) df1_ths in
+
+  let df_th = end_itlist CONJ df_ths in
+
+  (* second partials *)
+  let dd_ths =
+    let dd1 = all_n_components2 n (second_bounded_components n second1_th) in
+      map2 (fun i -> map MY_BETA_RULE o all_n_components2 i o MY_BETA_RULE) (1--n) dd1 in
+    
+  let d1_bounds = map (fun i -> 
+			 let th0 = eval_m_taylor_partial_bound n p_second i taylor1_th in
+			   undisch th0) (1--n) in
+
+  (* u'(f x), u''(f x) *)
+  let d1_th0, d2_th0 =
+    float_interval_dmatan p_second f1_bound,
+    float_interval_ddmatan p_second f1_bound in
+
+  let dd_ths =
+    let ( * ), ( + ) = float_interval_mul p_second, float_interval_add p_second in
+      map2 (fun dd_list di1 ->
+	      my_map2 (fun dd dj1 ->
+			 (d2_th0 * dj1) * di1 + d1_th0 * dd) dd_list d1_bounds) dd_ths d1_bounds in
+
+  let dd_th = (GEN x_var o DISCH_ALL o end_itlist CONJ) (List.flatten dd_ths) in
+
+  (***)
+  let df_vars = map (fun i -> df_vars_array.(i)) (1--n) in
+  let dd_vars = map (fun i -> map (fun j -> dd_vars_array.(i).(j)) (1--i)) (1--n) in
+
+  let dfs = map (rand o concl) df_ths in
+  let dds = map (map (rand o concl)) dd_ths in
+
+  let inst_list = union (zip dfs df_vars) (zip (List.flatten dds) (List.flatten dd_vars)) in
+
+  let th1 = (MY_PROVE_HYP diff2_f1_th o MY_PROVE_HYP cond_th o MY_PROVE_HYP f1_bound0 o
+	       MY_PROVE_HYP bounds_th o MY_PROVE_HYP domain_th o
+	       MY_PROVE_HYP dd_th o MY_PROVE_HYP df_th o
+	       INST([f1_tm, f_var; f_bounds_tm, f_bounds_var; 
+		  domain_tm, domain_var; y_tm, y_var; w_tm, w_var;
+		  bounds_tm, bounds_var] @ inst_list)) matan_ths_array.(n) in
+  let eq_th = unary_beta_gen_eq f1_tm x_var matan_tm in
+    m_taylor_interval_norm th1 eq_th;;
+
 end;;
 
 
@@ -984,12 +1071,12 @@ let dom_inf = Informal_taylor.mk_m_center_domain 5 x_inf y_inf;;
 
 
 
-let f1, _, f2 = mk_verification_functions_poly 5 `\x:real^2. x$1`;;
+let f1, _, f2 = mk_verification_functions_poly 5 `\x:real^2. x$1 * x$2 pow 2`;;
 let t_th = f1.taylor 5 5 dom_th;;
 let t_inf = f2.Informal_verifier.taylor 5 5 dom_inf;;
 
-let th2 = eval_m_taylor_sin2 2 5 5 t_th;;
-let t2_inf = Informal_taylor.eval_m_taylor_sin 5 5 t_inf;;
+let th2 = eval_m_taylor_matan2 2 5 5 t_th;;
+let t2_inf = Informal_taylor.eval_m_taylor_matan 5 5 t_inf;;
 
 let th3 = eval_m_taylor_sin2 2 5 5 th2;;
 let t3_inf = Informal_taylor.eval_m_taylor_sin 5 5 t2_inf;;

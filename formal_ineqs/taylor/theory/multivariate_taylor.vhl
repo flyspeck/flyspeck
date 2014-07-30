@@ -12,6 +12,7 @@
 
 module Multivariate_taylor.
 
+"open Ssreflect".
 "open Ssrfun".
 "open Ssrbool".
 "open Ssrnat".
@@ -1557,6 +1558,10 @@ Proof. by move => df; rewrite diff2_uni_compose diff2_sin. Qed.
 Lemma diff2_exp_compose : `diff2 f x ==> diff2 (exp o f) x`.
 Proof. by move => df; rewrite diff2_uni_compose diff2_exp. Qed.
 
+(* log *)
+Lemma diff2_log_compose : `&0 < f x ==> diff2 f x ==> diff2 (log o f) x`.
+Proof. by move => /diff2_log du df; rewrite diff2_uni_compose. Qed.
+
 (* acs *)
 Lemma diff2_acs_compose : `abs (f x) < &1 ==> diff2 f x ==> diff2 (acs o f) x`.
 Proof. by move => /diff2_acs du df; rewrite diff2_uni_compose. Qed.
@@ -1565,6 +1570,9 @@ Proof. by move => /diff2_acs du df; rewrite diff2_uni_compose. Qed.
 Lemma diff2_asn_compose : `abs (f x) < &1 ==> diff2 f x ==> diff2 (asn o f) x`.
 Proof. by move => /diff2_asn du df; rewrite diff2_uni_compose. Qed.
 
+(* matan *)
+Lemma diff2_matan_compose : `-- &1 < f x ==> diff2 f x ==> diff2 (matan o f) x`.
+Proof. by move => /diff2_matan du df; rewrite diff2_uni_compose. Qed.
 
 End Composite.
 
@@ -1648,6 +1656,14 @@ Proof. by move: d2f; rewrite !diff2_domain => d2f x x_in; rewrite diff2_sin_comp
 Lemma diff2_domain_exp_compose : `diff2_domain domain (exp o f)`.
 Proof. by move: d2f; rewrite !diff2_domain => d2f x x_in; rewrite diff2_exp_compose d2f. Qed.
 
+(* log *)
+Lemma diff2_domain_log_compose : `m_bounded_on_int f domain bounds ==>
+	interval_pos bounds ==> diff2_domain domain (log o f)`.
+Proof.
+move: d2f; rewrite m_bounded_on_int !diff2_domain => d2f ineq n0 x x_in.
+by rewrite diff2_log_compose d2f // andbT (interval_arith_pos (ineq x_in)).
+Qed.
+
 (* acs *)
 Lemma diff2_domain_acs_compose : `m_bounded_on_int f domain bounds ==>
 	iabs bounds < &1 ==> diff2_domain domain (acs o f)`.
@@ -1663,6 +1679,15 @@ Proof.
 move: d2f; rewrite m_bounded_on_int !diff2_domain => d2f ineq n0 x x_in.
 by rewrite diff2_asn_compose d2f // andbT (interval_arith_abs (ineq x_in)).
 Qed.
+
+(* matan *)
+Lemma diff2_domain_matan_compose : `m_bounded_on_int f domain bounds ==>
+	interval_gt (-- &1) bounds ==> diff2_domain domain (matan o f)`.
+Proof.
+move: d2f; rewrite m_bounded_on_int !diff2_domain => d2f ineq n0 x x_in.
+by rewrite diff2_matan_compose d2f // andbT (interval_arith_gt (ineq x_in)).
+Qed.
+
 
 (* Binary *)
 Hypothesis d2g : `diff2_domain domain g`.
@@ -1908,6 +1933,7 @@ Qed.
 
 
 Lemma real_open_delete s x : `real_open s ==> real_open (s DELETE x)`.
+Proof.
 rewrite !REAL_OPEN => /OPEN_DELETE /(_ `lift x`).
 by rewrite IMAGE_DELETE_INJ ?LIFT_EQ.
 Qed.
@@ -1982,6 +2008,20 @@ rewrite diff2_exp d2f /= second_derivative_exp.
 by rewrite REAL_CONTINUOUS_AT_EXP.
 Qed.
 
+(* log *)
+Lemma diff2c_log_compose f : `&0 < f x ==> diff2c f x ==> diff2c (log o f) x`.
+Proof.
+move => fn0 d2f; rewrite diff2c_uni_compose.
+rewrite (diff2_log fn0) d2f /=.
+apply: real_cont_atreal_local.
+exists `\x. -- inv (x pow 2)` `{x | x > &0}`.
+rewrite REAL_OPEN_HALFSPACE_GT !IN_ELIM_THM /= !real_gt; split; last first.
+  by move => y [z] [z0] ->; rewrite second_derivative_log.
+split; last by exists `f x`.
+rewrite REAL_CONTINUOUS_NEG REAL_CONTINUOUS_INV_ATREAL REAL_CONTINUOUS_POW ?REAL_CONTINUOUS_AT_ID.
+by rewrite REAL_POW_2 REAL_ENTIRE; move: fn0; arith.
+Qed.
+
 (* acs *)
 Lemma diff2c_acs_compose f : `abs (f x) < &1 ==> diff2c f x ==> diff2c (acs o f) x`.
 Proof.
@@ -2034,6 +2074,43 @@ rewrite REAL_CONTINUOUS_ATREAL_COMPOSE REAL_CONTINUOUS_AT_SQRT //=.
 rewrite REAL_CONTINUOUS_POW REAL_CONTINUOUS_SUB REAL_CONTINUOUS_CONST.
 by rewrite REAL_CONTINUOUS_MUL ?REAL_CONTINUOUS_AT_ID.
 Qed.
+
+(* matan *)
+Lemma diff2c_matan_compose f : `-- &1 < f x ==> diff2c f x ==> diff2c (matan o f) x`.
+Proof.
+move => fn1 d2f; rewrite diff2c_uni_compose.
+rewrite (diff2_matan fn1) d2f /=.
+case: (EXCLUDED_MIDDLE `f x < &1`) => fn2; last first.
+  apply: real_cont_atreal_local; rewrite nth_derivative2 derivative_eq_real_derivative.
+  set g := `\x. (&3 / &4 * atn (sqrt x) / (x pow 2 * sqrt x) - &3 / &4 * inv (x pow 2 * (x + &1))) - &1 / &2 * inv (x * (x + &1) pow 2)`.
+  exists g `real_interval (&0, f x + &1)`.
+  rewrite REAL_OPEN_REAL_INTERVAL !IN_REAL_INTERVAL andbT; split; last first.
+    by move => y y_ineq; rewrite Matan.matan_second_derivative_gt0 // -g_def.
+  split; last by move: fn2; arith.
+  rewrite -g_def REAL_CONTINUOUS_SUB REAL_CONTINUOUS_LMUL.
+    rewrite REAL_CONTINUOUS_INV_ATREAL REAL_CONTINUOUS_MUL ?REAL_CONTINUOUS_AT_ID ?andTb.
+      by rewrite REAL_CONTINUOUS_POW // REAL_CONTINUOUS_ADD REAL_CONTINUOUS_AT_ID REAL_CONTINUOUS_CONST.
+    by rewrite REAL_POW_2 !REAL_ENTIRE; move: fn2; arith.
+  rewrite REAL_CONTINUOUS_SUB // !REAL_CONTINUOUS_LMUL //.
+    rewrite "GEN_ALL REAL_CONTINUOUS_DIV_ATREAL" REAL_CONTINUOUS_MUL.
+      rewrite REAL_CONTINUOUS_POW ?REAL_CONTINUOUS_AT_ID // REAL_CONTINUOUS_AT_SQRT //.
+      by move: fn2; arith.
+    rewrite andTb REAL_POW_2 !REAL_ENTIRE SQRT_EQ_0; split; last by move: fn2; arith.
+    rewrite -(o_THM `atn`); rewr ETA_AX; rewrite REAL_CONTINUOUS_ATREAL_COMPOSE.
+    by rewrite REAL_CONTINUOUS_AT_ATN REAL_CONTINUOUS_AT_SQRT //; move: fn2; arith.
+  rewrite REAL_CONTINUOUS_INV_ATREAL REAL_CONTINUOUS_MUL ?andTb.
+    by rewrite REAL_CONTINUOUS_POW ?REAL_CONTINUOUS_ADD ?REAL_CONTINUOUS_AT_ID ?REAL_CONTINUOUS_CONST.
+  by rewrite REAL_POW_2 !REAL_ENTIRE; move: fn2; arith.
+rewrite nth_derivative2 derivative_eq_real_derivative -Matan.ddmatan.
+apply: HAS_REAL_DERIVATIVE_IMP_CONTINUOUS_ATREAL.
+have := Matan.matan_second_derivative_abs1; rewrite -Matan.ddmatan => d2.
+set a := `\i. -- &1 pow (i + 2) * &((i + 1) * (i + 2)) / &(2 * i + 5)`.
+have := Series.power_series_has_derivative `ddmatan` a `from 0` `&1`; "ANTS_TAC".
+  by move => t t_ineq; rewrite -a_def /= d2.
+move => [h] h_diff.
+by exists `h (f x)`; rewrite h_diff; move: fn2 fn1; arith.
+Qed.
+
 
 End Composite.
 
@@ -2117,6 +2194,13 @@ Proof. by move: d2f; rewrite !diff2c_domain => d2f x x_in; rewrite diff2c_sin_co
 Lemma diff2c_domain_exp_compose : `diff2c_domain domain (exp o f)`.
 Proof. by move: d2f; rewrite !diff2c_domain => d2f x x_in; rewrite diff2c_exp_compose d2f. Qed.
 
+(* log *)
+Lemma diff2c_domain_log_compose : `m_bounded_on_int f domain bounds ==>
+	interval_pos bounds ==> diff2c_domain domain (log o f)`.
+move: d2f; rewrite m_bounded_on_int !diff2c_domain => d2f ineq n0 x x_in.
+by rewrite diff2c_log_compose d2f // andbT (interval_arith_pos (ineq x_in)).
+Qed.
+
 (* acs *)
 Lemma diff2c_domain_acs_compose : `m_bounded_on_int f domain bounds ==>
 	iabs bounds < &1 ==> diff2c_domain domain (acs o f)`.
@@ -2131,6 +2215,14 @@ Lemma diff2c_domain_asn_compose : `m_bounded_on_int f domain bounds ==>
 Proof.
 move: d2f; rewrite m_bounded_on_int !diff2c_domain => d2f ineq n0 x x_in.
 by rewrite diff2c_asn_compose d2f // andbT (interval_arith_abs (ineq x_in)).
+Qed.
+
+(* matan *)
+Lemma diff2c_domain_matan_compose : `m_bounded_on_int f domain bounds ==>
+	interval_gt (-- &1) bounds ==> diff2c_domain domain (matan o f)`.
+Proof.
+move: d2f; rewrite m_bounded_on_int !diff2c_domain => d2f ineq n0 x x_in.
+by rewrite diff2c_matan_compose d2f // andbT (interval_arith_gt (ineq x_in)).
 Qed.
 
 (* Binary *)
@@ -2300,6 +2392,17 @@ Lemma m_taylor_exp_compose :
 	m_taylor_interval (exp o f) domain y w bounds d_bounds_list dd_bounds_list`.
 Proof. by move => lin second; rewrite m_taylor_interval diff2c_domain_exp_compose. Qed.
 
+(* log *)
+Lemma m_taylor_log_compose :
+	`m_bounded_on_int f domain f_bounds ==> interval_pos f_bounds ==>
+	m_lin_approx (log o f) y bounds d_bounds_list ==>
+	second_bounded (log o f) domain dd_bounds_list ==>
+	m_taylor_interval (log o f) domain y w bounds d_bounds_list dd_bounds_list`.
+Proof.
+move => bf fn0 lin second; rewrite m_taylor_interval.
+by rewrite (diff2c_domain_log_compose d2f bf).
+Qed.
+
 (* acs *)
 Lemma m_taylor_acs_compose :
 	`m_bounded_on_int f domain f_bounds ==> iabs f_bounds < &1 ==>
@@ -2321,6 +2424,18 @@ Proof.
 move => bf fn0 lin second; rewrite m_taylor_interval.
 by rewrite (diff2c_domain_asn_compose d2f bf).
 Qed.
+
+(* matan *)
+Lemma m_taylor_matan_compose :
+	`m_bounded_on_int f domain f_bounds ==> interval_gt (-- &1) f_bounds ==>
+	m_lin_approx (matan o f) y bounds d_bounds_list ==>
+	second_bounded (matan o f) domain dd_bounds_list ==>
+	m_taylor_interval (matan o f) domain y w bounds d_bounds_list dd_bounds_list`.
+Proof.
+move => bf fn0 lin second; rewrite m_taylor_interval.
+by rewrite (diff2c_domain_matan_compose d2f bf).
+Qed.
+
 
 (* neg *)
 Lemma m_taylor_neg :

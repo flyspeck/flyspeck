@@ -1,0 +1,166 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter: Hypermap, Tame Hypermap                                           *)
+(* Author:  Thomas Hales     *)
+(* Date: 2014-07-24                                                           *)
+(* ========================================================================== *)
+
+(* Definitions from the Isabelle tame graph classification *)
+
+
+module Import_tame_classification = struct
+
+  open Hales_tactic;;
+  open Tame_defs;;
+  open Tame_list;;
+  open Tame_defs2;;
+
+(*
+  let new_definition' t = 
+    if has_stv t 
+    then (Print_types.print_term_types t; failwith "new_definition has stv") 
+    else new_definition t;;
+*)
+
+  let parse_as_infix' = parse_as_infix;;
+
+make_overloadable "vertices" `:B -> (num list)`;;
+
+overload_interface ("vertices",`FST:num list # bool -> num list`);;
+
+
+let degree = new_definition' `degree g v = LENGTH(facesAt g v)`;;
+
+let tri = new_definition'  `tri g v =
+    LENGTH(FILTER (\f. SND f /\ LENGTH(vertices f)=3) (facesAt g v))`;;
+
+let quad = new_definition'  `quad g v =
+    LENGTH(FILTER (\f. SND f /\ LENGTH(vertices f)=4) (facesAt g v))`;;
+
+let except = new_definition'  `except g v =
+    LENGTH(FILTER (\f. SND f /\ 5 <= LENGTH(vertices f)) (facesAt g v))`;;
+
+let vertextype = new_definition' `vertextype g v = 
+    (tri g v, quad g v, except g v)`;;
+
+let exceptionalVertex = new_definition' `exceptionalVertex g v = 
+  ((~=) (except g v) 0)`;;
+
+let squanderTarget = new_definition' `squanderTarget = 15410`;;
+
+let excessTCount = new_definition' `excessTCount = 6295`;; (* was 6300 *)
+
+let squanderVertex = new_definition' `squanderVertex p q = 
+  if (p=0 /\ q=3) then 6177 else
+    if (p=0 /\ q=4) then 9696 else
+      if (p=1 /\ q=2) then 6557 else
+	if (p=1 /\ q=3) then 6176 else
+	  if (p=2 /\ q=1) then 7967 else
+	    if (p=2 /\ q=2) then 4116 else
+	      if (p=2 /\ q=3) then 12846 else
+		if (p=3 /\ q=1) then 3106 else
+		  if (p=3 /\ q=2) then 8165 else
+		    if (p=4 /\ q=0) then 3466 else
+		      if (p=4 /\ q=1) then 3655 else
+			if (p=5 /\ q=0) then 395 else
+			  if (p=5 /\ q=1) then 11354 else
+			    if (p=6 /\ q=0) then 6854 else
+			      if (p=7 /\ q=0) then 14493 else squanderTarget`;;
+
+let squanderFace = new_definition' `squanderFace n = 
+  if (n=3) then 0 else
+    if (n=4) then 2058 else
+      if (n=5) then 4819 else
+	if (n=6) then 7120 else squanderTarget`;;
+
+let admissible1 = new_definition' `admissible1 w g =
+  (!f. f IN Faces g ==> squanderFace (LENGTH (vertices (f:num list # bool))) <= w f)`;;
+
+let admissible2 = new_definition'  `admissible2 w g = 
+  (!v. v IN vertices_set2 g ==> (except g v = 0) ==> 
+     squanderVertex (tri g v) (quad g v) <= sumn (MAP (\ f. w f) (facesAt g v)))`;;
+
+let triangle = new_definition' `triangle (f:num list # bool) = (LENGTH (vertices f) = 3)`;;
+
+let admissible3 = new_definition' `admissible3 w g = 
+  (!v. (v IN vertices_set2 g) ==> (vertextype g v = (5,0,1)) ==>
+     (sumn (map (\ f. w f) (FILTER triangle (facesAt g v))) >= excessTCount))`;;
+
+let admissible' = new_definition' `admissible' w g = 
+  (admissible1 w g /\ 
+  admissible2 w g /\ admissible3 w g) `;;
+
+let tame9a = new_definition' `tame9a g = 
+  (!f. (f IN Faces g) ==> 
+     3 <= LENGTH(vertices f) /\ LENGTH(vertices (f:num list # bool)) <= 6)`;;
+
+let tame10 = new_definition' `tame10 g = 
+  (let n = countVertices g in
+     13 <= n /\ n <= 15)`;;
+
+let tame11a = new_definition'  `tame11a g = 
+  (!v. (v IN vertices_set2 g) ==>  3 <= degree g v)`;;
+
+let tame11b = new_definition'  `tame11b g = 
+  (!v. v IN vertices_set2 g ==> 
+     degree g v <= (if (except g v = 0) then 7 else 6))`;;
+
+let tame12o = new_definition' `tame12o g = 
+  (!v. v IN vertices_set2 g ==>
+     ((~=) (except g v) 0 /\ degree g v = 6) ==> (vertextype g v = (5,0,1)))`;;
+
+let tame13a = new_definition' `tame13a g = 
+  (?w. admissible' w g /\ sumn (MAP (\ f. w f) (faces g)) < squanderTarget)`;;
+
+let tame = new_definition' `tame g = 
+  (tame9a g /\ tame10 g/\ tame11a g/\ 
+    tame11b g/\ tame12o g/\ tame13a g)`;;
+
+let archive = new_definition' `archive = set_of_list tame_archive_lists`;;
+
+let EQ_CLASS = new_definition' ` ( //// ) A f = IMAGE (f:A->B) A`;;
+
+parse_as_infix' ("////", (14, "right"));;
+
+let IMAGE_INFIX = new_definition' `(  #?# ) f X = IMAGE (f:A->B) X`;;
+
+parse_as_infix' ("#?#",(16,"right"));;
+
+let is_pr_Hom = new_definition' `is_pr_Hom (phi:A->B) Fs1 Fs2 =
+  ((( (MAP phi) #?# Fs1) //// (__cong)) = (Fs2 //// (__cong)))`;;
+
+let is_pr_Iso = new_definition' `is_pr_Iso (phi:A->B) Fs1 Fs2 = 
+ (is_pr_Hom phi Fs1 Fs2 /\ inj_on phi (UNIONS (IMAGE (\ f. set_of_list f) Fs1  )))`;;
+
+let is_Iso = new_definition' `is_Iso (phi:A->B) Fs1 Fs2 = 
+ (is_pr_Iso phi Fs1 Fs2 \/ is_pr_Iso phi Fs1 (REVERSE #?# Fs2))`;;
+
+let is_iso = new_definition' `is_iso (phi:A->B) Fs1 Fs2 = 
+  is_Iso phi (set_of_list Fs1) (set_of_list Fs2)`;;
+
+let iso_fgraph = new_definition' `iso_fgraph g1 g2 = 
+  (? (phi:A->B). is_iso phi g1 g2)`;;
+
+let import_tame_classification = new_definition' 
+  `import_tame_classification = 
+  (!g. PlaneGraphs g /\ tame g ==> (?y. y IN archive /\ iso_fgraph (fgraph g) y))`;;
+
+parse_as_infix ("IN_simeq", (11, "right"));;
+
+let IN_SIMEQ = new_definition'
+  `!A (x:((A)list)list). 
+  x IN_simeq A <=> (?(y:((B)list)list). y IN A /\ iso_fgraph x y)`;;
+
+let import_tame_classification_alt = prove_by_refinement(
+  `import_tame_classification <=> 
+  (!g. g IN PlaneGraphs /\ tame g ==> fgraph g IN_simeq archive)`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[import_tame_classification;IN_SIMEQ;IN])
+  ]);;
+  (* }}} *)
+
+
+
+end;;

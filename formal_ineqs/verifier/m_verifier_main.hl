@@ -4,11 +4,19 @@
 (* Date: 2012-10-27                                            *)
 (* =========================================================== *)
 
-needs "verifier/interval_m/verifier.hl";;
+(* needs "verifier/interval_m/verifier.hl";; *)
+
+needs "verifier/interval_m/taylor.hl";;
+
 needs "verifier/m_verifier.hl";;
 needs "verifier/m_verifier_build.hl";;
 needs "taylor/m_taylor_arith2.hl";;
 needs "misc/misc_vars.hl";;
+
+needs "verifier/certificate.hl";;
+needs "informal/informal_search.hl";;
+needs "informal/informal_verifier.hl";;
+
 
 (*#load "unix.cma";;*)
 
@@ -73,7 +81,7 @@ type verification_stats =
 {
   total_time : float;
   formal_verification_time : float;
-  certificate : Verifier.certificate_stats;
+  certificate : Certificate.certificate_stats;
 };;
 
 
@@ -463,7 +471,7 @@ let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_t
       let th1 = float_interval_lt0 th0 in
       let total = Unix.gettimeofday() -. total_start in
 	REWRITE_RULE[GSYM eq_th1] th1, 
-  {total_time = total; formal_verification_time = total; certificate = Verifier.dummy_stats}
+  {total_time = total; formal_verification_time = total; certificate = Certificate.dummy_stats}
     else
       let fun_tm, v1 = expr_to_vector_fun ineq_tm1 in
       let vars = map (fst o dest_var) (dest_vector v1) in
@@ -485,6 +493,7 @@ let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_t
       let eval_fs, tf, ti = mk_verification_functions params pp fun_tm in
 	
       let _ = !info_print_level < 1 or (report0 "Constructing a solution certificate... "; true) in
+(*
       let opt0 = {
 	Verifier.min_flag = false;
 	Verifier.min_max = 0.0;
@@ -496,11 +505,21 @@ let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_t
 	Verifier.epsilon = !params.eps;
       } in
       let certificate = Verifier.run_test [tf] xx_float zz_float opt0 in
-      let stats = Verifier.result_stats certificate in
-      let _ = !info_print_level < 1 or (report0 " done\n"; true) in
-      let _ = !info_print_level < 1 or (Verifier.report_stats stats; true) in
+*)
+      let opt0 = {
+	Informal_search.max_width = 1e-10;
+	Informal_search.max_depth = 200;
+	Informal_search.pp = pp
+      } in
+      let fs_inf = map (fun f -> f.Informal_verifier.taylor) [ti] in
+      let dom_inf = Informal_taylor.mk_m_center_domain pp xx2 zz2 in
+      let certificate = Informal_search.construct_certificate opt0 dom_inf fs_inf in
 
-      let c1 = Verifier.transform_result xx_float zz_float certificate in
+      let stats = Certificate.result_stats certificate in
+      let _ = !info_print_level < 1 or (report0 " done\n"; true) in
+      let _ = !info_print_level < 1 or (Certificate.report_stats stats; true) in
+
+      let c1 = Certificate.transform_result xx_float zz_float certificate in
       let start, finish, result = 
 	if !params.adaptive_precision then
 	  let _ = !info_print_level < 1 or (report0 "Informal verification... "; true) in
@@ -586,7 +605,7 @@ let verify_disj_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewr
 	(* Issue warnings for unimplemented features *)
       let _ = params0.mono_pass_flag = false or (report "WARNING: mono_pass_flag should be false"; true) in
       let _ = params0.convex_flag = false or (report "WARNING: covex_flag should be false"; true) in
-      let _ = params0.allow_derivatives = false or (report "WARNGING: allow_derivatives should be false"; true) in
+      let _ = params0.allow_derivatives = false or (report "WARNING: allow_derivatives should be false"; true) in
 
       let params = ref {params0 with 
 			  mono_pass_flag = false;
@@ -595,6 +614,8 @@ let verify_disj_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewr
 
       let eval_fs_list, tf_list, ti_list = unzip3 (map (mk_verification_functions params pp) fun_tms) in
       let _ = !info_print_level < 1 or (report0 "Constructing a solution certificate... "; true) in
+
+	(*
       let opt0 = {
 	Verifier.min_flag = false;
 	Verifier.min_max = 0.0;
@@ -618,10 +639,21 @@ let verify_disj_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewr
       else () in
 
       let certificate = Verifier.run_test tf_list xx_float zz_float opt0 in
-      let stats = Verifier.result_stats certificate in
+	*)
 
+      let opt0 = {
+	Informal_search.max_width = 1e-10;
+	Informal_search.max_depth = 200;
+	Informal_search.pp = pp
+      } in
+      let fs_inf = map (fun f -> f.Informal_verifier.taylor) ti_list in
+      let dom_inf = Informal_taylor.mk_m_center_domain pp xx2 zz2 in
+      let certificate = Informal_search.construct_certificate opt0 dom_inf fs_inf in
+
+
+      let stats = Certificate.result_stats certificate in
       let _ = !info_print_level < 1 or (report0 " done\n"; true) in
-      let _ = !info_print_level < 1 or (Verifier.report_stats stats; true) in
+      let _ = !info_print_level < 1 or (Certificate.report_stats stats; true) in
 
       let c1 = certificate in
       let start, finish, result =

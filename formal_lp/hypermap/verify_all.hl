@@ -3,6 +3,7 @@ needs "../formal_lp/hypermap/main/prove_flyspeck_lp.hl";;
 module Verify_all = struct
 
 open List;;
+open List_hypermap_computations;;
 open Flyspeck_lp;;
 open Lp_certificate;;
 
@@ -41,21 +42,32 @@ let verify_file =
       total = ref 0 in
   let report s =
     Format.print_string s; Format.print_newline(); Format.print_flush() in
-  let process certificate =
+  let process opt_good_table certificate =
     let _ = counter := !counter + 1 in
     let _ = report (sprintf "%d/%d" !counter !total) in
-      verify_lp_certificate certificate in
-  let process_all file =
-    let certificates = read_lp_certificates file in
+    let id = fst (convert_to_list certificate.hypermap_string) in
+    let good_th = 
+      match opt_good_table with
+	| None -> None
+	| Some table ->
+	    (try Some (Hashtbl.find table id) with Not_found -> None) in
+      id, verify_lp_certificate certificate good_th in
+  let process_all test_ids opt_good_table file =
+    let certificates0 = read_lp_certificates file in
+    let certificates =
+      if test_ids = [] then
+	certificates0
+      else
+	filter (fun c -> mem (fst (convert_to_list c.hypermap_string)) test_ids) certificates0 in
     let _ = counter := 0 in
     let _ = total := length certificates in
     let start = Unix.gettimeofday() in
-    let result = map process certificates in
+    let result = map (process opt_good_table) certificates in
     let finish = Unix.gettimeofday() in
       result, finish -. start in
-    fun file ->
+    fun test_ids opt_good_table file ->
       let _ = report (sprintf "Verifying %s" file) in
-      let result, time = process_all file in
+      let result, time = process_all test_ids opt_good_table file in
       let _ = Gc.compact() in
       let _ = mem_stat() in
 	result, time;;
@@ -70,30 +82,38 @@ let init_ineqs() =
     Flyspeck_lp.init_ineqs();;
 
 
-
-let verify_easy() =
+let verify_easy test_ids opt_good_table =
   let _ = init_ineqs() in
-  let files = get_certificate_files_with_prefix !cert_dir "easy" in
-    map verify_file files;;
+  let prefix = 
+    if test_ids = [] then
+      "easy"
+    else
+      "easy_1.dat" in
+  let files = get_certificate_files_with_prefix !cert_dir prefix in
+    map (verify_file test_ids opt_good_table) files;;
 
-let verify_hard() =
+let verify_hard test_ids opt_good_table =
   let _ = init_ineqs() in
-  let files = get_certificate_files_with_prefix !cert_dir "hard" in
-    map verify_file files;;
+  let files = 
+    if test_ids = [] then
+      get_certificate_files_with_prefix !cert_dir "hard"
+    else
+      [] in
+    map (verify_file test_ids opt_good_table) files;;
 
-let verify_all() =
-  let result_hard = verify_hard() in
-  let result_easy = verify_easy() in
+(* test_ids - if not empty, only linear programs with these ids are verified *)
+(* opt_good_list - an optional hash table with good_list theorems *)
+let verify_all test_ids opt_good_table =
+  let result_hard = verify_hard test_ids opt_good_table in
+  let result_easy = verify_easy test_ids opt_good_table in
     result_hard @ result_easy;;
 
 let test_result result =
-  let ths = List.flatten (map fst result) in
+  let ths = map snd (List.flatten (map fst result)) in
   let time = map snd result in
   let total = end_itlist (+.) time in
   let concls = setify (map concl ths) in
   let hyps = unions (map (fun th -> filter (fun tm -> not (is_binary "iso" tm)) (hyp th)) ths) in
     total, concls, hyps;;
-
-
 
 end;;

@@ -7,6 +7,15 @@ module Good_list_archive = struct
 
 let archive_const_name = "tame_archive_lists";;
 
+(* If not empty then only selected linear programs are verified *)
+let test_archive_ids = 
+  [
+    (* First 3 cases from formal_lp/glpk/binary/easy_1.dat *)
+    "229367313231";
+    "204880136538";
+    "46026013883";
+  ];;
+
 (* A custom list printer parameter which indicates the maximum number of terms to be printed *)
 let long_list_max = ref 3;;
 
@@ -47,24 +56,41 @@ open Lpproc;;
 open List_hypermap_computations;;
 open List_conversions;;
 
-let archive_const_def =
+let archive_const_ids, archive_const_def =
   let lhs = mk_var (archive_const_name, `:(((num)list)list)list`) in
-  let list = Glpk_link.strip_archive (!archiveraw) in
-  let list_tms = map (to_num o create_hol_list_str) list in
+  let list0 = Glpk_link.strip_archive (!archiveraw) in
+  let list1 = map convert_to_list list0 in
+  let list = 
+    if test_archive_ids = [] then
+      list1
+    else
+      filter (fun (id, l) -> mem id test_archive_ids) list1 in
+  let list_ids, list_tms = unzip (map (fun (id, l) -> id, (to_num o create_hol_list) l) list) in
   let rhs = mk_list (list_tms, `:((num)list)list`) in
   let eq_tm = mk_eq (lhs, rhs) in
-    new_definition eq_tm;;
+    list_ids, new_definition eq_tm;;
 
 let archive_const = lhand (concl archive_const_def);;
 
-let good_list_archive =
+let good_list_archive, good_list_archive_table =
+  let n = length archive_const_ids in
+  let i = ref 0 in
+  let table = Hashtbl.create (length archive_const_ids) in
+  let ids = ref archive_const_ids in
   let good_conv tm = 
+    let id = hd !ids in
+    let _ = ids := tl !ids in
+    let _ = incr i in
+    let _ = if ((!i - 1) mod 100 = 0 or !i >= n) then report (sprintf "%d / %d" !i n) in
     let raw_tm = rand tm in
-      EQT_INTRO (eval_good_list0 raw_tm (eval_list_of_darts raw_tm)) in
+    let th0 = eval_good_list0 raw_tm (eval_list_of_darts raw_tm) in
+    let _ = Hashtbl.add table id th0 in
+      EQT_INTRO th0 in
   let eq_th = AP_TERM `ALL (good_list:((num)list)list->bool)` archive_const_def in
+  let _ = report "\nVerifying: |- ALL good_list tame_archive_list\n" in
   let th1 = EQT_ELIM (all_conv_univ good_conv (rand (concl eq_th))) in
-    EQ_MP (SYM eq_th) th1;;
-
+  let _ = report "\nDone: |- ALL good_list tame_archive_list\n" in
+    EQ_MP (SYM eq_th) th1, table;;
 
 delete_user_printer "long_list";;
 

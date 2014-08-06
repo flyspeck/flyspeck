@@ -1,0 +1,75 @@
+needs "../formal_lp/hypermap/verify_all.hl";;
+needs "tame/good_list_archive.hl";;
+
+module Linear_programming_results = struct
+
+open Good_list_archive;;
+open List_conversions;;
+
+install_user_printer ("long_list", print_long_list);;
+
+
+let linear_programming_results = new_definition
+  `linear_programming_results <=>
+      (!V. lp_ineqs /\ lp_main_estimate /\
+	 (?L. MEM L tame_archive_lists /\ 
+	    iso (hypermap_of_fan (V,ESTD V)) (hypermap_of_list L)) ==>
+	 ~(contravening V))`;;
+
+let tame_linear_result = new_definition `tame_linear_result V (L:((num)list)list) <=>
+  (iso (hypermap_of_fan (V,ESTD V)) (hypermap_of_list L) ==> (contravening V ==> F))`;;
+
+
+let tame_result_lemma = prove(`!V. ((?L. MEM L tame_archive_lists /\ 
+				       iso (hypermap_of_fan (V,ESTD V)) (hypermap_of_list L)) 
+				    ==> ~(contravening V))
+			      <=> ALL (tame_linear_result V) tame_archive_lists`,
+	      GEN_TAC THEN REWRITE_TAC[tame_linear_result; GSYM ALL_MEM] THEN MESON_TAC[]);;
+
+
+let eval_tame_linear_result =
+  let def = SYM (SPEC_ALL tame_linear_result) in
+  let l_var_tm = `L:((num)list)list` in
+    fun result_th ->
+      let h_iso = find (is_binary "iso") (hyp result_th) in
+      let th1 = DISCH h_iso result_th in
+      let l_tm = rand (rand h_iso) in
+	EQ_MP (INST[l_tm, l_var_tm] def) th1;;
+
+
+let linear_programming_results_th =
+  let _ = report "\nVerifying linear programs (it can take more than 15 hours)..." in
+  let result = Verify_all.verify_all test_archive_ids (Some good_list_archive_table) in
+  let total = end_itlist (+.) (map snd result) in
+  let _ = report "\nLinear programs verified" in
+  let _ = report (sprintf "Total verification time: %f\n" total) in
+  let ths = List.flatten (map fst result) in
+  let result_table = Hashtbl.create (length ths) in
+  let _ = map (fun (id, th) -> Hashtbl.add result_table id th) ths in
+  let ids = ref archive_const_ids in
+  let i = ref 0 in
+  let n = length archive_const_ids in
+  let conv tm =
+    let id = hd !ids in
+    let _ = ids := tl !ids in
+    let _ = incr i in
+    let _ = if ((!i - 1) mod 200 = 0 or !i >= n) then report (sprintf "%d / %d" !i n) in
+    let r_th = Hashtbl.find result_table id in
+    let th0 = eval_tame_linear_result r_th in
+      EQT_INTRO th0 in
+  let eq_th = AP_TERM `ALL (tame_linear_result V)` archive_const_def in
+  let _ = report "\nConstructing the final linear programming result..." in
+  let th1 = EQT_ELIM (all_conv_univ conv (rand (concl eq_th))) in
+  let _ = report "\nThe final linear programming result is constructed\n" in
+  let th2 = DISCH_ALL (EQ_MP (SYM eq_th) th1) in
+  let final_th = MESON[th2; linear_programming_results; tame_result_lemma] 
+    `linear_programming_results` in
+    (* Clear unused tables *)
+  let _ = Hashtbl.clear result_table in
+    final_th;;
+
+
+delete_user_printer "long_list";;
+
+
+end;;

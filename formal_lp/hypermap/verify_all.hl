@@ -39,12 +39,13 @@ let mem_stat () =
 
 let verify_file =
   let counter = ref 0 and
-      total = ref 0 in
+      total = ref 0 and
+      remaining_files = ref 0 in
   let report s =
     Format.print_string s; Format.print_newline(); Format.print_flush() in
   let process opt_good_table certificate =
     let _ = counter := !counter + 1 in
-    let _ = report (sprintf "%d/%d" !counter !total) in
+    let _ = report (sprintf "(%d) %d/%d" !remaining_files !counter !total) in
     let id = fst (convert_to_list certificate.hypermap_string) in
     let good_th = 
       match opt_good_table with
@@ -65,8 +66,9 @@ let verify_file =
     let result = map (process opt_good_table) certificates in
     let finish = Unix.gettimeofday() in
       result, finish -. start in
-    fun test_ids opt_good_table file ->
+    fun test_ids opt_good_table file r_files ->
       let _ = report (sprintf "Verifying %s" file) in
+      let _ = remaining_files := r_files in
       let result, time = process_all test_ids opt_good_table file in
       let _ = Gc.compact() in
       let _ = mem_stat() in
@@ -90,7 +92,11 @@ let verify_easy test_ids opt_good_table =
     else
       "easy_1.dat" in
   let files = get_certificate_files_with_prefix !cert_dir prefix in
-    map (verify_file test_ids opt_good_table) files;;
+  let k = ref (length files) in
+    map (fun file ->
+	   let result = verify_file test_ids opt_good_table file !k in
+	   let _ = decr k in
+	     result) files;;
 
 let verify_hard test_ids opt_good_table =
   let _ = init_ineqs() in
@@ -99,7 +105,11 @@ let verify_hard test_ids opt_good_table =
       get_certificate_files_with_prefix !cert_dir "hard"
     else
       [] in
-    map (verify_file test_ids opt_good_table) files;;
+  let k = ref (length files) in
+    map (fun file ->
+	   let result = verify_file test_ids opt_good_table file !k in
+	   let _ = decr k in
+	     result) files;;
 
 (* test_ids - if not empty, only linear programs with these ids are verified *)
 (* opt_good_list - an optional hash table with good_list theorems *)

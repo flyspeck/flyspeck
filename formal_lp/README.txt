@@ -9,17 +9,13 @@ I. Construction of linear program certificates
 -----------------------------------------------------
 
 This step can be skipped. All linear program certificates
-can be downloaded at
-http://flyspeck.googlecode.com/files/lp_certificates.zip
-
-Files from the archive should be extracted into
+are in the repository at 
 flyspeck_dir/../formal_lp/glpk/binary
 
 All certificate files are binary files which contain serialized
-OCaml data structures. Compatibility of these files has been
-tested with OCaml 3.09 and OCaml 4.00.1.
+OCaml data structures. These files were prepared with OCaml 4.01.
 
-All certificates can be constructed manually in the following way.
+All certificates can be reconstructed manually in the following way.
 
 0) Install glpk (http://www.gnu.org/software/glpk/) and
 mono (http://www.mono-project.com/Main_Page).
@@ -67,15 +63,15 @@ contains all certificate files.
 
 2) needs "../formal_lp/hypermap/verify_all.hl";;
 
-3) let result = Verify_all.verify_all();;
+3) let result = Verify_all.verify_all [] None;;
 It takes about 15 hours to verify all linear programs (on Mac mini 2GHz, 2GB).
 
 Commands
-let result_easy = Verify_all.verify_easy();;
-let result_hard = Verify_all.verify_hard();;
+let result_easy = Verify_all.verify_easy [] None;;
+let result_hard = Verify_all.verify_hard [] None;;
 will verify easy and hard linear programs separately.
 
-result has the type ((thm list) * float) list. Each element of the list
+result has the type ((string * thm) list * float) list. Each element of the list
 contains a list of theorems for all certificates in one data file and
 the verification time for this data file.
 

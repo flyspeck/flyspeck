@@ -15,6 +15,9 @@
    prepared_nonlinear_imp_nonlinear:
    We also show |- prepared_nonlinear |- nonlinear
 
+   prepared_nonlinear:
+   We also show |- prepared_nonlinear.
+
  *)
 
 flyspeck_needs "nonlinear/prep.hl";;
@@ -237,17 +240,17 @@ let add_inequality i  =
     ();;
 *)
 
-let prep_ineqs = Prep.prep_ineqs;;
+let prep_ineqs = !Prep.prep_ineqs;;
 
 let mk_prepared_nonlinear = 
-  let ineql = map (fun idv -> idv.ineq) (!prep_ineqs) in
+  let ineql = map (fun idv -> idv.ineq) (prep_ineqs) in
   let ineq_conj = end_itlist (curry mk_conj) ineql in
   let _ = new_definition (mk_eq (`prepared_nonlinear:bool`,ineq_conj)) in
     ();;
 
 let get_prep_nonlinear = 
-  let sl = map (fun ind -> ind.idv) !prep_ineqs in
-  let ineql = map (fun ind -> ind.ineq) (!prep_ineqs) in
+  let sl = map (fun ind -> ind.idv) prep_ineqs in
+  let ineql = map (fun ind -> ind.ineq) (prep_ineqs) in
   let ineq_conj = end_itlist (curry mk_conj) ineql in
   let th = new_definition (mk_eq (`prepared_nonlinear:bool`,ineq_conj)) in
   let th1 = UNDISCH (MATCH_MP (TAUT `(a <=> b) ==> (a ==> b)`) th) in
@@ -261,8 +264,8 @@ let hasprefix s sl = filter (fun t -> (String.length s <= String.length t) &&
 			     (String.sub t 0 (String.length s) = s)) (sl);;
 
 let get_all_prep_nonlinear = 
-  let sl = map (fun ind -> ind.idv) !prep_ineqs in
-  let ineql = map (fun ind -> ind.ineq) (!prep_ineqs) in
+  let sl = map (fun ind -> ind.idv) prep_ineqs in
+  let ineql = map (fun ind -> ind.ineq) (prep_ineqs) in
   let ineq_conj = end_itlist (curry mk_conj) ineql in
   let th = new_definition (mk_eq (`prepared_nonlinear:bool`,ineq_conj)) in
   let th1 = UNDISCH (MATCH_MP (TAUT `(a <=> b) ==> (a ==> b)`) th) in
@@ -351,5 +354,59 @@ has_quad (concl Lp_ineqs.lp_ineqs_def);;
 has_quad (concl (Merge_ineq.ox3q1h()));;
 has_quad (concl mk_pack_nonlinear);;
 *)
+
+(* ********************************************************************** *)
+(* code to prove |- prepared_nonlinear
+(* ********************************************************************** *)
+
+
+flyspeck_needs "nonlinear/prep.hl";;
+flyspeck_needs "nonlinear/scripts.hl";;
+flyspeck_needs "nonlinear/break_case_type.hl";;
+flyspeck_needs "nonlinear/break_case_log.hl";;
+flyspeck_needs "nonlinear/break_case_exec.hl";;
+
+(* slow *)
+    let prep_nonlinear_thml  = 
+      map Break_case_exec.prove_prep Break_case_exec.all_idv;;
+
+filter  (fun (_,t) -> t = TRUTH) prep_nonlinear_thml;; (* [] *)
+
+    let prep_thms = map (fun s -> assoc s prep_nonlinear_thml) prep_idv;;
+
+
+
+    let get_prep_thm s = assoc s prep_nonlinear_thml;;
+
+let delta_ineq = Break_case_exec.delta_ineq;;
+
+let delta_ineq_thm = prove_by_refinement(
+  `delta_ineq_v6`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[delta_ineq];
+  REWRITE_TAC[get_prep_thm "prep-2327525027";get_prep_thm "prep-4092227918"];
+  INTRO_TAC (get_prep_thm "prep-7823243247") [];
+  INTRO_TAC (get_prep_thm "prep-5744538693") [];
+  BY(SIMP_TAC[arith `d * -- &1 < &0 <=> &0 < d`])
+  ]);;
+  (* }}} *)
+
+(* repeat
+let mk_prepared_nonlinear = 
+  let ineql = map (fun idv -> idv.ineq) (prep_ineqs) in
+  let ineq_conj = end_itlist (curry mk_conj) ineql in
+  let _ = new_definition (mk_eq (`prepared_nonlinear:bool`,ineq_conj)) in
+    ();;
+*)
+
+let prepared_nonlinear = 
+  let ineql = map (fun idv -> idv.ineq) (prep_ineqs) in
+  let ineq_conj = end_itlist (curry mk_conj) ineql in
+  let pn = new_definition (mk_eq (`prepared_nonlinear:bool`,ineq_conj)) in
+  let prep_conj =  
+    PROVE_HYP delta_ineq_thm (end_itlist (CONJ) (map UNDISCH_ALL prep_thms)) in
+     EQ_MP (SYM pn) prep_conj;;
+
 
  end;;

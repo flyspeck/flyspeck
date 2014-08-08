@@ -1,0 +1,312 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(* Chapter: Nonlinear inequalities                                            *)
+(* Author: Thomas Hales, Alexey Solovyev                                      *)
+(* Date: 2013-08-19                                                           *)
+(* ========================================================================== *)
+
+(* show exact equality for the nonlinear inequalities that are sharp *)
+
+open Hol_core;;
+open Vectors;;
+open Transcendentals;;
+open Prove_by_refinement;;
+open Definitions;;
+open M_verifier_main;;
+prioritize_real();;
+
+
+let verify_flyspeck_ineq pp ineq_tm =
+  let conv = REWRITE_CONV[TAUT `(P ==> Q) <=> (~P \/ Q)`; 
+			  REAL_ARITH `~(a > b:real) <=> a <= b`;
+			  REAL_ARITH `~(a < b:real) <=> b <= a`;
+			  REAL_ARITH `~(a >= b:real) <=> a < b`;
+			  REAL_ARITH `~(a <= b:real) <=> b < a`]
+                THENC REWRITE_CONV ([ineq; IMP_IMP] @ flyspeck_defs) 
+		THENC DEPTH_CONV let_CONV in
+  let eq_th = conv ineq_tm in
+  let ineq_tm1 = (rand o concl) eq_th in
+  let th, time = verify_ineq {default_params with eps = 0.0; test_certificate = true} pp ineq_tm1 in
+  let th2 = 
+    try
+      let th1 = SPEC_ALL th in
+      let imp_tm = mk_imp (concl th1, ineq_tm1) in
+      let imp_th = TAUT imp_tm in
+	MP imp_th th1
+    with _ ->
+      let _ = print_endline "WARNING: INEXACT" in
+	SPEC_ALL th in
+    REWRITE_RULE[GSYM eq_th] th2, time;;
+
+
+let dih_y_2s = prove_by_refinement(
+  `dih_y (&2) (&2) (&2) (&2) (&2) (&2) = (sol0 + pi) / &3`,
+  (* {{{ proof *)
+  [
+  MP_TAC (SPECL [`&2`;`&2`;`&2`;`&2`;`&2`;`&2`] sol_y);
+  REWRITE_TAC[GSYM sol0_EQ_sol_y;];
+  REAL_ARITH_TAC
+  ]);;
+  (* }}} *)
+
+let dihatn_x_eq_dih_y = prove(`dihatn_x (&4) (&4) (&4) (&4) (&4) (&4) = 
+    dih_y (&2) (&2) (&2) (&2) (&2) (&2)`,
+   REWRITE_TAC[dihatn_x; dih_y; dih_x; delta_x; delta_x4; atn2] THEN
+     CONV_TAC (DEPTH_CONV let_CONV) THEN
+     CONV_TAC REAL_RAT_REDUCE_CONV THEN
+     SUBGOAL_THEN `&16 < sqrt (&2048)` (fun th -> REWRITE_TAC[th]) THEN
+     MATCH_MP_TAC REAL_LT_RSQRT THEN
+     REAL_ARITH_TAC);;
+
+let dih_n_atn_x_eq = prove(
+  `!a. dih2atn_x a a a a a a = dihatn_x a a a a a a /\ 
+    dih3atn_x a a a a a a = dihatn_x a a a a a a /\
+    dih4atn_x a a a a a a = dihatn_x a a a a a a /\
+    dih5atn_x a a a a a a = dihatn_x a a a a a a /\
+    dih6atn_x a a a a a a = dihatn_x a a a a a a`,
+  REWRITE_TAC[dih2atn_x; dihatn_x; dih3atn_x; dih4atn_x; dih5atn_x; dih6atn_x] THEN
+    REWRITE_TAC[rotate2; rotate3; rotate4; rotate5; rotate6]);;
+
+let sqrt_eqs = prove(`sqrt (&4) = &2 /\ 
+    sqrt (&8) = &2 * sqrt (&2) /\ 
+    sqrt (&16) = &4 /\
+    sqrt (&32) = &4 * sqrt (&2) /\
+    sqrt (&128) = &8 * sqrt (&2) /\
+    sqrt (&2048) = &32 * sqrt (&2)`,
+      REWRITE_TAC[REAL_ARITH `&4 = &2 pow 2`; POW_2_SQRT_ABS; REAL_ABS_NUM] THEN
+	REWRITE_TAC[REAL_ARITH `&128 = &8 pow 2 * &2`; REAL_ARITH `&8 = &2 pow 2 * &2`] THEN
+	REWRITE_TAC[REAL_ARITH `&16 = &4 pow 2`; REAL_ARITH `&32 = &4 pow 2 * &2`] THEN
+        REWRITE_TAC[REAL_ARITH `&2048 = &32 pow 2 * &2`] THEN
+	REWRITE_TAC[SQRT_MUL; POW_2_SQRT_ABS] THEN REAL_ARITH_TAC);;
+
+
+let OMKYNLT_3336871894_SHARP = prove(`let x1 = &4 in
+				     let x2 = &4 in
+				     let x3 = &4 in
+				     let x4 = &4 in
+				     let x5 = &4 in
+				     let x6 = &4 in
+    rhazimatn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+      rhazim2atn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+      rhazim3atn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+      unit6 x1 x2 x3 x4 x5 x6 * pi +  unit6 x1 x2 x3 x4 x5 x6 * const1 * pi =  &0`,
+  REPEAT (CONV_TAC let_CONV) THEN
+    REWRITE_TAC[rhazimatn_x; rhazim2atn_x; rhazim3atn_x; unit6; dih_n_atn_x_eq] THEN
+    REWRITE_TAC[dihatn_x_eq_dih_y; dih_y_2s; const1_alt] THEN
+    REWRITE_TAC[rho; const1_alt; ly; interp; sqrt_eqs] THEN
+    CONV_TAC REAL_RAT_REDUCE_CONV THEN
+    MP_TAC PI_POS THEN
+    CONV_TAC REAL_FIELD);;
+
+
+let TSKAJXY_RIBCYXU_SHARP = prove(`let x1 = &4 in
+				     let x2 = &4 in
+				     let x3 = &4 in
+				     let x4 = &4 in
+				     let x5 = &4 in
+				     let x6 = &4 in
+   vol_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+      unit6 x1 x2 x3 x4 x5 x6 *  #8 *  pi *  const1 *  sqrt8 *  
+    --(&1 / (&4 * pi + &20 * pi * --const1)) +  
+      gchi (sqrt x1) * dihatn_x x1 x2 x3 x4 x5 x6 +  
+      gchi (sqrt x2) * dih2atn_x x1 x2 x3 x4 x5 x6 + 
+      gchi (sqrt x3) * dih3atn_x x1 x2 x3 x4 x5 x6 + 
+      gchi (sqrt x4) * dih4atn_x x1 x2 x3 x4 x5 x6 + 
+      gchi (sqrt x5) * dih5atn_x x1 x2 x3 x4 x5 x6 + 
+      gchi (sqrt x6) * dih6atn_x x1 x2 x3 x4 x5 x6 = &0`,
+   CONV_TAC (DEPTH_CONV let_CONV) THEN
+     REWRITE_TAC[gchi; vol_x; unit6; dih_n_atn_x_eq; dihatn_x_eq_dih_y; dih_y_2s; sqrt_eqs] THEN
+     REWRITE_TAC[delta_x] THEN CONV_TAC REAL_RAT_REDUCE_CONV THEN
+     REWRITE_TAC[REAL_ARITH `a + a + a + a + a + a = &6 * a`] THEN
+     REWRITE_TAC[mm1; mm2; tau0; const1_alt; sqrt8; sqrt_eqs] THEN
+     MP_TAC (fst (verify_flyspeck_ineq 5 `&0 < &4 * pi - &20 * sol0`)) THEN
+     MP_TAC PI_POS THEN CONV_TAC REAL_FIELD);;
+
+
+let atn_sqrt8 = prove(`atn sqrt8 = &2 * atn (sqrt8 / &4)`,
+   REWRITE_TAC[SPEC `sqrt8` Taylor_atn.atn_half; Taylor_atn.halfatn] THEN
+     REPEAT AP_TERM_TAC THEN
+     SUBGOAL_THEN `&1 + sqrt8 pow 2 = &3 pow 2` (fun th -> REWRITE_TAC[th]) THENL [
+       SIMP_TAC[sqrt8; SQRT_POW_2; REAL_ARITH `&0 <= &8`] THEN
+	 REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     REWRITE_TAC[POW_2_SQRT_ABS] THEN REAL_ARITH_TAC);;
+
+
+let atn_sqrt2 = prove(`atn sqrt2 = pi / &2 - atn sqrt8 / &2`,
+  REWRITE_TAC[atn_sqrt8; sqrt8; sqrt_eqs; sqrt2] THEN
+    REWRITE_TAC[REAL_ARITH `(&2 * x) / &2 = x`; REAL_ARITH `(&2 * x) / &4 = x / &2`] THEN
+    SUBGOAL_THEN `&2 = sqrt (&2) pow 2 /\ &0 < sqrt (&2)` ASSUME_TAC THENL [
+      SIMP_TAC[SQRT_POS_LT; REAL_ARITH `&0 < &2`; SQRT_POW_2; REAL_ARITH `&0 <= &2`];
+      ALL_TAC
+    ] THEN
+    SUBGOAL_THEN `sqrt (&2) / &2 = inv (sqrt (&2))` (fun th -> REWRITE_TAC[th]) THENL [
+      POP_ASSUM MP_TAC THEN CONV_TAC REAL_FIELD;
+      ALL_TAC
+    ] THEN
+    ASM_SIMP_TAC[ATN_INV] THEN REAL_ARITH_TAC);;
+
+
+let sol0_atn = prove(`sol0 = &3 * atn sqrt8 - pi`,
+   REWRITE_TAC[sol0; sqrt8] THEN 
+     SIMP_TAC[ACS_ATN; REAL_ARITH `-- &1 < &1 / &3 /\ &1 / &3 < &1`] THEN
+     CONV_TAC REAL_RAT_REDUCE_CONV THEN
+     REWRITE_TAC[SQRT_DIV; REAL_ARITH `&9 = &3 pow 2`; POW_2_SQRT_ABS] THEN
+     REWRITE_TAC[real_div; REAL_INV_MUL] THEN
+     REWRITE_TAC[REAL_ARITH `(&1 * inv (&3)) * inv x * inv (inv (abs (&3))) = inv x`] THEN
+     SIMP_TAC[ATN_INV; SQRT_POS_LT; REAL_ARITH `&0 < &8`] THEN
+     REAL_ARITH_TAC);;
+
+
+let dih_x_844 = prove(`dihatn_x (&8) (&4) (&4) (&4) (&4) (&4) = pi / &2 /\ 
+    dihatn_x (&4) (&4) (&8) (&4) (&4) (&4) = (&2 * pi - sol0) / &6 /\
+    dihatn_x (&4) (&4) (&4) (&8) (&4) (&4) = (&2 * pi - sol0) / &3`,
+  REWRITE_TAC[dihatn_x] THEN CONV_TAC (DEPTH_CONV let_CONV) THEN
+    REWRITE_TAC[delta_x4; delta_x] THEN CONV_TAC REAL_RAT_REDUCE_CONV THEN
+    REWRITE_TAC[sqrt_eqs; real_div; REAL_MUL_LZERO; REAL_INV_MUL; sol0_atn] THEN
+    REWRITE_TAC[REAL_ARITH `-- &32 * inv (&32) * x = --x /\ &16 * inv(&32) * x = x / &2`] THEN
+    REPEAT CONJ_TAC THENL [
+      REWRITE_TAC[ATN_0; REAL_ADD_RID];
+      REWRITE_TAC[ATN_NEG] THEN
+	SIMP_TAC[ATN_INV; SQRT_POS_LT; REAL_ARITH `&0 < &2`] THEN
+	REWRITE_TAC[GSYM sqrt2; atn_sqrt2] THEN
+	REAL_ARITH_TAC;
+      ALL_TAC
+    ] THEN
+    REWRITE_TAC[real_div; GSYM REAL_INV_MUL] THEN
+    ONCE_REWRITE_TAC[REAL_MUL_AC] THEN REWRITE_TAC[GSYM sqrt_eqs] THEN
+    SIMP_TAC[ATN_INV; SQRT_POS_LT; REAL_ARITH `&0 < &8`] THEN
+    REWRITE_TAC[GSYM sqrt8] THEN REWRITE_TAC[sqrt_eqs] THEN
+    REAL_ARITH_TAC);;
+
+
+let dih_x_844 = prove(`pi / &2 + atn (&0 / sqrt (&4096)) = pi / &2 /\
+    pi / &2 + atn (-- &32 / sqrt (&2048)) = (&2 * pi - sol0) / &6 /\
+    pi / &2 + atn (&16 / sqrt (&2048)) = (&2 * pi - sol0) / &3`,
+  REWRITE_TAC[delta_x4; delta_x] THEN CONV_TAC REAL_RAT_REDUCE_CONV THEN
+    REWRITE_TAC[sqrt_eqs; real_div; REAL_MUL_LZERO; REAL_INV_MUL; sol0_atn] THEN
+    REWRITE_TAC[REAL_ARITH `-- &32 * inv (&32) * x = --x /\ &16 * inv(&32) * x = x / &2`] THEN
+    REPEAT CONJ_TAC THENL [
+      REWRITE_TAC[ATN_0; REAL_ADD_RID];
+      REWRITE_TAC[ATN_NEG] THEN
+	SIMP_TAC[ATN_INV; SQRT_POS_LT; REAL_ARITH `&0 < &2`] THEN
+	REWRITE_TAC[GSYM sqrt2; atn_sqrt2] THEN
+	REAL_ARITH_TAC;
+      ALL_TAC
+    ] THEN
+    REWRITE_TAC[real_div; GSYM REAL_INV_MUL] THEN
+    ONCE_REWRITE_TAC[REAL_MUL_AC] THEN REWRITE_TAC[GSYM sqrt_eqs] THEN
+    SIMP_TAC[ATN_INV; SQRT_POS_LT; REAL_ARITH `&0 < &8`] THEN
+    REWRITE_TAC[GSYM sqrt8] THEN REWRITE_TAC[sqrt_eqs] THEN
+    REAL_ARITH_TAC);;
+
+
+let TSKAJXY_IYOUOBF_SHARP_V2 = prove(`let x1 = &8 in
+				     let x2 = &4 in
+				     let x3 = &4 in
+				     let x4 = &4 in
+				     let x5 = &4 in
+				     let x6 = &4 in
+    vol_x x1 x2 x3 x4 x5 x6 * -- &1 + 
+      unit6 x1 x2 x3 x4 x5 x6 *  #8 *  pi *  const1 * sqrt8 * 
+    --(&1 / (&4 * pi + &20 * pi * --const1)) + 
+      dihatn_x x1 x2 x3 x4 x5 x6 * &4 * pi * const1 * sqrt8 * 
+    &1 / (&4 * pi + &20 * pi * --const1) *  &1 / pi + 
+      gchi (sqrt x2) * dih2atn_x x1 x2 x3 x4 x5 x6 + 
+      gchi (sqrt x3) * dih3atn_x x1 x2 x3 x4 x5 x6 + 
+      gchi (sqrt x4) * dih4atn_x x1 x2 x3 x4 x5 x6 + 
+      gchi (sqrt x5) * dih5atn_x x1 x2 x3 x4 x5 x6 + 
+      gchi (sqrt x6) * dih6atn_x x1 x2 x3 x4 x5 x6 = &0`,
+   CONV_TAC (DEPTH_CONV let_CONV) THEN
+     REWRITE_TAC[gchi; vol_x; unit6; dih2atn_x; dih3atn_x; dih4atn_x; dih5atn_x; dih6atn_x] THEN
+     REWRITE_TAC[rotate2; rotate3; rotate4; rotate5; rotate6; dihatn_x] THEN
+     REWRITE_TAC[delta_x4; delta_x] THEN CONV_TAC (DEPTH_CONV let_CONV) THEN
+     CONV_TAC REAL_RAT_REDUCE_CONV THEN
+     REWRITE_TAC[dih_x_844] THEN
+     REWRITE_TAC[real_div; REAL_MUL_ASSOC] THEN
+     REWRITE_TAC[REAL_ARITH `a * inv(&6) + a * inv(&6) + a * inv(&3) + a * inv(&6) + a * inv(&6) = a`] THEN
+     REWRITE_TAC[mm1; mm2; tau0; const1_alt; sqrt8; sqrt_eqs] THEN
+     MP_TAC (fst (verify_flyspeck_ineq 5 `&0 < &4 * pi - &20 * sol0`)) THEN
+     MP_TAC PI_POS THEN CONV_TAC REAL_FIELD);;
+
+
+let GRKIBMP_B_V2_SHARP = prove(
+  `gamma2_x1_div_a_v2 (&0) (&8) (&1) (&1) (&1) (&1) (&1) * -- &1 = &0`,
+   REWRITE_TAC[nonf_gamma2_x1_div_a_v2; gamma2_x_div_azim_v2; REAL_MUL_LZERO; REAL_MUL_RZERO] THEN
+     SIMP_TAC[sqrt8; REAL_DIV_REFL; SQRT_EQ_0; REAL_ARITH `~(&8 = &0)`] THEN
+     REAL_ARITH_TAC);;
+
+
+let QZECFIC_WT0_CORNER = prove(
+  `gamma3f_x_div_sqrtdelta (&1) (&1) (&1) (&1) (&1) (&1) (&4) (&4) (&4) * -- &1 = &0`,
+   REWRITE_TAC[nonf_gamma3f_x_div_sqrt_delta] THEN
+     SUBGOAL_THEN `lfun (sqrt (&4) * #0.5) * &1 = &1` (fun th -> REWRITE_TAC[th; REAL_MUL_LID]) THENL [
+       REWRITE_TAC[lfun; sqrt_eqs; h0] THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+    SUBGOAL_THEN `&0 < sqrt (&2) /\ &0 <= sqrt (&2) /\ sqrt (&2) pow 2 = &2` ASSUME_TAC THENL [
+      ASSUME_TAC (REAL_ARITH `&0 < &2 /\ &0 <= &2`) THEN
+	ASM_SIMP_TAC[SQRT_POS_LT; SQRT_POS_LE; SQRT_POW_2];
+      ALL_TAC
+    ] THEN
+    SUBGOAL_THEN `dih_x_div_sqrtdelta_posbranch (&4) (&2) (&4) (&2) (&4) (&2) = atn sqrt2 / sqrt(&32)` (fun th -> REWRITE_TAC[th]) THENL [
+      REWRITE_TAC[dih_x_div_sqrtdelta_posbranch; delta_x; delta_x4; matan] THEN
+	CONV_TAC (DEPTH_CONV let_CONV THENC REAL_RAT_REDUCE_CONV) THEN
+	REWRITE_TAC[sqrt2; sqrt_eqs] THEN
+	POP_ASSUM MP_TAC THEN CONV_TAC REAL_FIELD;
+      ALL_TAC
+    ] THEN
+    SUBGOAL_THEN `sol_euler_x_div_sqrtdelta (&4) (&2) (&4) (&2) (&4) (&2) = (atn sqrt2 - pi / &4) / sqrt (&8)` (fun th -> REWRITE_TAC[th]) THENL [
+      REWRITE_TAC[sol_euler_x_div_sqrtdelta; delta_x; delta_x4] THEN
+	CONV_TAC (DEPTH_CONV let_CONV THENC REAL_RAT_REDUCE_CONV) THEN
+	SUBGOAL_THEN `sqrt (&32) + sqrt (&4) * &2 + sqrt (&2) * &2 + sqrt (&4) * &2 = &8 + &6 * sqrt (&2)` (fun th -> REWRITE_TAC[th]) THENL [
+	  REWRITE_TAC[sqrt_eqs] THEN REAL_ARITH_TAC;
+	  ALL_TAC
+	] THEN
+	SUBGOAL_THEN `&32 / (&4 * (&8 + &6 * sqrt(&2)) pow 2) = &17 - &12 * sqrt(&2)` (fun th -> REWRITE_TAC[th]) THENL [
+	  POP_ASSUM MP_TAC THEN CONV_TAC REAL_FIELD;
+	  ALL_TAC
+	] THEN
+	REWRITE_TAC[matan] THEN
+        SUBGOAL_THEN `&0 < &17 - &12 * sqrt (&2)` ASSUME_TAC THENL [
+	  REWRITE_TAC[REAL_ARITH `&0 < &17 - &12 * sqrt (&2) <=> sqrt (&2) < &17 / &12`] THEN
+	    MATCH_MP_TAC REAL_LT_LSQRT THEN REAL_ARITH_TAC;
+	  ALL_TAC
+	] THEN
+	ASM_SIMP_TAC[REAL_ARITH `&0 < x ==> ~(x = &0) /\ x > &0`] THEN
+	SUBGOAL_THEN `sqrt (&17 - &12 * sqrt (&2)) = &3 - &2 * sqrt (&2)` (fun th -> REWRITE_TAC[th]) THENL [
+	  MATCH_MP_TAC SQRT_UNIQUE THEN
+	    CONJ_TAC THENL [
+	      REWRITE_TAC[REAL_ARITH `&0 <= &3 - &2 * x <=> x <= &3 / &2`] THEN
+		MATCH_MP_TAC REAL_LE_LSQRT THEN REAL_ARITH_TAC;
+	      ALL_TAC
+	    ] THEN
+	    REPEAT (POP_ASSUM MP_TAC) THEN CONV_TAC REAL_FIELD;
+	  ALL_TAC
+	] THEN
+	REWRITE_TAC[real_div; GSYM REAL_MUL_ASSOC; GSYM REAL_INV_MUL] THEN
+        SUBGOAL_THEN `(&3 - &2 * sqrt (&2)) * (&8 + &6 * sqrt (&2)) = sqrt (&8)` (fun th -> REWRITE_TAC[th]) THENL [
+	  REWRITE_TAC[sqrt_eqs] THEN
+	    REPEAT (POP_ASSUM MP_TAC) THEN CONV_TAC REAL_RING;
+	  ALL_TAC
+	] THEN
+	REPEAT (FIRST [AP_THM_TAC; AP_TERM_TAC]) THEN
+	REWRITE_TAC[GSYM real_div; sqrt2; GSYM ATN_1; REAL_ARITH `a - b = a + --b`; GSYM ATN_NEG] THEN
+        SUBGOAL_THEN `abs (atn (sqrt (&2)) + atn (-- &1)) < pi / &2` ASSUME_TAC THENL [
+	  REWRITE_TAC[ATN_NEG; ATN_1] THEN
+	    SUBGOAL_THEN `atn (sqrt (&2)) < pi / &2 /\ &0 <= atn (sqrt (&2))` MP_TAC THENL [
+	      ASM_REWRITE_TAC[ATN_BOUNDS; ATN_POS_LE];
+	      ALL_TAC
+	    ] THEN
+	    REAL_ARITH_TAC;
+	  ALL_TAC
+	] THEN
+	ASM_SIMP_TAC[ATN_ADD] THEN AP_TERM_TAC THEN
+	REPEAT (POP_ASSUM MP_TAC) THEN CONV_TAC REAL_FIELD;
+      ALL_TAC
+    ] THEN
+    MP_TAC (fst (verify_flyspeck_ineq 5 `&0 < &4 * pi - &20 * sol0`)) THEN
+    REWRITE_TAC[mm1; mm2; sol0_atn; atn_sqrt2; sqrt_eqs; tau0] THEN
+    POP_ASSUM MP_TAC THEN
+    MP_TAC PI_POS THEN CONV_TAC REAL_FIELD);;

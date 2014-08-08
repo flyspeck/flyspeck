@@ -1,0 +1,133 @@
+open Hol_core
+open Misc
+open Prove_by_refinement
+open Definitions
+
+let LET_THM = CONJ LET_DEF LET_END_DEF;;
+let pair_eq = prove(`!p. p = FST p, SND p`, REWRITE_TAC[]);;
+
+let EL_EXPLICIT = prove_by_refinement(
+  `!h t. EL 0 (CONS (h:a) t) = h /\
+   EL 1 (CONS h t) = EL 0 t /\
+   EL 2 (CONS h t) = EL 1 t /\
+   EL 3 (CONS h t) = EL 2 t /\
+   EL 4 (CONS h t) = EL 3 t /\
+   EL 5 (CONS h t) = EL 4 t /\
+   EL 6 (CONS h t) = EL 5 t`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[EL;HD;TL;ARITH_RULE `6 = SUC 5 /\ 5 = SUC 4 /\ 4 = SUC 3 /\ 3 = SUC 2 /\ 2 = SUC 1 /\ 1 = SUC 0`]
+  ]);;
+  (* }}} *)
+
+let subat_rules = prove_by_refinement(
+  `(!i (y:A). subat i y [] = []) /\
+    (!x xs (y:A). subat 0 y (x::xs) = y :: xs) /\
+    (!i x xs (y:A). subat (SUC i) y (x::xs) = x :: (subat i) y xs)`,
+  (* {{{ proof *)
+  [
+  ONCE_REWRITE_TAC[subat];
+  REWRITE_TAC[ARITH_RULE `~(SUC i = 0)`;ARITH_RULE `SUC i - 1 = i`]
+  ]);;
+  (* }}} *)
+
+let subat_nil = prove_by_refinement(
+  `(!i (y:A). subat i y [] = [])`,
+  (* {{{ proof *)
+  [
+  MESON_TAC[subat_rules]
+  ]);;
+  (* }}} *)
+
+let subat_explicit = prove_by_refinement(
+  `(!i x xs (y:A).
+      subat 9 y (x::xs) = x :: (subat 8 y xs) /\
+      subat 8 y (x::xs) = x :: (subat 7 y xs) /\
+      subat 7 y (x::xs) = x :: (subat 6 y xs) /\
+      subat 6 y (x::xs) = x :: (subat 5 y xs) /\
+      subat 5 y (x::xs) = x :: (subat 4 y xs) /\
+      subat 4 y (x::xs) = x :: (subat 3 y xs) /\
+      subat 3 y (x::xs) = x :: (subat 2 y xs) /\
+      subat 2 y (x::xs) = x :: (subat 1 y xs) /\
+      subat 1 y (x::xs) = x :: (subat 0 y xs) /\
+      subat 0 y (x::xs) = y :: xs)`,
+  (* {{{ proof *)
+  [
+    REWRITE_TAC[ARITH_RULE `9 = SUC 8 /\ 8 = SUC 7 /\ 7 = SUC 6 /\ 6 = SUC 5 /\ 5 = SUC 4 /\ 4 = SUC 3 /\ 3 = SUC 2 /\ 2 = SUC 1 /\ 1 = SUC 0`;subat_rules]
+  ]);;
+  (* }}} *)
+
+let bisect_left_frac = prove_by_refinement(
+  `!d i. bisect_left i d = frac_left i (#0.5) d`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[bisect_left;frac_left;LET_THM];
+  LIST_INDUCT_TAC THEN REWRITE_TAC[subat;LAMBDA_PAIR];
+  REPEAT STRIP_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[EL;HD;TL;pathL;CONS_11];
+  GEN_REWRITE_TAC (LAND_CONV o RAND_CONV) [pair_eq] THEN  ASM_REWRITE_TAC[pathL; PAIR_EQ] THEN ARITH_TAC;
+  MP_TAC (SPEC `i:num` num_CASES) THEN ASM_REWRITE_TAC[] THEN STRIP_TAC;
+  ASM_REWRITE_TAC[ARITH_RULE `SUC n - 1 = n`; EL; TL; LAMBDA_PAIR]
+  ]);;
+  (* }}} *)
+
+let bisect_right_frac = prove_by_refinement(
+  `!d i. bisect_right i d = frac_right i (#0.5) d`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[bisect_right;frac_right;LET_THM];
+  LIST_INDUCT_TAC THEN REWRITE_TAC[subat;LAMBDA_PAIR];
+  REPEAT STRIP_TAC;
+  COND_CASES_TAC THEN ASM_REWRITE_TAC[EL;HD;TL;pathR;CONS_11];
+  GEN_REWRITE_TAC (LAND_CONV o RAND_CONV) [pair_eq] THEN  ASM_REWRITE_TAC[pathR; PAIR_EQ] THEN ARITH_TAC;
+  MP_TAC (SPEC `i:num` num_CASES) THEN ASM_REWRITE_TAC[] THEN STRIP_TAC;
+  ASM_REWRITE_TAC[ARITH_RULE `SUC n - 1 = n`; EL; TL; LAMBDA_PAIR]
+  ]);;
+  (* }}} *)
+
+
+let ineq6m = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6 a1 a2 a3 a4 a5 a6 b1 b2 b3 b4 b5 b6 f.
+    ineqm [x1;x2;x3;x4;x5;x6] [(a1,b1);(a2,b2);(a3,b3);(a4,b4);(a5,b5);(a6,b6)] f = 
+    ineq [(a1,x1,b1);(a2,x2,b2);(a3,x3,b3);(a4,x4,b4);(a5,x5,b5);(a6,x6,b6)] f`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ineqm];
+  REWRITE_TAC[MAP2]
+  ]);;
+  (* }}} *)
+
+let ineq9m = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6 x7 x8 x9 a1 a2 a3 a4 a5 a6 a7 a8 a9 b1 b2 b3 b4 b5 b6 b7 b8 b9 f.
+    ineqm [x1;x2;x3;x4;x5;x6;x7;x8;x9] [(a1,b1);(a2,b2);(a3,b3);(a4,b4);(a5,b5);(a6,b6);
+			      (a7,b7);(a8,b8);(a9,b9)] f = 
+    ineq [(a1,x1,b1);(a2,x2,b2);(a3,x3,b3);(a4,x4,b4);(a5,x5,b5);(a6,x6,b6);
+	 (a7,x7,b7);(a8,x8,b8);(a9,x9,b9)] f`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[ineqm];
+  REWRITE_TAC[MAP2]
+  ]);;
+  (* }}} *)
+
+
+(* Very slow on large terms
+let ineq_conv = 
+  (REWRITE_CONV [frac_left; frac_right; bisect_left_frac; bisect_right_frac;
+		 subat_explicit; LET_THM; LAMBDA_PAIR; EL_EXPLICIT] 
+     THENC REAL_RAT_REDUCE_CONV THENC REWRITE_CONV[ineq6m; ineq9m]) ;;
+*)
+
+let rec ineqm_conv =
+  let conv0 = REWRITE_CONV[frac_left; frac_right; bisect_left_frac; 
+			   bisect_right_frac; subat_explicit; 
+			   LET_THM; LAMBDA_PAIR; EL_EXPLICIT] THENC REAL_RAT_REDUCE_CONV in
+    fun tm ->
+      try
+	let path0 = find_path is_list tm in
+	  if String.length path0 <= 2 then REWRITE_CONV[ineq6m; ineq9m] tm
+	  else
+	    let path1 = String.sub path0 0 (String.length path0 - 1) in
+	      (PATH_CONV path1 conv0 THENC ineqm_conv) tm
+      with Failure _ ->
+	ALL_CONV tm;;

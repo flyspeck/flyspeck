@@ -1,0 +1,45 @@
+let read_cases fname first last =
+  let ic = Pervasives.open_in fname in
+  let split = Str.regexp ":" in
+  let rec read acc =
+    try
+      let line = input_line ic in
+      let strs = Str.bounded_split split line 3 in
+	if List.length strs <> 3 then
+	  read acc
+	else
+	  let n = int_of_string (List.nth strs 0) and
+	      id = List.nth strs 1 and
+	      str = List.nth strs 2 in
+	    if n >= first && n <= last then
+	      read ((n, id, str) :: acc)
+	    else if n > last then
+	      acc
+	    else
+	      read acc
+    with End_of_file -> acc
+  in
+  let r = read [] in
+  let _ = close_in ic in
+    List.rev r;;
+
+let get_ineqs fname first last =
+  let cs = read_cases fname first last in
+  let exp = Str.regexp "--#" in
+  let f_exp = Str.regexp "FAIL" in
+  let rec parse cs acc =
+    match cs with
+      | [] -> List.rev acc
+      | (n, id, str) :: cs ->
+	  try
+	    if Str.string_match f_exp str 1 then
+	      failwith "bad input"
+	    else
+	      let str = Str.global_replace exp "-- #" str in
+	      let tm = Hol_core.parse_term str in
+		parse cs ((n, id, tm) :: acc)
+	  with Failure msg ->
+	    let _ = print_endline (Printf.sprintf "\nERROR %s: %s" id msg) in
+	      parse cs acc
+  in
+    parse cs [];;

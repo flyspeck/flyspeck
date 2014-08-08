@@ -1,0 +1,67 @@
+open Hol_core;;
+open M_verifier_main;;
+
+Verifier_options.info_print_level := Config.info_print_level;;
+
+let verify_flyspeck_ineq pp ineq_tm =
+  let conv = REWRITE_CONV[TAUT `(P ==> Q) <=> (~P \/ Q)`; 
+			  REAL_ARITH `~(a > b:real) <=> a <= b`;
+			  REAL_ARITH `~(a < b:real) <=> b <= a`;
+			  REAL_ARITH `~(a >= b:real) <=> a < b`;
+			  REAL_ARITH `~(a <= b:real) <=> b < a`]
+                THENC REWRITE_CONV ([Definitions.ineq; IMP_IMP;
+				     REAL_MUL_LZERO; REAL_MUL_RZERO] @
+				      Definitions.flyspeck_defs) 
+		THENC DEPTH_CONV let_CONV in
+  let eq_th = conv ineq_tm in
+  let ineq_tm1 = (rand o concl) eq_th in
+  let th, time = verify_ineq {default_params with eps = 1e-10} pp ineq_tm1 in
+  let th2 = 
+    try
+      let th1 = SPEC_ALL th in
+      let imp_tm = mk_imp (concl th1, ineq_tm1) in
+      let imp_th = TAUT imp_tm in
+	MP imp_th th1
+    with _ ->
+      let _ = print_endline "WARNING: INEXACT" in
+	SPEC_ALL th in
+    REWRITE_RULE[GSYM eq_th] th2, time;;
+
+let verify (case, id, eq_th) =
+  let _ = print_endline (Printf.sprintf "Verifying: %d: %s" case id) in
+    try
+      let ineq = (rand o concl) eq_th in
+      let th0, time = verify_flyspeck_ineq 6 ineq in
+      let th = (SPEC_ALL o REWRITE_RULE[GSYM eq_th]) th0 in
+      let th_str = string_of_thm th in
+      let hash = Serialization.full_digest_thm th in
+      let str = Printf.sprintf "\nTheorem %s: %s\nTime %s: %f\nHash %s: %s\n"
+	id th_str id time.total_time id hash in
+	print_endline str;
+	Gc.compact()
+    with 
+      | Failure msg -> print_endline (Printf.sprintf "FAILURE %s: %s" id msg)
+      | _ -> print_endline (Printf.sprintf "ERROR %s" id);;
+
+
+(* Main *)
+let verify_all () =
+  let time = Unix.gettimeofday() in
+  let _ = print_endline (Printf.sprintf "Loading time: %f" (time -. Config.start_time)) in
+  let first = Config.first_case and
+      last = Config.last_case in
+  let _ = print_endline (Printf.sprintf "Verifying cases: %d -- %d" first last) in
+  let cases = Ineq_data.get_ineqs Config.data_file first last in
+  let _ = print_endline "Cases loaded" in
+  let cases_eq_ths = map (fun (i, id, tm) ->
+			    i, id, Break_case.ineqm_conv tm) cases in
+  let _ = print_endline "Cases processed" in
+  let _ = map verify cases_eq_ths in
+    print_endline (Printf.sprintf "Verification of cases %d -- %d finished" first last);;
+      
+
+let _ = 
+  let info = Printf.sprintf "\nHOL Light: %d\nFlyspeck: %d\nFormalIneq: %d\n\n"
+    Config.hol_version Config.flyspeck_version Config.formal_ineq_version in
+  let _ = print_endline info in
+    verify_all();;

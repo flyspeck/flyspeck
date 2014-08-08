@@ -1,0 +1,551 @@
+open Hol_core;;
+open Vectors;;
+open Topology;;
+open Misc_functions;;
+open Ssrbool;;
+open Multivariate_taylor;;
+open M_verifier_main;;
+open M_taylor;;
+open M_verifier;;
+open Definitions;;
+open Break_case;;
+open Sharp_theorems;;
+open Misc_vars;;
+
+let verify_flyspeck_ineq pp ineq_tm =
+  let conv = REWRITE_CONV[TAUT `(P ==> Q) <=> (~P \/ Q)`; 
+			  REAL_ARITH `~(a > b:real) <=> a <= b`;
+			  REAL_ARITH `~(a < b:real) <=> b <= a`;
+			  REAL_ARITH `~(a >= b:real) <=> a < b`;
+			  REAL_ARITH `~(a <= b:real) <=> b < a`]
+                THENC REWRITE_CONV ([ineq; IMP_IMP; real_div] @ flyspeck_defs) 
+		THENC DEPTH_CONV let_CONV in
+  let eq_th = conv ineq_tm in
+  let ineq_tm1 = (rand o concl) eq_th in
+  let th, time = verify_ineq {default_params with eps = 0.0} pp ineq_tm1 in
+  let th2 = 
+    try
+      let th1 = SPEC_ALL th in
+      let imp_tm = mk_imp (concl th1, ineq_tm1) in
+      let imp_th = REAL_ARITH imp_tm in
+	MP imp_th th1
+    with _ ->
+      let _ = print_endline "WARNING: INEXACT" in
+	SPEC_ALL th in
+    REWRITE_RULE[GSYM eq_th] th2, time;;
+
+let flyspeck_conv = REWRITE_CONV (real_div :: flyspeck_defs) THENC DEPTH_CONV let_CONV;;
+
+let num_eq_numeral j =
+  let j_tm = mk_small_numeral j in
+  let th = Arith_nat.NUMERAL_TO_NUM_CONV j_tm in
+    REWRITE_RULE[Arith_num.NUM_THM] (SYM th);;
+
+
+let increasing_pass_lemma = prove(`!j x z u domain lo f. 
+			  interval [x:real^N,z] SUBSET interval [domain] ==>
+			  (!i. i IN 1..dimindex (:N) ==> ~(i = j) ==> u$i = x$i) ==>
+						  u$j = z$j ==>
+			   diff2c_domain domain f ==>
+			   &0 <= lo ==>
+			    (!y. y IN interval [domain] ==> lo <= partial j f y) ==>
+                            (!y. y IN interval [u,z] ==> f y <= &0) ==>
+		          (!y. y IN interval [x,z] ==> f y <= &0)`,
+   REWRITE_TAC[SUBSET] THEN REPEAT STRIP_TAC THEN
+     ASM_CASES_TAC `~(!i. i IN 1..dimindex (:N) ==> (x:real^N)$i <= (z:real^N)$i)` THENL [
+       POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+	 REWRITE_TAC[NOT_FORALL_THM; NOT_IMP; IN_INTERVAL; GSYM IN_NUMSEG] THEN
+	 DISCH_TAC THEN
+	 DISCH_THEN (CHOOSE_THEN STRIP_ASSUME_TAC) THEN
+	 FIRST_X_ASSUM (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[] THEN
+	 POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     POP_ASSUM MP_TAC THEN REWRITE_TAC[negbK] THEN DISCH_TAC THEN
+     SUBGOAL_THEN `diff2_domain domain (f:real^N->real)` ASSUME_TAC THENL [
+       UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+	  SIMP_TAC[diff2_domain; diff2c_domain; diff2c];
+       ALL_TAC
+     ] THEN
+     MP_TAC (SPECL [`f:real^N->real`; `j:num`; `u:real^N`; `x:real^N`; `z:real^N`; `&0`] partial_increasing_right) THEN
+     ASM_REWRITE_TAC[] THEN
+     ANTS_TAC THENL [
+       REPEAT STRIP_TAC THEN
+	 MATCH_MP_TAC diff2_imp_diff THEN
+	 UNDISCH_TAC `diff2_domain domain (f:real^N->real)` THEN REWRITE_TAC[diff2_domain] THEN
+	 DISCH_THEN MATCH_MP_TAC THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     ANTS_TAC THENL [
+       REPEAT STRIP_TAC THEN MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `lo:real` THEN ASM_REWRITE_TAC[] THEN
+	 REPEAT (FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[]);;
+
+
+let decreasing_pass_lemma = prove(`!j x z u domain hi f. 
+				    interval [x:real^N,z] SUBSET interval [domain] ==>
+				    (!i. i IN 1..dimindex (:N) ==> ~(i = j) ==> u$i = z$i) ==>
+				    u$j = x$j ==>
+					diff2c_domain domain f ==>
+					hi <= &0 ==>
+					(!y. y IN interval [domain] ==> partial j f y <= hi) ==>
+					(!y. y IN interval [x,u] ==> f y <= &0) ==>
+					(!y. y IN interval [x,z] ==> f y <= &0)`,
+   REWRITE_TAC[SUBSET] THEN REPEAT STRIP_TAC THEN
+     ASM_CASES_TAC `~(!i. i IN 1..dimindex (:N) ==> (x:real^N)$i <= (z:real^N)$i)` THENL [
+       POP_ASSUM MP_TAC THEN POP_ASSUM MP_TAC THEN
+	 REWRITE_TAC[NOT_FORALL_THM; NOT_IMP; IN_INTERVAL; GSYM IN_NUMSEG] THEN
+	 DISCH_TAC THEN
+	 DISCH_THEN (CHOOSE_THEN STRIP_ASSUME_TAC) THEN
+	 FIRST_X_ASSUM (MP_TAC o SPEC `i:num`) THEN ASM_REWRITE_TAC[] THEN
+	 POP_ASSUM MP_TAC THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     POP_ASSUM MP_TAC THEN REWRITE_TAC[negbK] THEN DISCH_TAC THEN
+     SUBGOAL_THEN `diff2_domain domain (f:real^N->real)` ASSUME_TAC THENL [
+       UNDISCH_TAC `diff2c_domain domain (f:real^N->real)` THEN
+	  SIMP_TAC[diff2_domain; diff2c_domain; diff2c];
+       ALL_TAC
+     ] THEN
+     MP_TAC (SPECL [`f:real^N->real`; `j:num`; `u:real^N`; `x:real^N`; `z:real^N`; `&0`] partial_decreasing_left) THEN
+     ASM_REWRITE_TAC[] THEN
+     ANTS_TAC THENL [
+       REPEAT STRIP_TAC THEN
+	 MATCH_MP_TAC diff2_imp_diff THEN
+	 UNDISCH_TAC `diff2_domain domain (f:real^N->real)` THEN REWRITE_TAC[diff2_domain] THEN
+	 DISCH_THEN MATCH_MP_TAC THEN
+	 FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[];
+       ALL_TAC
+     ] THEN
+     ANTS_TAC THENL [
+       REPEAT STRIP_TAC THEN MATCH_MP_TAC REAL_LE_TRANS THEN
+	 EXISTS_TAC `hi:real` THEN ASM_REWRITE_TAC[] THEN
+	 REPEAT (FIRST_X_ASSUM MATCH_MP_TAC THEN ASM_REWRITE_TAC[]);
+       ALL_TAC
+     ] THEN
+     ASM_SIMP_TAC[]);;
+
+
+let point_domain = prove(`!(x:real^N) f. f x = &0
+    ==> !y. y IN interval [x, x] ==> f y <= &0`,
+   SIMP_TAC[INTERVAL_SING; IN_SING; REAL_LE_REFL]);;
+
+
+let gen_decreasing_lemma n j =
+  let mk_vars name = map (fun i -> mk_var (Printf.sprintf "%s%d" name i, real_ty)) (1--n) in
+  let xs = mk_vars "x" and
+      zs = mk_vars "z" and
+      j_tm = mk_small_numeral j in
+  let x_tm = mk_vector_list xs and
+      z_tm = mk_vector_list zs and
+      u_tm = mk_vector_list (map (fun i -> List.nth (if i = j then xs else zs) (i - 1)) (1--n)) in
+  let th0 = (SPEC_ALL o ISPECL [j_tm; x_tm; z_tm; u_tm]) decreasing_pass_lemma in
+  let th1 = REWRITE_RULE[dimindex_array.(n); IN_NUMSEG; gen_in_interval n; ARITH] th0 in
+  let th2 = REWRITE_RULE (Array.to_list comp_thms_array.(n)) th1 in
+    REWRITE_RULE[SYM (num_eq_numeral j)] th2;;
+
+
+let gen_increasing_lemma n j =
+  let mk_vars name = map (fun i -> mk_var (sprintf "%s%d" name i, real_ty)) (1--n) in
+  let xs = mk_vars "x" and
+      zs = mk_vars "z" and
+      j_tm = mk_small_numeral j in
+  let x_tm = mk_vector_list xs and
+      z_tm = mk_vector_list zs and
+      u_tm = mk_vector_list (map (fun i -> List.nth (if i = j then zs else xs) (i - 1)) (1--n)) in
+  let th0 = (SPEC_ALL o ISPECL [j_tm; x_tm; z_tm; u_tm]) increasing_pass_lemma in
+  let th1 = REWRITE_RULE[dimindex_array.(n); IN_NUMSEG; gen_in_interval n; ARITH] th0 in
+  let th2 = REWRITE_RULE (Array.to_list comp_thms_array.(n)) th1 in
+    REWRITE_RULE[SYM (num_eq_numeral j)] th2;;
+
+
+let apply_mono_th n j decr_flag diff2_th sub_th partial_th pass_th =
+  let mono_th = 
+    if decr_flag then 
+      gen_decreasing_lemma n j
+    else
+      gen_increasing_lemma n j in
+  let le_th =
+    if decr_flag then
+      let hi_tm = (rand o rand o snd o dest_forall o concl) partial_th in
+	EQT_ELIM (Arith_float.float_le0 hi_tm)
+    else
+      let lo_tm = (lhand o rand o snd o dest_forall o concl) partial_th in
+	EQT_ELIM (Arith_float.float_ge0 lo_tm) in
+  let th1 = MATCH_MP mono_th sub_th in
+  let th2 = MATCH_MP th1 diff2_th in
+  let th3 = MATCH_MP th2 le_th in
+  let th4 = MATCH_MP th3 partial_th in
+    MATCH_MP th4 pass_th;;
+
+
+let decimal48 = prove(`#4.0 = &4 /\ #8.0 = &8`, REAL_ARITH_TAC);;
+let float1 = Arith_float.FLOAT_TO_NUM_CONV (More_float.mk_float 1 0);;
+let float4 = Arith_float.FLOAT_TO_NUM_CONV (More_float.mk_float 4 0);;
+let float8 = Arith_float.FLOAT_TO_NUM_CONV (More_float.mk_float 8 0);;
+
+
+let prove_mono_case pp decr_flags case_tm =
+  let case_eq_th = (ineqm_conv THENC REWRITE_CONV[ineq; GSYM IMP_IMP; decimal48]) case_tm in
+  let ineq_tm0 = rand (concl case_eq_th) in
+  let ineq_tm, var_names, (lo_tm, hi_tm) = dest_ineq ineq_tm0 in
+  let params0 = default_params in
+  let eq_th1 = mk_standard_ineq [] ineq_tm in
+  let ineq_tm = (rand o concl) eq_th1 in
+  let ineq_tm1 = lhand ineq_tm in
+  let fun_tm', v1 = expr_to_vector_fun ineq_tm1 in
+  let fun_tm = (rand o concl o flyspeck_conv) fun_tm' in
+  let fun_eq_th = (GEN_ALL o SYM o 
+		     (flyspeck_conv THENC REWRITE_CONV[real_div]) o snd o dest_abs) fun_tm' in
+  let vars = map (fst o dest_var) (dest_vector v1) in
+  let lo_list = dest_list lo_tm and
+      hi_list = dest_list hi_tm in
+  let bounds0 = zip var_names (zip lo_list hi_list) in
+  let bounds = itlist (fun name list -> assoc name bounds0 :: list) vars [] in
+  let xx, zz = unzip bounds in
+  let xx, zz = mk_real_list xx, mk_real_list zz in
+  let domain_sub_th, (xx1, zz1) = mk_float_domain pp (xx, zz) in
+  let n = (get_dim o fst o dest_abs) fun_tm in
+  let params = ref {params0 with 
+		      mono_pass_flag = false;
+		      convex_flag = false;
+		      allow_derivatives = false} in
+  let eval_fs_list, _ = mk_verification_functions params pp fun_tm in
+  let dom_th = mk_m_center_domain n pp xx1 zz1 in
+  let ti_th = REWRITE_RULE[fun_eq_th] (eval_fs_list.M_verifier_build.taylor pp pp dom_th) in
+  let _, diff2_th, _, _ = dest_m_taylor_thms n ti_th in
+  let partial_ths = map2 (fun i decr_flag -> 
+			    if decr_flag then
+			      eval_m_taylor_partial_upper n pp i ti_th
+			    else
+			      eval_m_taylor_partial_lower n pp i ti_th) (1--n) decr_flags in
+  let rec apply_trans sub_ths th0 acc =
+    match sub_ths with
+      | [] -> rev acc
+      | th :: ths -> 
+	  let th' = eval_subset_trans th th0 in
+	    apply_trans ths th' (th' :: acc) in
+  let rec mk_domains mono th0 acc =
+    match mono with
+      | [] -> rev acc
+      | (j, decr_flag) :: ms ->
+	  let ths = restrict_domain n j decr_flag th0 in
+	    mk_domains ms (fst ths) (ths :: acc) in
+  let mono_pars = zip (1--n) decr_flags in
+  let domain_ths = mk_domains mono_pars dom_th [] in
+  let sub_th0 = (eval_subset_refl o rand o concl o snd o hd) domain_ths in
+  let sub_ths = apply_trans (sub_th0 :: map snd (butlast domain_ths)) sub_th0 [] in
+  let xx0, zz0 = dest_list xx1, dest_list zz1 in
+  let point_tm = mk_vector_list (map2 (fun (j,decr_flag) (x,z) ->
+					 if decr_flag then x else z)
+				   mono_pars (zip xx0 zz0)) in
+  let point_th = UNDISCH (ISPECL[point_tm; fun_tm'] point_domain) in
+  let pass_th = rev_itlist (fun (((j, decr_flag), partial_th), sub_th) pass_th ->
+			      apply_mono_th n j decr_flag diff2_th sub_th partial_th pass_th)
+    (rev (zip (zip mono_pars partial_ths) sub_ths)) point_th in
+  let th1 = SPEC v1 pass_th in
+  let comp_thms = end_itlist CONJ (Array.to_list comp_thms_array.(n)) in
+  let th2 = (UNDISCH_ALL o REWRITE_RULE[comp_thms] o DISCH_ALL) th1 in
+  let th3 = (UNDISCH_ALL o REWRITE_RULE[GSYM eq_th1]) th2 in
+  let dom_th = (UNDISCH_ALL o SPEC v1 o REWRITE_RULE[SUBSET]) domain_sub_th in
+  let th4 = (DISCH_ALL o MY_PROVE_HYP dom_th) th3 in
+  let th5 = REWRITE_RULE[IN_INTERVAL; dimindex_array.(n); gen_in_interval n; comp_thms] th4 in
+    REWRITE_RULE[float1; float4; float8] th5, case_eq_th;;
+
+(******************************************)
+
+let pp = 8;;
+let LET_RULE = CONV_RULE (DEPTH_CONV let_CONV);;
+
+
+(* -------------------------------------- *)
+(* (prep-TSKAJXY-RIBCYXU sharp,0)         *)
+(* -------------------------------------- *)
+
+
+let case_tm = `ineqm [x1; x2; x3; x4; x5; x6] 
+  [#4.0,#2.001 * #2.001; #4.0,#2.001 * #2.001; 
+   #4.0,#2.001 * #2.001; #4.0,#2.001 * #2.001;  
+   #4.0, #2.001 * #2.001; #4.0,#2.001 * #2.001] 
+  (vol_x x1 x2 x3 x4 x5 x6 * -- &1 + 
+     unit6 x1 x2 x3 x4 x5 x6 *  #8 *  pi *  const1 *  sqrt8 * 
+   --(&1 / (&4 * pi + &20 * pi * --const1)) +  gchi (sqrt x1) * dihatn_x x1 x2 x3 x4 x5 x6 + 
+     gchi (sqrt x2) * dih2atn_x x1 x2 x3 x4 x5 x6 + 
+     gchi (sqrt x3) * dih3atn_x x1 x2 x3 x4 x5 x6 + 
+     gchi (sqrt x4) * dih4atn_x x1 x2 x3 x4 x5 x6 + 
+     gchi (sqrt x5) * dih5atn_x x1 x2 x3 x4 x5 x6 + 
+     gchi (sqrt x6) * dih6atn_x x1 x2 x3 x4 x5 x6 <= &0)`;;
+
+let case_id = "13158,(prep-TSKAJXY-RIBCYXU sharp,0)";;
+let _ = print_endline (Printf.sprintf "\nVerifying: %s" case_id);;
+
+let th, eq_th = prove_mono_case pp [true; true; true; true; true; true] case_tm;;
+let th1 = REWRITE_RULE[LET_RULE TSKAJXY_RIBCYXU_SHARP; GSYM real_div] th;;
+let imp_th = REAL_ARITH (mk_imp (concl th1, rand (concl eq_th)));;
+let case_th = REWRITE_RULE[GSYM eq_th] (MP imp_th th1);;
+let _ = assert (concl case_th = case_tm);;
+
+let hash = Serialization.full_digest_thm case_th;;
+let str = Printf.sprintf "\nTheorem %s: %s\n\nHash %s: %s\n\n"
+	case_id (string_of_thm case_th) case_id hash;;
+let _ = print_endline str;;
+
+
+
+(* -------------------------------------- *)
+(* (prep-TSKAJXY-IYOUOBF sharp v2,0)      *)
+(* -------------------------------------- *)
+
+let case_tm = `ineqm [x1; x2; x3; x4; x5; x6] 
+  [(#2.0 * #1.3254) * #2.0 * #1.3254,#8.0; #4.0,#2.001 * #2.001; 
+   #4.0,#2.001 * #2.001;  #4.0, (#2.0 * hminus) * #2.0 * hminus; 
+   #4.0,#2.001 * #2.001; #4.0,#2.001 * #2.001] 
+  (vol_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     unit6 x1 x2 x3 x4 x5 x6 *  #8 *  pi *  const1 *  sqrt8 *  
+   --(&1 / (&4 * pi + &20 * pi * --const1)) +  
+     dihatn_x x1 x2 x3 x4 x5 x6 *  &4 *  pi *  const1 *  sqrt8 *  
+   &1 / (&4 * pi + &20 * pi * --const1) *  &1 / pi +  
+     gchi (sqrt x2) * dih2atn_x x1 x2 x3 x4 x5 x6 +  
+     gchi (sqrt x3) * dih3atn_x x1 x2 x3 x4 x5 x6 +  
+     gchi (sqrt x4) * dih4atn_x x1 x2 x3 x4 x5 x6 + 
+     gchi (sqrt x5) * dih5atn_x x1 x2 x3 x4 x5 x6 +  
+     gchi (sqrt x6) * dih6atn_x x1 x2 x3 x4 x5 x6 <=  &0)`;;
+
+let case_id = "13077,(prep-TSKAJXY-IYOUOBF sharp v2,0)"
+let _ = print_endline (Printf.sprintf "\nVerifying: %s" case_id);;
+
+let case0_tm = `ineqm [x1; x2; x3; x4; x5; x6] 
+  [#7.99,#8.0; #4.0,#2.001 * #2.001; 
+   #4.0,#2.001 * #2.001; #4.0,#2.001 * #2.001;
+   #4.0,#2.001 * #2.001; #4.0,#2.001 * #2.001] 
+  (vol_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     unit6 x1 x2 x3 x4 x5 x6 *  #8 *  pi *  const1 *  sqrt8 *  
+   --(&1 / (&4 * pi + &20 * pi * --const1)) +  
+     dihatn_x x1 x2 x3 x4 x5 x6 *  &4 *  pi *  const1 *  sqrt8 *  
+   &1 / (&4 * pi + &20 * pi * --const1) *  &1 / pi +  
+     gchi (sqrt x2) * dih2atn_x x1 x2 x3 x4 x5 x6 +  
+     gchi (sqrt x3) * dih3atn_x x1 x2 x3 x4 x5 x6 +  
+     gchi (sqrt x4) * dih4atn_x x1 x2 x3 x4 x5 x6 + 
+     gchi (sqrt x5) * dih5atn_x x1 x2 x3 x4 x5 x6 +  
+     gchi (sqrt x6) * dih6atn_x x1 x2 x3 x4 x5 x6 <=  &0)`;;
+
+let case1_tm = `ineqm [x1; x2; x3; x4; x5; x6] 
+  [(#2.0 * #1.3254) * #2.0 * #1.3254,#7.99; #4.0,#2.001 * #2.001; 
+   #4.0,#2.001 * #2.001;  #4.0, (#2.0 * hminus) * #2.0 * hminus; 
+   #4.0,#2.001 * #2.001; #4.0,#2.001 * #2.001] 
+  (vol_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     unit6 x1 x2 x3 x4 x5 x6 *  #8 *  pi *  const1 *  sqrt8 *  
+   --(&1 / (&4 * pi + &20 * pi * --const1)) +  
+     dihatn_x x1 x2 x3 x4 x5 x6 *  &4 *  pi *  const1 *  sqrt8 *  
+   &1 / (&4 * pi + &20 * pi * --const1) *  &1 / pi +  
+     gchi (sqrt x2) * dih2atn_x x1 x2 x3 x4 x5 x6 +  
+     gchi (sqrt x3) * dih3atn_x x1 x2 x3 x4 x5 x6 +  
+     gchi (sqrt x4) * dih4atn_x x1 x2 x3 x4 x5 x6 + 
+     gchi (sqrt x5) * dih5atn_x x1 x2 x3 x4 x5 x6 +  
+     gchi (sqrt x6) * dih6atn_x x1 x2 x3 x4 x5 x6 <=  &0)`;;
+
+let case2_tm = `ineqm [x1; x2; x3; x4; x5; x6] 
+  [(#2.0 * #1.3254) * #2.0 * #1.3254,#8.0; #4.0,#2.001 * #2.001; 
+   #4.0,#2.001 * #2.001;  #2.001 * #2.001, (#2.0 * hminus) * #2.0 * hminus; 
+   #4.0,#2.001 * #2.001; #4.0,#2.001 * #2.001] 
+  (vol_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     unit6 x1 x2 x3 x4 x5 x6 *  #8 *  pi *  const1 *  sqrt8 *  
+   --(&1 / (&4 * pi + &20 * pi * --const1)) +  
+     dihatn_x x1 x2 x3 x4 x5 x6 *  &4 *  pi *  const1 *  sqrt8 *  
+   &1 / (&4 * pi + &20 * pi * --const1) *  &1 / pi +  
+     gchi (sqrt x2) * dih2atn_x x1 x2 x3 x4 x5 x6 +  
+     gchi (sqrt x3) * dih3atn_x x1 x2 x3 x4 x5 x6 +  
+     gchi (sqrt x4) * dih4atn_x x1 x2 x3 x4 x5 x6 + 
+     gchi (sqrt x5) * dih5atn_x x1 x2 x3 x4 x5 x6 +  
+     gchi (sqrt x6) * dih6atn_x x1 x2 x3 x4 x5 x6 <=  &0)`;;
+
+
+let case1_eq = ineqm_conv case1_tm;;
+let case1_th0, _ = verify_flyspeck_ineq pp (rand (concl case1_eq));;
+let case1_th = REWRITE_RULE[GSYM case1_eq] case1_th0;;
+
+let case2_eq = ineqm_conv case2_tm;;
+let case2_th0, _ = verify_flyspeck_ineq pp (rand (concl case2_eq));;
+let case2_th = REWRITE_RULE[GSYM case2_eq] case2_th0;;
+
+let th, eq_th = prove_mono_case pp [false; true; true; true; true; true] case0_tm;;
+let th1 = REWRITE_RULE[LET_RULE TSKAJXY_IYOUOBF_SHARP_V2; GSYM real_div] th;;
+let imp_th = REAL_ARITH (mk_imp (concl th1, rand (concl eq_th)));;
+let case0_th = REWRITE_RULE[GSYM eq_th] (MP imp_th th1);;
+
+let cases_imp = mk_imp (mk_conj (case0_tm, mk_conj (case1_tm, case2_tm)), case_tm);;
+let cases_eq_th = REWRITE_CONV[ineqm; MAP2; ineq] cases_imp;;
+let imp_th = (REWRITE_RULE[GSYM cases_eq_th] o REAL_ARITH) (rand (concl cases_eq_th));;
+let case_th = MP imp_th (CONJ case0_th (CONJ case1_th case2_th));;
+
+let _ = assert (concl case_th = case_tm);;
+
+let hash = Serialization.full_digest_thm case_th;;
+let str = Printf.sprintf "\nTheorem %s: %s\n\nHash %s: %s\n\n"
+	case_id (string_of_thm case_th) case_id hash;;
+let _ = print_endline str;;
+
+
+(* -------------------------------------- *)
+(* (prep-OMKYNLT 3336871894,0)            *)
+(* -------------------------------------- *)
+
+let case_tm = `ineqm [x1; x2; x3; x4; x5; x6] 
+  [#4.0,#6.3504; #4.0,#6.3504; #4.0,#6.3504; 
+   #4.0,#4.0; #4.0,#4.0; #4.0,#4.0] 
+  (rhazimatn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     rhazim2atn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     rhazim3atn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     unit6 x1 x2 x3 x4 x5 x6 * pi +  unit6 x1 x2 x3 x4 x5 x6 * const1 * pi <=  &0)`;;
+
+let case_id = "11966,(prep-OMKYNLT 3336871894,0)";;
+let _ = print_endline (Printf.sprintf "\nVerifying: %s" case_id);;
+
+let case0_tm = `ineqm [x1; x2; x3; x4; x5; x6] 
+  [#4.0,#2.01 * #2.01; #4.0,#2.01 * #2.01; #4.0,#2.01 * #2.01; 
+   #4.0,#4.0; #4.0,#4.0; #4.0,#4.0] 
+  (rhazimatn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     rhazim2atn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     rhazim3atn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     unit6 x1 x2 x3 x4 x5 x6 * pi +  unit6 x1 x2 x3 x4 x5 x6 * const1 * pi <=  &0)`;;
+
+let case1_tm = `ineqm [x1; x2; x3; x4; x5; x6] 
+  [#2.01 * #2.01,#6.3504; #4.0,#6.3504; #4.0,#6.3504; 
+   #4.0,#4.0; #4.0,#4.0; #4.0,#4.0] 
+  (rhazimatn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     rhazim2atn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     rhazim3atn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     unit6 x1 x2 x3 x4 x5 x6 * pi +  unit6 x1 x2 x3 x4 x5 x6 * const1 * pi <=  &0)`;;
+
+let case2_tm = `ineqm [x1; x2; x3; x4; x5; x6] 
+  [#4.0,#6.3504; #2.01 * #2.01,#6.3504; #4.0,#6.3504; 
+   #4.0,#4.0; #4.0,#4.0; #4.0,#4.0] 
+  (rhazimatn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     rhazim2atn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     rhazim3atn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     unit6 x1 x2 x3 x4 x5 x6 * pi +  unit6 x1 x2 x3 x4 x5 x6 * const1 * pi <=  &0)`;;
+
+let case3_tm = `ineqm [x1; x2; x3; x4; x5; x6] 
+  [#4.0,#6.3504; #4.0,#6.3504; #2.01 * #2.01,#6.3504; 
+   #4.0,#4.0; #4.0,#4.0; #4.0,#4.0] 
+  (rhazimatn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     rhazim2atn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     rhazim3atn_x x1 x2 x3 x4 x5 x6 * -- &1 +  
+     unit6 x1 x2 x3 x4 x5 x6 * pi +  unit6 x1 x2 x3 x4 x5 x6 * const1 * pi <=  &0)`;;
+
+
+let case1_eq = ineqm_conv case1_tm;;
+let case1_th0, _ = verify_flyspeck_ineq pp (rand (concl case1_eq));;
+let case1_th = REWRITE_RULE[GSYM case1_eq] case1_th0;;
+
+let case2_eq = ineqm_conv case2_tm;;
+let case2_th0, _ = verify_flyspeck_ineq pp (rand (concl case2_eq));;
+let case2_th = REWRITE_RULE[GSYM case2_eq] case2_th0;;
+
+let case3_eq = ineqm_conv case3_tm;;
+let case3_th0, _ = verify_flyspeck_ineq pp (rand (concl case3_eq));;
+let case3_th = REWRITE_RULE[GSYM case3_eq] case3_th0;;
+
+let th, eq_th = prove_mono_case pp [true; true; true; true; true; true] case0_tm;;
+let th1 = REWRITE_RULE[LET_RULE OMKYNLT_3336871894_SHARP; GSYM real_div] th;;
+let imp_th = REAL_ARITH (mk_imp (concl th1, rand (concl eq_th)));;
+let case0_th = REWRITE_RULE[GSYM eq_th] (MP imp_th th1);;
+
+let cases_imp = mk_imp (mk_conj (case0_tm, mk_conj (case1_tm, mk_conj (case2_tm, case3_tm))), case_tm);;
+let cases_eq_th = REWRITE_CONV[ineqm; MAP2; ineq] cases_imp;;
+let split1 = REAL_ARITH `(#4.0 <= x1 /\ x1 <= #6.3504) <=> 
+  ((#4.0 <= x1 /\ x1 <= #2.01 * #2.01) \/ (#2.01 * #2.01 <= x1 /\ x1 <= #6.3504))`;;
+let split2 = REAL_ARITH `(#4.0 <= x2 /\ x2 <= #6.3504) <=> 
+  ((#4.0 <= x2 /\ x2 <= #2.01 * #2.01) \/ (#2.01 * #2.01 <= x2 /\ x2 <= #6.3504))`;;
+let split3 = REAL_ARITH `(#4.0 <= x3 /\ x3 <= #6.3504) <=> 
+  ((#4.0 <= x3 /\ x3 <= #2.01 * #2.01) \/ (#2.01 * #2.01 <= x3 /\ x3 <= #6.3504))`;;
+let imp_th =
+  TAUT (mk_imp (concl split1, mk_imp (concl split2, mk_imp (concl split3, rand (concl cases_eq_th)))));;
+let case_th = MP (REWRITE_RULE[GSYM cases_eq_th] (MP (MP (MP imp_th split1) split2) split3))
+  (CONJ case0_th (CONJ case1_th (CONJ case2_th case3_th)));;
+
+let _ = assert (concl case_th = case_tm);;
+
+let hash = Serialization.full_digest_thm case_th;;
+let str = Printf.sprintf "\nTheorem %s: %s\n\nHash %s: %s\n\n"
+	case_id (string_of_thm case_th) case_id hash;;
+let _ = print_endline str;;
+
+
+(* -------------------------------------- *)
+(* (prep-GRKIBMP B V2,0)                  *)
+(* -------------------------------------- *)
+
+let case_tm = `ineqm [x1; x2; x3; x4; x5; x6] 
+  [#2.0 * #1.3254 * #2.0 * #1.3254,#8.0; 
+   &1 * &1,&1 * &1; &1 * &1,&1 * &1;  &1 * &1, &1 * &1; &1 * &1,&1 * &1; &1 * &1,&1 * &1] 
+  (gamma2_x1_div_a_v2 (&0) x1 x2 x3 x4 x5 x6 * -- &1 <= &0)`;;
+
+
+let case_id = "11959,(prep-GRKIBMP B V2,0)";;
+let _ = print_endline (Printf.sprintf "\nVerifying: %s" case_id);;
+
+let case0_tm = `ineqm [x1; x2; x3; x4; x5; x6] 
+  [#7.99,#8.0; 
+   &1 * &1,&1 * &1; &1 * &1,&1 * &1;  &1 * &1, &1 * &1; &1 * &1,&1 * &1; &1 * &1,&1 * &1] 
+  (gamma2_x1_div_a_v2 (&0) x1 x2 x3 x4 x5 x6 * -- &1 <= &0)`;;
+
+let case1_tm = `ineqm [x1; x2; x3; x4; x5; x6]
+  [#2.0 * #1.3254 * #2.0 * #1.3254,#7.99; 
+   &1 * &1,&1 * &1; &1 * &1,&1 * &1;  &1 * &1, &1 * &1; &1 * &1,&1 * &1; &1 * &1,&1 * &1] 
+  (gamma2_x1_div_a_v2 (&0) x1 x2 x3 x4 x5 x6 * -- &1 <= &0)`;;
+
+let case1_eq = ineqm_conv case1_tm;;
+let case1_th0, _ = verify_flyspeck_ineq pp (rand (concl case1_eq));;
+let case1_th = REWRITE_RULE[GSYM case1_eq] case1_th0;;
+
+let th, eq_th = prove_mono_case pp [false; true; true; true; true; true] case0_tm;;
+let th1 = REWRITE_RULE[LET_RULE GRKIBMP_B_V2_SHARP; GSYM real_div] th;;
+let imp_th = REAL_ARITH (mk_imp (concl th1, rand (concl eq_th)));;
+let case0_th = REWRITE_RULE[GSYM eq_th] (MP imp_th th1);;
+
+let cases_imp = mk_imp (mk_conj (case0_tm, case1_tm), case_tm);;
+let cases_eq_th = REWRITE_CONV[ineqm; MAP2; ineq] cases_imp;;
+let imp_th = (REWRITE_RULE[GSYM cases_eq_th] o REAL_ARITH) (rand (concl cases_eq_th));;
+let case_th = MP imp_th (CONJ case0_th case1_th);;
+
+let _ = assert (concl case_th = case_tm);;
+
+let hash = Serialization.full_digest_thm case_th;;
+let str = Printf.sprintf "\nTheorem %s: %s\n\nHash %s: %s\n\n"
+	case_id (string_of_thm case_th) case_id hash;;
+let _ = print_endline str;;
+
+
+
+(* -------------------------------------- *)
+(* (prep-QZECFIC wt0 corner,0)            *)
+(* -------------------------------------- *)
+
+let case_tm =
+  `ineqm [x1; x2; x3; x4; x5; x6] 
+    [&1 * &1,&1 * &1; &1 * &1,&1 * &1; &1 * &1,&1 * &1; 
+     #4.0,#2.01 * #2.01;  #4.0, #2.01 * #2.01; #4.0,#2.01 * #2.01] 
+    (gamma3f_x_div_sqrtdelta (&1) (&1) (&1) x1 x2 x3 x4 x5 x6 * -- &1 <= &0)`;;
+
+let case_id = "13075,(prep-QZECFIC wt0 corner,0)";;
+let _ = print_endline (Printf.sprintf "\nVerifying: %s" case_id);;
+
+let th, eq_th = prove_mono_case pp [true; true; true; true; true; true] case_tm;;
+let th1 = REWRITE_RULE[LET_RULE QZECFIC_WT0_CORNER; GSYM real_div] th;;
+let imp_th = REAL_ARITH (mk_imp (concl th1, rand (concl eq_th)));;
+let case_th = REWRITE_RULE[GSYM eq_th] (MP imp_th th1);;
+
+let hash = Serialization.full_digest_thm case_th;;
+let str = Printf.sprintf "\nTheorem %s: %s\n\nHash %s: %s\n\n"
+	case_id (string_of_thm case_th) case_id hash;;
+let _ = print_endline str;;
+
+
+
+
+

@@ -1,0 +1,1320 @@
+open Hol_core;;
+open Prove_by_refinement;;
+
+prioritize_real();;
+parse_as_infix ("::", (12, "right"));;
+override_interface ("::", `CONS`);;
+
+
+let has_stv t =
+  let typ = (type_vars_in_term t) in
+  can (find (fun ty -> (is_vartype ty) && ((dest_vartype ty).[0] = '?'))) typ;;
+
+let new_definition' t = 
+    if has_stv t 
+    then (failwith "new_definition has stv") 
+    else new_definition t;;
+
+
+let ineq = define
+ `(!c. ineq [] c <=> c)
+    /\ (!a x b xs c. ineq (CONS (a,x,b) xs) c <=> a <= x /\ x <= b ==> ineq xs c)`;;
+
+let pathL = new_definition `pathL (a,b) = (a,(a+b)/ &2)`;;
+
+let pathR = new_definition `pathR (a,b) = ((a+b)/ &2,b)`;;
+
+let ineqm = new_definition'
+  `ineqm xs ab f = ineq (MAP2 (\ x ab. (FST ab,x,SND ab)) xs ab) f`;;
+
+let subat = new_recursive_definition list_RECURSION 
+  `subat (i:num) (y:A) ([]:(A)list) = ([]:(A)list) /\
+   subat i (y:A) (CONS x xs) = if i = 0 then CONS y xs else CONS x (subat (i-1) y xs)`;;
+
+let bisect_left = new_definition'
+   `bisect_left i d = subat i (pathL (EL i d)) d`;;
+
+let bisect_right = new_definition'
+   `bisect_right i d = subat i (pathR (EL i d)) d`;;
+
+let frac_left = new_definition'
+  `frac_left i r d = 
+     (let (a,b) = EL i d in
+	subat i (a,a * (&1 - r) + b * r) d)`;;
+
+let frac_right = new_definition'
+  `frac_right i r d = 
+     (let (a,b) = EL i d in
+	subat i (a * (&1 - r) + b * r,b) d)`;;
+
+let rotate2 = new_definition `rotate2 f x1 x2 x3 x4 x5 x6 = 
+  f x2 x3 x1 x5 x6 x4`;;
+let rotate3 = new_definition `rotate3 f x1 x2 x3 x4 x5 x6 = 
+  f x3 x1 x2 x6 x4 x5`;;
+let rotate4 = new_definition `rotate4 f x1 x2 x3 x4 x5 x6 = 
+  f x4 x2 x6 x1 x5 x3`;;
+let rotate5 = new_definition `rotate5 f x1 x2 x3 x4 x5 x6 = 
+  f x5 x3 x4 x2 x6 x1`;;
+let rotate6 = new_definition `rotate6 f x1 x2 x3 x4 x5 x6 = 
+  f x6 x1 x5 x3 x4 x2`;;
+
+(* ======================= *)
+(* Constants               *)
+(* ======================= *)
+let sqrt8 = new_definition (`sqrt8 = sqrt (&8) `);;
+let sqrt2 = new_definition (`sqrt2 = sqrt (&2) `);;
+let sqrt3 = new_definition `sqrt3 = sqrt(&3)`;;
+let pi_rt18 = new_definition(`pi_rt18= pi/(sqrt (&18))`);;
+let h0 = new_definition `h0 = #1.26`;;
+let sol0 = new_definition `sol0 = &3 * acs (&1 / &3)  - pi`;;
+let tau0 = new_definition `tau0 = &4 * pi - &20 * sol0`;;
+let mm1 = new_definition `mm1 = sol0 * sqrt(&8)/tau0`;;
+let mm2 = new_definition `mm2 = (&6 * sol0 - pi) * sqrt(&2) /(&6 * tau0)`;;
+let hplus = new_definition `hplus = #1.3254`;;
+
+let marchal_quartic = new_definition `marchal_quartic h = 
+    (sqrt(&2)-h)*(h- hplus )*(&9*(h pow 2) - &17*h + &3)/
+      ((sqrt(&2) - &1)* &5 *(hplus - &1))`;;
+
+let lmfun = new_definition`lmfun h = if (h<=h0) then (h0 - h)/(h0 - &1) else &0`;;
+
+let hminus = new_definition `hminus = @x. #1.2 <= x /\ x < #1.3 /\ marchal_quartic x = lmfun x`;;
+
+(* ======================= *)
+(* Rational                *)
+(* ======================= *)
+let delta_x = new_definition (`delta_x x1 x2 x3 x4 x5 x6 =
+        x1*x4*(--x1 + x2 + x3 -x4 + x5 + x6) +
+        x2*x5*(x1 - x2 + x3 + x4 -x5 + x6) +
+        x3*x6*(x1 + x2 - x3 + x4 + x5 - x6)
+        -x2*x3*x4 - x1*x3*x5 - x1*x2*x6 -x4*x5*x6`);;
+
+let delta_x4= new_definition(`delta_x4 x1 x2 x3 x4 x5 x6
+        =  -- x2* x3 -  x1* x4 + x2* x5
+        + x3* x6 -  x5* x6 + x1* (-- x1 +  x2 +  x3 -  x4 +  x5 +  x6)`);;
+
+let delta_x6 = new_definition(`delta_x6 x1 x2 x3 x4 x5 x6
+        = -- x1 * x2 - x3*x6 + x1 * x4
+        + x2* x5 - x4* x5 + x3*(-- x3 + x1 + x2 - x6 + x4 + x5)`);;
+
+let delta_x1 = new_definition 
+  `delta_x1 x1 x2 x3 x4 x5 x6 = 
+  -- x1 * x4 + x2 * x5 - x3 * x5 - x2 * x6 + x3 * x6 + 
+    x4 * (-- x1 + x2 + x3 - x4 + x5 + x6)`;;
+
+let ups_x = new_definition(`ups_x x1 x2 x6 =
+    --x1*x1 - x2*x2 - x6*x6
+    + &2 *x1*x6 + &2 *x1*x2 + &2 *x2*x6`);;
+
+let rho_x = new_definition(`rho_x x1 x2 x3 x4 x5 x6 =
+        --x1*x1*x4*x4 - x2*x2*x5*x5 - x3*x3*x6*x6 +
+        (&2)*x1*x2*x4*x5 + (&2)*x1*x3*x4*x6 + (&2)*x2*x3*x5*x6`);;
+
+let lfun = new_definition `lfun h =  (h0 - h)/(h0 - &1)`;;
+
+let num1 = new_definition `num1 e1 e2 e3 a2 b2 c2 =
+   -- &4*((a2 pow 2) *e1 + &8*(b2 - c2)*(e2 - e3) - 
+  a2*(&16*e1 + ( b2 - &8 )*e2 + (c2 - &8)*e3))`;;
+
+let gchi = new_definition `gchi y = (&4*mm1/pi) - (&504*(mm2/pi))/(&13) + (&200*y*(mm2/pi))/(&13) `;;
+
+let gchi_alt = prove(`gchi x = (&4 * mm1 / pi - (&504 * mm2 / pi) / &13) + (&200 * mm2 / pi / &13) * x`,
+		     REWRITE_TAC[gchi] THEN REAL_ARITH_TAC);;
+
+let delta4_squared_x = new_definition 
+  `delta4_squared_x x1 x2 x3 x4 x5 x6 = (delta_x4 x1 x2 x3 x4 x5 x6) pow 2`;;
+
+let x1_delta_x = new_definition `x1_delta_x x1 x2 x3 x4 x5 x6 = x1 * delta_x x1 x2 x3 x4 x5 x6`;;
+
+let lfun_y1 = new_definition `lfun_y1 (y1:real) (y2:real) (y3:real) 
+  (y4:real) (y5:real) (y6:real) =  lfun y1`;;
+
+let norm2hh = new_definition `norm2hh y1 y2 y3 y4 y5 y6 = 
+    (y1- hminus - hplus) pow 2 + (y2 - &2) pow 2 + (y3 - &2) pow 2 + (y4 - &2) pow 2 
+     + (y5 - &2) pow 2 + (y6 - &2) pow 2`;;
+
+let norm2hh_x = new_definition `!x1 x2 x3 x4 x5 x6. norm2hh_x  x1 x2 x3 x4 x5 x6 = 
+  norm2hh (sqrt x1) (sqrt x2) (sqrt x3) (sqrt x4) (sqrt x5) (sqrt x6)`;;
+
+let bump = new_definition `!h. bump h = #0.005*(&1 - ((h- h0) pow 2)/((hplus - h0) pow 2))`;;
+
+let pow2 = new_definition `pow2 y = y pow 2`;;
+
+let rad2_x = new_definition(`rad2_x x1 x2 x3 x4 x5 x6 =
+        (rho_x x1 x2 x3 x4 x5 x6)/((delta_x x1 x2 x3 x4 x5 x6)*(&4))`);;
+
+let proj_x1 = define `proj_x1 (x1:A) (x2:B) (x3:C) (x4:D) (x5:E) (x6:F) = x1`;;
+
+let proj_x2 = define `proj_x2 (x1:A) (x2:B) (x3:C) (x4:D) (x5:E) (x6:F) = x2`;;
+
+let proj_x3 = define `proj_x3 (x1:A) (x2:B) (x3:C) (x4:D) (x5:E) (x6:F) = x3`;;
+
+let proj_x4 = define `proj_x4 (x1:A) (x2:B) (x3:C) (x4:D) (x5:E) (x6:F) = x4`;;
+
+let proj_x5 = define `proj_x5 (x1:A) (x2:B) (x3:C) (x4:D) (x5:E) (x6:F) = x5`;;
+
+let proj_x6 = define `proj_x6 (x1:A) (x2:B) (x3:C) (x4:D) (x5:E) (x6:F) = x6`;;
+
+let unit6 = define `unit6 x1 x2 x3 x4 x5 x6 = &1`;;
+
+let dnum1 = new_definition `dnum1 e1 e2 e3 x4 x5 x6 = 
+  (&16 - &2 * x4) * e1 + (x5 - &8) * e2 + (x6 - &8) * e3`;;
+
+let delta_126_x = new_definition 
+  `delta_126_x (x3s:real) (x4s:real) (x5s:real) (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) = 
+     delta_x x1 x2 x3s x4s x5s x6`;;
+
+let delta_135_x = new_definition 
+  `delta_135_x (x2s:real) (x4s:real) (x6s:real) (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) = 
+     delta_x x1 x2s x3 x4s x5 x6s`;;
+
+let delta_234_x = new_definition 
+  `delta_234_x (x1s:real) (x5s:real) (x6s:real) (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) = 
+     delta_x x1s x2 x3 x4 x5s x6s`;;
+
+let mu_y = new_definition `mu_y y1 y2 y3 = 
+  (#0.012 + #0.07 * (#2.52 - y1) + #0.01 * (#2.52 * &2 - y2 - y3 ))`;;
+
+let cayleyR6u = new_definition
+`!x1 x2 x3 x4 x5 x6. cayleyR6u x1 x2 x3 x4 x5 x6 = 
+     --(x1 * x1 * x4 * x4) +
+     &2 * x1 * x6 * x4 * x4 - x6 * x6 * x4 * x4 +
+     &2 * x2 * x1 * x4 * x5 - &2 * x2 * x6 * x4 * x5 - &2 * x1 * x6 * x4 * x5 +
+     &2 * x6 * x6 * x4 * x5 - x2 * x2 * x5 * x5 +
+     &2 * x2 * x6 * x5 * x5 - x6 * x6 * x5 * x5 - &2 * x2 * x1 * x4 * #4.0 +
+     &2 * x1 * x1 * x4 * #4.0 +
+     &2 * x2 * x6 * x4 * #4.0 - &2 * x1 * x6 * x4 * #4.0 +
+     &2 * x2 * x2 * x5 * #4.0 -
+     &2 * x2 * x1 * x5 * #4.0 -
+     &2 * x2 * x6 * x5 * #4.0 +
+     &2 * x1 * x6 * x5 * #4.0 - x2 * x2 * #4.0 * #4.0 +
+     &2 * x2 * x1 * #4.0 * #4.0 - x1 * x1 * #4.0 * #4.0 +
+     &2 * x3 * x1 * x4 * #4.0 -
+     &2 * x3 * x6 * x4 * #4.0 -
+     &2 * x1 * x6 * x4 * #4.0 +
+     &2 * x6 * x6 * x4 * #4.0 +
+     &2 * x3 * x2 * x5 * #4.0 -
+     &2 * x3 * x6 * x5 * #4.0 -
+     &2 * x2 * x6 * x5 * #4.0 +
+     &2 * x6 * x6 * x5 * #4.0 +
+     &4 * x6 * x4 * x5 * #4.0 -
+     &2 * x3 * x2 * #4.0 * #4.0 -
+     &2 * x3 * x1 * #4.0 * #4.0 +
+     &4 * x2 * x1 * #4.0 * #4.0 +
+     &4 * x3 * x6 * #4.0 * #4.0 -
+     &2 * x2 * x6 * #4.0 * #4.0 -
+     &2 * x1 * x6 * #4.0 * #4.0 -
+     &2 * x1 * x4 * #4.0 * #4.0 -
+     &2 * x6 * x4 * #4.0 * #4.0 -
+     &2 * x2 * x5 * #4.0 * #4.0 -
+     &2 * x6 * x5 * #4.0 * #4.0 +
+     &2 * x2 * #4.0 * #4.0 * #4.0 +
+     &2 * x1 * #4.0 * #4.0 * #4.0 - x3 * x3 * #4.0 * #4.0 +
+     &2 * x3 * x6 * #4.0 * #4.0 - x6 * x6 * #4.0 * #4.0 +
+     &2 * x3 * #4.0 * #4.0 * #4.0 +
+     &2 * x6 * #4.0 * #4.0 * #4.0 -
+     #4.0 * #4.0 * #4.0 * #4.0 -
+     &2 * x3 * x1 * x4 * #3.01 * #3.01 +
+     &2 * x1 * x1 * x4 * #3.01 * #3.01 +
+     &2 * x3 * x6 * x4 * #3.01 * #3.01 -
+     &2 * x1 * x6 * x4 * #3.01 * #3.01 -
+     &2 * x3 * x2 * x5 * #3.01 * #3.01 +
+     &4 * x3 * x1 * x5 * #3.01 * #3.01 -
+     &2 * x2 * x1 * x5 * #3.01 * #3.01 -
+     &2 * x3 * x6 * x5 * #3.01 * #3.01 +
+     &4 * x2 * x6 * x5 * #3.01 * #3.01 -
+     &2 * x1 * x6 * x5 * #3.01 * #3.01 -
+     &2 * x1 * x4 * x5 * #3.01 * #3.01 -
+     &2 * x6 * x4 * x5 * #3.01 * #3.01 +
+     &2 * x2 * x5 * x5 * #3.01 * #3.01 +
+     &2 * x6 * x5 * x5 * #3.01 * #3.01 +
+     &2 * x3 * x2 * #4.0 * #3.01 * #3.01 -
+     &2 * x3 * x1 * #4.0 * #3.01 * #3.01 -
+     &2 * x2 * x1 * #4.0 * #3.01 * #3.01 +
+     &2 * x1 * x1 * #4.0 * #3.01 * #3.01 +
+     &4 * x1 * x4 * #4.0 * #3.01 * #3.01 -
+     &2 * x2 * x5 * #4.0 * #3.01 * #3.01 -
+     &2 * x1 * x5 * #4.0 * #3.01 * #3.01 +
+     &2 * x3 * x3 * #4.0 * #3.01 * #3.01 -
+     &2 * x3 * x1 * #4.0 * #3.01 * #3.01 -
+     &2 * x3 * x6 * #4.0 * #3.01 * #3.01 +
+     &2 * x1 * x6 * #4.0 * #3.01 * #3.01 -
+     &2 * x3 * x5 * #4.0 * #3.01 * #3.01 -
+     &2 * x6 * x5 * #4.0 * #3.01 * #3.01 -
+     &2 * x3 * #4.0 * #4.0 * #3.01 * #3.01 -
+     &2 * x1 * #4.0 * #4.0 * #3.01 * #3.01 +
+     &2 * x5 * #4.0 * #4.0 * #3.01 * #3.01 -
+     x3 * x3 * (#3.01 * #3.01) * #3.01 * #3.01 +
+     &2 * x3 * x1 * (#3.01 * #3.01) * #3.01 * #3.01 -
+     x1 * x1 * (#3.01 * #3.01) * #3.01 * #3.01 +
+     &2 * x3 * x5 * (#3.01 * #3.01) * #3.01 * #3.01 +
+     &2 * x1 * x5 * (#3.01 * #3.01) * #3.01 * #3.01 -
+     x5 * x5 * (#3.01 * #3.01) * #3.01 * #3.01 +
+     &4 * x3 * x2 * x4 * #3.01 * #3.01 -
+     &2 * x3 * x1 * x4 * #3.01 * #3.01 -
+     &2 * x2 * x1 * x4 * #3.01 * #3.01 -
+     &2 * x3 * x6 * x4 * #3.01 * #3.01 -
+     &2 * x2 * x6 * x4 * #3.01 * #3.01 +
+     &4 * x1 * x6 * x4 * #3.01 * #3.01 +
+     &2 * x1 * x4 * x4 * #3.01 * #3.01 +
+     &2 * x6 * x4 * x4 * #3.01 * #3.01 - &2 * x3 * x2 * x5 * #3.01 * #3.01 +
+     &2 * x2 * x2 * x5 * #3.01 * #3.01 +
+     &2 * x3 * x6 * x5 * #3.01 * #3.01 -
+     &2 * x2 * x6 * x5 * #3.01 * #3.01 -
+     &2 * x2 * x4 * x5 * #3.01 * #3.01 -
+     &2 * x6 * x4 * x5 * #3.01 * #3.01 -
+     &2 * x3 * x2 * #4.0 * #3.01 * #3.01 +
+     &2 * x2 * x2 * #4.0 * #3.01 * #3.01 +
+     &2 * x3 * x1 * #4.0 * #3.01 * #3.01 -
+     &2 * x2 * x1 * #4.0 * #3.01 * #3.01 -
+     &2 * x2 * x4 * #4.0 * #3.01 * #3.01 -
+     &2 * x1 * x4 * #4.0 * #3.01 * #3.01 +
+     &4 * x2 * x5 * #4.0 * #3.01 * #3.01 +
+     &2 * x3 * x3 * #4.0 * #3.01 * #3.01 -
+     &2 * x3 * x2 * #4.0 * #3.01 * #3.01 -
+     &2 * x3 * x6 * #4.0 * #3.01 * #3.01 +
+     &2 * x2 * x6 * #4.0 * #3.01 * #3.01 -
+     &2 * x3 * x4 * #4.0 * #3.01 * #3.01 -
+     &2 * x6 * x4 * #4.0 * #3.01 * #3.01 -
+     &2 * x3 * #4.0 * #4.0 * #3.01 * #3.01 -
+     &2 * x2 * #4.0 * #4.0 * #3.01 * #3.01 +
+     &2 * x4 * #4.0 * #4.0 * #3.01 * #3.01 +
+     &2 * x3 * x3 * (#3.01 * #3.01) * #3.01 * #3.01 -
+     &2 * x3 * x2 * (#3.01 * #3.01) * #3.01 * #3.01 -
+     &2 * x3 * x1 * (#3.01 * #3.01) * #3.01 * #3.01 +
+     &2 * x2 * x1 * (#3.01 * #3.01) * #3.01 * #3.01 -
+     &2 * x3 * x4 * (#3.01 * #3.01) * #3.01 * #3.01 -
+     &2 * x1 * x4 * (#3.01 * #3.01) * #3.01 * #3.01 -
+     &2 * x3 * x5 * (#3.01 * #3.01) * #3.01 * #3.01 -
+     &2 * x2 * x5 * (#3.01 * #3.01) * #3.01 * #3.01 +
+     &2 * x4 * x5 * (#3.01 * #3.01) * #3.01 * #3.01 +
+     &4 * x3 * #4.0 * (#3.01 * #3.01) * #3.01 * #3.01 -
+     x3 * x3 * (#3.01 * #3.01) * #3.01 * #3.01 +
+     &2 * x3 * x2 * (#3.01 * #3.01) * #3.01 * #3.01 -
+     x2 * x2 * (#3.01 * #3.01) * #3.01 * #3.01 +
+     &2 * x3 * x4 * (#3.01 * #3.01) * #3.01 * #3.01 +
+     &2 * x2 * x4 * (#3.01 * #3.01) * #3.01 * #3.01 -
+     x4 * x4 * (#3.01 * #3.01) * #3.01 * #3.01`;;
+
+let cayleytr6u = new_definition
+  `!x1 x2 x3 x4 x5 x6. cayleytr6u x1 x2 x3 x4 x5 x6 = 
+     &2 * x4 * #4.0 * #4.0 +
+     &2 * x4 * x5 * #3.01 * #3.01 +
+     -- &1 * x4 pow 2 * &0 +
+     -- &2 * x6 * x4 * #4.0 +
+     -- &2 * x6 * x4 * x5 +
+     &2 * x6 * x4 pow 2 +
+     -- &2 * x1 * x4 * #3.01 * #3.01 +
+     -- &2 * x1 * x4 * #4.0 +
+     &2 * x1 * x4 pow 2 +
+     &4 * x1 * x6 * x4 +
+     -- &2 * x2 * #4.0 * #4.0 +
+     -- &2 * x2 * x5 * #3.01 * #3.01 +
+     &4 * x2 * x5 * #4.0 +
+     &2 * x2 * x4 * &0 +
+     -- &2 * x2 * x4 * #4.0 +
+     -- &2 * x2 * x4 * x5 +
+     &2 * x2 * x6 * #4.0 +
+     -- &2 * x2 * x6 * x5 +
+     -- &2 * x2 * x6 * x4 +
+     &2 * x2 * x1 * #3.01 * #3.01 +
+     -- &2 * x2 * x1 * #4.0 +
+     -- &2 * x2 * x1 * x4 +
+     -- &1 * x2 pow 2 * &0 +
+     &2 * x2 pow 2 * #4.0 +
+     &2 * x2 pow 2 * x5 +
+     &4 * x3 * #4.0 * #3.01 * #3.01 +
+     -- &2 * x3 * #4.0 * #4.0 +
+     -- &2 * x3 * x5 * #3.01 * #3.01 +
+     &2 * x3 * x4 * &0 +
+     -- &2 * x3 * x4 * #3.01 * #3.01 +
+     -- &2 * x3 * x4 * #4.0 +
+     -- &2 * x3 * x6 * #4.0 +
+     &2 * x3 * x6 * x5 +
+     -- &2 * x3 * x6 * x4 +
+     -- &2 * x3 * x1 * #3.01 * #3.01 +
+     &2 * x3 * x1 * #4.0 +
+     -- &2 * x3 * x1 * x4 +
+     &2 * x3 * x2 * &0 +
+     -- &2 * x3 * x2 * #3.01 * #3.01 +
+     -- &2 * x3 * x2 * #4.0 +
+     -- &2 * x3 * x2 * #4.0 +
+     -- &2 * x3 * x2 * x5 +
+     &4 * x3 * x2 * x4 +
+     -- &1 * x3 pow 2 * &0 +
+     &2 * x3 pow 2 * #3.01 * #3.01 +
+     &2 * x3 pow 2 * #4.0`;;
+
+let deltaL_x = new_definition
+  `!x1 x2 x3 x4 x5 x6 m6. deltaL_x m6 x1 x2 x3 x4 x5 (x6:real) = 
+  delta_x x1 x2 x3 x4 x5 m6`;;
+
+let deltaL_x4 = new_definition
+  `!x1 x2 x3 x4 x5 x6 m6. deltaL_x4 m6 x1 x2 x3 x4 x5 (x6:real) = 
+  delta_x4 x1 x2 x3 x4 x5 m6`;;
+
+let ups234_x = new_definition
+  `!x1 x2 x3 x4 x5 x6. ups234_x (x1:real) (x2:real) x3 x4 (x5:real) (x6:real) = 
+  ups_x x2 x3 x4`;;
+
+(* ======================= *)
+(* Sqrt                    *)
+(* ======================= *)
+let eulerA_x = new_definition `eulerA_x x1 x2 x3 x4 x5 x6 =
+  sqrt(x1) * sqrt(x2) * sqrt(x3) + sqrt(x1) * (x2 + x3 - x4) / &2 + sqrt(x2) * (x1 + x3 - x5) / &2 +
+    sqrt(x3) * (x1 + x2 - x6) / &2`;;
+
+let proj_y1 = new_definition `proj_y1 x1 x2 x3 x4 x5 x6 = 
+  sqrt(x1)`;;
+
+let proj_y2 = new_definition `proj_y2 x1 x2 x3 x4 x5 x6 = 
+  sqrt(x2)`;;
+
+let proj_y3 = new_definition `proj_y3 x1 x2 x3 x4 x5 x6 = 
+  sqrt(x3)`;;
+
+let proj_y4 = new_definition `proj_y4 x1 x2 x3 x4 x5 x6 = 
+  sqrt(x4)`;;
+
+let proj_y5 = new_definition `proj_y5 x1 x2 x3 x4 x5 x6 = 
+  sqrt(x5)`;;
+
+let proj_y6 = new_definition `proj_y6 x1 x2 x3 x4 x5 x6 = 
+  sqrt(x6)`;;
+
+let sqrt_x1 = define `sqrt_x1 x1 x2 x3 x4 x5 x6 = sqrt x1`;;
+
+let sqrt_x2 = define `sqrt_x2 x1 x2 x3 x4 x5 x6 = sqrt x2`;;
+
+let sqrt_x3 = define `sqrt_x3 x1 x2 x3 x4 x5 x6 = sqrt x3`;;
+
+let sqrt_x4 = define `sqrt_x4 x1 x2 x3 x4 x5 x6 = sqrt x4`;;
+
+let sqrt_x5 = define `sqrt_x5 x1 x2 x3 x4 x5 x6 = sqrt x5`;;
+
+let sqrt_x6 = define `sqrt_x6 x1 x2 x3 x4 x5 x6 = sqrt x6`;;
+
+let halfbump_x = new_definition `halfbump_x x = bump (sqrt x / &2)`;;
+
+let halfbump_x1 = new_definition `halfbump_x1 x1 x2 x3 x4 x5 x6 = halfbump_x x1`;;
+
+let halfbump_x4 = new_definition `halfbump_x4 x1 x2 x3 x4 x5 x6 = halfbump_x x4`;;
+
+(* Functional definitions *)
+let constant6 = new_definition `constant6 c x1 x2 x3 x4 x5 x6 = c`;;
+
+let add6 = new_definition `add6 f g x1 x2 x3 x4 x5 x6 = 
+  f x1 x2 x3 x4 x5 x6 + g x1 x2 x3 x4 x5 x6`;;
+
+let scalar6 = new_definition `scalar6 f r x1 x2 x3 x4 x5 x6 = 
+  (f x1 x2 x3 x4 x5 x6) * (r:real)`;;
+
+let dummy6 = new_definition `dummy6 = constant6 ( &0)`;;
+
+let compose6 = new_definition `compose6 f p1 p2 p3 p4 p5 p6 
+  (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) =
+  (f:real->real->real->real->real->real->real)
+  (p1 x1 x2 x3 x4 x5 x6)
+    (p2 x1 x2 x3 x4 x5 x6)
+    (p3 x1 x2 x3 x4 x5 x6)
+    (p4 x1 x2 x3 x4 x5 x6)
+    (p5 x1 x2 x3 x4 x5 x6)
+    (p6 x1 x2 x3 x4 x5 x6)`;;
+
+let domain6 = new_definition `domain6 h f g = 
+  (!x1 x2 x3 x4 x5 x6. h x1 x2 x3 x4 x5 x6 ==>
+      (f x1 x2 x3 x4 x5 x6 = g x1 x2 x3 x4 x5 x6))`;;
+
+let promote1_to_6 = new_definition
+  `promote1_to_6 f x1 x2 x3 x4 x5 x6 = f x1`;;
+
+let uni = new_definition `uni (f,x) x1 x2 x3 x4 x5 x6 = 
+  (f:A->B) ( x x1 x2 x3 x4 x5 x6)`;;
+
+let two6 = new_definition `two6 = constant6 ( &2)`;;
+
+let mk_456 = new_definition `mk_456 f =
+  compose6 f two6 two6 two6 proj_x4 proj_x5 proj_x6`;;
+
+let mul6 = new_definition `mul6 f g x1 x2 x3 x4 x5 x6 = 
+  f x1 x2 x3 x4 x5 x6 * g x1 x2 x3 x4 x5 x6`;;
+
+let div6 = new_definition `div6 f g x1 x2 x3 x4 x5 x6 = 
+  f x1 x2 x3 x4 x5 x6 / g x1 x2 x3 x4 x5 x6`;;
+
+let sub6 = new_definition `sub6 f g x1 x2 x3 x4 x5 x6 = 
+  f x1 x2 x3 x4 x5 x6  -  g x1 x2 x3 x4 x5 x6`;;
+
+let functional_overload() = (
+  overload_interface ("+",`add6`);
+  overload_interface ("-",`sub6`);
+  overload_interface ("/",`div6`);
+  overload_interface ("*",`mul6`));;
+
+let _ = functional_overload();;
+
+let mu6_x = new_definition `(mu6_x:real->real->real->real->real->real->real) = 
+  (constant6 (#0.012) + constant6 (#0.07) * (constant6 (#2.52) - proj_y1)
+   + constant6 (#0.01) * ((constant6 (#2.52 * &2) - proj_y2 - proj_y3)))`;;
+
+let nonfunctional_mu6_x = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6.
+    mu6_x x1 x2 x3 x4 x5 x6 = 
+     (#0.012 + #0.07 * (#2.52 - sqrt(x1)) + #0.01 * (#2.52 * &2 - sqrt(x2) - sqrt(x3) ))`,
+  [
+    REWRITE_TAC[mu6_x; constant6; compose6; add6; sub6; mul6; proj_y1; proj_y2; proj_y3]
+  ]);;
+
+let taud_D2_num_x = new_definition `taud_D2_num_x =
+  (let d = delta_x in
+   let delta' = delta_x1 * (constant6 (&2)) * proj_y1 in
+   let delta'' = constant6 (-- &8) * proj_x1 * proj_x4 + delta_x1 * constant6 (&2) in
+   let mu = mu6_x in
+   let mu' = constant6 (-- #0.07) in
+     (mu' * d * delta' - constant6(&1 / &4) * mu * (delta' *delta') + constant6(&1 / &2) * mu * d * delta'' ))`;;
+
+let nonfunctional_taud_D2 = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. taud_D2_num_x x1 x2 x3 x4 x5 x6 = -- #0.07 *
+     delta_x x1 x2 x3 x4 x5 x6 *
+     delta_x1 x1 x2 x3 x4 x5 x6 *
+     &2 *
+     sqrt x1 -
+     &1 / &4 *
+     mu6_x x1 x2 x3 x4 x5 x6 *
+     (delta_x1 x1 x2 x3 x4 x5 x6 * &2 * sqrt x1) pow 2 +
+     &1 / &2 *
+     mu6_x x1 x2 x3 x4 x5 x6 *
+     delta_x x1 x2 x3 x4 x5 x6 *
+     (-- &8 * x1 * x4 + delta_x1 x1 x2 x3 x4 x5 x6 * &2)`,
+  [
+    REWRITE_TAC[taud_D2_num_x; LET_DEF; LET_END_DEF; constant6; proj_y1; mul6; add6; sub6; proj_x4; proj_x1];
+    REAL_ARITH_TAC
+  ]);;
+
+let vol_x = new_definition(`vol_x x1 x2 x3 x4 x5 x6 =
+        (sqrt (delta_x x1 x2 x3 x4 x5 x6))/ (&12)`);;
+
+let eta_x = new_definition(`eta_x x1 x2 x3 =
+        (sqrt ((x1*x2*x3)/(ups_x x1 x2 x3)))
+        `);;
+
+let taud_D1_num_x = new_definition `taud_D1_num_x = 
+  (let d = delta_x in
+   let delta' = delta_x1 * (constant6 (&2)) * proj_y1 in
+   let mu = mu6_x in
+   let mu' = constant6 (-- #0.07) in
+   let ft' = sol0 / (#0.52) in
+     (mu' * d + constant6(&1 / &2) * mu * delta' + constant6 ft' * uni(sqrt ,d)))`;;
+
+let nonfunctional_taud_D1 = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. taud_D1_num_x x1 x2 x3 x4 x5 x6 = 
+     -- #0.07 * delta_x x1 x2 x3 x4 x5 x6 +
+     &1 / &2 *
+     mu6_x x1 x2 x3 x4 x5 x6 *
+     delta_x1 x1 x2 x3 x4 x5 x6 *
+     &2 *
+     sqrt x1 +
+     sol0 /  #0.52 * sqrt (delta_x x1 x2 x3 x4 x5 x6)`,
+  [
+    REWRITE_TAC[taud_D1_num_x; LET_DEF; LET_END_DEF; constant6; uni; proj_y1; add6; mul6];
+  ]);;
+
+let gamma2_x_div_azim_v2 =  
+  new_definition `gamma2_x_div_azim_v2 m x = (&8 - x)* sqrt x / (&24) -
+  ( &2 * (&2 * mm1/ pi) * (&1 - sqrt x / sqrt8) - 
+      (&8 * mm2 / pi) * m * lfun (sqrt x / &2))`;;
+
+let gamma2_x1_div_a_v2 = new_definition `gamma2_x1_div_a_v2 m = 
+  promote1_to_6 (gamma2_x_div_azim_v2 m)`;;
+
+let nonf_gamma2_x1_div_a_v2 = prove_by_refinement(
+  `!(m:real) (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real).
+    gamma2_x1_div_a_v2 m x1 x2 x3 x4 x5 x6 = gamma2_x_div_azim_v2 m x1`,
+  [
+    REWRITE_TAC[FUN_EQ_THM;promote1_to_6;gamma2_x1_div_a_v2]
+  ]);;
+
+let abc_of_quadratic = 
+  new_definition `abc_of_quadratic f = 
+  let c = f (&0) in
+  let  p = f (&1) in
+  let n = f (-- &1) in
+    ((p + n)/(&2) - c, (p -n)/(&2), c)` ;;
+
+let quadratic_root_plus = 
+  new_definition `quadratic_root_plus (a, b, c) =
+  ( -- b + sqrt(b pow 2 - &4 * a * c))/ (&2 * a)`;;
+
+let edge2_flatD_x1 = new_definition `edge2_flatD_x1 d x2 x3 x4 x5 x6 = 
+  quadratic_root_plus (abc_of_quadratic (
+			 \x1.  d - delta_x x1 x2 x3 x4 x5 x6))`;;
+
+let abc_quadratic = prove (`abc_of_quadratic (\x. a * (x pow 2) + b * x + c) = (a,b,c)`,
+ REWRITE_TAC[abc_of_quadratic] THEN
+ (REPEAT LET_TAC) THEN
+ REWRITE_TAC[PAIR_EQ] THEN
+ REPEAT(FIRST_X_ASSUM MP_TAC)THEN
+ ARITH_TAC);;
+
+let edge2_flatD_x1_quadratic_root_plus = prove_by_refinement(
+  `!d x2 x3 x4 x5 x6.
+    edge2_flatD_x1 d x2 x3 x4 x5 x6 = 
+    quadratic_root_plus(x4,
+			-- delta_x1 (&0) x2 x3 x4 x5 x6,
+   d - delta_x (&0) x2 x3 x4 x5 x6 )`,
+  [
+  REWRITE_TAC[edge2_flatD_x1];
+  REPEAT STRIP_TAC;
+  ABBREV_TAC `b = (-- delta_x1 (&0) x2 x3 x4 x5 x6)`;
+  ABBREV_TAC `c = (d - delta_x (&0) x2 x3 x4 x5 x6)`;
+  SUBGOAL_THEN `!z. d - delta_x z x2 x3 x4 x5 x6 = x4 * z pow 2 + b * z + c` ASSUME_TAC;
+    EXPAND_TAC "c";
+    EXPAND_TAC "b";
+    REWRITE_TAC[delta_x;delta_x1];
+    REAL_ARITH_TAC;
+  ASM_REWRITE_TAC[abc_quadratic];
+  ]);;
+
+let nonf_edge2_flatD_x1 = prove_by_refinement(
+  `!d x2 x3 x4 x5 x6.
+            edge2_flatD_x1 d x2 x3 x4 x5 x6 = (delta_x1 (&0) x2 x3 x4 x5 x6 +
+      sqrt
+      (--delta_x1 (&0) x2 x3 x4 x5 x6 pow 2 -
+       &4 * x4 * (d - delta_x (&0) x2 x3 x4 x5 x6))) /
+     (&2 * x4)`,
+  [
+  REWRITE_TAC[edge2_flatD_x1_quadratic_root_plus;quadratic_root_plus];
+  REAL_ARITH_TAC
+  ]);;
+
+let edge2_126_x = new_definition `edge2_126_x d x4 x5 = 
+  compose6 (edge2_flatD_x1) (constant6 d) proj_x1 proj_x2 proj_x6 (constant6 x4) (constant6 x5)`;;
+
+let edge2_135_x = new_definition `edge2_135_x d x4 x6 =
+  compose6 (edge2_flatD_x1) (constant6 d) proj_x1 proj_x3 proj_x5 (constant6 x4) (constant6 x6)`;;
+
+let nonf_edge2_126_x = prove_by_refinement(
+  `!d x4' x5' x1 x2 x3 x4 x5 x6.
+    edge2_126_x d x4' x5' x1 x2 x3 x4 x5 x6 = edge2_flatD_x1 d x1 x2 x6 x4' x5'`,
+  [
+    REWRITE_TAC[edge2_126_x;compose6;constant6;proj_x1;proj_x2;proj_x6]
+  ]);;
+
+let flat_term = new_definition `flat_term y = sol0 * (y - &2 * h0)/(&2 * h0 - &2)`;;
+
+let flat_term_x = new_definition `flat_term_x x = flat_term (sqrt x)`;;
+
+let flat_term2_126_x = new_definition `flat_term2_126_x d x4 x5 = 
+  uni(flat_term_x,edge2_126_x d x4 x5)`;;
+
+let flat_term2_135_x = new_definition `flat_term2_135_x d x4 x6 = 
+  uni(flat_term_x,edge2_135_x d x4 x6)`;;
+
+let nonf_flat_term2_126_x = prove_by_refinement(
+  `!d x4' x5' x1 x2 x3 x4 x5 x6.
+    flat_term2_126_x d x4' x5' x1 x2 x3 x4 x5 x6 = flat_term_x (edge2_126_x d x4' x5' x1 x2 x3 x4 x5 x6)`,
+  [
+    REWRITE_TAC[flat_term2_126_x;uni]
+  ]);;
+
+let nonf_edge2_135_x = prove_by_refinement(
+  `!d a b x1 x2 x3 x4 x5 x6.
+            edge2_135_x d a b x1 x2 x3 x4 x5 x6 = edge2_flatD_x1 d x1 x3 x5 a b`,
+  [
+    REWRITE_TAC[edge2_135_x;compose6;constant6;proj_x1;proj_x3;proj_x5;compose6;constant6]
+  ]);;
+
+let nonf_flat_term2_135_x = prove_by_refinement(
+  `!d x4' x5' x1 x2 x3 x4 x5 x6.
+    flat_term2_135_x d x4' x5' x1 x2 x3 x4 x5 x6 = flat_term_x (edge2_135_x d x4' x5' x1 x2 x3 x4 x5 x6)`,
+  [
+    REWRITE_TAC[flat_term2_135_x;uni]
+  ]);;
+
+let edge2_234_x = new_definition `edge2_234_x d x5 x6 =
+  compose6 (edge2_flatD_x1) (constant6 d) proj_x2 proj_x3 proj_x4 (constant6 x5) (constant6 x6)`;;
+
+let nonf_edge2_234_x = prove_by_refinement(
+  `!d a b x1 x2 x3 x4 x5 x6.
+            edge2_234_x d a b x1 x2 x3 x4 x5 x6 = edge2_flatD_x1 d x2 x3 x4 a b`,
+  (* {{{ proof *)
+  [
+    ((REWRITE_TAC[edge2_234_x;compose6;constant6;proj_x1;proj_x3;proj_x2;proj_x4;proj_x5;compose6;constant6]))
+  ]);;
+  (* }}} *)
+
+let flat_term2_234_x = new_definition `flat_term2_234_x d x5 x6 = 
+  uni(flat_term_x,edge2_234_x d x5 x6)`;;
+
+let nonf_flat_term2_234_x = prove_by_refinement(
+  `!d a b x1 x2 x3 x4 x5 x6.
+    flat_term2_234_x d a b x1 x2 x3 x4 x5 x6 = flat_term_x (edge2_234_x d a b x1 x2 x3 x4 x5 x6)`,
+  (* {{{ proof *)
+  [
+    (REWRITE_TAC[flat_term2_234_x;uni])
+  ]);;
+  (* }}} *)
+
+let mudLs_135_x = new_definition `mudLs_135_x d1s d2s y2 y4 y6 = 
+  (mul6 (compose6 (mu6_x) (constant6 (y2*y2)) proj_x1 proj_x3 dummy6 dummy6 dummy6)
+     (constant6 (&1/ (d1s+d2s)) * (delta_135_x (y2*y2) (y4*y4) (y6*y6) - constant6(d1s *d1s)) + constant6(d1s)))`;;
+
+let nonf_mudLs_135_x = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6 a b c d e . mudLs_135_x a b c d e x1 x2 x3 x4 x5 x6 = 
+    mu6_x (c * c) x1 x3 (&0) (&0) (&0) *
+ (&1 / (a + b) *
+  (delta_135_x (c * c) (d * d) (e * e) x1 x2 x3 x4 x5 x6 - a * a) +
+  a)`,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+  ((ASM_SIMP_TAC[FUN_EQ_THM;mudLs_135_x;mul6;constant6;uni;compose6;proj_x2;proj_x3;proj_x1;dummy6;mul6;add6;sub6]))
+  ]);;
+  (* }}} *)
+
+let mudLs_126_x = new_definition `mudLs_126_x d1s d2s y3 y4 y5 = 
+  (mul6 (compose6 (mu6_x) (constant6 (y3*y3)) proj_x1 proj_x2 dummy6 dummy6 dummy6)
+     (constant6 (&1/ (d1s+d2s)) * (delta_126_x (y3*y3) (y4*y4) (y5*y5) - constant6(d1s *d1s)) + constant6(d1s)))`;;
+
+let nonf_mudLs_126_x = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6 a b c d e . mudLs_126_x a b c d e x1 x2 x3 x4 x5 x6 = 
+    mu6_x (c * c) x1 x2 (&0) (&0) (&0) *
+ (&1 / (a + b) *
+  (delta_126_x (c * c) (d * d) (e * e) x1 x2 x3 x4 x5 x6 - a * a) +
+  a)
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+  ((ASM_SIMP_TAC[FUN_EQ_THM;mudLs_126_x;mul6;constant6;uni;compose6;proj_x2;proj_x3;proj_x1;dummy6;mul6;add6;sub6]))
+  ]);;
+  (* }}} *)
+
+let mudLs_234_x = new_definition `mudLs_234_x d1s d2s y1 y5 y6 = 
+  (mul6 (compose6 (mu6_x) (constant6 (y1*y1)) proj_x2 proj_x3 dummy6 dummy6 dummy6)
+     (constant6 (&1/ (d1s+d2s)) * (delta_234_x (y1*y1) (y5*y5) (y6*y6) - constant6(d1s *d1s)) + constant6(d1s)))`;;
+
+let nonf_mudLs_234_x = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6 a b c d e . mudLs_234_x a b c d e x1 x2 x3 x4 x5 x6 = 
+    mu6_x (c * c) x2 x3 (&0) (&0) (&0) *
+ (&1 / (a + b) *
+  (delta_234_x (c * c) (d * d) (e * e) x1 x2 x3 x4 x5 x6 - a * a) +
+  a)
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT STRIP_TAC;
+  ((ASM_SIMP_TAC[FUN_EQ_THM;mudLs_234_x;mul6;constant6;uni;compose6;proj_x2;proj_x3;proj_x4;proj_x1;dummy6;mul6;add6;sub6]))
+  ]);;
+  (* }}} *)
+
+let functional_taud_x' = new_definition `taud_x' = ( (promote1_to_6 flat_term_x) +
+	 (uni(sqrt,delta_x)) * mu6_x)`;;
+
+let nonf_taud_x' = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. taud_x' x1 x2 x3 x4 x5 x6 =
+    flat_term_x x1 + sqrt(delta_x x1 x2 x3 x4 x5 x6) * mu6_x x1 x2 x3 x4 x5 x6`,
+  (* {{{ proof *)
+  [
+    ((ASM_SIMP_TAC[functional_taud_x';mul6;constant6;uni;compose6;proj_x1;proj_x2;dummy6;add6;promote1_to_6]))
+  ]);;
+  (* }}} *)
+
+
+(* ======================= *)
+(* Trig                    *)
+(* ======================= *)
+let matan = new_definition `matan x = 
+  if (x = &0) then &1
+  else if (x > &0) then atn (sqrt x) / (sqrt x) 
+  else  (log ((&1 + sqrt( -- x))/(&1 - sqrt( -- x)))) / (&2 * sqrt (-- x))`;;
+
+let dihatn_x = new_definition' 
+  `!x1 x2 x3 x4 x5 x6.
+         dihatn_x x1 x2 x3 x4 x5 x6 =
+         (let d_x4 = delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+          pi / &2 + atn ((--d_x4)/sqrt (&4 * x1 * d)))`;;
+
+let dih2atn_x = new_definition' 
+  `!x1 x2 x3 x4 x5 x6.
+         dih2atn_x x1 x2 x3 x4 x5 x6 =
+         (let e = rotate2 delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+          pi / &2 + atn ((--e)/sqrt (&4 * x2 * d)))`;;
+
+let dih3atn_x = new_definition' 
+  `!x1 x2 x3 x4 x5 x6.
+         dih3atn_x x1 x2 x3 x4 x5 x6 =
+         (let e = rotate3 delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+          pi / &2 + atn ((--e)/sqrt (&4 * x3 * d)))`;;
+
+let dih4atn_x = new_definition' 
+  `!x1 x2 x3 x4 x5 x6.
+         dih4atn_x x1 x2 x3 x4 x5 x6 =
+         (let e = rotate4 delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+          pi / &2 + atn ((--e)/sqrt (&4 * x4 * d)))`;;
+
+let dih5atn_x = new_definition' 
+  `!x1 x2 x3 x4 x5 x6.
+         dih5atn_x x1 x2 x3 x4 x5 x6 =
+         (let e = rotate5 delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+          pi / &2 + atn ((--e)/sqrt (&4 * x5 * d)))`;;
+
+let dih6atn_x = new_definition' 
+  `!x1 x2 x3 x4 x5 x6.
+         dih6atn_x x1 x2 x3 x4 x5 x6 =
+         (let e = rotate6 delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+          pi / &2 + atn ((--e)/sqrt (&4 * x6 * d)))`;;
+
+let ldihatn_x = new_definition' `ldihatn_x x1 x2 x3 x4 x5 x6 =
+   lfun(sqrt(x1) / &2) * dihatn_x x1 x2 x3 x4 x5 x6`;;
+
+let ldih2atn_x = new_definition' `ldih2atn_x x1 x2 x3 x4 x5 x6 =
+   lfun(sqrt(x2) / &2) * dih2atn_x x1 x2 x3 x4 x5 x6`;;
+
+let ldih3atn_x = new_definition' `ldih3atn_x x1 x2 x3 x4 x5 x6 =
+   lfun(sqrt(x3) / &2) * dih3atn_x x1 x2 x3 x4 x5 x6`;;
+
+let ldih4atn_x = new_definition' `ldih4atn_x x1 x2 x3 x4 x5 x6 =
+   lfun(sqrt(x4) / &2) * dih4atn_x x1 x2 x3 x4 x5 x6`;;
+
+let ldih5atn_x = new_definition' `ldih5atn_x x1 x2 x3 x4 x5 x6 =
+   lfun(sqrt(x5) / &2) * dih5atn_x x1 x2 x3 x4 x5 x6`;;
+
+let ldih6atn_x = new_definition' `ldih6atn_x x1 x2 x3 x4 x5 x6 =
+   lfun(sqrt(x6) / &2) * dih6atn_x x1 x2 x3 x4 x5 x6`;;
+
+
+(* ======================= *)
+(* Trig1                   *)
+(* ======================= *)
+
+let asn797k = new_definition `asn797k k x2 x3 x4 x5 x6 = 
+  k * asn (cos (#0.797) * sin (pi / k))`;;
+
+let asnFnhk = new_definition `asnFnhk h k x3 x4 x5 x6 = 
+  k * asn (( h * sqrt3 / #4.0 + sqrt(&1 - (h/ &2) pow 2)/ &2) * sin (pi/ k))`;;
+
+let functional_arclength_x_123' = new_definition `arclength_x_123' = 
+  uni(acs, (proj_x1 + proj_x2 - proj_x3) / (uni(sqrt,scalar6 (proj_x1 * proj_x2) ( &4))) )`;; 
+
+let functional_arclength_x1' = new_definition `!a b. arclength_x1' a b = 
+  (compose6
+       arclength_x_123' proj_x1 (constant6 (a*a)) (constant6 (b*b))
+       dummy6 dummy6 dummy6)`;;
+
+let nonf_arclength_x1' = prove_by_refinement(
+  `!a b x1 x2 x3 x4 x5 x6.
+    arclength_x1' a b x1 x2 x3 x4 x5 x6 = acs ((x1 + a * a - b * b) / sqrt ((x1 * a * a) * &4))`,
+  [
+    REWRITE_TAC[functional_arclength_x1';proj_x1;compose6;constant6;functional_arclength_x_123';uni;div6;add6;scalar6;mul6;proj_x1;proj_x2;sub6;proj_x2;proj_x3]
+  ]);;
+
+let nonf_arclength_x_123' = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. arclength_x_123' x1 x2 x3 x4 x5 x6 = acs ((x1 + x2 - x3) / sqrt ((x1 * x2) * &4))`,
+  [
+    REWRITE_TAC[functional_arclength_x1';proj_x1;compose6;
+		constant6;functional_arclength_x_123';uni;div6;add6;
+		scalar6;mul6;proj_x1;proj_x2;sub6;proj_x2;proj_x3]
+  ]);;
+
+let sol_euler_x_div_sqrtdelta =  new_definition 
+ `sol_euler_x_div_sqrtdelta x1 x2 x3 x4 x5 x6 = 
+  (let a = sqrt(x1*x2*x3) + sqrt( x1)*(x2 + x3 - x4)/ &2 + 
+     sqrt(x2)*(x1 + x3 - x5)/ &2 + sqrt(x3)*(x1 + x2 - x6)/ &2 in
+     (matan ((delta_x x1 x2 x3 x4 x5 x6)/(&4 * a pow 2 )))/( a))`;;
+
+let sol_euler246_x_div_sqrtdelta =  new_definition 
+ `sol_euler246_x_div_sqrtdelta = rotate4 sol_euler_x_div_sqrtdelta`;;
+
+let sol_euler345_x_div_sqrtdelta =  new_definition 
+ `sol_euler345_x_div_sqrtdelta = rotate5 sol_euler_x_div_sqrtdelta`;;
+
+let sol_euler156_x_div_sqrtdelta =  new_definition 
+ `sol_euler156_x_div_sqrtdelta = rotate6 sol_euler_x_div_sqrtdelta`;;
+
+let nonf_sol_euler156_x_div_sqrtdelta = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. sol_euler156_x_div_sqrtdelta x1 x2 x3 x4 x5 x6 = (let a =
+          sqrt (x6 * x1 * x5) +
+          sqrt x6 * (x1 + x5 - x3) / &2 +
+          sqrt x1 * (x6 + x5 - x4) / &2 +
+          sqrt x5 * (x6 + x1 - x2) / &2 in
+      matan (delta_x x1 x2 x3 x4 x5 x6 / (&4 * a pow 2)) / a)`,
+  [
+  REWRITE_TAC[sol_euler156_x_div_sqrtdelta;sol_euler_x_div_sqrtdelta;rotate6;LET_DEF;LET_END_DEF];
+  REPEAT GEN_TAC;
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[delta_x] THEN REAL_ARITH_TAC
+  ]);;
+
+let nonf_sol_euler246_x_div_sqrtdelta = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. sol_euler246_x_div_sqrtdelta x1 x2 x3 x4 x5 x6 = (let a =
+	sqrt (x4 * x2 * x6) +
+        sqrt x4 * (x2 + x6 - x1) / &2 +
+        sqrt x2 * (x4 + x6 - x5) / &2 +
+        sqrt x6 * (x4 + x2 - x3) / &2 in
+      matan (delta_x x1 x2 x3 x4 x5 x6 / (&4 * a pow 2)) / a)`,
+  [
+  REWRITE_TAC[sol_euler246_x_div_sqrtdelta;sol_euler_x_div_sqrtdelta;rotate4;LET_DEF;LET_END_DEF];
+  REPEAT GEN_TAC;
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[delta_x] THEN REAL_ARITH_TAC
+  ]);;
+
+let nonf_sol_euler345_x_div_sqrtdelta = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. sol_euler345_x_div_sqrtdelta x1 x2 x3 x4 x5 x6 = (let a =
+	sqrt (x5 * x3 * x4) +
+        sqrt x5 * (x3 + x4 - x2) / &2 +
+        sqrt x3 * (x5 + x4 - x6) / &2 +
+        sqrt x4 * (x5 + x3 - x1) / &2  in
+      matan (delta_x x1 x2 x3 x4 x5 x6 / (&4 * a pow 2)) / a)`,
+  [
+  REWRITE_TAC[sol_euler345_x_div_sqrtdelta;sol_euler_x_div_sqrtdelta;rotate5;LET_DEF;LET_END_DEF];
+  REPEAT GEN_TAC;
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[delta_x] THEN REAL_ARITH_TAC
+  ]);;
+
+let acs_sqrt_x1_d4 = new_definition `acs_sqrt_x1_d4 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) = 
+  acs (sqrt(x1)/ &4)`;;
+
+let dih_x_div_sqrtdelta_posbranch = new_definition
+ `dih_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 =
+  ( let d_x4 = delta_x4 x1 x2 x3 x4 x5 x6 in
+          let d = delta_x x1 x2 x3 x4 x5 x6 in
+	     (sqrt(&4 * x1) / d_x4) * matan((&4 * x1 * d)/(d_x4 pow 2)))`;;
+
+let dih4_x_div_sqrtdelta_posbranch = new_definition
+ `dih4_x_div_sqrtdelta_posbranch  = rotate4 dih_x_div_sqrtdelta_posbranch`;;
+
+let nonf_dih4_x_div_sqrtdelta_posbranch = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. dih4_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 = 
+    sqrt (&4 * x4) / delta_x4 x4 x2 x6 x1 x5 x3 *
+     matan
+     ((&4 * x4 * delta_x x1 x2 x3 x4 x5 x6) /
+      delta_x4 x4 x2 x6 x1 x5 x3 pow 2)`,
+  [
+  REWRITE_TAC[dih_x_div_sqrtdelta_posbranch;dih4_x_div_sqrtdelta_posbranch;dih_x_div_sqrtdelta_posbranch;rotate4;LET_DEF;LET_END_DEF];
+  REPEAT GEN_TAC;
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[delta_x] THEN REAL_ARITH_TAC
+  ]);;
+
+let ldih_x_div_sqrtdelta_posbranch = new_definition
+ `ldih_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 =
+   lfun(sqrt(x1) / &2) * dih_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6`;;
+
+let ldih2_x_div_sqrtdelta_posbranch = new_definition
+ `ldih2_x_div_sqrtdelta_posbranch =  rotate2 ldih_x_div_sqrtdelta_posbranch`;;
+
+let ldih3_x_div_sqrtdelta_posbranch = new_definition
+ `ldih3_x_div_sqrtdelta_posbranch  = rotate3 ldih_x_div_sqrtdelta_posbranch`;;
+
+let ldih5_x_div_sqrtdelta_posbranch = new_definition
+ `ldih5_x_div_sqrtdelta_posbranch  = rotate5 ldih_x_div_sqrtdelta_posbranch`;;
+
+let ldih6_x_div_sqrtdelta_posbranch = new_definition
+ `ldih6_x_div_sqrtdelta_posbranch  = rotate6 ldih_x_div_sqrtdelta_posbranch`;;
+
+let nonf_ldih2_x_div_sqrtdelta_posbranch = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. ldih2_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 = 
+   lfun (sqrt x2 / &2) *
+     sqrt (&4 * x2) / delta_x4 x2 x3 x1 x5 x6 x4 *
+     matan
+     ((&4 * x2 * delta_x x1 x2 x3 x4 x5 x6) /
+      delta_x4 x2 x3 x1 x5 x6 x4 pow 2)`,
+  [
+  REWRITE_TAC[ldih_x_div_sqrtdelta_posbranch;ldih2_x_div_sqrtdelta_posbranch;dih_x_div_sqrtdelta_posbranch;rotate2;LET_DEF;LET_END_DEF];
+  REPEAT GEN_TAC;
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[delta_x] THEN REAL_ARITH_TAC
+  ]);;
+
+
+let nonf_ldih3_x_div_sqrtdelta_posbranch = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. ldih3_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 = 
+    lfun (sqrt x3 / &2) *
+ sqrt (&4 * x3) / delta_x4 x3 x1 x2 x6 x4 x5 *
+ matan
+ ((&4 * x3 * delta_x x1 x2 x3 x4 x5 x6) / delta_x4 x3 x1 x2 x6 x4 x5 pow 2)`,
+  [
+  REWRITE_TAC[ldih_x_div_sqrtdelta_posbranch;ldih3_x_div_sqrtdelta_posbranch;dih_x_div_sqrtdelta_posbranch;rotate3;LET_DEF;LET_END_DEF];
+  REPEAT GEN_TAC;
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[delta_x] THEN REAL_ARITH_TAC
+  ]);;
+
+let nonf_ldih5_x_div_sqrtdelta_posbranch = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. ldih5_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 = 
+   lfun (sqrt x5 / &2) *
+ sqrt (&4 * x5) / delta_x4 x5 x3 x4 x2 x6 x1 *
+ matan
+ ((&4 * x5 * delta_x x1 x2 x3 x4 x5 x6) / delta_x4 x5 x3 x4 x2 x6 x1 pow 2)`,
+  [
+  REWRITE_TAC[ldih_x_div_sqrtdelta_posbranch;ldih5_x_div_sqrtdelta_posbranch;dih_x_div_sqrtdelta_posbranch;rotate5;LET_DEF;LET_END_DEF];
+  REPEAT GEN_TAC;
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[delta_x] THEN REAL_ARITH_TAC
+  ]);;
+
+let nonf_ldih6_x_div_sqrtdelta_posbranch = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. ldih6_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 = 
+    lfun (sqrt x6 / &2) *
+     sqrt (&4 * x6) / delta_x4 x6 x1 x5 x3 x4 x2 *
+     matan
+     ((&4 * x6 * delta_x x1 x2 x3 x4 x5 x6) /
+      delta_x4 x6 x1 x5 x3 x4 x2 pow 2) `,
+  [
+  REWRITE_TAC[ldih_x_div_sqrtdelta_posbranch;ldih6_x_div_sqrtdelta_posbranch;dih_x_div_sqrtdelta_posbranch;rotate6;LET_DEF;LET_END_DEF];
+  REPEAT GEN_TAC;
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[delta_x] THEN REAL_ARITH_TAC
+  ]);;
+
+let gamma3f_x_div_sqrtdelta = new_definition `gamma3f_x_div_sqrtdelta m4 m5 m6  = 
+  constant6 (&1/ &12)  - 
+    (scalar6 ( mk_456 (rotate5 (sol_euler_x_div_sqrtdelta)) +
+		mk_456 (rotate6 (sol_euler_x_div_sqrtdelta)) + 
+		mk_456 (rotate4 (sol_euler_x_div_sqrtdelta)) 
+	       )  (&2 * mm1/ pi)    
+    -       
+      scalar6 (
+	(scalar6 (uni(lfun,(scalar6 proj_y4  #0.5))) m4) * 
+	  mk_456 (rotate4 (dih_x_div_sqrtdelta_posbranch)) +
+	(scalar6 (uni(lfun,(scalar6 proj_y5  #0.5))) m5) * 
+	  mk_456 (rotate5 (dih_x_div_sqrtdelta_posbranch)) +
+	(scalar6 (uni(lfun,(scalar6 proj_y6  #0.5))) m6) * 
+	  mk_456 (rotate6 (dih_x_div_sqrtdelta_posbranch))
+      )  (&8 * mm2 / pi))`;;
+
+let nonf_gamma3f_x_div_sqrt_delta = prove_by_refinement(
+  `!p1 p2 p3 x1 x2 x3 x4 x5 x6.
+    gamma3f_x_div_sqrtdelta p1 p2 p3 x1 x2 x3 x4 x5 x6 = &1 / &12 -
+ ((sol_euler_x_div_sqrtdelta x5 (&2) x4 (&2) x6 (&2) +
+   sol_euler_x_div_sqrtdelta x6 (&2) x5 (&2) x4 (&2) +
+   sol_euler_x_div_sqrtdelta x4 (&2) x6 (&2) x5 (&2)) *
+  &2 *
+  mm1 / pi -
+  ((lfun (sqrt x4 *  #0.5) * p1) *
+   dih_x_div_sqrtdelta_posbranch x4 (&2) x6 (&2) x5 (&2) +
+   (lfun (sqrt x5 *  #0.5) * p2) *
+   dih_x_div_sqrtdelta_posbranch x5 (&2) x4 (&2) x6 (&2) +
+   (lfun (sqrt x6 *  #0.5) * p3) *
+   dih_x_div_sqrtdelta_posbranch x6 (&2) x5 (&2) x4 (&2)) *
+  &8 *
+  mm2 / pi)`,
+  [
+  REPEAT STRIP_TAC;
+  REWRITE_TAC[gamma3f_x_div_sqrtdelta];
+  REWRITE_TAC[mk_456; constant6; scalar6; sub6; add6; proj_x5; proj_x6; uni; proj_y4; proj_y5; proj_y6; mul6; two6; div6; LET_DEF; LET_END_DEF;rotate5;rotate6;rotate4; compose6; proj_x4]
+  ]);;
+
+let gamma3atn_x = new_definition
+  `!m1 x4 x5 x6. gamma3atn_x m1 x4 x5 x6 = 
+             vol_x (&2) (&2) (&2) x4 x5 x6 -
+             (&2 *
+              mm1 / pi *
+              (&2 * dih4atn_x (&2) (&2) (&2) x4 x5 x6 +
+               &2 * dih5atn_x (&2) (&2) (&2) x4 x5 x6 +
+               &2 * dih6atn_x (&2) (&2) (&2) x4 x5 x6 +
+               dihatn_x (&2) (&2) (&2) x4 x5 x6 +
+               dih2atn_x (&2) (&2) (&2) x4 x5 x6 +
+               dih3atn_x (&2) (&2) (&2) x4 x5 x6 - &3 * pi) -
+              ((lfun (sqrt x4 * #0.5) * m1) *
+               dih4atn_x (&2) (&2) (&2) x4 x5 x6 +
+               lfun (sqrt x5 * #0.5) * dih5atn_x (&2) (&2) (&2) x4 x5 x6 +
+               lfun (sqrt x6 * #0.5) * dih6atn_x (&2) (&2) (&2) x4 x5 x6) *
+              &8 *
+              mm2 / pi)`;;
+
+(* ======================= *)
+(* Const1 definitions      *)
+(* ======================= *)
+
+prioritize_real();;
+
+let atn2 = new_definition(`atn2(x,y) =
+    if ( abs y < x ) then atn(y / x) else
+    (if (&0 < y) then ((pi / &2) - atn(x / y)) else
+    (if (y < &0) then (-- (pi/ &2) - atn (x / y)) else (  pi )))`);;
+
+let dih_x = new_definition(`dih_x x1 x2 x3 x4 x5 x6 =
+       let d_x4 = delta_x4 x1 x2 x3 x4 x5 x6 in
+       let d = delta_x x1 x2 x3 x4 x5 x6 in
+       pi/ (&2) +  atn2( (sqrt ((&4) * x1 * d)),--  d_x4)`);;
+
+let dih_y = new_definition(`dih_y y1 y2 y3 y4 y5 y6 =
+       let (x1,x2,x3,x4,x5,x6)= (y1*y1,y2*y2,y3*y3,y4*y4,y5*y5,y6*y6) in
+       dih_x x1 x2 x3 x4 x5 x6`);;
+
+let sol_x = new_definition(`sol_x x1 x2 x3 x4 x5 x6 =
+        (dih_x x1 x2 x3 x4 x5 x6) +
+        (dih_x x2 x3 x1 x5 x6 x4) +  (dih_x x3 x1 x2 x6 x4 x5) -  pi`);;
+
+let sol_y = new_definition(`sol_y y1 y2 y3 y4 y5 y6 =
+        (dih_y y1 y2 y3 y4 y5 y6) +
+        (dih_y y2 y3 y1 y5 y6 y4) +  (dih_y y3 y1 y2 y6 y4 y5) -  pi`);;
+
+let const1 = new_definition `const1 = sol_y (&2) (&2) (&2) (&2) (&2) (&2) / pi`;;
+
+let sol0_EQ_sol_y = prove(`sol0 = sol_y (&2) (&2) (&2) (&2) (&2) (&2)`,
+    REWRITE_TAC[sol0; sol_y; dih_y; dih_x; delta_x4; delta_x] THEN
+      CONV_TAC (DEPTH_CONV let_CONV) THEN
+      CONV_TAC (REAL_RAT_REDUCE_CONV) THEN
+      REWRITE_TAC[atn2] THEN
+      SUBGOAL_THEN `&0 <= sqrt (&2048)` ASSUME_TAC THENL [
+	REWRITE_TAC[Vectors.SQRT_LE_0] THEN REAL_ARITH_TAC;
+	ALL_TAC
+      ] THEN
+      SUBGOAL_THEN `abs (-- &16) < sqrt (&2048)` ASSUME_TAC THENL [
+	SUBGOAL_THEN `sqrt (&2048) = abs (sqrt (&2048))` (fun th -> ONCE_REWRITE_TAC[th]) THENL [
+	  ONCE_REWRITE_TAC[EQ_SYM_EQ] THEN
+	  ASM_REWRITE_TAC[REAL_ABS_REFL];
+	  ALL_TAC
+	] THEN
+	  REWRITE_TAC[REAL_LT_SQUARE_ABS] THEN
+	  ASM_SIMP_TAC[REAL_ARITH `&0 <= &2048`; Vectors.SQRT_POW_2] THEN
+	  REAL_ARITH_TAC;
+	ALL_TAC
+      ] THEN
+	ASM_REWRITE_TAC[] THEN
+	SIMP_TAC[REAL_ARITH `-- &1 < &1 / &3 /\ &1 / &3 < &1`; Transcendentals.ACS_ATN] THEN
+	SUBGOAL_THEN `sqrt (&2048) = &48 * sqrt(&8 / &9)` (fun th -> REWRITE_TAC[th]) THENL [
+	  REWRITE_TAC[REAL_ARITH `&2048 = &48 pow 2 * (&8 / &9)`] THEN
+	    REWRITE_TAC[Vectors.SQRT_MUL; Vectors.POW_2_SQRT_ABS] THEN REAL_ARITH_TAC;
+	  ALL_TAC
+	] THEN
+	  REWRITE_TAC[real_div; REAL_MUL_LNEG; Transcendentals.ATN_NEG] THEN
+	  REWRITE_TAC[REAL_ARITH `&1 - (&1 * inv (&3)) pow 2 = &8 * inv(&9)`] THEN
+	  REWRITE_TAC[REAL_INV_MUL] THEN
+	  REWRITE_TAC[REAL_ARITH `&16 * inv(&48) * inv a = (&1 * inv(&3)) * inv a`] THEN
+	  REAL_ARITH_TAC);;
+
+let const1_alt = prove(`const1 = sol0 / pi`,
+   REWRITE_TAC[sol0_EQ_sol_y; const1]);;
+
+let interp = new_definition `interp x1 y1 x2 y2 x = y1 + (x - x1) * (y2- y1)/(x2-x1)`;;
+
+let ly = new_definition `ly y = interp (&2) (&1) (#2.52) (&0) y`;;
+
+let rho = new_definition `rho y = &1 + const1 - const1* ly y`;;
+
+let rho_alt = prove_by_refinement(
+  `!y. rho y = &1 + const1 *(y - &2) / (#0.52)`,
+  [
+  GEN_TAC;
+  REWRITE_TAC[rho;ly;interp;REAL_ARITH `#2.52 - &2 = #0.52`];
+  REAL_ARITH_TAC;
+  ]);;
+
+let rhazimatn_x = new_definition' `rhazimatn_x x1 x2 x3 x4 x5 x6 = 
+  rho (sqrt x1) * dihatn_x x1 x2 x3 x4 x5 x6`;;
+
+let rhazim2atn_x = new_definition' `rhazim2atn_x x1 x2 x3 x4 x5 x6 = 
+  rho (sqrt x2) * dih2atn_x x1 x2 x3 x4 x5 x6`;;
+
+let rhazim3atn_x = new_definition' `rhazim3atn_x x1 x2 x3 x4 x5 x6 = 
+  rho (sqrt x3) * dih3atn_x x1 x2 x3 x4 x5 x6`;;
+
+let rhazim_x_div_sqrtdelta_posbranch = new_definition
+ `rhazim_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 =
+   rho(sqrt(x1)) * dih_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6`;;
+
+let rhazim2_x_div_sqrtdelta_posbranch = new_definition
+ `rhazim2_x_div_sqrtdelta_posbranch =  
+  rotate2 rhazim_x_div_sqrtdelta_posbranch`;;
+
+let rhazim3_x_div_sqrtdelta_posbranch = new_definition
+ `rhazim3_x_div_sqrtdelta_posbranch  = 
+  rotate3 rhazim_x_div_sqrtdelta_posbranch`;;
+
+let nonf_rhazim2_x_div_sqrtdelta_posbranch = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. rhazim2_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 = 
+    rho (sqrt x2) *
+     sqrt (&4 * x2) / delta_x4 x2 x3 x1 x5 x6 x4 *
+     matan
+     ((&4 * x2 * delta_x x1 x2 x3 x4 x5 x6) /
+      delta_x4 x2 x3 x1 x5 x6 x4 pow 2) `,
+  [
+  REWRITE_TAC[rhazim_x_div_sqrtdelta_posbranch;rhazim2_x_div_sqrtdelta_posbranch;dih_x_div_sqrtdelta_posbranch;rotate2;LET_DEF;LET_END_DEF];
+  REPEAT GEN_TAC;
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[delta_x] THEN REAL_ARITH_TAC
+  ]);;
+
+let nonf_rhazim3_x_div_sqrtdelta_posbranch = prove_by_refinement(
+  `!x1 x2 x3 x4 x5 x6. rhazim3_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6 = 
+   rho (sqrt x3) *
+     sqrt (&4 * x3) / delta_x4 x3 x1 x2 x6 x4 x5 *
+     matan
+     ((&4 * x3 * delta_x x1 x2 x3 x4 x5 x6) /
+      delta_x4 x3 x1 x2 x6 x4 x5 pow 2)`,
+  [
+  REWRITE_TAC[rhazim_x_div_sqrtdelta_posbranch;rhazim3_x_div_sqrtdelta_posbranch;dih_x_div_sqrtdelta_posbranch;rotate3;LET_DEF;LET_END_DEF];
+  REPEAT GEN_TAC;
+  REPEAT (AP_TERM_TAC ORELSE AP_THM_TAC);
+  REWRITE_TAC[delta_x] THEN REAL_ARITH_TAC
+  ]);;
+
+
+let tau_residual_x  = new_definition
+ `tau_residual_x x1 x2 x3 x4 x5 x6 = 
+     rhazim_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6
++     rhazim2_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6
++     rhazim3_x_div_sqrtdelta_posbranch x1 x2 x3 x4 x5 x6`;;
+
+
+let arclength = new_definition(`arclength a b c =
+        pi/(&2) + (atn2( (sqrt (ups_x (a*a) (b*b) (c*c))),(c*c - a*a  -b*b)))`);;
+
+
+let arc_hhn = new_definition `arc_hhn = 
+  arclength (&2 * h0) (&2 * h0) (&2)`;;
+
+let arc_hhn_alt = prove(`arc_hhn = pi / &2 + atn((-- &5438 / &625) / sqrt(&53504 / &625))`,
+   REWRITE_TAC[arc_hhn; arclength; h0; ups_x] THEN
+     CONV_TAC REAL_RAT_REDUCE_CONV THEN
+     REWRITE_TAC[atn2] THEN CONV_TAC REAL_RAT_REDUCE_CONV THEN
+     SUBGOAL_THEN `(&5438 / &625 < sqrt(&53504 / &625))` ASSUME_TAC THENL [
+       SUBGOAL_THEN `&5438 / &625 = sqrt ((&5438 / &625) pow 2)` (fun th -> ONCE_REWRITE_TAC[th]) THENL [
+	 REWRITE_TAC[Vectors.POW_2_SQRT_ABS] THEN REAL_ARITH_TAC;
+	 ALL_TAC
+       ] THEN
+	 REWRITE_TAC[Vectors.SQRT_MONO_LT_EQ] THEN REAL_ARITH_TAC;
+       ALL_TAC
+     ] THEN
+     ASM_REWRITE_TAC[]);;
+
+
+(* All definitions together *)
+let rational_expansions = 
+  [("delta_x",delta_x);
+   ("delta_x4",delta_x4);
+   ("delta_x1",delta_x1);
+   ("ups_x",ups_x);
+   ("rho_x",rho_x);
+   ("lfun",lfun);
+   ("num1",num1);
+   ("gchi",gchi_alt);
+   ("delta4_squared_x",delta4_squared_x);
+   ("x1_delta_x",x1_delta_x);
+   ("lfun_y1",lfun_y1);
+   ("norm2hh_x",norm2hh_x);
+   ("norm2hh",norm2hh);
+   ("bump",bump);
+   ("pow2",pow2);
+   ("rad2_x",rad2_x);
+   ("proj_x1",proj_x1);
+   ("proj_x2",proj_x2);
+   ("proj_x3",proj_x3);
+   ("proj_x4",proj_x4);
+   ("proj_x5",proj_x5);
+   ("proj_x6",proj_x6);
+   ("unit6",unit6);
+   ("dnum1",dnum1);
+   ("rho",rho_alt);
+   ("delta_126_x",delta_126_x);
+   ("delta_135_x",delta_135_x);
+   ("delta_234_x",delta_234_x);
+   ("mu_y",mu_y);
+   ("cayleyR6u",cayleyR6u);
+   ("cayleytr6u",cayleytr6u);
+   ("deltaL_x",deltaL_x);
+   ("deltaL_x4",deltaL_x4);
+   ("ups234_x",ups234_x);
+  ];;
+
+let sqrt_expansions = 
+  [("eulerA_x",eulerA_x);
+   ("proj_y1", proj_y1);
+   ("proj_y2",proj_y2);
+   ("proj_y3",proj_y3);
+   ("proj_y4",proj_y4);
+   ("proj_y5",proj_y5);
+   ("proj_y6",proj_y6);
+   ("sqrt_x1",sqrt_x1);
+   ("sqrt_x2",sqrt_x2);
+   ("sqrt_x3",sqrt_x3);
+   ("sqrt_x4",sqrt_x4);
+   ("sqrt_x5",sqrt_x5);
+   ("sqrt_x6",sqrt_x6);
+   ("halfbump_x",halfbump_x);
+   ("halfbump_x1",halfbump_x1);
+   ("halfbump_x4",halfbump_x4);
+   ("taud_D2_num_x",nonfunctional_taud_D2);
+   ("mu6_x",nonfunctional_mu6_x);
+   ("vol_x",vol_x);
+   ("eta_x",eta_x);
+   ("taud_D1_num_x",nonfunctional_taud_D1);
+   ("gamma2_x_div_azim_v2",gamma2_x_div_azim_v2);
+   ("gamma2_x1_div_a_v2",nonf_gamma2_x1_div_a_v2);
+   ("edge2_flatD_x1",nonf_edge2_flatD_x1);
+   ("edge2_126_x",nonf_edge2_126_x);
+   ("flat_term_x",    REWRITE_RULE[flat_term] flat_term_x);
+   ("flat_term2_126_x",nonf_flat_term2_126_x);
+   ("edge2_135_x",nonf_edge2_135_x);
+   ("edge2_234_x",nonf_edge2_234_x);
+   ("flat_term2_135_x",nonf_flat_term2_135_x);
+   ("flat_term2_234_x",nonf_flat_term2_234_x);
+   ("mudLs_135_x",nonf_mudLs_135_x);
+   ("mudLs_126_x",nonf_mudLs_126_x);
+   ("mudLs_234_x",nonf_mudLs_234_x);
+   ("taud_x'",nonf_taud_x');
+  ];;
+
+let trig_expansions1 = 
+  [
+    ("dihatn_x",dihatn_x);
+    ("dih2atn_x",dih2atn_x);
+    ("dih3atn_x",dih3atn_x);
+    ("dih4atn_x",dih4atn_x);
+    ("dih5atn_x",dih5atn_x);
+    ("dih6atn_x",dih6atn_x);
+    ("rhazimatn_x",rhazimatn_x);
+    ("rhazim2atn_x",rhazim2atn_x);
+    ("rhazim3atn_x",rhazim3atn_x);
+    ("ldihatn_x",ldihatn_x);
+    ("ldih2atn_x",ldih2atn_x);
+    ("ldih3atn_x",ldih3atn_x);
+    ("ldih4atn_x",ldih4atn_x);
+    ("ldih5atn_x",ldih5atn_x);
+    ("ldih6atn_x",ldih6atn_x);
+  ];;
+
+let trig_expansions = 
+  [
+    ("asn797k",asn797k); (* sin, asn *)
+    ("asnFnhk",asnFnhk);
+    ("arclength_x1'",nonf_arclength_x1');
+    ("arclength_x_123'",(*M*) nonf_arclength_x_123');
+    ("sol_euler_x_div_sqrtdelta",sol_euler_x_div_sqrtdelta); (* matan *)
+    ("sol_euler156_x_div_sqrtdelta",(*M*)nonf_sol_euler156_x_div_sqrtdelta); (* matan *)
+    ("sol_euler246_x_div_sqrtdelta",(*M*)nonf_sol_euler246_x_div_sqrtdelta); (* matan *)
+    ("sol_euler345_x_div_sqrtdelta",(*M*)nonf_sol_euler345_x_div_sqrtdelta); (* matan *)
+    ("acs_sqrt_x1_d4",acs_sqrt_x1_d4);
+    ("tau_residual_x",tau_residual_x);
+    ("rhazim_x_div_sqrtdelta_posbranch",rhazim_x_div_sqrtdelta_posbranch);
+    ("rhazim2_x_div_sqrtdelta_posbranch",nonf_rhazim2_x_div_sqrtdelta_posbranch);
+    ("rhazim3_x_div_sqrtdelta_posbranch",nonf_rhazim3_x_div_sqrtdelta_posbranch);
+    ("dih_x_div_sqrtdelta_posbranch",dih_x_div_sqrtdelta_posbranch); (* matan *)
+    ("dih4_x_div_sqrtdelta_posbranch",nonf_dih4_x_div_sqrtdelta_posbranch); (* matan *)
+    ("ldih_x_div_sqrtdelta_posbranch",ldih_x_div_sqrtdelta_posbranch); (* matan *)
+    ("ldih2_x_div_sqrtdelta_posbranch",nonf_ldih2_x_div_sqrtdelta_posbranch); (* matan *)
+    ("ldih3_x_div_sqrtdelta_posbranch",nonf_ldih3_x_div_sqrtdelta_posbranch); (* matan *)
+    ("ldih5_x_div_sqrtdelta_posbranch",nonf_ldih5_x_div_sqrtdelta_posbranch); (* matan *)
+    ("ldih6_x_div_sqrtdelta_posbranch",nonf_ldih6_x_div_sqrtdelta_posbranch); (* matan *)
+    ("gamma3f_x_div_sqrt_delta",nonf_gamma3f_x_div_sqrt_delta);
+    ("gamma3atn_x",gamma3atn_x);
+  ];;
+
+let flyspeck_defs = map snd (rational_expansions @ 
+			       sqrt_expansions @ 
+			       trig_expansions @ 
+			       trig_expansions1) @
+  [sqrt8; sqrt2; sqrt3; pi_rt18; h0; sol0; tau0; mm1; mm2; hplus; const1_alt; arc_hhn_alt;
+   rotate2; rotate3; rotate4; rotate5; rotate6; REAL_POW_2];;

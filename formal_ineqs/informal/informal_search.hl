@@ -118,7 +118,7 @@ let rec check_cell opt dom =
 		      (if opt.mono_depth > 0 then
 			 try
 			   try_mono {opt with max_depth = opt.mono_depth} dom f ti
-			 with _ ->
+			 with Failure _ | Division_by_zero | Construction_error _ ->
 			   check true rest
 		       else
 			 check true rest)
@@ -130,32 +130,34 @@ let rec check_cell opt dom =
       check false fs
 (* Tries monotonicity for a single function *)
 and try_mono opt dom f ti =
-  failwith "not implemented"
-(*
   let pp = opt.pp in
-  let rec mono acc indices =
-    match indices with
+  let rec mono acc indices_ws =
+    match indices_ws with
       | [] -> acc
-      | i :: rest ->
-	  let upper = eval_m_taylor_partial_upper pp i ti in
-	    if lt0_float upper then
-	      let status = {variable = i; decr_flag = true; df0_flag = false; ti_flag = true} in
-		mono (status :: acc) rest
-	    else
-	      let lower = eval_m_taylor_partial_lower pp i ti in
-		if ge0_float lower then
-		  let status = {variable = i; decr_flag = false; df0_flag = false; ti_flag = true} in
-		    mono (status :: acc) rest in
+      | (i, w) :: rest ->
+	  if gt0_float w then
+	    let upper = eval_m_taylor_partial_upper pp i ti in
+	      if lt0_float upper then
+		let status = {variable = i; decr_flag = true; df0_flag = false; ti_flag = true} in
+		  mono (status :: acc) rest
+	      else
+		let lower = eval_m_taylor_partial_lower pp i ti in
+		  if ge0_float lower then
+		    let status = {variable = i; decr_flag = false; df0_flag = false; ti_flag = true} in
+		      mono (status :: acc) rest
+		  else
+		    mono acc rest
+	  else
+	    mono acc rest in
   let restrict status dom =
     restrict_domain status.variable status.decr_flag dom in
-  let st = mono [] (1--ti.n) in
+  let st = mono [] (zip (1--ti.n) dom.w) in
     if length st = 0 then
       failwith "Not monotonic"
     else
       let dom2 = itlist (fun st d -> restrict st d) st dom in
       let result = construct_certificate0 opt dom2 [f] in
 	Cell_result (Result_mono (st, result))
-*)
 (* Splits the domain if necessary *)
 and construct_certificate0 opt =
   let pp = opt.pp in
@@ -210,29 +212,38 @@ open More_float;;
 open Informal_search;;
 
 let opt = {
+  mono_depth = 0;
   max_depth = 100;
   max_width = 1e-10;
   pp = 8;
 };;
 
 
-let x_list = mk_list ([mk_float 1 0; mk_float 1 0], `:real`);;
-let z_list = mk_list ([mk_float 3 0; mk_float 3 0], `:real`);;
+let x_list = mk_list ([mk_float (-10) 0; mk_float (-10) 0; mk_float (-10) 0], `:real`);;
+let z_list = mk_list ([mk_float 10 0; mk_float 10 0; mk_float 10 0], `:real`);;
 
-let x_inf = [Informal_float.mk_float (Int 1) 0; Informal_float.mk_float (Int 1) 0];;
-let y_inf = [Informal_float.mk_float (Int 3) 0; Informal_float.mk_float (Int 3) 0];;
+let x_inf = [Informal_float.mk_float (Int (-10)) 0; Informal_float.mk_float (Int (-10)) 0; Informal_float.mk_float (Int (-10)) 0];;
+let z_inf = [Informal_float.mk_float (Int 10) 0; Informal_float.mk_float (Int 10) 0; Informal_float.mk_float (Int 10) 0];;
 
-let dom_th = mk_m_center_domain 2 5 x_list z_list;;
-let dom_inf = Informal_taylor.mk_m_center_domain 5 x_inf y_inf;;
+let dom_th = mk_m_center_domain 3 5 x_list z_list;;
+let dom_inf = Informal_taylor.mk_m_center_domain 5 x_inf z_inf;;
 
-let f1, _, f2 = mk_verification_functions_poly 5 `\x:real^2. x$1 - &2`;;
+let schwefel_poly = `\x:real^3. -- #0.0000001 - ((x$1 - x$2 pow 2) pow 2 + (x$2 - &1) pow 2 + 
+  (x$1 - x$3 pow 2) pow 2 + (x$3 - &1) pow 2)`;;
+
+let f1, f2 = mk_verification_functions_poly 5 schwefel_poly;;
+(*
 let _, _, f3 = mk_verification_functions_poly 5 `\x:real^2. #1.5 - x$1`;;
 let fs0 = [f2.Informal_verifier.taylor; f3.Informal_verifier.taylor];;
+*)
+
+let fs0 = [f2.Informal_verifier.taylor];;
 
 let mk_f f i = {taylor = f; index = i};;
 let fs = map2 mk_f fs0 (0--(length fs0 - 1));;
 
-construct_certificate {opt with pp = 3} dom_inf fs0;;
+let c = construct_certificate {opt with pp = 5; mono_depth = 200} dom_inf fs0;;
+result_stats c;;
 
 (***)
 

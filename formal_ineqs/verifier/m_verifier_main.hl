@@ -4,10 +4,6 @@
 (* Date: 2012-10-27                                            *)
 (* =========================================================== *)
 
-(* needs "verifier/interval_m/verifier.hl";; *)
-
-needs "verifier/interval_m/taylor.hl";;
-
 needs "verifier/m_verifier.hl";;
 needs "verifier/m_verifier_build.hl";;
 needs "taylor/m_taylor_arith2.hl";;
@@ -17,8 +13,6 @@ needs "verifier/certificate.hl";;
 needs "informal/informal_search.hl";;
 needs "informal/informal_verifier.hl";;
 
-
-(*#load "unix.cma";;*)
 
 module M_verifier_main = struct
 
@@ -30,7 +24,6 @@ open M_verifier;;
 open M_verifier_build;;
 open M_taylor;;
 open M_taylor_arith2;;
-open Taylor;;
 open Misc_vars;;
 open Verifier_options;;
 
@@ -143,117 +136,104 @@ let is_poly =
 (* Creates basic verification functions *)
 let rec mk_funs =
   (* add *)
-  let mk_add n (f1, tf1, ti1) (f2, tf2, ti2) =
+  let mk_add n (f1, ti1) (f2, ti2) =
     (fun p1 p2 x -> 
        let a = f1 p1 p2 x and
 	   b = f2 p1 p2 x in
 	 eval_m_taylor_add2 n p1 p2 a b),
-    Plus (tf1, tf2),
     (fun p1 p2 x ->
        let a = ti1 p1 p2 x and
 	   b = ti2 p1 p2 x in
 	 Informal_taylor.eval_m_taylor_add p1 p2 a b) in
     (* sub *)
-  let mk_sub n (f1, tf1, ti1) (f2, tf2, ti2) =
-    let neg_one = Interval_ops.mk_interval(-1.0, -1.0) in
-      (fun p1 p2 x -> 
-	 let a = f1 p1 p2 x and
-	     b = f2 p1 p2 x in
-	   eval_m_taylor_sub2 n p1 p2 a b),
-    Plus (tf1, Scale(tf2, neg_one)),
+  let mk_sub n (f1, ti1) (f2, ti2) =
+    (fun p1 p2 x -> 
+       let a = f1 p1 p2 x and
+	   b = f2 p1 p2 x in
+	 eval_m_taylor_sub2 n p1 p2 a b),
     (fun p1 p2 x ->
        let a = ti1 p1 p2 x and
 	   b = ti2 p1 p2 x in
 	 Informal_taylor.eval_m_taylor_sub p1 p2 a b) in
     (* mul *)
-  let mk_mul n (f1, tf1, ti1) (f2, tf2, ti2) =
+  let mk_mul n (f1, ti1) (f2, ti2) =
     (fun p1 p2 x -> 
        let a = f1 p1 p2 x and
 	   b = f2 p1 p2 x in
 	 eval_m_taylor_mul2 n p1 p2 a b),
-    Product (tf1, tf2),
     (fun p1 p2 x ->
        let a = ti1 p1 p2 x and
 	   b = ti2 p1 p2 x in
 	 Informal_taylor.eval_m_taylor_mul p1 p2 a b) in
     (* neg *)
-  let mk_neg n (f1, tf1, ti1) =
+  let mk_neg n (f1, ti1) =
     (fun p1 p2 x -> 
        let a = f1 p1 p2 x in
 	 eval_m_taylor_neg2 n a),
-    Scale (tf1, Interval_ops.mk_interval (-1.0, -1.0)),
     (fun p1 p2 x ->
        let a = ti1 p1 p2 x in
 	 Informal_taylor.eval_m_taylor_neg a) in
     (* sqrt *)
-  let mk_sqrt n (f1, tf1, ti1) =
+  let mk_sqrt n (f1, ti1) =
     (fun p1 p2 x -> 
        let a = f1 p1 p2 x in
 	 eval_m_taylor_sqrt2 n p1 p2 a),
-    Uni_compose (Univariate.usqrt, tf1),
     (fun p1 p2 x ->
        let a = ti1 p1 p2 x in
 	 Informal_taylor.eval_m_taylor_sqrt p1 p2 a) in
     (* inv *)
-  let mk_inv n (f1, tf1, ti1) =
+  let mk_inv n (f1, ti1) =
     (fun p1 p2 x -> 
        let a = f1 p1 p2 x in
 	 eval_m_taylor_inv2 n p1 p2 a),
-    Uni_compose (Univariate.uinv, tf1),
     (fun p1 p2 x ->
        let a = ti1 p1 p2 x in
 	 Informal_taylor.eval_m_taylor_inv p1 p2 a) in
     (* atn *)
-  let mk_atn n (f1, tf1, ti1) =
+  let mk_atn n (f1, ti1) =
     (fun p1 p2 x -> 
        let a = f1 p1 p2 x in
 	 eval_m_taylor_atn2 n p1 p2 a),
-    Uni_compose (Univariate.uatan, tf1),
     (fun p1 p2 x ->
        let a = ti1 p1 p2 x in
 	 Informal_taylor.eval_m_taylor_atn p1 p2 a) in
     (* cos *)
-  let mk_cos n (f1, tf1, ti1) =
+  let mk_cos n (f1, ti1) =
     (fun p1 p2 x -> 
        let a = f1 p1 p2 x in
 	 eval_m_taylor_cos2 n p1 p2 a),
-    Uni_compose (Univariate.ucos, tf1),
     (fun p1 p2 x ->
        let a = ti1 p1 p2 x in
 	 Informal_taylor.eval_m_taylor_cos p1 p2 a) in
     (* sin *)
-  let mk_sin n (f1, tf1, ti1) =
+  let mk_sin n (f1, ti1) =
     (fun p1 p2 x -> 
        let a = f1 p1 p2 x in
 	 eval_m_taylor_sin2 n p1 p2 a),
-    Uni_compose (Univariate.usin, tf1),
     (fun p1 p2 x ->
        let a = ti1 p1 p2 x in
 	 Informal_taylor.eval_m_taylor_sin p1 p2 a) in
     (* acs *)
-  let mk_acs n (f1, tf1, ti1) =
+  let mk_acs n (f1, ti1) =
     (fun p1 p2 x -> 
        let a = f1 p1 p2 x in
 	 eval_m_taylor_acs2 n p1 p2 a),
-    Uni_compose (Univariate.uacos, tf1),
     (fun p1 p2 x ->
        let a = ti1 p1 p2 x in
 	 Informal_taylor.eval_m_taylor_acs p1 p2 a) in
     (* asn *)
-  let mk_asn n (f1, tf1, ti1) =
+  let mk_asn n (f1, ti1) =
     (fun p1 p2 x -> 
        let a = f1 p1 p2 x in
 	 eval_m_taylor_asn2 n p1 p2 a),
-    Uni_compose (Univariate.uasin, tf1),
     (fun p1 p2 x ->
        let a = ti1 p1 p2 x in
 	 Informal_taylor.eval_m_taylor_asn p1 p2 a) in
     (* matan *)
-  let mk_matan n (f1, tf1, ti1) =
+  let mk_matan n (f1, ti1) =
     (fun p1 p2 x ->
        let a = f1 p1 p2 x in
 	 eval_m_taylor_matan2 n p1 p2 a),
-    Uni_compose (Univariate.umatan, tf1),
     (fun p1 p2 x ->
        let a = ti1 p1 p2 x in
 	 Informal_taylor.eval_m_taylor_matan p1 p2 a) in
@@ -292,8 +272,8 @@ let rec mk_funs =
     fun n pp fun_tm ->
       let x_var, body_tm = dest_abs fun_tm in
 	if is_poly body_tm then
-	  let eval_fs, tf, ti = mk_verification_functions_poly pp fun_tm in
-	    eval_fs.taylor, tf, ti.Informal_verifier.taylor
+	  let eval_fs, ti = mk_verification_functions_poly pp fun_tm in
+	    eval_fs.taylor, ti.Informal_verifier.taylor
 	else
 	  try mk_bin n pp x_var body_tm with Failure _ ->
 	    mk_unary n pp x_var body_tm;;
@@ -312,10 +292,10 @@ let mk_verification_functions =
 	  mk_verification_functions_poly pp fun_tm
 	else
 	  let n = get_dim x_var in
-	  let eval_taylor, tf, eval_ti = mk_funs n pp fun_tm in
+	  let eval_taylor, eval_ti = mk_funs n pp fun_tm in
 	  let _ = params := {!params with raw_intervals_flag = false; convex_flag = false} in
 	    {taylor = eval_taylor; 
-	     f = dummy_f; df = dummy_df; ddf = dummy_ddf; diff2_f = dummy_diff2}, tf,
+	     f = dummy_f; df = dummy_df; ddf = dummy_ddf; diff2_f = dummy_diff2},
       {Informal_verifier.taylor = eval_ti;
        Informal_verifier.f = dummy_f;
        Informal_verifier.df = dummy_df;
@@ -490,26 +470,14 @@ let verify_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewrite_t
 	  zz_float = map float_of_float_tm (dest_list zz1) in
 	
       let params = ref params0 in
-      let eval_fs, tf, ti = mk_verification_functions params pp fun_tm in
+      let eval_fs, ti = mk_verification_functions params pp fun_tm in
 	
       let _ = !info_print_level < 1 or (report0 "Constructing a solution certificate... "; true) in
-(*
-      let opt0 = {
-	Verifier.min_flag = false;
-	Verifier.min_max = 0.0;
-	Verifier.allow_d = !params.allow_derivatives;
-	Verifier.allow_convex_flag = !params.convex_flag;
-	Verifier.mono_pass_flag = !params.mono_pass_flag;
-	Verifier.raw_interval_flag = !params.raw_intervals_flag;
-	Verifier.eps_width = !params.eps_width;
-	Verifier.epsilon = !params.eps;
-      } in
-      let certificate = Verifier.run_test [tf] xx_float zz_float opt0 in
-*)
       let opt0 = {
 	Informal_search.max_width = 1e-10;
 	Informal_search.max_depth = 200;
-	Informal_search.pp = pp
+	Informal_search.pp = pp;
+	Informal_search.mono_depth = 200;
       } in
       let fs_inf = map (fun f -> f.Informal_verifier.taylor) [ti] in
       let dom_inf = Informal_taylor.mk_m_center_domain pp xx2 zz2 in
@@ -612,39 +580,13 @@ let verify_disj_ineq0 params0 norm_flag pp ineq_tm var_names (lo_tm, hi_tm) rewr
 			  convex_flag = false;
 			  allow_derivatives = false} in
 
-      let eval_fs_list, tf_list, ti_list = unzip3 (map (mk_verification_functions params pp) fun_tms) in
+      let eval_fs_list, ti_list = unzip (map (mk_verification_functions params pp) fun_tms) in
       let _ = !info_print_level < 1 or (report0 "Constructing a solution certificate... "; true) in
-
-	(*
-      let opt0 = {
-	Verifier.min_flag = false;
-	Verifier.min_max = 0.0;
-	Verifier.allow_d = !params.allow_derivatives;
-	Verifier.allow_convex_flag = !params.convex_flag;
-	Verifier.mono_pass_flag = !params.mono_pass_flag;
-	Verifier.raw_interval_flag = !params.raw_intervals_flag;
-	Verifier.eps_width = !params.eps_width;
-	Verifier.epsilon = !params.eps;
-      } in
-
-      let _ = if params0.test_certificate then
-	try
-	  let _ = report0 "\nTest certificate:\n" in
-	  let certificate2 = Verifier.run_test tf_list xx_float zz_float {opt0 with Verifier.allow_d = true} in
-	  let stats2 = Verifier.result_stats certificate2 in
-	  let _ = Verifier.report_stats stats2 in
-	    ()
-	with Failure msg ->
-	  let _ = report0 ("\nFailure: " ^ msg ^ "\n") in ()
-      else () in
-
-      let certificate = Verifier.run_test tf_list xx_float zz_float opt0 in
-	*)
-
       let opt0 = {
 	Informal_search.max_width = 1e-10;
 	Informal_search.max_depth = 200;
-	Informal_search.pp = pp
+	Informal_search.pp = pp;
+	Informal_search.mono_depth = 0;
       } in
       let fs_inf = map (fun f -> f.Informal_verifier.taylor) ti_list in
       let dom_inf = Informal_taylor.mk_m_center_domain pp xx2 zz2 in

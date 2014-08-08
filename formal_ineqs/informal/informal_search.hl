@@ -20,6 +20,7 @@ open Verifier_options;;
 type search_options = {
   max_width : float;
   max_depth : int;
+  mono_depth : int;
   pp : int;
 };;
 
@@ -64,7 +65,9 @@ type function_info = {
 type result = 
   | Cell_inconclusive
   | Cell_false
+  | Cell_result of result_tree
   | Cell_pass of function_info;;
+
 
 
 exception Construction_error of string * m_cell_domain * function_info list;;
@@ -93,7 +96,8 @@ let init_vol, update_verified_vol =
     init_vol, update_verified_vol;;
 
 
-let check_cell opt dom =
+(* Checks one cell *)
+let rec check_cell opt dom =
   let pp = opt.pp in
   let rec check flag fs =
     match fs with
@@ -110,26 +114,60 @@ let check_cell opt dom =
 		  let lower = eval_m_taylor_lower_bound pp ti in
 		    if ge0_float lower then
 		      check flag rest
-		    else
-		      check true rest
+		    else 
+		      (if opt.mono_depth > 0 then
+			 try
+			   try_mono {opt with max_depth = opt.mono_depth} dom f ti
+			 with _ ->
+			   check true rest
+		       else
+			 check true rest)
 	    with Failure _ | Division_by_zero ->
 	      check true rest
 	  end
   in
     fun fs ->
-      check false fs;;
-
-
-let construct_certificate0 opt =
+      check false fs
+(* Tries monotonicity for a single function *)
+and try_mono opt dom f ti =
+  failwith "not implemented"
+(*
+  let pp = opt.pp in
+  let rec mono acc indices =
+    match indices with
+      | [] -> acc
+      | i :: rest ->
+	  let upper = eval_m_taylor_partial_upper pp i ti in
+	    if lt0_float upper then
+	      let status = {variable = i; decr_flag = true; df0_flag = false; ti_flag = true} in
+		mono (status :: acc) rest
+	    else
+	      let lower = eval_m_taylor_partial_lower pp i ti in
+		if ge0_float lower then
+		  let status = {variable = i; decr_flag = false; df0_flag = false; ti_flag = true} in
+		    mono (status :: acc) rest in
+  let restrict status dom =
+    restrict_domain status.variable status.decr_flag dom in
+  let st = mono [] (1--ti.n) in
+    if length st = 0 then
+      failwith "Not monotonic"
+    else
+      let dom2 = itlist (fun st d -> restrict st d) st dom in
+      let result = construct_certificate0 opt dom2 [f] in
+	Cell_result (Result_mono (st, result))
+*)
+(* Splits the domain if necessary *)
+and construct_certificate0 opt =
   let pp = opt.pp in
   let rec construct depth dom fs =
-    if depth > opt.max_depth then
+    if depth >= opt.max_depth then
       error (Printf.sprintf "depth (%d) > max_depth (%d)" depth opt.max_depth) dom fs
     else
       let result = check_cell opt dom fs in
 	match result with
 	  | Cell_false -> 
 	      error "False result" dom fs
+	  | Cell_result r -> r
 	  | Cell_pass f -> 
 	      let _ = update_verified_vol dom in
 		Result_pass (f.index, false)

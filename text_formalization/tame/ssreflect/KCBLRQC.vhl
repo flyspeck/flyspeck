@@ -10,6 +10,7 @@ Module Kcblrqc.
 "open Hypermap".
 "open Lp_ineqs_proofs".
 "open Lp_main_estimate".
+"open Lp_ineqs_quads".
 "open Tame_lemmas".
 "open Tame_defs".
 "open Tame_general".
@@ -35,6 +36,7 @@ move => fin_s; case card0: `CARD s = 0` => /=.
   by move: card0; rewrite CARD_EQ_0 // => ->; rewrite SUM_CLAUSES.
 by rewrite REAL_DIV_LMUL // REAL_OF_NUM_EQ.
 Qed.
+
 
 Section Contravening.
 
@@ -590,7 +592,8 @@ rewrite -REAL_SUB_LE real_sub -REAL_ADD_ASSOC.
 move => [d_in]; rewrite NODE_TYPE_lemma // SND FST => neq0.
 apply: (aux_ineq neq0 d_in) => x x_in4.
 move: (x_in4);  rewrite List_hypermap.darts_k inE dartH => [] [x_in] _.
-by rewrite -real_sub (ineq120_tauVEF ineq1 ineq2 ineq3) !y_bounds.
+rewrite lp_main_estimate in h_main_estimate.
+by rewrite -real_sub (ineq120_tauVEF quad_v10 h_y4) !y_bounds.
 Qed.
 
 End Q3.
@@ -611,6 +614,7 @@ rewrite -REAL_SUB_LE real_sub REAL_NEG_NEG.
 move => [d_in]; rewrite NODE_TYPE_lemma // SND FST real_sub -REAL_MUL_LNEG -REAL_ADD_ASSOC => neq0.
 apply: (aux_ineq neq0 d_in) => x x_in4; rewrite REAL_ADD_ASSOC REAL_MUL_LNEG -real_sub.
 move: (x_in4);  rewrite List_hypermap.darts_k inE dartH => [] [x_in] _.
+rewrite lp_main_estimate in h_main_estimate.
 by rewrite ineq119_tauVEF !y_bounds.
 Qed.
 
@@ -618,9 +622,15 @@ End Q4.
 
 End Ineqs.
 
+
+
 "let add_ineqs_hyp =
   let imp_th = (UNDISCH o MATCH_MP EQ_IMP) kcblrqc_ineq_def in
-  let ths = CONJUNCTS imp_th in
+  let ths0 = CONJUNCTS imp_th in
+  let quad_th0 = (UNDISCH_ALL o REWRITE_RULE[GSYM IMP_IMP] o 
+		    MATCH_MP EQ_IMP o SYM) Lp_details.quad_nonlinear in
+  let quad_th = itlist PROVE_HYP ths0 quad_th0 in
+  let ths = quad_th :: ths0 in
     fun th ->
       itlist PROVE_HYP ths th".
 
@@ -740,7 +750,6 @@ Section KCBLRQC.
 
 Hypothesis h_main: `lp_main_estimate`.
 Hypothesis ineqs: `kcblrqc_ineq_def`.
-
 
 Theorem KCBLRQC d: `d IN dart_of_fan (V,ESTD V)
 	==>  let H = hypermap_of_fan (V,ESTD V) in

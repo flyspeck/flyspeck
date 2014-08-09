@@ -85,12 +85,12 @@ definition nextVertices :: "face \<Rightarrow> nat \<Rightarrow> vertex \<Righta
 lemma nextV2: "f\<^bsup>2\<^esup>\<bullet>v = f\<bullet> (f\<bullet> v)"
 by (simp add: nextVertices_def eval_nat_numeral)
 
-(*<*) defs edges_face_def: (*>*)
+(*<*) defs (overloaded) edges_face_def: (*>*)
   "edges (f::face) \<equiv> {(a, f \<bullet> a)|a. a \<in> \<V> f}"
 
 
 (*<*)consts op :: "'a \<Rightarrow> 'a" ("_\<^bsup>op\<^esup>" [1000] 999)  (*>*) (* *)
-defs (*<*) op_vertices_def:(*>*) "(vs::vertex list)\<^bsup>op\<^esup> \<equiv> rev vs"
+defs (*<*) (overloaded) op_vertices_def:(*>*) "(vs::vertex list)\<^bsup>op\<^esup> \<equiv> rev vs"
 overloading
   op_graph \<equiv> "Graph.op :: face \<Rightarrow> face"
 begin
@@ -176,7 +176,7 @@ definition nonFinals :: "graph \<Rightarrow> face list" where
 definition countNonFinals :: "graph \<Rightarrow> nat" where
   "countNonFinals g \<equiv> |nonFinals g|"
 
-defs finalGraph_def: "final g \<equiv> (nonFinals g = [])"
+defs (overloaded) finalGraph_def: "final g \<equiv> (nonFinals g = [])"
 
 lemma finalGraph_faces[simp]: "final g \<Longrightarrow> finals g = faces g"
  by (simp add: finalGraph_def finals_def nonFinals_def filter_compl1)
@@ -229,7 +229,7 @@ definition noExceptionals :: "graph \<Rightarrow> vertex set \<Rightarrow> bool"
 text {* An edge $(a,b)$ is contained in face f,
   $b$ is the successor of $a$ in $f$. *}
 
-defs edges_graph_def: (*>*)
+defs (overloaded) edges_graph_def: (*>*)
  "edges (g::graph) \<equiv> \<Union>\<^bsub>f \<in> \<F> g\<^esub> edges f"
 
 definition neighbors :: "graph \<Rightarrow> vertex \<Rightarrow> vertex list" where

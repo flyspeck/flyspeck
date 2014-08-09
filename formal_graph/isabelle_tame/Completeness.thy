@@ -1,5 +1,4 @@
-(*  Author:     Tobias Nipkow
-*)
+(*  Author: Tobias Nipkow  *)
 
 header {* Combining All Completeness Proofs *}
 
@@ -8,16 +7,15 @@ imports ArchCompProps ArchComp
 begin
 
 definition Archive :: "vertex fgraph set" where
-"Archive \<equiv>
- set(Tri @ Quad @ Pent @ Hex)"
+"Archive \<equiv> set(Tri @ Quad @ Pent @ Hex)"
 
-theorem TameEnum_Archive:  "fgraph ` TameEnum \<subseteq>\<^isub>\<simeq> Archive"
-using combine_evals[OF pre_iso_test3 same3]
-      combine_evals[OF pre_iso_test4 same4]
-      combine_evals[OF pre_iso_test5 same5]
-      combine_evals[OF pre_iso_test6 same6]
-by(fastsimp simp:TameEnum_def Archive_def image_def iso_subseteq_def
-       iso_in_def eval_nat_numeral le_Suc_eq)
+theorem TameEnum_Archive:  "fgraph ` TameEnum \<subseteq>\<^sub>\<simeq> Archive"
+using combine_evals_filter[OF pre_iso_test3 same3]
+      combine_evals_filter[OF pre_iso_test4 same4]
+      combine_evals_filter[OF pre_iso_test5 same5]
+      combine_evals_filter[OF pre_iso_test6 same6]
+by(fastforce simp:TameEnum_def Archive_def image_def qle_gr.defs
+       eval_nat_numeral le_Suc_eq)
 
 
 lemma TameEnum_comp:
@@ -48,7 +46,7 @@ qed
 
 
 theorem completeness:
-assumes "g \<in> PlaneGraphs" and "tame g" shows "fgraph g \<in>\<^isub>\<simeq> Archive"
+assumes "g \<in> PlaneGraphs" and "tame g" shows "fgraph g \<in>\<^sub>\<simeq> Archive"
 proof -
   from `g \<in> PlaneGraphs` obtain p where g1: "Seed\<^bsub>p\<^esub> [next_plane\<^bsub>p\<^esub>]\<rightarrow>* g"
     and "final g"
@@ -56,10 +54,10 @@ proof -
   have "Seed\<^bsub>p\<^esub> [next_plane0\<^bsub>p\<^esub>]\<rightarrow>* g"
     by(rule RTranCl_subset2[OF g1])
       (blast intro:inv_mgp inv_Seed mgp_next_plane0_if_next_plane
-	dest:RTranCl_inv[OF inv_inv_next_plane])
+        dest:RTranCl_inv[OF inv_inv_next_plane])
   with `tame g` `final g` have "p \<le> 3" by(blast intro:tame5)
   with g1 `tame g` `final g` show ?thesis using TameEnum_Archive
-    by(simp add: iso_subseteq_def TameEnum_def TameEnumP_def)
+    by(simp add: qle_gr.defs TameEnum_def TameEnumP_def)
       (blast intro: TameEnum_comp)
 qed
 

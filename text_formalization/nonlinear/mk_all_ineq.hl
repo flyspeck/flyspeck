@@ -6,6 +6,15 @@
 (* Date: 2013-01-28                                                           *)
 (* ========================================================================== *)
 
+(*
+Needs genera/serialization.hl for the reconstruction of nonlinear
+ inequalities.
+
+The main result is the_nonlinear_inequalities
+ |- the_nonlinear_inequalities
+
+*)
+
 (* generate all theorems of terms in !Ineq.ineqs from a single assumption `prepared_nonlinear:bool`,
    defined as the conjunction of all inequalities in prep.hl
 
@@ -20,12 +29,25 @@
 
  *)
 
+flyspeck_needs "general/serialization.hl";;
 flyspeck_needs "nonlinear/prep.hl";;
+flyspeck_needs "nonlinear/scripts.hl";;
+flyspeck_needs "nonlinear/break_case_type.hl";;
+flyspeck_needs "nonlinear/break_case_log.hl";;
+flyspeck_needs "nonlinear/break_case_exec.hl";;
 
 module Mk_all_ineq = struct
 
   open Optimize;;
   open Hales_tactic;;
+
+let assume_the_nonlinear_inequalities = 
+    Serialization.canonize_thm 
+    (MESON[] `the_nonlinear_inequalities ==> the_nonlinear_inequalities`);;
+
+let check_nonlinear_md5 = 
+  Serialization.simple_digest_thm assume_the_nonlinear_inequalities = 
+  "1f054717131cf915bd8cc95ab7b645c3";;
 
 (* ********************************************************************** *)
 (* relate `nonlinear` to `the_nonlinear_inequalities` *)
@@ -117,12 +139,23 @@ let get_nonlinear =
 
 *)
 
+
+let kcblrqc_ineq_s = 
+  ["6184614449"; "6988401556"; "4667071578"; "8519146937"; "3296257235";
+   "5490182221"; "5735387903"; "3862621143 side"; "8293089898"; "2513405547";
+   "6404645741"; "1968758929"; "6723997360"; "3253650737"; "8425800388";
+   "2608321088x"; "1611600345x"; "2327525027"; "3508342905"; "5429228381";
+   "9893763499"; "8384429938"; "6078657299"; "3287695934"; "2570626711";
+   "4652969746 2"; "4652969746 1"; "JNTEFVP 1"];;
+
+(*
 let kcblrqc_ineq_s = ["6988401556"; "4667071578"; "8519146937"; "3296257235"; "5490182221";
    "5735387903"; "3862621143 back"; "3862621143 front"; "3862621143 side";
    "3862621143 revised"; "4240815464 a reduced"; "4240815464 a";
    "6944699408 a reduced";  "6944699408 a";  "7043724150 a reduced v2";
    "7043724150 a"; "3287695934"; "2570626711"; "4652969746 2";
    "4652969746 1"];;
+*)
 
 let pack_ineq_s = 
   let has_packid = (fun t -> not(intersect ["UKBRPFE";"WAZLDCD";"BIEFJHU"] (Ineq.flypaper_ids t) = [])) in
@@ -194,26 +227,19 @@ let mk_pack_nonlinear =
 
 let dequad xs = filter (fun s -> not (mem s quad_enclosed)) xs;;
 
-(* XX We need to eliminated deprecated_quad_inequalities here.
-     doesn't work in module mode for some strange reason *)
-
-report "this will take a few minutes...";;
-
 let nonlinear_imp_the_nonlinear_inequalities = Prove_by_refinement.prove_by_refinement(
-  `deprecated_quad_inequalities /\ nonlinear ==> the_nonlinear_inequalities`,
+  `nonlinear ==> the_nonlinear_inequalities`,
   (* {{{ proof *)
   [
   REWRITE_TAC[the_nonlinear_inequalities];
   REPEAT WEAKER_STRIP_TAC;
   nCONJ_TAC 5;
-    MP_TAC deprecated_quad_inequalities;
     ASM_REWRITE_TAC[Tame_lemmas.kcblrqc_ineq_def];
     BY(ASM_SIMP_TAC (map get_nonlinear (dequad kcblrqc_ineq_s)));
   nCONJ_TAC 4;
     BY(REWRITE_TAC (Ysskqoy.pack_ineq_def_a :: map get_nonlinear pack_ineq_s));
   nCONJ_TAC 3;
-    MP_TAC deprecated_quad_inequalities;
-    ASM_REWRITE_TAC[] THEN DISCH_TAC;
+    ASM_REWRITE_TAC[];
     BY(ASM_SIMP_TAC (Lp_ineqs.lp_ineqs_def :: map get_nonlinear (dequad lp_ineqs_s)));
   nCONJ_TAC 2;
     BY(REWRITE_TAC (main_nonlinear :: map get_nonlinear get_main_nonlinear_s));
@@ -223,8 +249,6 @@ let nonlinear_imp_the_nonlinear_inequalities = Prove_by_refinement.prove_by_refi
   BY(REWRITE_TAC (mk_pack_nonlinear :: map get_nonlinear packing_ineq_data_s))
   ]);;
   (* }}} *)
-
-report "done";;
 
 (* ********************************************************************** *)
 (* relate prep.hl to `nonlinear` *)
@@ -332,23 +356,15 @@ let exec() =
   let sl = map (fun t -> t.idv) ineqs in
     map prove_ineq sl;;
 
-
-(*
 let exec_results = exec();;
-
 
 let prepared_nonlinear_imp_nonlinear = 
   let inn = map (fun (_,x) -> UNDISCH x) exec_results in
   let ineq_nn = end_itlist (CONJ) inn in
-  let def = mk_inequality() in
+  let def = mk_nonlinear() in
     EQ_MP (SYM def) ineq_nn;;
 
-*)
-
-
-(* tests for quads: *)
-
-(*
+(* (* tests for quads: *)
 has_quad (concl main_nonlinear);;
 has_quad (concl Lp_ineqs.lp_ineqs_def);;
 has_quad (concl (Merge_ineq.ox3q1h()));;
@@ -356,35 +372,31 @@ has_quad (concl mk_pack_nonlinear);;
 *)
 
 (* ********************************************************************** *)
-(* code to prove |- prepared_nonlinear
+(* code to prove |- prepared_nonlinear *)
 (* ********************************************************************** *)
 
 
-flyspeck_needs "nonlinear/prep.hl";;
-flyspeck_needs "nonlinear/scripts.hl";;
-flyspeck_needs "nonlinear/break_case_type.hl";;
-flyspeck_needs "nonlinear/break_case_log.hl";;
-flyspeck_needs "nonlinear/break_case_exec.hl";;
 
 (* slow *)
-    let prep_nonlinear_thml  = 
-      map Break_case_exec.prove_prep Break_case_exec.all_idv;;
+let prep_nonlinear_thml  = 
+  map Break_case_exec.prove_prep Break_case_exec.all_idv;;
 
-filter  (fun (_,t) -> t = TRUTH) prep_nonlinear_thml;; (* [] *)
+let _ = 
+  filter  (fun (_,t) -> t = TRUTH) prep_nonlinear_thml = [] or
+   failwith "failed prep cases";;
 
-    let prep_thms = map (fun s -> assoc s prep_nonlinear_thml) prep_idv;;
+let prep_thms = map (fun s -> assoc s prep_nonlinear_thml) 
+  (map (fun t -> t.idv) !Prep.prep_ineqs);;
 
+let get_prep_thm s = assoc s prep_nonlinear_thml;;
 
-
-    let get_prep_thm s = assoc s prep_nonlinear_thml;;
-
-let delta_ineq = Break_case_exec.delta_ineq;;
+(* let delta_ineq = Break_case_exec.delta_ineq;; *)
 
 let delta_ineq_thm = prove_by_refinement(
   `delta_ineq_v6`,
   (* {{{ proof *)
   [
-  REWRITE_TAC[delta_ineq];
+  REWRITE_TAC[Break_case_exec.delta_ineq];
   REWRITE_TAC[get_prep_thm "prep-2327525027";get_prep_thm "prep-4092227918"];
   INTRO_TAC (get_prep_thm "prep-7823243247") [];
   INTRO_TAC (get_prep_thm "prep-5744538693") [];
@@ -392,7 +404,7 @@ let delta_ineq_thm = prove_by_refinement(
   ]);;
   (* }}} *)
 
-(* repeat
+(* duplicate
 let mk_prepared_nonlinear = 
   let ineql = map (fun idv -> idv.ineq) (prep_ineqs) in
   let ineq_conj = end_itlist (curry mk_conj) ineql in
@@ -408,5 +420,26 @@ let prepared_nonlinear =
     PROVE_HYP delta_ineq_thm (end_itlist (CONJ) (map UNDISCH_ALL prep_thms)) in
      EQ_MP (SYM pn) prep_conj;;
 
+let the_nonlinear_inequalities = prove_by_refinement(
+  `the_nonlinear_inequalities`,
+  (* {{{ proof *)
+  [
+  MATCH_MP_TAC nonlinear_imp_the_nonlinear_inequalities;
+  ASSUME_TAC prepared_nonlinear;
+  BY(REWRITE_TAC[prepared_nonlinear_imp_nonlinear])
+  ]);;
+  (* }}} *)
+
+(*
+
+ the_nonlinear_inequalities
+val the_nonlinear_inequalities : thm = |- the_nonlinear_inequalities
+
+*)
+
+let check_the_nonlinear_inequalities_md5 = 
+  Serialization.simple_digest_thm 
+    (Serialization.canonize_thm the_nonlinear_inequalities) = 
+  "e607b9e5e7f4c495236c6546d6889963";;
 
  end;;

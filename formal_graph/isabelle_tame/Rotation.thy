@@ -67,9 +67,9 @@ assumes "\<forall>vs \<in> A. distinct vs"  "[] \<notin> A"
 shows "inj_on rotate_min A = inj_on (\<lambda>vs. {vs}//{\<cong>}) A"
 proof -
   { fix xs ys assume xs: "xs \<in> A" and ys : "ys \<in> A"
-    hence "xs \<noteq> [] \<and> ys \<noteq> []" using prems(2) by blast
+    hence "xs \<noteq> [] \<and> ys \<noteq> []" using assms(2) by blast
     hence "(rotate_min xs = rotate_min ys) = (xs \<cong> ys)"
-      using xs prems(1)
+      using xs assms(1)
       by(simp add: singleton_list_cong_eq_iff norm_eq_iff_face_cong)
   } thus ?thesis by(simp add:inj_on_def)
 qed

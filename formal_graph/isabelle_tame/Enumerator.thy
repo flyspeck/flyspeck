@@ -4,7 +4,7 @@
 header {* Enumerating Patches *}
 
 theory Enumerator
-imports Graph Vector
+imports Graph IArray_Syntax
 begin
 
 text {*
@@ -52,7 +52,7 @@ definition enumerator :: "nat \<Rightarrow> nat \<Rightarrow> nat list list" whe
      let nmax = outer - 2; k = inner - 3 in 
      [[0] @ is @ [outer - 1]. is \<leftarrow> (enumAppend nmax ^^ k) (enumBase nmax)]"    
 
-definition enumTab :: "nat list list vector vector" where
+definition enumTab :: "nat list list iarray iarray" where
 "enumTab \<equiv> \<lbrakk> enumerator inner outer. inner < 9, outer < 9 \<rbrakk>"
 
 (* never used with > 8 but easier this way *)

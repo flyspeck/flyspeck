@@ -9,8 +9,6 @@ begin
 
 declare Let_def[simp]
 
-declare comp_def[code_unfold, code_inline del]
-
 subsection {* HOL *}
 
 lemma pairD:  "(a,b) = p \<Longrightarrow> a = fst p \<and> b = snd p"
@@ -294,7 +292,7 @@ lemma length_filter_replace1:
   length(filter P xs) + length(filter P ys)"
 apply(induct xs)
  apply simp
-apply fastsimp
+apply fastforce
 done
 
 lemma length_filter_replace2:
@@ -498,10 +496,10 @@ lemma rotate_id[simp]: "rotate ((length ls) - (n mod length ls)) (rotate n ls) =
 apply (rule sym) apply (rule rotate_inv2) by simp
 
 lemma nth_rotate1_Suc: "Suc n < length ls \<Longrightarrow> ls!(Suc n) = (rotate1 ls)!n"
-  apply (auto simp: rotate1_def) apply (cases ls) apply auto
+  apply (cases ls) apply auto
   by (simp add: nth_append)
 
-lemma nth_rotate1_0: "ls!0 = (rotate1 ls)!(length ls - 1)" apply (cases ls)  by (auto simp: rotate1_def)
+lemma nth_rotate1_0: "ls!0 = (rotate1 ls)!(length ls - 1)" apply (cases ls)  by auto
 
 lemma nth_rotate1: "0 < length ls \<Longrightarrow> ls!((Suc n) mod (length ls)) = (rotate1 ls)!(n mod (length ls))"
 proof (cases "0 < (Suc n) mod (length ls)")
@@ -975,7 +973,7 @@ lemma splitAt_rotate_pair_conv:
       snd (splitAt x xs) @ fst (splitAt x xs)"
 apply(induct n) apply simp
 apply(simp del:rotate_Suc2 add:rotate1_rotate_swap)
-apply(clarsimp simp add:rotate1_def split:list.split)
+apply(case_tac xs) apply clarsimp+
 apply(erule disjE) apply simp
 apply(drule split_list)
 apply clarsimp
@@ -985,11 +983,11 @@ done
 subsection {* @{text between} *}
 
 definition between :: "'a list \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> 'a list" where
- "between vs ram\<^isub>1 ram\<^isub>2 \<equiv>
-     let (pre\<^isub>1, post\<^isub>1) = splitAt ram\<^isub>1 vs in
-     if ram\<^isub>2 \<in> set post\<^isub>1
-     then let (pre\<^isub>2, post\<^isub>2) = splitAt ram\<^isub>2 post\<^isub>1 in pre\<^isub>2
-     else let (pre\<^isub>2, post\<^isub>2) = splitAt ram\<^isub>2 pre\<^isub>1 in post\<^isub>1 @ pre\<^isub>2"
+ "between vs ram\<^sub>1 ram\<^sub>2 \<equiv>
+     let (pre\<^sub>1, post\<^sub>1) = splitAt ram\<^sub>1 vs in
+     if ram\<^sub>2 \<in> set post\<^sub>1
+     then let (pre\<^sub>2, post\<^sub>2) = splitAt ram\<^sub>2 post\<^sub>1 in pre\<^sub>2
+     else let (pre\<^sub>2, post\<^sub>2) = splitAt ram\<^sub>2 pre\<^sub>1 in post\<^sub>1 @ pre\<^sub>2"
 
 lemma inbetween_inset:
  "x \<in> set(between xs a b) \<Longrightarrow> x \<in> set xs"
@@ -1054,7 +1052,7 @@ done
 
 subsection {* Tables *}
 
-types ('a, 'b) table = "('a \<times> 'b) list"
+type_synonym ('a, 'b) table = "('a \<times> 'b) list"
 
 definition isTable :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> ('a, 'b) table \<Rightarrow> bool" where
   "isTable f vs t \<equiv> \<forall>p. p \<in> set t \<longrightarrow> snd p = f (fst p) \<and> fst p \<in> set vs" 

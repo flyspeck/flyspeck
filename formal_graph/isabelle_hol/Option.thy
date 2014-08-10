@@ -30,9 +30,14 @@ lemma option_caseE:
   | (Some) y where "x = Some y" and "Q y"
   using c by (cases x) simp_all
 
+lemma split_option_all: "(\<forall>x. P x) \<longleftrightarrow> P None \<and> (\<forall>x. P (Some x))"
+by (auto intro: option.induct)
+
+lemma split_option_ex: "(\<exists>x. P x) \<longleftrightarrow> P None \<or> (\<exists>x. P (Some x))"
+using split_option_all[of "\<lambda>x. \<not>P x"] by blast
+
 lemma UNIV_option_conv: "UNIV = insert None (range Some)"
 by(auto intro: classical)
-
 
 subsubsection {* Operations *}
 
@@ -46,9 +51,7 @@ primrec set :: "'a option => 'a set" where
 lemma ospec [dest]: "(ALL x:set A. P x) ==> A = Some x ==> P x"
   by simp
 
-declaration {* fn _ =>
-  Classical.map_cs (fn cs => cs addSD2 ("ospec", @{thm ospec}))
-*}
+setup {* map_theory_claset (fn ctxt => ctxt addSD2 ("ospec", @{thm ospec})) *}
 
 lemma elem_set [iff]: "(x : set xo) = (xo = Some x)"
   by (cases xo) auto
@@ -100,6 +103,10 @@ next
       by (cases x) simp_all
   qed
 qed
+
+lemma option_case_map [simp]:
+  "option_case g h (Option.map f x) = option_case g (h \<circ> f) x"
+  by (cases x) simp_all
 
 primrec bind :: "'a option \<Rightarrow> ('a \<Rightarrow> 'b option) \<Rightarrow> 'b option" where
 bind_lzero: "bind None f = None" |
@@ -180,27 +187,31 @@ lemma is_none_code [code]:
 
 lemma [code_unfold]:
   "HOL.equal x None \<longleftrightarrow> is_none x"
-  by (simp add: equal is_none_def)
+  "HOL.equal None = is_none"
+  by (auto simp add: equal is_none_def)
 
 hide_const (open) is_none
 
-code_type option
-  (SML "_ option")
-  (OCaml "_ option")
-  (Haskell "Maybe _")
-  (Scala "!Option[(_)]")
-
-code_const None and Some
-  (SML "NONE" and "SOME")
-  (OCaml "None" and "Some _")
-  (Haskell "Nothing" and "Just")
-  (Scala "!None" and "Some")
-
-code_instance option :: equal
-  (Haskell -)
-
-code_const "HOL.equal \<Colon> 'a option \<Rightarrow> 'a option \<Rightarrow> bool"
-  (Haskell infix 4 "==")
+code_printing
+  type_constructor option \<rightharpoonup>
+    (SML) "_ option"
+    and (OCaml) "_ option"
+    and (Haskell) "Maybe _"
+    and (Scala) "!Option[(_)]"
+| constant None \<rightharpoonup>
+    (SML) "NONE"
+    and (OCaml) "None"
+    and (Haskell) "Nothing"
+    and (Scala) "!None"
+| constant Some \<rightharpoonup>
+    (SML) "SOME"
+    and (OCaml) "Some _"
+    and (Haskell) "Just"
+    and (Scala) "Some"
+| class_instance option :: equal \<rightharpoonup>
+    (Haskell) -
+| constant "HOL.equal :: 'a option \<Rightarrow> 'a option \<Rightarrow> bool" \<rightharpoonup>
+    (Haskell) infix 4 "=="
 
 code_reserved SML
   option NONE SOME

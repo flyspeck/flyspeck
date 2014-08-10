@@ -29,6 +29,9 @@ lemma image_id [simp]: "image id = id"
 lemma vimage_id [simp]: "vimage id = id"
   by (simp add: id_def fun_eq_iff)
 
+code_printing
+  constant id \<rightharpoonup> (Haskell) "id"
+
 
 subsection {* The Composition Operator @{text "f \<circ> g"} *}
 
@@ -77,6 +80,9 @@ lemma SUP_comp:
   "SUPR A (g \<circ> f) = SUPR (f ` A) g"
   by (simp add: SUP_def image_comp)
 
+code_printing
+  constant comp \<rightharpoonup> (SML) infixl 5 "o" and (Haskell) infixr 9 "."
+
 
 subsection {* The Forward Composition Operator @{text fcomp} *}
 
@@ -95,8 +101,8 @@ lemma id_fcomp [simp]: "id \<circ>> g = g"
 lemma fcomp_id [simp]: "f \<circ>> id = f"
   by (simp add: fcomp_def)
 
-code_const fcomp
-  (Eval infixl 1 "#>")
+code_printing
+  constant fcomp \<rightharpoonup> (Eval) infixl 1 "#>"
 
 no_notation fcomp (infixl "\<circ>>" 60)
 
@@ -286,6 +292,22 @@ lemma inj_on_imageI2:
   "inj_on (f' o f) A \<Longrightarrow> inj_on f A"
 by(auto simp add: comp_inj_on inj_on_def)
 
+lemma inj_img_insertE:
+  assumes "inj_on f A"
+  assumes "x \<notin> B" and "insert x B = f ` A"
+  obtains x' A' where "x' \<notin> A'" and "A = insert x' A'"
+    and "x = f x'" and "B = f ` A'" 
+proof -
+  from assms have "x \<in> f ` A" by auto
+  then obtain x' where *: "x' \<in> A" "x = f x'" by auto
+  then have "A = insert x' (A - {x'})" by auto
+  with assms * have "B = f ` (A - {x'})"
+    by (auto dest: inj_on_contraD)
+  have "x' \<notin> A - {x'}" by simp
+  from `x' \<notin> A - {x'}` `A = insert x' (A - {x'})` `x = f x'` `B = image f (A - {x'})`
+  show ?thesis ..
+qed
+
 lemma surj_def: "surj f \<longleftrightarrow> (\<forall>y. \<exists>x. y = f x)"
   by auto
 
@@ -469,8 +491,11 @@ apply (unfold bij_def)
 apply (blast del: subsetI intro: vimage_subsetI vimage_subsetD)
 done
 
+lemma inj_on_image_eq_iff: "\<lbrakk> inj_on f C; A \<subseteq> C; B \<subseteq> C \<rbrakk> \<Longrightarrow> f ` A = f ` B \<longleftrightarrow> A = B"
+by(fastforce simp add: inj_on_def)
+
 lemma inj_on_Un_image_eq_iff: "inj_on f (A \<union> B) \<Longrightarrow> f ` A = f ` B \<longleftrightarrow> A = B"
-by(blast dest: inj_onD)
+by(erule inj_on_image_eq_iff) simp_all
 
 lemma inj_on_image_Int:
    "[| inj_on f C;  A<=C;  B<=C |] ==> f`(A Int B) = f`A Int f`B"
@@ -779,9 +804,10 @@ let
         | find t = NONE
     in (dest_fun_T1 T, gen_fun_upd (find f) T x y) end
 
-  fun proc ss ct =
+  val ss = simpset_of @{context}
+
+  fun proc ctxt ct =
     let
-      val ctxt = Simplifier.the_context ss
       val t = Thm.term_of ct
     in
       case find_double t of
@@ -791,20 +817,10 @@ let
             (fn _ =>
               rtac eq_reflection 1 THEN
               rtac ext 1 THEN
-              simp_tac (Simplifier.inherit_context ss @{simpset}) 1))
+              simp_tac (put_simpset ss ctxt) 1))
     end
 in proc end
 *}
-
-
-subsubsection {* Code generator *}
-
-code_const "op \<circ>"
-  (SML infixl 5 "o")
-  (Haskell infixr 9 ".")
-
-code_const "id"
-  (Haskell "id")
 
 
 subsubsection {* Functorial structure of types *}

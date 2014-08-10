@@ -444,7 +444,7 @@ qed
 
 end
 
-instantiation nat :: bot
+instantiation nat :: order_bot
 begin
 
 definition bot_nat :: nat where
@@ -454,6 +454,10 @@ instance proof
 qed (simp add: bot_nat_def)
 
 end
+
+instance nat :: no_top
+  by default (auto intro: less_Suc_eq_le [THEN iffD2])
+
 
 subsubsection {* Introduction properties *}
 
@@ -711,10 +715,9 @@ done
 text{*The naturals form an ordered @{text comm_semiring_1_cancel}*}
 instance nat :: linordered_semidom
 proof
-  fix i j k :: nat
   show "0 < (1::nat)" by simp
-  show "i \<le> j ==> k + i \<le> k + j" by simp
-  show "i < j ==> 0 < k ==> k * i < k * j" by (simp add: mult_less_mono2)
+  show "\<And>m n q :: nat. m \<le> n \<Longrightarrow> q + m \<le> q + n" by simp
+  show "\<And>m n q :: nat. m < n \<Longrightarrow> 0 < q \<Longrightarrow> q * m < q * n" by (simp add: mult_less_mono2)
 qed
 
 instance nat :: no_zero_divisors
@@ -1064,6 +1067,11 @@ by (induct m n rule: diff_induct) (simp_all add: le_SucI)
 lemma le_iff_add: "(m::nat) \<le> n = (\<exists>k. n = m + k)"
   by (auto simp: le_add1 dest!: le_add_diff_inverse sym [of _ n])
 
+instance nat :: ordered_cancel_comm_monoid_diff
+proof
+  show "\<And>m n :: nat. m \<le> n \<longleftrightarrow> (\<exists>q. n = m + q)" by (fact le_iff_add)
+qed
+
 lemma less_imp_diff_less: "(j::nat) < k ==> j - n < k"
 by (rule le_less_trans, rule diff_le_self)
 
@@ -1201,6 +1209,16 @@ lemma mult_eq_self_implies_10: "(m::nat) = m * n ==> n = 1 | m = 0"
     apply (auto)
   done
 
+lemma mono_times_nat:
+  fixes n :: nat
+  assumes "n > 0"
+  shows "mono (times n)"
+proof
+  fix m q :: nat
+  assume "m \<le> q"
+  with assms show "n * m \<le> n * q" by simp
+qed
+
 text {* the lattice order on @{typ nat} *}
 
 instantiation nat :: distrib_lattice
@@ -1300,7 +1318,8 @@ lemma comp_funpow:
 
 subsection {* Kleene iteration *}
 
-lemma Kleene_iter_lpfp: assumes "mono f" and "f p \<le> p" shows "(f^^k) bot \<le> p"
+lemma Kleene_iter_lpfp:
+assumes "mono f" and "f p \<le> p" shows "(f^^k) (bot::'a::order_bot) \<le> p"
 proof(induction k)
   case 0 show ?case by simp
 next
@@ -1545,38 +1564,44 @@ context order
 begin
 
 lemma lift_Suc_mono_le:
-  assumes mono: "!!n. f n \<le> f(Suc n)" and "n\<le>n'"
+  assumes mono: "\<And>n. f n \<le> f (Suc n)" and "n \<le> n'"
   shows "f n \<le> f n'"
 proof (cases "n < n'")
   case True
-  thus ?thesis
-    by (induct n n' rule: less_Suc_induct[consumes 1]) (auto intro: mono)
-qed (insert `n \<le> n'`, auto) -- {*trivial for @{prop "n = n'"} *}
+  then show ?thesis
+    by (induct n n' rule: less_Suc_induct [consumes 1]) (auto intro: mono)
+qed (insert `n \<le> n'`, auto) -- {* trivial for @{prop "n = n'"} *}
 
 lemma lift_Suc_mono_less:
-  assumes mono: "!!n. f n < f(Suc n)" and "n < n'"
+  assumes mono: "\<And>n. f n < f (Suc n)" and "n < n'"
   shows "f n < f n'"
 using `n < n'`
-by (induct n n' rule: less_Suc_induct[consumes 1]) (auto intro: mono)
+by (induct n n' rule: less_Suc_induct [consumes 1]) (auto intro: mono)
 
 lemma lift_Suc_mono_less_iff:
-  "(!!n. f n < f(Suc n)) \<Longrightarrow> f(n) < f(m) \<longleftrightarrow> n<m"
-by(blast intro: less_asym' lift_Suc_mono_less[of f]
-         dest: linorder_not_less[THEN iffD1] le_eq_less_or_eq[THEN iffD1])
+  "(\<And>n. f n < f (Suc n)) \<Longrightarrow> f n < f m \<longleftrightarrow> n < m"
+  by (blast intro: less_asym' lift_Suc_mono_less [of f]
+    dest: linorder_not_less[THEN iffD1] le_eq_less_or_eq [THEN iffD1])
 
 end
 
-lemma mono_iff_le_Suc: "mono f = (\<forall>n. f n \<le> f (Suc n))"
+lemma mono_iff_le_Suc:
+  "mono f \<longleftrightarrow> (\<forall>n. f n \<le> f (Suc n))"
   unfolding mono_def by (auto intro: lift_Suc_mono_le [of f])
 
 lemma mono_nat_linear_lb:
-  "(!!m n::nat. m<n \<Longrightarrow> f m < f n) \<Longrightarrow> f(m)+k \<le> f(m+k)"
-apply(induct_tac k)
- apply simp
-apply(erule_tac x="m+n" in meta_allE)
-apply(erule_tac x="Suc(m+n)" in meta_allE)
-apply simp
-done
+  fixes f :: "nat \<Rightarrow> nat"
+  assumes "\<And>m n. m < n \<Longrightarrow> f m < f n"
+  shows "f m + k \<le> f (m + k)"
+proof (induct k)
+  case 0 then show ?case by simp
+next
+  case (Suc k)
+  then have "Suc (f m + k) \<le> Suc (f (m + k))" by simp
+  also from assms [of "m + k" "Suc (m + k)"] have "Suc (f (m + k)) \<le> f (Suc (m + k))"
+    by (simp add: Suc_le_eq)
+  finally show ?case by simp
+qed
 
 
 text{*Subtraction laws, mostly by Clemens Ballarin*}
@@ -1586,6 +1611,12 @@ by arith
 
 lemma less_diff_conv: "(i < j-k) = (i+k < (j::nat))"
 by arith
+
+lemma less_diff_conv2:
+  fixes j k i :: nat
+  assumes "k \<le> j"
+  shows "j - k < i \<longleftrightarrow> j < i + k"
+  using assms by arith
 
 lemma le_diff_conv: "(j-k \<le> (i::nat)) = (j \<le> i+k)"
 by arith
@@ -1801,6 +1832,74 @@ lemma nat_dvd_not_less:
   shows "0 < m \<Longrightarrow> m < n \<Longrightarrow> \<not> n dvd m"
 by (auto elim!: dvdE) (auto simp add: gr0_conv_Suc)
 
+lemma dvd_plusE:
+  fixes m n q :: nat
+  assumes "m dvd n + q" "m dvd n"
+  obtains "m dvd q"
+proof (cases "m = 0")
+  case True with assms that show thesis by simp
+next
+  case False then have "m > 0" by simp
+  from assms obtain r s where "n = m * r" and "n + q = m * s" by (blast elim: dvdE)
+  then have *: "m * r + q = m * s" by simp
+  show thesis proof (cases "r \<le> s")
+    case False then have "s < r" by (simp add: not_le)
+    with * have "m * r + q - m * s = m * s - m * s" by simp
+    then have "m * r + q - m * s = 0" by simp
+    with `m > 0` `s < r` have "m * r - m * s + q = 0" by (unfold less_le_not_le) auto
+    then have "m * (r - s) + q = 0" by auto
+    then have "m * (r - s) = 0" by simp
+    then have "m = 0 \<or> r - s = 0" by simp
+    with `s < r` have "m = 0" by (simp add: less_le_not_le)
+    with `m > 0` show thesis by auto
+  next
+    case True with * have "m * r + q - m * r = m * s - m * r" by simp
+    with `m > 0` `r \<le> s` have "m * r - m * r + q = m * s - m * r" by simp
+    then have "q = m * (s - r)" by (simp add: diff_mult_distrib2)
+    with assms that show thesis by (auto intro: dvdI)
+  qed
+qed
+
+lemma dvd_plus_eq_right:
+  fixes m n q :: nat
+  assumes "m dvd n"
+  shows "m dvd n + q \<longleftrightarrow> m dvd q"
+  using assms by (auto elim: dvd_plusE)
+
+lemma dvd_plus_eq_left:
+  fixes m n q :: nat
+  assumes "m dvd q"
+  shows "m dvd n + q \<longleftrightarrow> m dvd n"
+  using assms by (simp add: dvd_plus_eq_right add_commute [of n])
+
+lemma less_dvd_minus:
+  fixes m n :: nat
+  assumes "m < n"
+  shows "m dvd n \<longleftrightarrow> m dvd (n - m)"
+proof -
+  from assms have "n = m + (n - m)" by arith
+  then obtain q where "n = m + q" ..
+  then show ?thesis by (simp add: dvd_reduce add_commute [of m])
+qed
+
+lemma dvd_minus_self:
+  fixes m n :: nat
+  shows "m dvd n - m \<longleftrightarrow> n < m \<or> m dvd n"
+  by (cases "n < m") (auto elim!: dvdE simp add: not_less le_imp_diff_is_add)
+
+lemma dvd_minus_add:
+  fixes m n q r :: nat
+  assumes "q \<le> n" "q \<le> r * m"
+  shows "m dvd n - q \<longleftrightarrow> m dvd n + (r * m - q)"
+proof -
+  have "m dvd n - q \<longleftrightarrow> m dvd r * m + (n - q)"
+    by (auto elim: dvd_plusE)
+  also from assms have "\<dots> \<longleftrightarrow> m dvd r * m + n - q" by simp
+  also from assms have "\<dots> \<longleftrightarrow> m dvd (r * m - q) + n" by simp
+  also have "\<dots> \<longleftrightarrow> m dvd n + (r * m - q)" by (simp add: add_commute)
+  finally show ?thesis .
+qed
+
 
 subsection {* aliasses *}
 
@@ -1819,14 +1918,8 @@ class size =
 
 subsection {* code module namespace *}
 
-code_modulename SML
-  Nat Arith
-
-code_modulename OCaml
-  Nat Arith
-
-code_modulename Haskell
-  Nat Arith
+code_identifier
+  code_module Nat \<rightharpoonup> (SML) Arith and (OCaml) Arith and (Haskell) Arith
 
 hide_const (open) of_nat_aux
 

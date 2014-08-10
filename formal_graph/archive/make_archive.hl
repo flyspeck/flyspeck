@@ -82,20 +82,34 @@ let save_out () =
 
 let archive_dir = 
  Filename.concat (Filename.concat (flyspeck_dir) Filename.parent_dir_name) 
- "isabelle_graph/archive";;
+ "formal_graph/archive";;
 
 (* translate commas to semicolons in lists.
    translate "val Tri = " to "let arc3 = " etc.
    creates arc3 = [[ ... ] ...] *)
 
-let convert_archive filename ext =  
+let join_space = 
+  let sp = " " in
+    function | [] -> ""
+      | (x::xs) -> List.fold_left (fun s t -> s^sp^(t)) (x) xs;;
+
+let join_space = 
+    let sp = " " in
+      end_itlist (fun s t -> s^sp^t);;
+
+let join_space
+        let sp = " " in
+	  map (fun t -> t^sp) 
+
+let convert_archive filename ext = 
   let (ic,oc) = Unix.open_process(sprintf 
      "cat %s | tr 'A-Z' 'a-z'| sed 's/;/;;/g'| sed 's/,/;/g'| sed 's/val *[a-z]*/let arc%d/g' " 
      filename ext) in
   let s = Flyspeck_lib.load_and_close_channel false ic in
   let _ = Unix.close_process (ic,oc) in
-  let ss = Flyspeck_lib.join_space s in
+  let ss = String.concat " " s in
     Flyspeck_lib.eval_command ~silent:true ss;;
+
 
 (*
 convert_archive f3_out 3;;
@@ -111,5 +125,27 @@ convert_archive f6_out 6;;
 arc6 = map snd tame6;;
 *)
 
+(* test Isabelle graph list against Flyspeck graph list *)
 
- end;;
+
+
+let md5_of_list2 = 
+  let join_semi  = String.concat ";" in
+  let enclose xs = "["^ join_semi xs ^ "]" in
+  let string_of_list xs =  enclose (map string_of_int xs) in
+  let string_of_list_list xss = enclose (map string_of_list xss) in
+    fun xss ->
+    Digest.to_hex (Digest.string (string_of_list_list (xss)));;
+
+let md5_graph_archive = map md5_of_list2 (map snd tame_list);;
+
+(*
+convert_archive (archive_dir^"/Tri.ML") 3;;
+convert_archive (archive_dir^"/Quad.ML") 4;;
+convert_archive (archive_dir^"/Pent.ML") 5;;
+convert_archive (archive_dir^"/Hex.ML") 6;;
+let md5_graph_archive_ml = map md5_of_list2 (arc3 @ arc4 @ arc5 @ arc6);;
+setify md5_graph_archive = setify md5_graph_archive_ml;;
+*)
+
+end;;

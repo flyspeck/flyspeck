@@ -7,8 +7,8 @@ header {* The basis of Higher-Order Logic *}
 theory HOL
 imports Pure "~~/src/Tools/Code_Generator"
 keywords
-  "try" "solve_direct" "quickcheck"
-    "print_coercions" "print_coercion_maps" "print_claset" "print_induct_rules" :: diag and
+  "try" "solve_direct" "quickcheck" "print_coercions" "print_claset"
+    "print_induct_rules" :: diag and
   "quickcheck_params" :: thy_decl
 begin
 
@@ -37,8 +37,6 @@ ML_file "~~/src/Tools/case_product.ML"
 
 setup {*
   Intuitionistic.method_setup @{binding iprover}
-  #> Quickcheck.setup
-  #> Solve_Direct.setup
   #> Subtyping.setup
   #> Case_Product.setup
 *}
@@ -116,7 +114,7 @@ notation (xsymbols)
 syntax "_The" :: "[pttrn, bool] => 'a"  ("(3THE _./ _)" [0, 10] 10)
 translations "THE x. P" == "CONST The (%x. P)"
 print_translation {*
-  [(@{const_syntax The}, fn [Abs abs] =>
+  [(@{const_syntax The}, fn _ => fn [Abs abs] =>
       let val (x, t) = Syntax_Trans.atomic_abs_tr' abs
       in Syntax.const @{syntax_const "_The"} $ x $ t end)]
 *}  -- {* To avoid eta-contraction of body *}
@@ -699,8 +697,6 @@ lemmas [trans] = trans
   and [sym] = sym not_sym
   and [Pure.elim?] = iffD1 iffD2 impE
 
-ML_file "Tools/hologic.ML"
-
 
 subsubsection {* Atomizing meta-level connectives *}
 
@@ -782,6 +778,9 @@ lemma atomize_elimL[atomize_elim]: "(!!B. (A ==> B) ==> B) == Trueprop A" ..
 
 subsection {* Package setup *}
 
+ML_file "Tools/hologic.ML"
+
+
 subsubsection {* Sledgehammer setup *}
 
 text {*
@@ -842,26 +841,21 @@ structure Basic_Classical: BASIC_CLASSICAL = Classical;
 open Basic_Classical;
 *}
 
-setup {*
-  ML_Antiquote.value @{binding claset}
-    (Scan.succeed "Classical.claset_of ML_context")
-*}
-
 setup Classical.setup
 
 setup {*
 let
   fun non_bool_eq (@{const_name HOL.eq}, Type (_, [T, _])) = T <> @{typ bool}
     | non_bool_eq _ = false;
-  val hyp_subst_tac' =
+  fun hyp_subst_tac' ctxt =
     SUBGOAL (fn (goal, i) =>
       if Term.exists_Const non_bool_eq goal
-      then Hypsubst.hyp_subst_tac i
+      then Hypsubst.hyp_subst_tac ctxt i
       else no_tac);
 in
   Hypsubst.hypsubst_setup
   (*prevent substitution on bool*)
-  #> Context_Rules.addSWrapper (fn tac => hyp_subst_tac' ORELSE' tac)
+  #> Context_Rules.addSWrapper (fn ctxt => fn tac => hyp_subst_tac' ctxt ORELSE' tac)
 end
 *}
 
@@ -887,7 +881,7 @@ declare ex_ex1I [intro!]
 declare exE [elim!]
   allE [elim]
 
-ML {* val HOL_cs = @{claset} *}
+ML {* val HOL_cs = claset_of @{context} *}
 
 lemma contrapos_np: "~ Q ==> (~ P ==> Q) ==> P"
   apply (erule swap)
@@ -1193,7 +1187,7 @@ lemma ex_comm:
 ML_file "Tools/simpdata.ML"
 ML {* open Simpdata *}
 
-setup {* Simplifier.map_simpset_global (K HOL_basic_ss) *}
+setup {* map_theory_simpset (put_simpset HOL_basic_ss) *}
 
 simproc_setup defined_Ex ("EX x. P x") = {* fn _ => Quantifier1.rearrange_ex *}
 simproc_setup defined_All ("ALL x. P x") = {* fn _ => Quantifier1.rearrange_all *}
@@ -1245,10 +1239,9 @@ let
    case t
     of Abs (_, _, t') => count_loose t' 0 <= 1
      | _ => true;
-in fn _ => fn ss => fn ct => if is_trivial_let (Thm.term_of ct)
+in fn _ => fn ctxt => fn ct => if is_trivial_let (Thm.term_of ct)
   then SOME @{thm Let_def} (*no or one ocurrence of bound variable*)
   else let (*Norbert Schirmer's case*)
-    val ctxt = Simplifier.the_context ss;
     val thy = Proof_Context.theory_of ctxt;
     val t = Thm.term_of ct;
     val ([t'], ctxt') = Variable.import_terms false [t] ctxt;
@@ -1262,18 +1255,18 @@ in fn _ => fn ss => fn ct => if is_trivial_let (Thm.term_of ct)
           val cx = cterm_of thy x;
           val {T = xT, ...} = rep_cterm cx;
           val cf = cterm_of thy f;
-          val fx_g = Simplifier.rewrite ss (Thm.apply cf cx);
+          val fx_g = Simplifier.rewrite ctxt (Thm.apply cf cx);
           val (_ $ _ $ g) = prop_of fx_g;
           val g' = abstract_over (x,g);
+          val abs_g'= Abs (n,xT,g');
         in (if (g aconv g')
              then
                 let
                   val rl =
                     cterm_instantiate [(f_Let_unfold, cf), (x_Let_unfold, cx)] @{thm Let_unfold};
                 in SOME (rl OF [fx_g]) end
-             else if Term.betapply (f, x) aconv g then NONE (*avoid identity conversion*)
+             else if (Envir.beta_eta_contract f) aconv (Envir.beta_eta_contract abs_g') then NONE (*avoid identity conversion*)
              else let
-                   val abs_g'= Abs (n,xT,g');
                    val g'x = abs_g'$x;
                    val g_g'x = Thm.symmetric (Thm.beta_conversion false (cterm_of thy g'x));
                    val rl = cterm_instantiate
@@ -1349,7 +1342,7 @@ lemmas [simp] =
 lemmas [cong] = imp_cong simp_implies_cong
 lemmas [split] = split_if
 
-ML {* val HOL_ss = @{simpset} *}
+ML {* val HOL_ss = simpset_of @{context} *}
 
 text {* Simplifies x assuming c and y assuming ~c *}
 lemma if_cong:
@@ -1486,13 +1479,13 @@ setup {*
     addsimprocs
       [Simplifier.simproc_global @{theory} "swap_induct_false"
          ["induct_false ==> PROP P ==> PROP Q"]
-         (fn _ => fn _ =>
+         (fn _ =>
             (fn _ $ (P as _ $ @{const induct_false}) $ (_ $ Q $ _) =>
                   if P <> Q then SOME Drule.swap_prems_eq else NONE
               | _ => NONE)),
        Simplifier.simproc_global @{theory} "induct_equal_conj_curry"
          ["induct_conj P Q ==> PROP R"]
-         (fn _ => fn _ =>
+         (fn _ =>
             (fn _ $ (_ $ P) $ _ =>
                 let
                   fun is_conj (@{const induct_conj} $ P $ Q) =
@@ -1504,8 +1497,7 @@ setup {*
                 in if is_conj P then SOME @{thm induct_conj_curry} else NONE end
               | _ => NONE))]
     |> Simplifier.set_mksimps (fn ss => Simpdata.mksimps Simpdata.mksimps_pairs ss #>
-      map (Simplifier.rewrite_rule (map Thm.symmetric
-        @{thms induct_rulify_fallback})))))
+      map (rewrite_rule (map Thm.symmetric @{thms induct_rulify_fallback})))))
 *}
 
 text {* Pre-simplification of induction and cases rules *}
@@ -1587,7 +1579,7 @@ ML {*
 signature REORIENT_PROC =
 sig
   val add : (term -> bool) -> theory -> theory
-  val proc : morphism -> simpset -> cterm -> thm option
+  val proc : morphism -> Proof.context -> cterm -> thm option
 end;
 
 structure Reorient_Proc : REORIENT_PROC =
@@ -1603,9 +1595,8 @@ struct
   fun matches thy t = exists (fn (m, _) => m t) (Data.get thy);
 
   val meta_reorient = @{thm eq_commute [THEN eq_reflection]};
-  fun proc phi ss ct =
+  fun proc phi ctxt ct =
     let
-      val ctxt = Simplifier.the_context ss;
       val thy = Proof_Context.theory_of ctxt;
     in
       case Thm.term_of ct of
@@ -1704,11 +1695,21 @@ subsection {* Code generator setup *}
 
 subsubsection {* Generic code generator preprocessor setup *}
 
+lemma conj_left_cong:
+  "P \<longleftrightarrow> Q \<Longrightarrow> P \<and> R \<longleftrightarrow> Q \<and> R"
+  by (fact arg_cong)
+
+lemma disj_left_cong:
+  "P \<longleftrightarrow> Q \<Longrightarrow> P \<or> R \<longleftrightarrow> Q \<or> R"
+  by (fact arg_cong)
+
 setup {*
-  Code_Preproc.map_pre (K HOL_basic_ss)
-  #> Code_Preproc.map_post (K HOL_basic_ss)
-  #> Code_Simp.map_ss (K HOL_basic_ss)
+  Code_Preproc.map_pre (put_simpset HOL_basic_ss)
+  #> Code_Preproc.map_post (put_simpset HOL_basic_ss)
+  #> Code_Simp.map_ss (put_simpset HOL_basic_ss
+    #> Simplifier.add_cong @{thm conj_left_cong} #> Simplifier.add_cong @{thm disj_left_cong})
 *}
+
 
 subsubsection {* Equality *}
 
@@ -1732,10 +1733,9 @@ declare eq_equal [symmetric, code_post]
 declare eq_equal [code]
 
 setup {*
-  Code_Preproc.map_pre (fn simpset =>
-    simpset addsimprocs [Simplifier.simproc_global_i @{theory} "equal" [@{term HOL.eq}]
-      (fn thy => fn _ =>
-        fn Const (_, Type ("fun", [Type _, _])) => SOME @{thm eq_equal} | _ => NONE)])
+  Code_Preproc.map_pre (fn ctxt =>
+    ctxt addsimprocs [Simplifier.simproc_global_i @{theory} "equal" [@{term HOL.eq}]
+      (fn _ => fn Const (_, Type ("fun", [Type _, _])) => SOME @{thm eq_equal} | _ => NONE)])
 *}
 
 
@@ -1838,61 +1838,67 @@ subsubsection {* Generic code generator target languages *}
 
 text {* type @{typ bool} *}
 
-code_type bool
-  (SML "bool")
-  (OCaml "bool")
-  (Haskell "Bool")
-  (Scala "Boolean")
-
-code_const True and False and Not and HOL.conj and HOL.disj and HOL.implies and If 
-  (SML "true" and "false" and "not"
-    and infixl 1 "andalso" and infixl 0 "orelse"
-    and "!(if (_)/ then (_)/ else true)"
-    and "!(if (_)/ then (_)/ else (_))")
-  (OCaml "true" and "false" and "not"
-    and infixl 3 "&&" and infixl 2 "||"
-    and "!(if (_)/ then (_)/ else true)"
-    and "!(if (_)/ then (_)/ else (_))")
-  (Haskell "True" and "False" and "not"
-    and infixr 3 "&&" and infixr 2 "||"
-    and "!(if (_)/ then (_)/ else True)"
-    and "!(if (_)/ then (_)/ else (_))")
-  (Scala "true" and "false" and "'! _"
-    and infixl 3 "&&" and infixl 1 "||"
-    and "!(if ((_))/ (_)/ else true)"
-    and "!(if ((_))/ (_)/ else (_))")
+code_printing
+  type_constructor bool \<rightharpoonup>
+    (SML) "bool" and (OCaml) "bool" and (Haskell) "Bool" and (Scala) "Boolean"
+| constant True \<rightharpoonup>
+    (SML) "true" and (OCaml) "true" and (Haskell) "True" and (Scala) "true"
+| constant False \<rightharpoonup>
+    (SML) "false" and (OCaml) "false" and (Haskell) "False" and (Scala) "false" 
 
 code_reserved SML
-  bool true false not
+  bool true false
 
 code_reserved OCaml
-  bool not
+  bool
 
 code_reserved Scala
   Boolean
 
-code_modulename SML Pure HOL
-code_modulename OCaml Pure HOL
-code_modulename Haskell Pure HOL
+code_printing
+  constant Not \<rightharpoonup>
+    (SML) "not" and (OCaml) "not" and (Haskell) "not" and (Scala) "'! _"
+| constant HOL.conj \<rightharpoonup>
+    (SML) infixl 1 "andalso" and (OCaml) infixl 3 "&&" and (Haskell) infixr 3 "&&" and (Scala) infixl 3 "&&"
+| constant HOL.disj \<rightharpoonup>
+    (SML) infixl 0 "orelse" and (OCaml) infixl 2 "||" and (Haskell) infixl 2 "||" and (Scala) infixl 1 "||"
+| constant HOL.implies \<rightharpoonup>
+    (SML) "!(if (_)/ then (_)/ else true)"
+    and (OCaml) "!(if (_)/ then (_)/ else true)"
+    and (Haskell) "!(if (_)/ then (_)/ else True)"
+    and (Scala) "!(if ((_))/ (_)/ else true)"
+| constant If \<rightharpoonup>
+    (SML) "!(if (_)/ then (_)/ else (_))"
+    and (OCaml) "!(if (_)/ then (_)/ else (_))"
+    and (Haskell) "!(if (_)/ then (_)/ else (_))"
+    and (Scala) "!(if ((_))/ (_)/ else (_))"
+
+code_reserved SML
+  not
+
+code_reserved OCaml
+  not
+
+code_identifier
+  code_module Pure \<rightharpoonup>
+    (SML) HOL and (OCaml) HOL and (Haskell) HOL and (Scala) HOL
 
 text {* using built-in Haskell equality *}
 
-code_class equal
-  (Haskell "Eq")
-
-code_const "HOL.equal"
-  (Haskell infix 4 "==")
-
-code_const HOL.eq
-  (Haskell infix 4 "==")
+code_printing
+  type_class equal \<rightharpoonup> (Haskell) "Eq"
+| constant HOL.equal \<rightharpoonup> (Haskell) infix 4 "=="
+| constant HOL.eq \<rightharpoonup> (Haskell) infix 4 "=="
 
 text {* undefined *}
 
-code_const undefined
-  (SML "!(raise/ Fail/ \"undefined\")")
-  (OCaml "failwith/ \"undefined\"")
-  (Haskell "error/ \"undefined\"")
-  (Scala "!sys.error(\"undefined\")")
+code_printing
+  constant undefined \<rightharpoonup>
+    (SML) "!(raise/ Fail/ \"undefined\")"
+    and (OCaml) "failwith/ \"undefined\""
+    and (Haskell) "error/ \"undefined\""
+    and (Scala) "!sys.error(\"undefined\")"
+
 
 subsubsection {* Evaluation and normalization by evaluation *}
 
@@ -1987,8 +1993,6 @@ setup {*
 subsection {* Legacy tactics and ML bindings *}
 
 ML {*
-fun strip_tac i = REPEAT (resolve_tac [impI, allI] i);
-
 (* combination of (spec RS spec RS ...(j times) ... spec RS mp) *)
 local
   fun wrong_prem (Const (@{const_name All}, _) $ Abs (_, _, t)) = wrong_prem t
@@ -2000,7 +2004,12 @@ in
   fun smp_tac j = EVERY'[dresolve_tac (smp j), atac];
 end;
 
-val nnf_conv = Simplifier.rewrite (HOL_basic_ss addsimps @{thms simp_thms nnf_simps});
+local
+  val nnf_ss =
+    simpset_of (put_simpset HOL_basic_ss @{context} addsimps @{thms simp_thms nnf_simps});
+in
+  fun nnf_conv ctxt = Simplifier.rewrite (put_simpset nnf_ss ctxt);
+end
 *}
 
 hide_const (open) eq equal

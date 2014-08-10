@@ -5,7 +5,7 @@
 header {* The datatype of finite lists *}
 
 theory List
-imports Plain Presburger Code_Numeral Quotient ATP
+imports Presburger Code_Numeral Quotient ATP Lifting_Set Lifting_Option Lifting_Product
 begin
 
 datatype 'a list =
@@ -146,6 +146,10 @@ primrec product :: "'a list \<Rightarrow> 'b list \<Rightarrow> ('a \<times> 'b)
 
 hide_const (open) product
 
+primrec product_lists :: "'a list list \<Rightarrow> 'a list list" where
+"product_lists [] = [[]]" |
+"product_lists (xs # xss) = concat (map (\<lambda>x. map (Cons x) (product_lists xss)) xs)"
+
 primrec upt :: "nat \<Rightarrow> nat \<Rightarrow> nat list" ("(1[_..</_'])") where
 upt_0: "[i..<0] = []" |
 upt_Suc: "[i..<(Suc j)] = (if i <= j then [i..<j] @ [j] else [])"
@@ -161,6 +165,13 @@ primrec find :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> 'a 
 "find P (x#xs) = (if P x then Some x else find P xs)"
 
 hide_const (open) find
+
+primrec those :: "'a option list \<Rightarrow> 'a list option"
+where
+"those [] = Some []" |
+"those (x # xs) = (case x of
+  None \<Rightarrow> None
+| Some y \<Rightarrow> Option.map (Cons y) (those xs))"
 
 primrec remove1 :: "'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
 "remove1 x [] = []" |
@@ -178,6 +189,11 @@ primrec remdups :: "'a list \<Rightarrow> 'a list" where
 "remdups [] = []" |
 "remdups (x # xs) = (if x \<in> set xs then remdups xs else x # remdups xs)"
 
+fun remdups_adj :: "'a list \<Rightarrow> 'a list" where
+"remdups_adj [] = []" |
+"remdups_adj [x] = [x]" |
+"remdups_adj (x # y # xs) = (if x = y then remdups_adj (x # xs) else x # remdups_adj (y # xs))"
+
 primrec replicate :: "nat \<Rightarrow> 'a \<Rightarrow> 'a list" where
 replicate_0: "replicate 0 x = []" |
 replicate_Suc: "replicate (Suc n) x = x # replicate n x"
@@ -188,6 +204,9 @@ text {*
 
 abbreviation length :: "'a list \<Rightarrow> nat" where
 "length \<equiv> size"
+
+definition enumerate :: "nat \<Rightarrow> 'a list \<Rightarrow> (nat \<times> 'a) list" where
+enumerate_eq_zip: "enumerate n xs = zip [n..<n + length xs] xs"
 
 primrec rotate1 :: "'a list \<Rightarrow> 'a list" where
 "rotate1 [] = []" |
@@ -238,7 +257,9 @@ text{*
 @{lemma "foldl f x [a,b,c] = f (f (f x a) b) c" by simp}\\
 @{lemma "zip [a,b,c] [x,y,z] = [(a,x),(b,y),(c,z)]" by simp}\\
 @{lemma "zip [a,b] [x,y,z] = [(a,x),(b,y)]" by simp}\\
+@{lemma "enumerate 3 [a,b,c] = [(3,a),(4,b),(5,c)]" by normalization}\\
 @{lemma "List.product [a,b] [c,d] = [(a, c), (a, d), (b, c), (b, d)]" by simp}\\
+@{lemma "product_lists [[a,b], [c], [d,e]] = [[a,c,d], [a,c,e], [b,c,d], [b,c,e]]" by simp}\\
 @{lemma "splice [a,b,c] [x,y,z] = [a,x,b,y,c,z]" by simp}\\
 @{lemma "splice [a,b,c,d] [x,y] = [a,x,b,y,c,d]" by simp}\\
 @{lemma "take 2 [a,b,c,d] = [a,b]" by simp}\\
@@ -249,6 +270,7 @@ text{*
 @{lemma "dropWhile (%n::nat. n<3) [1,2,3,0] = [3,0]" by simp}\\
 @{lemma "distinct [2,0,1::nat]" by simp}\\
 @{lemma "remdups [2,0,2,1::nat,2] = [0,1,2]" by simp}\\
+@{lemma "remdups_adj [2,2,3,1,1::nat,2,1] = [2,3,1,2,1]" by simp}\\
 @{lemma "List.insert 2 [0::nat,1,2] = [0,1,2]" by (simp add: List.insert_def)}\\
 @{lemma "List.insert 3 [0::nat,1,2] = [3,0,1,2]" by (simp add: List.insert_def)}\\
 @{lemma "List.find (%i::int. i>0) [0,0] = None" by simp}\\
@@ -375,7 +397,7 @@ syntax (xsymbols)
 syntax (HTML output)
   "_lc_gen" :: "'a \<Rightarrow> 'a list \<Rightarrow> lc_qual"  ("_ \<leftarrow> _")
 
-parse_translation (advanced) {*
+parse_translation {*
   let
     val NilC = Syntax.const @{const_syntax Nil};
     val ConsC = Syntax.const @{const_syntax Cons};
@@ -396,7 +418,7 @@ parse_translation (advanced) {*
           Syntax.const @{syntax_const "_case1"} $
             Syntax.const @{const_syntax dummy_pattern} $ NilC;
         val cs = Syntax.const @{syntax_const "_case2"} $ case1 $ case2;
-      in Syntax_Trans.abs_tr [x, Datatype_Case.case_tr false ctxt [x, cs]] end;
+      in Syntax_Trans.abs_tr [x, Case_Translation.case_tr false ctxt [x, cs]] end;
 
     fun abs_tr ctxt p e opti =
       (case Term_Position.strip_positions p of
@@ -433,7 +455,7 @@ parse_translation (advanced) {*
   in [(@{syntax_const "_listcompr"}, lc_tr)] end
 *}
 
-ML {*
+ML_val {*
   let
     val read = Syntax.read_term @{context};
     fun check s1 s2 = read s1 aconv read s2 orelse error ("Check failed: " ^ quote s1);
@@ -478,7 +500,7 @@ ML {*
 
 signature LIST_TO_SET_COMPREHENSION =
 sig
-  val simproc : simpset -> cterm -> thm option
+  val simproc : Proof.context -> cterm -> thm option
 end
 
 structure List_to_Set_Comprehension : LIST_TO_SET_COMPREHENSION =
@@ -503,29 +525,14 @@ fun Collect_conv cv ctxt ct =
     Const (@{const_name Set.Collect}, _) $ Abs _ => Conv.arg_conv (Conv.abs_conv cv ctxt) ct
   | _ => raise CTERM ("Collect_conv", [ct]))
 
-fun Trueprop_conv cv ct =
-  (case Thm.term_of ct of
-    Const (@{const_name Trueprop}, _) $ _ => Conv.arg_conv cv ct
-  | _ => raise CTERM ("Trueprop_conv", [ct]))
-
-fun eq_conv cv1 cv2 ct =
-  (case Thm.term_of ct of
-    Const (@{const_name HOL.eq}, _) $ _ $ _ => Conv.combination_conv (Conv.arg_conv cv1) cv2 ct
-  | _ => raise CTERM ("eq_conv", [ct]))
-
-fun conj_conv cv1 cv2 ct =
-  (case Thm.term_of ct of
-    Const (@{const_name HOL.conj}, _) $ _ $ _ => Conv.combination_conv (Conv.arg_conv cv1) cv2 ct
-  | _ => raise CTERM ("conj_conv", [ct]))
-
 fun rewr_conv' th = Conv.rewr_conv (mk_meta_eq th)
 
 fun conjunct_assoc_conv ct =
   Conv.try_conv
-    (rewr_conv' @{thm conj_assoc} then_conv conj_conv Conv.all_conv conjunct_assoc_conv) ct
+    (rewr_conv' @{thm conj_assoc} then_conv HOLogic.conj_conv Conv.all_conv conjunct_assoc_conv) ct
 
 fun right_hand_set_comprehension_conv conv ctxt =
-  Trueprop_conv (eq_conv Conv.all_conv
+  HOLogic.Trueprop_conv (HOLogic.eq_conv Conv.all_conv
     (Collect_conv (all_exists_conv conv o #2) ctxt))
 
 
@@ -533,9 +540,8 @@ fun right_hand_set_comprehension_conv conv ctxt =
 
 datatype termlets = If | Case of (typ * int)
 
-fun simproc ss redex =
+fun simproc ctxt redex =
   let
-    val ctxt = Simplifier.the_context ss
     val thy = Proof_Context.theory_of ctxt
     val set_Nil_I = @{thm trans} OF [@{thm set.simps(1)}, @{thm empty_def}]
     val set_singleton = @{lemma "set [a] = {x. x = a}" by simp}
@@ -553,9 +559,9 @@ fun simproc ss redex =
         fun check (i, case_t) s =
           (case strip_abs_body case_t of
             (Const (@{const_name List.Nil}, _)) => s
-          | _ => (case s of NONE => SOME i | SOME _ => NONE))
+          | _ => (case s of SOME NONE => SOME (SOME i) | _ => NONE))
       in
-        fold_index check cases NONE
+        fold_index check cases (SOME NONE) |> the_default NONE
       end
     (* returns (case_expr type index chosen_case) option  *)
     fun dest_case case_term =
@@ -587,14 +593,14 @@ fun simproc ss redex =
           THEN rtac @{thm impI} 1
           THEN Subgoal.FOCUS (fn {prems, context, ...} =>
             CONVERSION (right_hand_set_comprehension_conv (K
-              (conj_conv (Conv.rewr_conv (List.last prems RS @{thm Eq_TrueI})) Conv.all_conv
+              (HOLogic.conj_conv (Conv.rewr_conv (List.last prems RS @{thm Eq_TrueI})) Conv.all_conv
                then_conv
                rewr_conv' @{lemma "(True & P) = P" by simp})) context) 1) ctxt 1
           THEN tac ctxt cont
           THEN rtac @{thm impI} 1
           THEN Subgoal.FOCUS (fn {prems, context, ...} =>
               CONVERSION (right_hand_set_comprehension_conv (K
-                (conj_conv (Conv.rewr_conv (List.last prems RS @{thm Eq_FalseI})) Conv.all_conv
+                (HOLogic.conj_conv (Conv.rewr_conv (List.last prems RS @{thm Eq_FalseI})) Conv.all_conv
                  then_conv rewr_conv' @{lemma "(False & P) = False" by simp})) context) 1) ctxt 1
           THEN rtac set_Nil_I 1
       | tac ctxt (Case (T, i) :: cont) =
@@ -611,13 +617,13 @@ fun simproc ss redex =
                 (* continue recursively *)
                 Subgoal.FOCUS (fn {prems, context, ...} =>
                   CONVERSION (Thm.eta_conversion then_conv right_hand_set_comprehension_conv (K
-                      ((conj_conv
-                        (eq_conv Conv.all_conv (rewr_conv' (List.last prems)) then_conv
+                      ((HOLogic.conj_conv
+                        (HOLogic.eq_conv Conv.all_conv (rewr_conv' (List.last prems)) then_conv
                           (Conv.try_conv (Conv.rewrs_conv (map mk_meta_eq (#inject info)))))
                         Conv.all_conv)
                         then_conv (Conv.try_conv (Conv.rewr_conv del_refl_eq))
                         then_conv conjunct_assoc_conv)) context
-                    then_conv (Trueprop_conv (eq_conv Conv.all_conv (Collect_conv (fn (_, ctxt) =>
+                    then_conv (HOLogic.Trueprop_conv (HOLogic.eq_conv Conv.all_conv (Collect_conv (fn (_, ctxt) =>
                       Conv.repeat_conv
                         (all_but_last_exists_conv
                           (K (rewr_conv'
@@ -627,14 +633,14 @@ fun simproc ss redex =
                 Subgoal.FOCUS (fn {prems, context, ...} =>
                   CONVERSION
                     (right_hand_set_comprehension_conv (K
-                      (conj_conv
-                        ((eq_conv Conv.all_conv
+                      (HOLogic.conj_conv
+                        ((HOLogic.eq_conv Conv.all_conv
                           (rewr_conv' (List.last prems))) then_conv
                           (Conv.rewrs_conv (map (fn th => th RS @{thm Eq_FalseI}) (#distinct info))))
                         Conv.all_conv then_conv
                         (rewr_conv' @{lemma "(False & P) = False" by simp}))) context then_conv
-                      Trueprop_conv
-                        (eq_conv Conv.all_conv
+                      HOLogic.Trueprop_conv
+                        (HOLogic.eq_conv Conv.all_conv
                           (Collect_conv (fn (_, ctxt) =>
                             Conv.repeat_conv
                               (Conv.bottom_conv
@@ -646,7 +652,7 @@ fun simproc ss redex =
       (case dest_case t of
         SOME (x, T, i, cont) =>
           let
-            val (vs, body) = strip_abs (Pattern.eta_long (map snd bound_vs) cont)
+            val (vs, body) = strip_abs (Envir.eta_long (map snd bound_vs) cont)
             val x' = incr_boundvars (length vs) x
             val eqs' = map (incr_boundvars (length vs)) eqs
             val (constr_name, _) = nth (the (Datatype.get_constrs thy (fst (dest_Type T)))) i
@@ -715,9 +721,15 @@ by (rule not_Cons_self [symmetric])
 lemma neq_Nil_conv: "(xs \<noteq> []) = (\<exists>y ys. xs = y # ys)"
 by (induct xs) auto
 
+lemma tl_Nil: "tl xs = [] \<longleftrightarrow> xs = [] \<or> (EX x. xs = [x])"
+by (cases xs) auto
+
+lemma Nil_tl: "[] = tl xs \<longleftrightarrow> xs = [] \<or> (EX x. xs = [x])"
+by (cases xs) auto
+
 lemma length_induct:
   "(\<And>xs. \<forall>ys. length ys < length xs \<longrightarrow> P ys \<Longrightarrow> P xs) \<Longrightarrow> P xs"
-by (rule measure_induct [of length]) iprover
+by (fact measure_induct)
 
 lemma list_nonempty_induct [consumes 1, case_names single cons]:
   assumes "xs \<noteq> []"
@@ -727,12 +739,18 @@ lemma list_nonempty_induct [consumes 1, case_names single cons]:
 using `xs \<noteq> []` proof (induct xs)
   case Nil then show ?case by simp
 next
-  case (Cons x xs) show ?case proof (cases xs)
-    case Nil with single show ?thesis by simp
+  case (Cons x xs)
+  show ?case
+  proof (cases xs)
+    case Nil
+    with single show ?thesis by simp
   next
-    case Cons then have "xs \<noteq> []" by simp
-    moreover with Cons.hyps have "P xs" .
-    ultimately show ?thesis by (rule cons)
+    case Cons
+    show ?thesis
+    proof (rule cons)
+      from Cons show "xs \<noteq> []" by simp
+      with Cons.hyps show "P xs" .
+    qed
   qed
 qed
 
@@ -840,7 +858,9 @@ fun len (Const(@{const_name Nil},_)) acc = acc
   | len (Const(@{const_name map},_) $ _ $ xs) acc = len xs acc
   | len t (ts,n) = (t::ts,n);
 
-fun list_neq _ ss ct =
+val ss = simpset_of @{context};
+
+fun list_neq ctxt ct =
   let
     val (Const(_,eqT) $ lhs $ rhs) = Thm.term_of ct;
     val (ls,m) = len lhs ([],0) and (rs,n) = len rhs ([],0);
@@ -850,15 +870,15 @@ fun list_neq _ ss ct =
         val size = HOLogic.size_const listT;
         val eq_len = HOLogic.mk_eq (size $ lhs, size $ rhs);
         val neq_len = HOLogic.mk_Trueprop (HOLogic.Not $ eq_len);
-        val thm = Goal.prove (Simplifier.the_context ss) [] [] neq_len
-          (K (simp_tac (Simplifier.inherit_context ss @{simpset}) 1));
+        val thm = Goal.prove ctxt [] [] neq_len
+          (K (simp_tac (put_simpset ss ctxt) 1));
       in SOME (thm RS @{thm neq_if_length_neq}) end
   in
     if m < n andalso submultiset (op aconv) (ls,rs) orelse
        n < m andalso submultiset (op aconv) (rs,ls)
     then prove_neq() else NONE
   end;
-in list_neq end;
+in K list_neq end;
 *}
 
 
@@ -976,9 +996,10 @@ simproc_setup list_eq ("(xs::'a list) = ys")  = {*
       | butlast xs = Const(@{const_name Nil}, fastype_of xs);
     
     val rearr_ss =
-      HOL_basic_ss addsimps [@{thm append_assoc}, @{thm append_Nil}, @{thm append_Cons}];
+      simpset_of (put_simpset HOL_basic_ss @{context}
+        addsimps [@{thm append_assoc}, @{thm append_Nil}, @{thm append_Cons}]);
     
-    fun list_eq ss (F as (eq as Const(_,eqT)) $ lhs $ rhs) =
+    fun list_eq ctxt (F as (eq as Const(_,eqT)) $ lhs $ rhs) =
       let
         val lastl = last lhs and lastr = last rhs;
         fun rearr conv =
@@ -989,15 +1010,15 @@ simproc_setup list_eq ("(xs::'a list) = ys")  = {*
             val app = Const(@{const_name append},appT)
             val F2 = eq $ (app$lhs1$lastl) $ (app$rhs1$lastr)
             val eq = HOLogic.mk_Trueprop (HOLogic.mk_eq (F,F2));
-            val thm = Goal.prove (Simplifier.the_context ss) [] [] eq
-              (K (simp_tac (Simplifier.inherit_context ss rearr_ss) 1));
+            val thm = Goal.prove ctxt [] [] eq
+              (K (simp_tac (put_simpset rearr_ss ctxt) 1));
           in SOME ((conv RS (thm RS trans)) RS eq_reflection) end;
       in
         if list1 lastl andalso list1 lastr then rearr @{thm append1_eq_conv}
         else if lastl aconv lastr then rearr @{thm append_same_eq}
         else NONE
       end;
-  in fn _ => fn ss => fn ct => list_eq ss (term_of ct) end;
+  in fn _ => fn ctxt => fn ct => list_eq ctxt (term_of ct) end;
 *}
 
 
@@ -1063,12 +1084,13 @@ by(induct ys, auto simp add: Cons_eq_map_conv)
 lemma map_eq_imp_length_eq:
   assumes "map f xs = map g ys"
   shows "length xs = length ys"
-using assms proof (induct ys arbitrary: xs)
+  using assms
+proof (induct ys arbitrary: xs)
   case Nil then show ?case by simp
 next
   case (Cons y ys) then obtain z zs where xs: "xs = z # zs" by auto
   from Cons xs have "map f zs = map g ys" by simp
-  moreover with Cons have "length zs = length ys" by blast
+  with Cons have "length zs = length ys" by blast
   with xs show ?case by simp
 qed
   
@@ -1619,6 +1641,35 @@ done
 lemma in_set_conv_nth: "(x \<in> set xs) = (\<exists>i < length xs. xs!i = x)"
 by(auto simp:set_conv_nth)
 
+lemma nth_equal_first_eq:
+  assumes "x \<notin> set xs"
+  assumes "n \<le> length xs"
+  shows "(x # xs) ! n = x \<longleftrightarrow> n = 0" (is "?lhs \<longleftrightarrow> ?rhs")
+proof
+  assume ?lhs
+  show ?rhs
+  proof (rule ccontr)
+    assume "n \<noteq> 0"
+    then have "n > 0" by simp
+    with `?lhs` have "xs ! (n - 1) = x" by simp
+    moreover from `n > 0` `n \<le> length xs` have "n - 1 < length xs" by simp
+    ultimately have "\<exists>i<length xs. xs ! i = x" by auto
+    with `x \<notin> set xs` in_set_conv_nth [of x xs] show False by simp
+  qed
+next
+  assume ?rhs then show ?lhs by simp
+qed
+
+lemma nth_non_equal_first_eq:
+  assumes "x \<noteq> y"
+  shows "(x # xs) ! n = y \<longleftrightarrow> xs ! (n - 1) = y \<and> n > 0" (is "?lhs \<longleftrightarrow> ?rhs")
+proof
+  assume "?lhs" with assms have "n > 0" by (cases n) simp_all
+  with `?lhs` show ?rhs by simp
+next
+  assume "?rhs" then show "?lhs" by simp
+qed
+
 lemma list_ball_nth: "[| n < length xs; !x : set xs. P x|] ==> P(xs!n)"
 by (auto simp add: set_conv_nth)
 
@@ -1642,10 +1693,10 @@ next
   hence n: "n < Suc (length xs)" by simp
   moreover
   { assume "n < length xs"
-    with n obtain n' where "length xs - n = Suc n'"
+    with n obtain n' where n': "length xs - n = Suc n'"
       by (cases "length xs - n", auto)
     moreover
-    then have "length xs - Suc n = n'" by simp
+    from n' have "length xs - Suc n = n'" by simp
     ultimately
     have "xs ! (length xs - Suc n) = (x # xs) ! (length xs - n)" by simp
   }
@@ -2068,13 +2119,13 @@ apply (case_tac i, simp_all)
 done
 
 lemma append_eq_append_conv_if:
- "(xs\<^isub>1 @ xs\<^isub>2 = ys\<^isub>1 @ ys\<^isub>2) =
-  (if size xs\<^isub>1 \<le> size ys\<^isub>1
-   then xs\<^isub>1 = take (size xs\<^isub>1) ys\<^isub>1 \<and> xs\<^isub>2 = drop (size xs\<^isub>1) ys\<^isub>1 @ ys\<^isub>2
-   else take (size ys\<^isub>1) xs\<^isub>1 = ys\<^isub>1 \<and> drop (size ys\<^isub>1) xs\<^isub>1 @ xs\<^isub>2 = ys\<^isub>2)"
-apply(induct xs\<^isub>1 arbitrary: ys\<^isub>1)
+ "(xs\<^sub>1 @ xs\<^sub>2 = ys\<^sub>1 @ ys\<^sub>2) =
+  (if size xs\<^sub>1 \<le> size ys\<^sub>1
+   then xs\<^sub>1 = take (size xs\<^sub>1) ys\<^sub>1 \<and> xs\<^sub>2 = drop (size xs\<^sub>1) ys\<^sub>1 @ ys\<^sub>2
+   else take (size ys\<^sub>1) xs\<^sub>1 = ys\<^sub>1 \<and> drop (size ys\<^sub>1) xs\<^sub>1 @ xs\<^sub>2 = ys\<^sub>2)"
+apply(induct xs\<^sub>1 arbitrary: ys\<^sub>1)
  apply simp
-apply(case_tac ys\<^isub>1)
+apply(case_tac ys\<^sub>1)
 apply simp_all
 done
 
@@ -2281,6 +2332,14 @@ lemma dropWhile_cong [fundef_cong]:
   ==> dropWhile P l = dropWhile Q k"
 by (induct k arbitrary: l, simp_all)
 
+lemma takeWhile_idem [simp]:
+  "takeWhile P (takeWhile P xs) = takeWhile P xs"
+  by (induct xs) auto
+
+lemma dropWhile_idem [simp]:
+  "dropWhile P (dropWhile P xs) = dropWhile P xs"
+  by (induct xs) auto
+
 
 subsubsection {* @{const zip} *}
 
@@ -2443,6 +2502,20 @@ lemma zip_eq_conv:
   "length xs = length ys \<Longrightarrow> zip xs ys = zs \<longleftrightarrow> map fst zs = xs \<and> map snd zs = ys"
   by (auto simp add: zip_map_fst_snd)
 
+lemma in_set_zip:
+  "p \<in> set (zip xs ys) \<longleftrightarrow> (\<exists>n. xs ! n = fst p \<and> ys ! n = snd p
+    \<and> n < length xs \<and> n < length ys)"
+  by (cases p) (auto simp add: set_zip)
+
+lemma pair_list_eqI:
+  assumes "map fst xs = map fst ys" and "map snd xs = map snd ys"
+  shows "xs = ys"
+proof -
+  from assms(1) have "length xs = length ys" by (rule map_eq_imp_length_eq)
+  from this assms show ?thesis
+    by (induct xs ys rule: list_induct2) (simp_all add: prod_eqI)
+qed
+
 
 subsubsection {* @{const list_all2} *}
 
@@ -2601,11 +2674,42 @@ lemma list_eq_iff_zip_eq:
 by(auto simp add: set_zip list_all2_eq list_all2_conv_all_nth cong: conj_cong)
 
 
-subsubsection {* @{const List.product} *}
+subsubsection {* @{const List.product} and @{const product_lists} *}
 
 lemma product_list_set:
   "set (List.product xs ys) = set xs \<times> set ys"
   by (induct xs) auto
+
+lemma length_product [simp]:
+  "length (List.product xs ys) = length xs * length ys"
+  by (induct xs) simp_all
+
+lemma product_nth:
+  assumes "n < length xs * length ys"
+  shows "List.product xs ys ! n = (xs ! (n div length ys), ys ! (n mod length ys))"
+using assms proof (induct xs arbitrary: n)
+  case Nil then show ?case by simp
+next
+  case (Cons x xs n)
+  then have "length ys > 0" by auto
+  with Cons show ?case
+    by (auto simp add: nth_append not_less le_mod_geq le_div_geq)
+qed
+
+lemma in_set_product_lists_length: 
+  "xs \<in> set (product_lists xss) \<Longrightarrow> length xs = length xss"
+  by (induct xss arbitrary: xs) auto
+
+lemma product_lists_set:
+  "set (product_lists xss) = {xs. list_all2 (\<lambda>x ys. x \<in> set ys) xs xss}" (is "?L = Collect ?R")
+proof (intro equalityI subsetI, unfold mem_Collect_eq)
+  fix xs assume "xs \<in> ?L"
+  then have "length xs = length xss" by (rule in_set_product_lists_length)
+  from this `xs \<in> ?L` show "?R xs" by (induct xs xss rule: list_induct2) auto
+next
+  fix xs assume "?R xs"
+  then show "xs \<in> ?L" by induct auto
+qed
 
 
 subsubsection {* @{const fold} with natural argument order *}
@@ -2679,51 +2783,11 @@ text {* @{const Finite_Set.fold} and @{const fold} *}
 
 lemma (in comp_fun_commute) fold_set_fold_remdups:
   "Finite_Set.fold f y (set xs) = fold f (remdups xs) y"
-  by (rule sym, induct xs arbitrary: y) (simp_all add: fold_fun_comm insert_absorb)
-
-lemma (in ab_semigroup_mult) fold1_distinct_set_fold:
-  assumes "xs \<noteq> []"
-  assumes d: "distinct xs"
-  shows "Finite_Set.fold1 times (set xs) = List.fold times (tl xs) (hd xs)"
-proof -
-  interpret comp_fun_commute times by (fact comp_fun_commute)
-  from assms obtain y ys where xs: "xs = y # ys"
-    by (cases xs) auto
-  then have *: "y \<notin> set ys" using assms by simp
-  from xs d have **: "remdups ys = ys"  by safe (induct ys, auto)
-  show ?thesis
-  proof (cases "set ys = {}")
-    case True with xs show ?thesis by simp
-  next
-    case False
-    then have "fold1 times (Set.insert y (set ys)) = Finite_Set.fold times y (set ys)"
-      by (simp_all add: fold1_eq_fold *)
-    with xs show ?thesis
-      by (simp add: fold_set_fold_remdups **)
-  qed
-qed
+  by (rule sym, induct xs arbitrary: y) (simp_all add: fold_fun_left_comm insert_absorb)
 
 lemma (in comp_fun_idem) fold_set_fold:
   "Finite_Set.fold f y (set xs) = fold f xs y"
-  by (rule sym, induct xs arbitrary: y) (simp_all add: fold_fun_comm)
-
-lemma (in ab_semigroup_idem_mult) fold1_set_fold:
-  assumes "xs \<noteq> []"
-  shows "Finite_Set.fold1 times (set xs) = fold times (tl xs) (hd xs)"
-proof -
-  interpret comp_fun_idem times by (fact comp_fun_idem)
-  from assms obtain y ys where xs: "xs = y # ys"
-    by (cases xs) auto
-  show ?thesis
-  proof (cases "set ys = {}")
-    case True with xs show ?thesis by simp
-  next
-    case False
-    then have "fold1 times (insert y (set ys)) = Finite_Set.fold times y (set ys)"
-      by (simp only: finite_set fold1_eq_fold_idem)
-    with xs show ?thesis by (simp add: fold_set_fold mult_commute)
-  qed
-qed
+  by (rule sym, induct xs arbitrary: y) (simp_all add: fold_fun_left_comm)
 
 lemma union_set_fold [code]:
   "set xs \<union> A = fold Set.insert xs A"
@@ -2758,49 +2822,18 @@ lemma inter_coset_fold [code]:
   "A \<inter> List.coset xs = fold Set.remove xs A"
   by (simp add: Diff_eq [symmetric] minus_set_fold)
 
-lemma (in lattice) Inf_fin_set_fold:
-  "Inf_fin (set (x # xs)) = fold inf xs x"
+lemma (in semilattice_set) set_eq_fold:
+  "F (set (x # xs)) = fold f xs x"
 proof -
-  interpret ab_semigroup_idem_mult "inf :: 'a \<Rightarrow> 'a \<Rightarrow> 'a"
-    by (fact ab_semigroup_idem_mult_inf)
-  show ?thesis
-    by (simp add: Inf_fin_def fold1_set_fold del: set.simps)
+  interpret comp_fun_idem f
+    by default (simp_all add: fun_eq_iff left_commute)
+  show ?thesis by (simp add: eq_fold fold_set_fold)
 qed
 
-declare Inf_fin_set_fold [code]
-
-lemma (in lattice) Sup_fin_set_fold:
-  "Sup_fin (set (x # xs)) = fold sup xs x"
-proof -
-  interpret ab_semigroup_idem_mult "sup :: 'a \<Rightarrow> 'a \<Rightarrow> 'a"
-    by (fact ab_semigroup_idem_mult_sup)
-  show ?thesis
-    by (simp add: Sup_fin_def fold1_set_fold del: set.simps)
-qed
-
-declare Sup_fin_set_fold [code]
-
-lemma (in linorder) Min_fin_set_fold:
-  "Min (set (x # xs)) = fold min xs x"
-proof -
-  interpret ab_semigroup_idem_mult "min :: 'a \<Rightarrow> 'a \<Rightarrow> 'a"
-    by (fact ab_semigroup_idem_mult_min)
-  show ?thesis
-    by (simp add: Min_def fold1_set_fold del: set.simps)
-qed
-
-declare Min_fin_set_fold [code]
-
-lemma (in linorder) Max_fin_set_fold:
-  "Max (set (x # xs)) = fold max xs x"
-proof -
-  interpret ab_semigroup_idem_mult "max :: 'a \<Rightarrow> 'a \<Rightarrow> 'a"
-    by (fact ab_semigroup_idem_mult_max)
-  show ?thesis
-    by (simp add: Max_def fold1_set_fold del: set.simps)
-qed
-
-declare Max_fin_set_fold [code]
+declare Inf_fin.set_eq_fold [code]
+declare Sup_fin.set_eq_fold [code]
+declare Min.set_eq_fold [code]
+declare Max.set_eq_fold [code]
 
 lemma (in complete_lattice) Inf_set_fold:
   "Inf (set xs) = fold inf xs top"
@@ -2961,6 +2994,10 @@ prefer 3 apply (subst map_Suc_upt[symmetric])
 apply (auto simp add: less_diff_conv)
 done
 
+lemma map_decr_upt:
+  "map (\<lambda>n. n - Suc 0) [Suc m..<Suc n] = [m..<n]"
+  by (induct n) simp_all
+
 lemma nth_take_lemma:
   "k <= length xs ==> k <= length ys ==>
      (!!i. i < k --> xs!i = ys!i) ==> take k xs = take k ys"
@@ -3025,15 +3062,13 @@ by (simp add: nth_Cons')
 
 subsubsection {* @{text upto}: interval-list on @{typ int} *}
 
-(* FIXME make upto tail recursive? *)
-
 function upto :: "int \<Rightarrow> int \<Rightarrow> int list" ("(1[_../_])") where
-"upto i j = (if i \<le> j then i # [i+1..j] else [])"
+  "upto i j = (if i \<le> j then i # [i+1..j] else [])"
 by auto
 termination
 by(relation "measure(%(i::int,j). nat(j - i + 1))") auto
 
-declare upto.simps[code, simp del]
+declare upto.simps[simp del]
 
 lemmas upto_rec_numeral [simp] =
   upto.simps[of "numeral m" "numeral n"]
@@ -3044,6 +3079,18 @@ lemmas upto_rec_numeral [simp] =
 lemma upto_empty[simp]: "j < i \<Longrightarrow> [i..j] = []"
 by(simp add: upto.simps)
 
+lemma upto_rec1: "i \<le> j \<Longrightarrow> [i..j] = i#[i+1..j]"
+by(simp add: upto.simps)
+
+lemma upto_rec2: "i \<le> j \<Longrightarrow> [i..j] = [i..j - 1]@[j]"
+proof(induct "nat(j-i)" arbitrary: i j)
+  case 0 thus ?case by(simp add: upto.simps)
+next
+  case (Suc n)
+  hence "n = nat (j - (i + 1))" "i < j" by linarith+
+  from this(2) Suc.hyps(1)[OF this(1)] Suc(2,3) upto_rec1 show ?case by simp
+qed
+
 lemma set_upto[simp]: "set[i..j] = {i..j}"
 proof(induct i j rule:upto.induct)
   case (1 i j)
@@ -3051,8 +3098,20 @@ proof(induct i j rule:upto.induct)
     unfolding upto.simps[of i j] simp_from_to[of i j] by auto
 qed
 
+text{* Tail recursive version for code generation: *}
 
-subsubsection {* @{const distinct} and @{const remdups} *}
+definition upto_aux :: "int \<Rightarrow> int \<Rightarrow> int list \<Rightarrow> int list" where
+  "upto_aux i j js = [i..j] @ js"
+
+lemma upto_aux_rec [code]:
+  "upto_aux i j js = (if j<i then js else upto_aux i (j - 1) (j#js))"
+  by (simp add: upto_aux_def upto_rec2)
+
+lemma upto_code[code]: "[i..j] = upto_aux i j []"
+by(simp add: upto_aux_def)
+
+
+subsubsection {* @{const distinct} and @{const remdups} and @{const remdups_adj} *}
 
 lemma distinct_tl:
   "distinct xs \<Longrightarrow> distinct (tl xs)"
@@ -3247,6 +3306,20 @@ lemma distinct_product:
   using assms by (induct xs)
     (auto intro: inj_onI simp add: product_list_set distinct_map)
 
+lemma distinct_product_lists:
+  assumes "\<forall>xs \<in> set xss. distinct xs"
+  shows "distinct (product_lists xss)"
+using assms proof (induction xss)
+  case (Cons xs xss) note * = this
+  then show ?case
+  proof (cases "product_lists xss")
+    case Nil then show ?thesis by (induct xs) simp_all
+  next
+    case (Cons ps pss) with * show ?thesis 
+      by (auto intro!: inj_onI distinct_concat simp add: distinct_map)
+  qed
+qed simp
+
 lemma length_remdups_concat:
   "length (remdups (concat xss)) = card (\<Union>xs\<in>set xss. set xs)"
   by (simp add: distinct_card [symmetric])
@@ -3310,6 +3383,49 @@ lemma distinct_length_2_or_more:
 "distinct (a # b # xs) \<longleftrightarrow> (a \<noteq> b \<and> distinct (a # xs) \<and> distinct (b # xs))"
 by (metis distinct.simps(2) hd.simps hd_in_set list.simps(2) set_ConsD set_rev_mp set_subset_Cons)
 
+lemma remdups_adj_Cons: "remdups_adj (x # xs) =
+  (case remdups_adj xs of [] \<Rightarrow> [x] | y # xs \<Rightarrow> if x = y then y # xs else x # y # xs)"
+  by (induct xs arbitrary: x) (auto split: list.splits)
+
+lemma remdups_adj_append_two: 
+  "remdups_adj (xs @ [x,y]) = remdups_adj (xs @ [x]) @ (if x = y then [] else [y])"
+  by (induct xs rule: remdups_adj.induct, simp_all)
+
+lemma remdups_adj_rev[simp]: "remdups_adj (rev xs) = rev (remdups_adj xs)"
+  by (induct xs rule: remdups_adj.induct, simp_all add: remdups_adj_append_two)
+
+lemma remdups_adj_length[simp]: "length (remdups_adj xs) \<le> length xs"
+  by (induct xs rule: remdups_adj.induct, auto)
+
+lemma remdups_adj_length_ge1[simp]: "xs \<noteq> [] \<Longrightarrow> length (remdups_adj xs) \<ge> Suc 0"
+  by (induct xs rule: remdups_adj.induct, simp_all)
+
+lemma remdups_adj_Nil_iff[simp]: "remdups_adj xs = [] \<longleftrightarrow> xs = []"
+  by (induct xs rule: remdups_adj.induct, simp_all)
+
+lemma remdups_adj_set[simp]: "set (remdups_adj xs) = set xs"
+  by (induct xs rule: remdups_adj.induct, simp_all)
+
+lemma remdups_adj_Cons_alt[simp]: "x # tl (remdups_adj (x # xs)) = remdups_adj (x # xs)"
+    by (induct xs rule: remdups_adj.induct, auto)
+
+lemma remdups_adj_distinct: "distinct xs \<Longrightarrow> remdups_adj xs = xs"
+    by (induct xs rule: remdups_adj.induct, simp_all)
+
+lemma remdups_adj_append: 
+  "remdups_adj (xs\<^sub>1 @ x # xs\<^sub>2) = remdups_adj (xs\<^sub>1 @ [x]) @ tl (remdups_adj (x # xs\<^sub>2))"
+  by (induct xs\<^sub>1 rule: remdups_adj.induct, simp_all)
+
+lemma remdups_adj_singleton:
+  "remdups_adj xs = [x] \<Longrightarrow> xs = replicate (length xs) x"
+  by (induct xs rule: remdups_adj.induct, auto split: split_if_asm)
+
+lemma remdups_adj_map_injective:
+  assumes "inj f"
+  shows "remdups_adj (map f xs) = map f (remdups_adj xs)"
+  by (induct xs rule: remdups_adj.induct, 
+      auto simp add: injD[OF assms])
+
 
 subsubsection {* List summation: @{const listsum} and @{text"\<Sum>"}*}
 
@@ -3363,12 +3479,18 @@ lemma (in monoid_add) length_concat:
   "length (concat xss) = listsum (map length xss)"
   by (induct xss) simp_all
 
+lemma (in monoid_add) length_product_lists:
+  "length (product_lists xss) = foldr op * (map length xss) 1"
+proof (induct xss)
+  case (Cons xs xss) then show ?case by (induct xs) (auto simp: length_concat o_def)
+qed simp
+
 lemma (in monoid_add) listsum_map_filter:
   assumes "\<And>x. x \<in> set xs \<Longrightarrow> \<not> P x \<Longrightarrow> f x = 0"
   shows "listsum (map f (filter P xs)) = listsum (map f xs)"
   using assms by (induct xs) auto
 
-lemma (in monoid_add) distinct_listsum_conv_Setsum:
+lemma (in comm_monoid_add) distinct_listsum_conv_Setsum:
   "distinct xs \<Longrightarrow> listsum xs = Setsum (set xs)"
   by (induct xs) simp_all
 
@@ -3506,6 +3628,12 @@ next
     by (auto simp add: find_Some_iff)
   thus ?thesis using Some by auto
 qed
+
+lemma find_dropWhile:
+  "List.find P xs = (case dropWhile (Not \<circ> P) xs
+   of [] \<Rightarrow> None
+    | x # _ \<Rightarrow> Some x)"
+  by (induct xs) simp_all
 
 
 subsubsection {* @{const remove1} *}
@@ -3689,7 +3817,6 @@ apply (case_tac i)
 apply clarsimp
 done
 
-
 lemma set_replicate_Suc: "set (replicate (Suc n) x) = {x}"
 by (induct n) auto
 
@@ -3776,14 +3903,12 @@ proof (induct "length (xs @ ys)" arbitrary: xs ys rule: less_induct)
     then have "\<exists>m n zs. concat (replicate m zs) = xs' \<and> concat (replicate n zs) = ws"
       using False and `xs' \<noteq> []` and `ys' = xs' @ ws` and len
       by (intro less.hyps) auto
-    then obtain m n zs where "concat (replicate m zs) = xs'"
+    then obtain m n zs where *: "concat (replicate m zs) = xs'"
       and "concat (replicate n zs) = ws" by blast
-    moreover
     then have "concat (replicate (m + n) zs) = ys'"
       using `ys' = xs' @ ws`
       by (simp add: replicate_add)
-    ultimately
-    show ?thesis by blast
+    with * show ?thesis by blast
   qed
   then show ?case
     using xs'_def ys'_def by metis
@@ -3804,6 +3929,77 @@ proof -
     by (auto simp: replicate_add)
   then show ?thesis by blast
 qed
+
+lemma Cons_replicate_eq:
+  "x # xs = replicate n y \<longleftrightarrow> x = y \<and> n > 0 \<and> xs = replicate (n - 1) x"
+  by (induct n) auto
+
+lemma replicate_length_same:
+  "(\<forall>y\<in>set xs. y = x) \<Longrightarrow> replicate (length xs) x = xs"
+  by (induct xs) simp_all
+
+lemma foldr_replicate [simp]:
+  "foldr f (replicate n x) = f x ^^ n"
+  by (induct n) (simp_all)
+
+lemma fold_replicate [simp]:
+  "fold f (replicate n x) = f x ^^ n"
+  by (subst foldr_fold [symmetric]) simp_all
+
+
+subsubsection {* @{const enumerate} *}
+
+lemma enumerate_simps [simp, code]:
+  "enumerate n [] = []"
+  "enumerate n (x # xs) = (n, x) # enumerate (Suc n) xs"
+  apply (auto simp add: enumerate_eq_zip not_le)
+  apply (cases "n < n + length xs")
+  apply (auto simp add: upt_conv_Cons)
+  done
+
+lemma length_enumerate [simp]:
+  "length (enumerate n xs) = length xs"
+  by (simp add: enumerate_eq_zip)
+
+lemma map_fst_enumerate [simp]:
+  "map fst (enumerate n xs) = [n..<n + length xs]"
+  by (simp add: enumerate_eq_zip)
+
+lemma map_snd_enumerate [simp]:
+  "map snd (enumerate n xs) = xs"
+  by (simp add: enumerate_eq_zip)
+  
+lemma in_set_enumerate_eq:
+  "p \<in> set (enumerate n xs) \<longleftrightarrow> n \<le> fst p \<and> fst p < length xs + n \<and> nth xs (fst p - n) = snd p"
+proof -
+  { fix m
+    assume "n \<le> m"
+    moreover assume "m < length xs + n"
+    ultimately have "[n..<n + length xs] ! (m - n) = m \<and>
+      xs ! (m - n) = xs ! (m - n) \<and> m - n < length xs" by auto
+    then have "\<exists>q. [n..<n + length xs] ! q = m \<and>
+        xs ! q = xs ! (m - n) \<and> q < length xs" ..
+  } then show ?thesis by (cases p) (auto simp add: enumerate_eq_zip in_set_zip)
+qed
+
+lemma nth_enumerate_eq:
+  assumes "m < length xs"
+  shows "enumerate n xs ! m = (n + m, xs ! m)"
+  using assms by (simp add: enumerate_eq_zip)
+
+lemma enumerate_replicate_eq:
+  "enumerate n (replicate m a) = map (\<lambda>q. (q, a)) [n..<n + m]"
+  by (rule pair_list_eqI)
+    (simp_all add: enumerate_eq_zip comp_def map_replicate_const)
+
+lemma enumerate_Suc_eq:
+  "enumerate (Suc n) xs = map (apfst Suc) (enumerate n xs)"
+  by (rule pair_list_eqI)
+    (simp_all add: not_le, simp del: map_map [simp del] add: map_Suc_upt map_map [symmetric])
+
+lemma distinct_enumerate [simp]:
+  "distinct (enumerate n xs)"
+  by (simp add: enumerate_eq_zip distinct_zipI1)
 
 
 subsubsection {* @{const rotate1} and @{const rotate} *}
@@ -3978,8 +4174,8 @@ proof (induct xs arbitrary: s)
   case Nil thus ?case by simp
 next
   case (Cons a xs)
-  moreover hence "!x. x: set xs \<longrightarrow> x \<noteq> a" by auto
-  ultimately show ?case by(simp add: sublist_Cons cong:filter_cong)
+  then have "!x. x: set xs \<longrightarrow> x \<noteq> a" by auto
+  with Cons show ?case by(simp add: sublist_Cons cong:filter_cong)
 qed
 
 
@@ -4099,8 +4295,8 @@ proof (cases "[ys\<leftarrow>xss . ys\<noteq>[]] = []")
   hence "foldr (\<lambda>xs. max (length xs)) xss 0 = 0"
   proof (induct xss)
     case (Cons x xs)
-    moreover hence "x = []" by (cases x) auto
-    ultimately show ?case by auto
+    then have "x = []" by (cases x) auto
+    with Cons show ?case by auto
   qed simp
   thus ?thesis using True by simp
 next
@@ -4253,7 +4449,7 @@ next
   moreover have "\<And>i. i \<in>Collect (?k_list k) \<Longrightarrow> card (A - set i) = card A - k"
     by (simp add: card_Diff_subset distinct_card)
   moreover have "{xs. ?k_list (Suc k) xs} =
-      (\<lambda>(xs, n). n#xs) ` \<Union>(\<lambda>xs. {xs} \<times> (A - set xs)) ` {xs. ?k_list k xs}"
+      (\<lambda>(xs, n). n#xs) ` \<Union>((\<lambda>xs. {xs} \<times> (A - set xs)) ` {xs. ?k_list k xs})"
     by (auto simp: length_Suc_conv)
   moreover
   have "Suc (card A - Suc k) = card A - k" using Suc.prems by simp
@@ -4280,6 +4476,10 @@ that instead of multisets to state the correctness property. *}
 
 context linorder
 begin
+
+lemma set_insort_key:
+  "set (insort_key f x xs) = insert x (set xs)"
+  by (induct xs) auto
 
 lemma length_insort [simp]:
   "length (insort_key f x xs) = Suc (length xs)"
@@ -4462,6 +4662,10 @@ lemma sorted_remdups[simp]:
   "sorted l \<Longrightarrow> sorted (remdups l)"
 by (induct l) (auto simp: sorted_Cons)
 
+lemma sorted_remdups_adj[simp]:
+  "sorted xs \<Longrightarrow> sorted (remdups_adj xs)"
+by (induct xs rule: remdups_adj.induct, simp_all split: split_if_asm add: sorted_Cons)
+
 lemma sorted_distinct_set_unique:
 assumes "sorted xs" "distinct xs" "sorted ys" "distinct ys" "set xs = set ys"
 shows "xs = ys"
@@ -4485,7 +4689,7 @@ lemma map_sorted_distinct_set_unique:
 proof -
   from assms have "map f xs = map f ys"
     by (simp add: sorted_distinct_set_unique)
-  moreover with `inj_on f (set xs \<union> set ys)` show "xs = ys"
+  with `inj_on f (set xs \<union> set ys)` show "xs = ys"
     by (blast intro: map_inj_on)
 qed
 
@@ -4520,11 +4724,12 @@ lemma sorted_filter:
 lemma foldr_max_sorted:
   assumes "sorted (rev xs)"
   shows "foldr max xs y = (if xs = [] then y else max (xs ! 0) y)"
-using assms proof (induct xs)
+  using assms
+proof (induct xs)
   case (Cons x xs)
-  moreover hence "sorted (rev xs)" using sorted_append by auto
-  ultimately show ?case
-    by (cases xs, auto simp add: sorted_append max_def)
+  then have "sorted (rev xs)" using sorted_append by auto
+  with Cons show ?case
+    by (cases xs) (auto simp add: sorted_append max_def)
 qed simp
 
 lemma filter_equals_takeWhile_sorted_rev:
@@ -4629,6 +4834,22 @@ apply(induct i j rule:upto.induct)
 apply(subst upto.simps)
 apply(simp add:sorted_Cons)
 done
+
+lemma sorted_find_Min:
+  assumes "sorted xs"
+  assumes "\<exists>x \<in> set xs. P x"
+  shows "List.find P xs = Some (Min {x\<in>set xs. P x})"
+using assms proof (induct xs rule: sorted.induct)
+  case Nil then show ?case by simp
+next
+  case (Cons xs x) show ?case proof (cases "P x")
+    case True with Cons show ?thesis by (auto intro: Min_eqI [symmetric])
+  next
+    case False then have "{y. (y = x \<or> y \<in> set xs) \<and> P y} = {y \<in> set xs. P y}"
+      by auto
+    with Cons False show ?thesis by simp_all
+  qed
+qed
 
 
 subsubsection {* @{const transpose} on sorted lists *}
@@ -4787,35 +5008,55 @@ lists. Warning: in most cases it is not a good idea to convert from
 sets to lists but one should convert in the other direction (via
 @{const set}). *}
 
+subsubsection {* @{text sorted_list_of_set} *}
+
+text{* This function maps (finite) linearly ordered sets to sorted
+lists. Warning: in most cases it is not a good idea to convert from
+sets to lists but one should convert in the other direction (via
+@{const set}). *}
+
+definition (in linorder) sorted_list_of_set :: "'a set \<Rightarrow> 'a list" where
+  "sorted_list_of_set = folding.F insort []"
+
+sublocale linorder < sorted_list_of_set!: folding insort Nil
+where
+  "folding.F insort [] = sorted_list_of_set"
+proof -
+  interpret comp_fun_commute insort by (fact comp_fun_commute_insort)
+  show "folding insort" by default (fact comp_fun_commute)
+  show "folding.F insort [] = sorted_list_of_set" by (simp only: sorted_list_of_set_def)
+qed
+
 context linorder
 begin
 
-definition sorted_list_of_set :: "'a set \<Rightarrow> 'a list" where
-"sorted_list_of_set = Finite_Set.fold insort []"
-
-lemma sorted_list_of_set_empty [simp]:
+lemma sorted_list_of_set_empty:
   "sorted_list_of_set {} = []"
-  by (simp add: sorted_list_of_set_def)
+  by (fact sorted_list_of_set.empty)
 
 lemma sorted_list_of_set_insert [simp]:
   assumes "finite A"
   shows "sorted_list_of_set (insert x A) = insort x (sorted_list_of_set (A - {x}))"
-proof -
-  interpret comp_fun_commute insort by (fact comp_fun_commute_insort)
-  from assms show ?thesis
-    by (simp add: sorted_list_of_set_def fold_insert_remove)
-qed
+  using assms by (fact sorted_list_of_set.insert_remove)
+
+lemma sorted_list_of_set_eq_Nil_iff [simp]:
+  "finite A \<Longrightarrow> sorted_list_of_set A = [] \<longleftrightarrow> A = {}"
+  using assms by (auto simp: sorted_list_of_set.remove)
 
 lemma sorted_list_of_set [simp]:
   "finite A \<Longrightarrow> set (sorted_list_of_set A) = A \<and> sorted (sorted_list_of_set A) 
     \<and> distinct (sorted_list_of_set A)"
   by (induct A rule: finite_induct) (simp_all add: set_insort sorted_insort distinct_insort)
 
+lemma distinct_sorted_list_of_set:
+  "distinct (sorted_list_of_set A)"
+  using sorted_list_of_set by (cases "finite A") auto
+
 lemma sorted_list_of_set_sort_remdups [code]:
   "sorted_list_of_set (set xs) = sort (remdups xs)"
 proof -
   interpret comp_fun_commute insort by (fact comp_fun_commute_insort)
-  show ?thesis by (simp add: sorted_list_of_set_def sort_conv_fold fold_set_fold_remdups)
+  show ?thesis by (simp add: sorted_list_of_set.eq_fold sort_conv_fold fold_set_fold_remdups)
 qed
 
 lemma sorted_list_of_set_remove:
@@ -5529,6 +5770,26 @@ lemma transfer_nat_int_fold1: "fold f l x =
 
 subsection {* Code generation *}
 
+
+text{* Optional tail recursive version of @{const map}. Can avoid
+stack overflow in some target languages. *}
+
+fun map_tailrec_rev ::  "('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> 'b list" where
+"map_tailrec_rev f [] bs = bs" |
+"map_tailrec_rev f (a#as) bs = map_tailrec_rev f as (f a # bs)"
+
+lemma map_tailrec_rev:
+  "map_tailrec_rev f as bs = rev(map f as) @ bs"
+by(induction as arbitrary: bs) simp_all
+
+definition map_tailrec :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b list" where
+"map_tailrec f as = rev (map_tailrec_rev f as [])"
+
+text{* Code equation: *}
+lemma map_eq_map_tailrec: "map = map_tailrec"
+by(simp add: fun_eq_iff map_tailrec_def map_tailrec_rev)
+
+
 subsubsection {* Counterparts for set-related operations *}
 
 definition member :: "'a list \<Rightarrow> 'a \<Rightarrow> bool" where
@@ -5700,6 +5961,37 @@ lemma setsum_set_upt_conv_listsum_nat [code_unfold]:
   "setsum f (set [m..<n]) = listsum (map f [m..<n])"
   by (simp add: interv_listsum_conv_setsum_set_nat)
 
+text{* Bounded @{text LEAST} operator: *}
+
+definition "Bleast S P = (LEAST x. x \<in> S \<and> P x)"
+
+definition "abort_Bleast S P = (LEAST x. x \<in> S \<and> P x)"
+
+code_abort abort_Bleast
+
+lemma Bleast_code [code]:
+ "Bleast (set xs) P = (case filter P (sort xs) of
+    x#xs \<Rightarrow> x |
+    [] \<Rightarrow> abort_Bleast (set xs) P)"
+proof (cases "filter P (sort xs)")
+  case Nil thus ?thesis by (simp add: Bleast_def abort_Bleast_def)
+next
+  case (Cons x ys)
+  have "(LEAST x. x \<in> set xs \<and> P x) = x"
+  proof (rule Least_equality)
+    show "x \<in> set xs \<and> P x"
+      by (metis Cons Cons_eq_filter_iff in_set_conv_decomp set_sort)
+    next
+      fix y assume "y : set xs \<and> P y"
+      hence "y : set (filter P xs)" by auto
+      thus "x \<le> y"
+        by (metis Cons eq_iff filter_sort set_ConsD set_sort sorted_Cons sorted_sort)
+  qed
+  thus ?thesis using Cons by (simp add: Bleast_def)
+qed
+
+declare Bleast_def[symmetric, code_unfold]
+
 text {* Summation over ints. *}
 
 lemma greaterThanLessThan_upto [code_unfold]:
@@ -5741,7 +6033,8 @@ lemma eq_Nil_null: (* FIXME delete candidate *)
 
 lemma equal_Nil_null [code_unfold]:
   "HOL.equal xs [] \<longleftrightarrow> null xs"
-  by (simp add: equal eq_Nil_null)
+  "HOL.equal [] = null"
+  by (auto simp add: equal null_def)
 
 definition maps :: "('a \<Rightarrow> 'b list) \<Rightarrow> 'a list \<Rightarrow> 'b list" where
   [code_abbrev]: "maps f xs = concat (map f xs)"
@@ -5886,30 +6179,31 @@ fun add_literal_list target =
             Code_Printer.literal_list literals (map (pr vars Code_Printer.NOBR) ts)
         | NONE =>
             default_list (Code_Printer.infix_cons literals) (pr vars) fxy t1 t2;
-  in Code_Target.add_const_syntax target @{const_name Cons}
-    (SOME (Code_Printer.complex_const_syntax (2, ([@{const_name Nil}, @{const_name Cons}], pretty))))
+  in
+    Code_Target.set_printings (Code_Symbol.Constant (@{const_name Cons},
+      [(target, SOME (Code_Printer.complex_const_syntax (2, ([@{const_name Nil}, @{const_name Cons}], pretty))))]))
   end
 
 end;
 *}
 
-code_type list
-  (SML "_ list")
-  (OCaml "_ list")
-  (Haskell "![(_)]")
-  (Scala "List[(_)]")
+code_printing
+  type_constructor list \<rightharpoonup>
+    (SML) "_ list"
+    and (OCaml) "_ list"
+    and (Haskell) "![(_)]"
+    and (Scala) "List[(_)]"
+| constant Nil \<rightharpoonup>
+    (SML) "[]"
+    and (OCaml) "[]"
+    and (Haskell) "[]"
+    and (Scala) "!Nil"
+| class_instance list :: equal \<rightharpoonup>
+    (Haskell) -
+| constant "HOL.equal :: 'a list \<Rightarrow> 'a list \<Rightarrow> bool" \<rightharpoonup>
+    (Haskell) infix 4 "=="
 
-code_const Nil
-  (SML "[]")
-  (OCaml "[]")
-  (Haskell "[]")
-  (Scala "!Nil")
-
-code_instance list :: equal
-  (Haskell -)
-
-code_const "HOL.equal \<Colon> 'a list \<Rightarrow> 'a list \<Rightarrow> bool"
-  (Haskell infix 4 "==")
+setup {* fold (List_Code.add_literal_list) ["SML", "OCaml", "Haskell", "Scala"] *}
 
 code_reserved SML
   list
@@ -5917,49 +6211,37 @@ code_reserved SML
 code_reserved OCaml
   list
 
-setup {* fold (List_Code.add_literal_list) ["SML", "OCaml", "Haskell", "Scala"] *}
-
 
 subsubsection {* Use convenient predefined operations *}
 
-code_const "op @"
-  (SML infixr 7 "@")
-  (OCaml infixr 6 "@")
-  (Haskell infixr 5 "++")
-  (Scala infixl 7 "++")
-
-code_const map
-  (Haskell "map")
-
-code_const filter
-  (Haskell "filter")
-
-code_const concat
-  (Haskell "concat")
-
-code_const List.maps
-  (Haskell "concatMap")
-
-code_const rev
-  (Haskell "reverse")
-
-code_const zip
-  (Haskell "zip")
-
-code_const List.null
-  (Haskell "null")
-
-code_const takeWhile
-  (Haskell "takeWhile")
-
-code_const dropWhile
-  (Haskell "dropWhile")
-
-code_const list_all
-  (Haskell "all")
-
-code_const list_ex
-  (Haskell "any")
+code_printing
+  constant "op @" \<rightharpoonup>
+    (SML) infixr 7 "@"
+    and (OCaml) infixr 6 "@"
+    and (Haskell) infixr 5 "++"
+    and (Scala) infixl 7 "++"
+| constant map \<rightharpoonup>
+    (Haskell) "map"
+| constant filter \<rightharpoonup>
+    (Haskell) "filter"
+| constant concat \<rightharpoonup>
+    (Haskell) "concat"
+| constant List.maps \<rightharpoonup>
+    (Haskell) "concatMap"
+| constant rev \<rightharpoonup>
+    (Haskell) "reverse"
+| constant zip \<rightharpoonup>
+    (Haskell) "zip"
+| constant List.null \<rightharpoonup>
+    (Haskell) "null"
+| constant takeWhile \<rightharpoonup>
+    (Haskell) "takeWhile"
+| constant dropWhile \<rightharpoonup>
+    (Haskell) "dropWhile"
+| constant list_all \<rightharpoonup>
+    (Haskell) "all"
+| constant list_ex \<rightharpoonup>
+    (Haskell) "any"
 
 
 subsubsection {* Implementation of sets by lists *}
@@ -6083,5 +6365,352 @@ lemma wf_set [code]:
   "wf (set xs) = acyclic (set xs)"
   by (simp add: wf_iff_acyclic_if_finite)
 
+subsection {* Setup for Lifting/Transfer *}
+
+subsubsection {* Relator and predicator properties *}
+
+lemma list_all2_eq'[relator_eq]:
+  "list_all2 (op =) = (op =)"
+by (rule ext)+ (simp add: list_all2_eq)
+
+lemma list_all2_mono'[relator_mono]:
+  assumes "A \<le> B"
+  shows "(list_all2 A) \<le> (list_all2 B)"
+using assms by (auto intro: list_all2_mono)
+
+lemma list_all2_OO[relator_distr]: "list_all2 A OO list_all2 B = list_all2 (A OO B)"
+proof (intro ext iffI)
+  fix xs ys
+  assume "list_all2 (A OO B) xs ys"
+  thus "(list_all2 A OO list_all2 B) xs ys"
+    unfolding OO_def
+    by (induct, simp, simp add: list_all2_Cons1 list_all2_Cons2, fast)
+next
+  fix xs ys
+  assume "(list_all2 A OO list_all2 B) xs ys"
+  then obtain zs where "list_all2 A xs zs" and "list_all2 B zs ys" ..
+  thus "list_all2 (A OO B) xs ys"
+    by (induct arbitrary: ys, simp, clarsimp simp add: list_all2_Cons1, fast)
+qed
+
+lemma Domainp_list[relator_domain]:
+  assumes "Domainp A = P"
+  shows "Domainp (list_all2 A) = (list_all P)"
+proof -
+  {
+    fix x
+    have *: "\<And>x. (\<exists>y. A x y) = P x" using assms unfolding Domainp_iff by blast
+    have "(\<exists>y. (list_all2 A x y)) = list_all P x"
+    by (induction x) (simp_all add: * list_all2_Cons1)
+  }
+  then show ?thesis
+  unfolding Domainp_iff[abs_def]
+  by (auto iff: fun_eq_iff)
+qed 
+
+lemma reflp_list_all2[reflexivity_rule]:
+  assumes "reflp R"
+  shows "reflp (list_all2 R)"
+proof (rule reflpI)
+  from assms have *: "\<And>xs. R xs xs" by (rule reflpE)
+  fix xs
+  show "list_all2 R xs xs"
+    by (induct xs) (simp_all add: *)
+qed
+
+lemma left_total_list_all2[reflexivity_rule]:
+  "left_total R \<Longrightarrow> left_total (list_all2 R)"
+  unfolding left_total_def
+  apply safe
+  apply (rename_tac xs, induct_tac xs, simp, simp add: list_all2_Cons1)
+done
+
+lemma left_unique_list_all2 [reflexivity_rule]:
+  "left_unique R \<Longrightarrow> left_unique (list_all2 R)"
+  unfolding left_unique_def
+  apply (subst (2) all_comm, subst (1) all_comm)
+  apply (rule allI, rename_tac zs, induct_tac zs)
+  apply (auto simp add: list_all2_Cons2)
+  done
+
+lemma right_total_list_all2 [transfer_rule]:
+  "right_total R \<Longrightarrow> right_total (list_all2 R)"
+  unfolding right_total_def
+  by (rule allI, induct_tac y, simp, simp add: list_all2_Cons2)
+
+lemma right_unique_list_all2 [transfer_rule]:
+  "right_unique R \<Longrightarrow> right_unique (list_all2 R)"
+  unfolding right_unique_def
+  apply (rule allI, rename_tac xs, induct_tac xs)
+  apply (auto simp add: list_all2_Cons1)
+  done
+
+lemma bi_total_list_all2 [transfer_rule]:
+  "bi_total A \<Longrightarrow> bi_total (list_all2 A)"
+  unfolding bi_total_def
+  apply safe
+  apply (rename_tac xs, induct_tac xs, simp, simp add: list_all2_Cons1)
+  apply (rename_tac ys, induct_tac ys, simp, simp add: list_all2_Cons2)
+  done
+
+lemma bi_unique_list_all2 [transfer_rule]:
+  "bi_unique A \<Longrightarrow> bi_unique (list_all2 A)"
+  unfolding bi_unique_def
+  apply (rule conjI)
+  apply (rule allI, rename_tac xs, induct_tac xs)
+  apply (simp, force simp add: list_all2_Cons1)
+  apply (subst (2) all_comm, subst (1) all_comm)
+  apply (rule allI, rename_tac xs, induct_tac xs)
+  apply (simp, force simp add: list_all2_Cons2)
+  done
+
+lemma list_invariant_commute [invariant_commute]:
+  "list_all2 (Lifting.invariant P) = Lifting.invariant (list_all P)"
+  apply (simp add: fun_eq_iff list_all2_def list_all_iff Lifting.invariant_def Ball_def) 
+  apply (intro allI) 
+  apply (induct_tac rule: list_induct2') 
+  apply simp_all 
+  apply fastforce
+done
+
+subsubsection {* Quotient theorem for the Lifting package *}
+
+lemma Quotient_list[quot_map]:
+  assumes "Quotient R Abs Rep T"
+  shows "Quotient (list_all2 R) (map Abs) (map Rep) (list_all2 T)"
+proof (unfold Quotient_alt_def, intro conjI allI impI)
+  from assms have 1: "\<And>x y. T x y \<Longrightarrow> Abs x = y"
+    unfolding Quotient_alt_def by simp
+  fix xs ys assume "list_all2 T xs ys" thus "map Abs xs = ys"
+    by (induct, simp, simp add: 1)
+next
+  from assms have 2: "\<And>x. T (Rep x) x"
+    unfolding Quotient_alt_def by simp
+  fix xs show "list_all2 T (map Rep xs) xs"
+    by (induct xs, simp, simp add: 2)
+next
+  from assms have 3: "\<And>x y. R x y \<longleftrightarrow> T x (Abs x) \<and> T y (Abs y) \<and> Abs x = Abs y"
+    unfolding Quotient_alt_def by simp
+  fix xs ys show "list_all2 R xs ys \<longleftrightarrow> list_all2 T xs (map Abs xs) \<and>
+    list_all2 T ys (map Abs ys) \<and> map Abs xs = map Abs ys"
+    by (induct xs ys rule: list_induct2', simp_all, metis 3)
+qed
+
+subsubsection {* Transfer rules for the Transfer package *}
+
+context
+begin
+interpretation lifting_syntax .
+
+lemma Nil_transfer [transfer_rule]: "(list_all2 A) [] []"
+  by simp
+
+lemma Cons_transfer [transfer_rule]:
+  "(A ===> list_all2 A ===> list_all2 A) Cons Cons"
+  unfolding fun_rel_def by simp
+
+lemma list_case_transfer [transfer_rule]:
+  "(B ===> (A ===> list_all2 A ===> B) ===> list_all2 A ===> B)
+    list_case list_case"
+  unfolding fun_rel_def by (simp split: list.split)
+
+lemma list_rec_transfer [transfer_rule]:
+  "(B ===> (A ===> list_all2 A ===> B ===> B) ===> list_all2 A ===> B)
+    list_rec list_rec"
+  unfolding fun_rel_def by (clarify, erule list_all2_induct, simp_all)
+
+lemma tl_transfer [transfer_rule]:
+  "(list_all2 A ===> list_all2 A) tl tl"
+  unfolding tl_def by transfer_prover
+
+lemma butlast_transfer [transfer_rule]:
+  "(list_all2 A ===> list_all2 A) butlast butlast"
+  by (rule fun_relI, erule list_all2_induct, auto)
+
+lemma set_transfer [transfer_rule]:
+  "(list_all2 A ===> set_rel A) set set"
+  unfolding set_def by transfer_prover
+
+lemma map_transfer [transfer_rule]:
+  "((A ===> B) ===> list_all2 A ===> list_all2 B) map map"
+  unfolding List.map_def by transfer_prover
+
+lemma append_transfer [transfer_rule]:
+  "(list_all2 A ===> list_all2 A ===> list_all2 A) append append"
+  unfolding List.append_def by transfer_prover
+
+lemma rev_transfer [transfer_rule]:
+  "(list_all2 A ===> list_all2 A) rev rev"
+  unfolding List.rev_def by transfer_prover
+
+lemma filter_transfer [transfer_rule]:
+  "((A ===> op =) ===> list_all2 A ===> list_all2 A) filter filter"
+  unfolding List.filter_def by transfer_prover
+
+lemma fold_transfer [transfer_rule]:
+  "((A ===> B ===> B) ===> list_all2 A ===> B ===> B) fold fold"
+  unfolding List.fold_def by transfer_prover
+
+lemma foldr_transfer [transfer_rule]:
+  "((A ===> B ===> B) ===> list_all2 A ===> B ===> B) foldr foldr"
+  unfolding List.foldr_def by transfer_prover
+
+lemma foldl_transfer [transfer_rule]:
+  "((B ===> A ===> B) ===> B ===> list_all2 A ===> B) foldl foldl"
+  unfolding List.foldl_def by transfer_prover
+
+lemma concat_transfer [transfer_rule]:
+  "(list_all2 (list_all2 A) ===> list_all2 A) concat concat"
+  unfolding List.concat_def by transfer_prover
+
+lemma drop_transfer [transfer_rule]:
+  "(op = ===> list_all2 A ===> list_all2 A) drop drop"
+  unfolding List.drop_def by transfer_prover
+
+lemma take_transfer [transfer_rule]:
+  "(op = ===> list_all2 A ===> list_all2 A) take take"
+  unfolding List.take_def by transfer_prover
+
+lemma list_update_transfer [transfer_rule]:
+  "(list_all2 A ===> op = ===> A ===> list_all2 A) list_update list_update"
+  unfolding list_update_def by transfer_prover
+
+lemma takeWhile_transfer [transfer_rule]:
+  "((A ===> op =) ===> list_all2 A ===> list_all2 A) takeWhile takeWhile"
+  unfolding takeWhile_def by transfer_prover
+
+lemma dropWhile_transfer [transfer_rule]:
+  "((A ===> op =) ===> list_all2 A ===> list_all2 A) dropWhile dropWhile"
+  unfolding dropWhile_def by transfer_prover
+
+lemma zip_transfer [transfer_rule]:
+  "(list_all2 A ===> list_all2 B ===> list_all2 (prod_rel A B)) zip zip"
+  unfolding zip_def by transfer_prover
+
+lemma product_transfer [transfer_rule]:
+  "(list_all2 A ===> list_all2 B ===> list_all2 (prod_rel A B)) List.product List.product"
+  unfolding List.product_def by transfer_prover
+
+lemma product_lists_transfer [transfer_rule]:
+  "(list_all2 (list_all2 A) ===> list_all2 (list_all2 A)) product_lists product_lists"
+  unfolding product_lists_def by transfer_prover
+
+lemma insert_transfer [transfer_rule]:
+  assumes [transfer_rule]: "bi_unique A"
+  shows "(A ===> list_all2 A ===> list_all2 A) List.insert List.insert"
+  unfolding List.insert_def [abs_def] by transfer_prover
+
+lemma find_transfer [transfer_rule]:
+  "((A ===> op =) ===> list_all2 A ===> option_rel A) List.find List.find"
+  unfolding List.find_def by transfer_prover
+
+lemma remove1_transfer [transfer_rule]:
+  assumes [transfer_rule]: "bi_unique A"
+  shows "(A ===> list_all2 A ===> list_all2 A) remove1 remove1"
+  unfolding remove1_def by transfer_prover
+
+lemma removeAll_transfer [transfer_rule]:
+  assumes [transfer_rule]: "bi_unique A"
+  shows "(A ===> list_all2 A ===> list_all2 A) removeAll removeAll"
+  unfolding removeAll_def by transfer_prover
+
+lemma distinct_transfer [transfer_rule]:
+  assumes [transfer_rule]: "bi_unique A"
+  shows "(list_all2 A ===> op =) distinct distinct"
+  unfolding distinct_def by transfer_prover
+
+lemma remdups_transfer [transfer_rule]:
+  assumes [transfer_rule]: "bi_unique A"
+  shows "(list_all2 A ===> list_all2 A) remdups remdups"
+  unfolding remdups_def by transfer_prover
+
+lemma remdups_adj_transfer [transfer_rule]:
+  assumes [transfer_rule]: "bi_unique A"
+  shows "(list_all2 A ===> list_all2 A) remdups_adj remdups_adj"
+  proof (rule fun_relI, erule list_all2_induct)
+  qed (auto simp: remdups_adj_Cons assms[unfolded bi_unique_def] split: list.splits)
+
+lemma replicate_transfer [transfer_rule]:
+  "(op = ===> A ===> list_all2 A) replicate replicate"
+  unfolding replicate_def by transfer_prover
+
+lemma length_transfer [transfer_rule]:
+  "(list_all2 A ===> op =) length length"
+  unfolding list_size_overloaded_def by transfer_prover
+
+lemma rotate1_transfer [transfer_rule]:
+  "(list_all2 A ===> list_all2 A) rotate1 rotate1"
+  unfolding rotate1_def by transfer_prover
+
+lemma rotate_transfer [transfer_rule]:
+  "(op = ===> list_all2 A ===> list_all2 A) rotate rotate"
+  unfolding rotate_def [abs_def] by transfer_prover
+
+lemma list_all2_transfer [transfer_rule]:
+  "((A ===> B ===> op =) ===> list_all2 A ===> list_all2 B ===> op =)
+    list_all2 list_all2"
+  apply (subst (4) list_all2_def [abs_def])
+  apply (subst (3) list_all2_def [abs_def])
+  apply transfer_prover
+  done
+
+lemma sublist_transfer [transfer_rule]:
+  "(list_all2 A ===> set_rel (op =) ===> list_all2 A) sublist sublist"
+  unfolding sublist_def [abs_def] by transfer_prover
+
+lemma partition_transfer [transfer_rule]:
+  "((A ===> op =) ===> list_all2 A ===> prod_rel (list_all2 A) (list_all2 A))
+    partition partition"
+  unfolding partition_def by transfer_prover
+
+lemma lists_transfer [transfer_rule]:
+  "(set_rel A ===> set_rel (list_all2 A)) lists lists"
+  apply (rule fun_relI, rule set_relI)
+  apply (erule lists.induct, simp)
+  apply (simp only: set_rel_def list_all2_Cons1, metis lists.Cons)
+  apply (erule lists.induct, simp)
+  apply (simp only: set_rel_def list_all2_Cons2, metis lists.Cons)
+  done
+
+lemma set_Cons_transfer [transfer_rule]:
+  "(set_rel A ===> set_rel (list_all2 A) ===> set_rel (list_all2 A))
+    set_Cons set_Cons"
+  unfolding fun_rel_def set_rel_def set_Cons_def
+  apply safe
+  apply (simp add: list_all2_Cons1, fast)
+  apply (simp add: list_all2_Cons2, fast)
+  done
+
+lemma listset_transfer [transfer_rule]:
+  "(list_all2 (set_rel A) ===> set_rel (list_all2 A)) listset listset"
+  unfolding listset_def by transfer_prover
+
+lemma null_transfer [transfer_rule]:
+  "(list_all2 A ===> op =) List.null List.null"
+  unfolding fun_rel_def List.null_def by auto
+
+lemma list_all_transfer [transfer_rule]:
+  "((A ===> op =) ===> list_all2 A ===> op =) list_all list_all"
+  unfolding list_all_iff [abs_def] by transfer_prover
+
+lemma list_ex_transfer [transfer_rule]:
+  "((A ===> op =) ===> list_all2 A ===> op =) list_ex list_ex"
+  unfolding list_ex_iff [abs_def] by transfer_prover
+
+lemma splice_transfer [transfer_rule]:
+  "(list_all2 A ===> list_all2 A ===> list_all2 A) splice splice"
+  apply (rule fun_relI, erule list_all2_induct, simp add: fun_rel_def, simp)
+  apply (rule fun_relI)
+  apply (erule_tac xs=x in list_all2_induct, simp, simp add: fun_rel_def)
+  done
+
+lemma listsum_transfer[transfer_rule]:
+  assumes [transfer_rule]: "A 0 0"
+  assumes [transfer_rule]: "(A ===> A ===> A) op + op +"
+  shows "(list_all2 A ===> A) listsum listsum"
+  unfolding listsum_def[abs_def]
+  by transfer_prover
+
 end
 
+end

@@ -1,0 +1,499 @@
+\begin{abstract}
+This article describes a formal proof of the Kepler conjecture in a combination of the HOL Light and Isabelle proof
+assistants.
+\end{abstract}
+
+\chapter{The formal proof}\label{chap:hypermap}
+\indy{Index}{hypermap}%
+
+
+
+\section{Historical Introduction}
+
+
+The mathematical study of sphere packings can be traced to Sanskirt sources around 500CE.  The modern study
+of sphere packings was intiated by Thomas Harriot around 1590, who was interested both from the practical problem
+of counting cannonballs on warships and from his scientific investigations into atomic theory, modeling an atom
+as a ball.  Kepler became involved with the publication of the {\it Six-Cornered Snowflake} in 1611, which states what has
+come to be known as the Kepler conjecture.  The assertion is that no packing of congruent in Euclidean three-space has
+density greater than that of the face-centered cubic packing.  It is the oldest problem in discrete geometry.
+In 1900, Hilbert included the Kepler conjecture in his famous list of problems.  In his book \cite{XX},
+L, Fejes T\'oth was the first
+to give a coherent proof strategy, and later suggested that computers might be of use in the study of the problem.
+The problem was solved by Ferguson and Hales in 1998, but their proof was not published in full until 2006~\cite{DCG}.
+
+The delay in publication was caused by the difficulties of the referees in  verifying a complex computer proof.
+In the end, the proof was published without a complete certification of correctness from the referees.  Many details about the
+review process for this theorem appear in [Lagarias].  Lagarias writes, ``The nature of this proof $\ldots$ makes it hard for
+humans to check every step reliably. $\ldots$  [D]etailed checking of many specific assertions found them
+to be essentially correct in every case.  The result of the reviewing process produced in these reviewers a 
+strong degree of conviction of the essential correctness of this proof approach, and that the reduction method
+led to nonlinear programming problems of tractable size.''   We note the irresolute wording in this assessment.
+
+At the Joint Math meetings in Baltimore in
+2003(?), Hales announced
+a project to give a formal proof of the Kepler conjecture.   A published announcement of the project later appeared in
+in [MAPS].  {Introduction to the Flyspeck Project, MAPS 05021. http://drops.dagstuhl.de/opus/volltexte/2006/432}.
+That announcement states ``In truth, my motivations for the project are far more complex than a simple hope of 
+removing residual doubt from the minds of few referees. 
+Indeed, I see formal methods as fundamental to the long-term growth of mathematics.''
+The project came to be called Flyspeck, an expansion of the the acronym FPK, for the Formal Proof of the Kepler conjecture.
+
+
+
+The first  definite contribution to the project was the formal verification of an important piece of
+computer code that was used in the proof, in work at TU Munich by Bauer under the direction of T. Nipkow. (See section X.)
+Major work on the project started when NSF funded
+the project in 200(?).   An international conference on the Flyspeck project and formal proofs sponsored by the NSF and the
+Hanoi Math Institute in 200(?) transformed the project into a large international collaboration.
+The book ``Dense Sphere Packings'' describes the mathematical details of the proof that was formalized.  This article
+focuses on the formalization itself.
+
+
+
+\section{The statement}
+
+The Kepler conjecture asserts that no packing of congruent balls in Euclidean three-space can have density exceeding
+that of the face-centered cubic packing.  That density is $\pi/\sqrt{18}$, or approximately $0.74$.    The face-centered
+cubic packing is not the only packing that realizes the bound.   The hexagonal-close packing and various packings
+combining layers from the hexagaon-close packing and the face-centered cubic packing all achieve this same bound.
+The density is insensitive to trivial modifications, such as removing a single ball from the packing.   Such modifications
+will also achieve the maximum density.
+
+The density of a packing is defined as a limit of the density obtained within finite containers, as the size of the container
+tends to infinity.  To make the statement in the formal proof as simple as possible, we formalize a statement about the
+density of a packing inside a finite contain.  This statement contains an error term, which tends to zero as the size of
+the container tends to infinity.
+
+Because of the size of the formal proof, the full proof of the Kepler conjecture has not been obtained in a single session
+of HOL Light.  In this section, we describe a theorem that has been formalized inside a single session.  It is a conditional
+statement, stating that a few assumption imply the Kepler conjecture.  Sections that follow show how these assumptions
+have been removed in separate HOL Light sessions.
+
+We will display various terms that are represented in HOL syntax.  For the convenience of the reader, appendix X lists
+some of the syntactic conventions of HOL Light.  In particular, the universal quantifier $\forall$ is written as (!), the
+existential quantifier is written (?),  the embedding of natural numbers into the real numbers is denoted (\&).
+
+We identify a packing of balls in $\ring{R}^3$ with the set $V$ of centers of the balls.  The balls in the packing are normalized
+to have unit length, so that the distance between distinct elements of $V$ is at least $2$.  More formally,
+
+\begin{obeylines}
+
+\begin{verbatim}
+
+`(packing V <=> 
+  (!u v. u IN V /\ v IN V /\ dist(u,v) < &2 ==> u = v))`
+
+\end{verbatim}
+\end{obeylines}
+
+
+We define the constant {\tt the\_kepler\_conjecture} to be the term
+
+\begin{obeylines}
+
+\begin{verbatim}
+`the_kepler_conjecture <=>
+  (!V. packing V
+    ==> (?c. !r. &1 <= r
+        ==> &(CARD(V INTER ball(vec 0,r))) <=
+            pi * r pow 3 / sqrt(&18) + c * r pow 2))`
+\end{verbatim}
+\end{obeylines}
+
+In words, we define the kepler conjecture to be the following claim:
+for every packing $V$, there exists a real number $c$ such that for every real number $r\ge 1$, the number
+of elements $V$ contained in an open ball of radius $r$ centered a the origin is at most
+\[
+  \frac{\pi r^3}{\sqrt{18}} + c\, r^2.
+\]
+In fact, there exists a $c$ that works for all packings $V$,
+but we only formalize the weaker statement that allows $c$ to depend on $V$.
+
+Before trusting the statement, the reader should check all the definitions that enter into the proof to check that they
+conform to expectations.   For example, nothing in the proof assistant itself prevents a disceptive definition 
+such as $\pi=100$ that would render the formal proof of the Kepler conjecture a near triviality.  In fact, of all the constants
+appearing in the statement of the Kepler conjecture, $\pi$ is the most difficult to specify.   The correctness of its definition
+follows from the following HOL theorem:
+
+\begin{obeylines}
+
+\begin{verbatim}
+|- abs (pi / &4 - sum (0..n) (\i. (-- &1) pow i / &(2 * i + 1))) 
+     <= &1 / &(2 * n + 3)
+\end{verbatim}
+
+\end{obeylines}
+
+In familiar notation, this asserts the well-known approximation for $\pi$ coming from the conditionally convergent
+series expansion of  $\op{atan}(1)$:
+\[
+   \left| \frac{\pi}{4} - \sum_{i=0}^n \frac { (-1)^i } { 2 i + 1} \right | < \frac {1} {2 n + 3}.
+\]
+As each definition in the Kepler conjecture is unfolded, ultimately there are hundreds of constants involved.
+Fortunately, if we are willing to trust that HOL Light libraries correctly define the basic logical operations (such as quantifiers and
+standard boolean functions such as {\it and} and {\it or}),  set theoretic, and arithmetic for the natural and real numbers, then
+there are very few additional definitions to be checked.  Errors in basic definition are quickly detected because a large
+web of theorems that constrain them:
+the truth tables of the boolean operations, De Morgan's laws for  set operations, 
+the axioms of a complete ordered field for $\ring{R}$, and so forth.
+The essential definitions (real absolute value, the power function, the square root function, finite sums $\Sigma$,
+the Euclidean metric on $\ring{R}^3$,  the characterization of finite sets and their cardinalities) are listed in Appendix X.
+
+What we formalize in a single session is a theorem
+
+\begin{obeylines}
+
+\begin{verbatim}
+|-  linear_programming_results /\ 
+    the_nonlinear_inequalities /\
+    import_tame_classification /\ 
+    restricted_hypermaps_are_planegraphs // XX remove this!
+    ==> the_kepler_conjecture
+\end{verbatim}
+
+\end{obeylines}
+
+The other three assumptions 
+\verb!linear_programming_results!, 
+\verb!the_nonlinear_inequalities!, and \verb!import_tame_classification!
+correspond to the three major computer portions of the original 1998 proof of the Kepler conjecture: linear programming,
+the verification of nonlinear inequalities, and the classification of a collection of planar graphs satisfying certain properties.
+The formal verification of these assumptions is discussed further below.
+
+
+\section{Checking the formalization}
+
+A proof assistant cuts the mathematical referees out of the verification
+process. 
+This is not to say that human oversight is no longer needed.  Rather,
+the nature of the oversight is such that mathematical expertise is only needed
+during a few minutes of the process.  The rest of the oversight can be performed
+by any trained user of the HOL Light and Isabelle proof assistants.
+
+We see that the human involvement in the verification process to consist of the following tasks.
+
+For the mathematician, the following steps are required.
+
+\begin{enumerate}
+\item Check that the formal statement of the Kepler conjecture (including the formal definitions used to
+formulate the statement) agrees with the commonly accepted
+meaning of the conjecture.  It is this step of the verification that requires mathematical expertise.
+\item The mathematician should also have a general understanding of 
+the logical and mathematical foundations of the proof
+assistants in question, say at the level of \cite{Bourbaki}.
+\end{enumerate}
+
+For the technician wishing to reproduce the formalization the following steps are required.
+
+\begin{enumerate}
+\item  Install HOL Light.
+\item Download and run the Flyspeck project.  Sucessful completion of this step results in the
+formal theorem [XXX].
+\item Check that no funny business has occured.  In particular, check that no extra axioms have been added to the system.
+\item Install Isabelle.
+\item 
+\end{enumerate}
+
+An independent certification of the formal proof of the Kepler conjecture involves the following steps.
+1.  
+
+
+the mathematical expertise becomes secondary.
+math reviewers do not have.
+
+\section{Library development} 
+
+As part of the Flyspeck project, various libraries of theorems have been development that may be useful in other formalization
+projects.  These include the libraries for multivariate integral and differential calculus, extensions to the trigonometry
+library including spherical trigonometry, list processing,
+the properties of polyhedra,  and tools for the verification of linear programs and nonlinear
+inequalities over the real numbers.
+
+Numerous other research projects in the formal proofs have made use of the Flyspeck project in some way or have been inspired by
+the needs of Flyspeck.  These projects include the automated translation of proofs between formal proof systems
+[Obua-S], [McLaughlin], [Adams]; the refactoring of formal proofs [Adams]; machine learning applied to proofs and
+proof automation [Urban-Kaliszyk]; a mechanism to execute trusted external arithmetic 
+from Isabelle/HOL [Obua]; the visual presentation of proofs [X]; the verification of linear programs [X]; and the
+verification of nonlinear inequalities [X].
+
+\section{the text portion of the proof}
+
+The original proof of the Kepler conjecture, as presented in 1998, consists of about 300 pages of text together with supplemental
+computer verifications.    The formalization of the text part of the proof of the Kepler conjecture follows the blueprint presented
+in the book {\it Dense Sphere Packings: A Blueprint for Formal Proofs} \cite{XX}.  This book modifies the original proof in several
+significant ways to make it more suitable for formalization.   
+
+In the modified proof,  topological results concerning planar graphs are replaced with combinatorial results about hypermaps.
+(This is inspired by G. Gonthier's formal proof of the four-color theorem, which is also done in terms of hypermaps).
+The modified proof is based on a different geometric partition of space than that originally used.  C. Marchal
+introduced this partition and first observed its
+relevance to the Kepler conjecture.  
+
+The modified proof also arranges material according to a small number of significant concepts
+(volume, trigonometry, hypermaps, fans, polyhedra and Voronoi partitions, and so forth), which
+gave the organizational structure to the formal proof libraries.
+
+The actual formalization follows the book {\it Dense Sphere Packings} rather closely.  In fact, the book and the formalization
+happened together, with numerous revisions of the text in response to issues that arose in the formalization.  The TeX files
+of the book label each definition and theorem with an identifier, 
+consisting of a random string of seven letters.  For example, the definition of the dihedral angle (Def 2.66 of DSP) has been randomly
+assigned the identifier YMHELNF. These identifiers remained
+fixed over time, even as major reorganizations of the book took place, making it possible to maintain a tight  correlation between
+ passages in the text with
+the corresponding formal proof scripts.  The names of many of the computer files in the project are named according to
+these identifier, linking each file to the theorem in the text it formalizes.
+
+As the formalization of the text continued after the publication of the book, a few unpublished appendices were prepared
+to describe remaining details of the formal proof project.  The TeX files for these appendices are publicly available.
+The first of these appendices on hypermaps and planar graphs
+gives details about how to relate the results of the Isabelle project on tame graphs with the material in HOL Light.
+The presentation on hypermaps in this appendix differs from the presentation in Section 4.7.4 of DSP, which covers
+roughly the same material.  
+The second appendix describes the theorem OXLZLEZ (Theorem 6.93, the cell cluster inequality) of DSP.   The book DSP
+does not prove this result, but states, ``The proof of this cell cluster inequality is a computer calculation, which is the most
+delicate computer estimate in the book.  It reduces the cell cluster inequality to hundreds of nonlinear inequalities in at most
+six variables.''    A third unpublished appendix gives further details about the Main Estimate (Section 7.4 of DSP).  Here again,
+the appendix differs from the published account.  Other than these appendices, the differences between the published blueprint
+and the actual formalization are relatively minor.
+
+
+
+
+\section{combining HOL Light sessions}
+
+Hash.
+
+
+\section{Importing Flyspeck results from Isabelle}
+
+The first major success of the Flyspeck project was the formalization of the classification of tame plane graphs.
+In the original proof of the Kepler conjecture, this classification was done by computer, using software written by Hales
+to generate planar graphs satisfying given properties.   This formalization project
+thus involved the verification of computer code.  Work on the formal verification of the code was started by Gertrud Bauer,
+and became the subject of her PhD thesis.  The work was completed by Bauer and Nipkow in \cite{XX}.
+
+This work was done in the Isabelle/HOL proof assistant, while all the rest of the project has been carried out in HOL Light.
+It seems that it would be feasible to translate the Isabelle code to HOL Light.  This would be a desirable project and would
+unite the entire project under a single roof.  We have not carried this out.   We suggest that this would make a good graduate
+student thesis for an industrious student.
+
+There are reasons why the classification of the tame graphs cannot be done automatically imported from Isabelle to HOL Light
+using readily available technology.   A tool that automates the import from Isabelle to HOL Light was written by
+S. McLaughlin with precisely this application in minde \cite{XX}.  Unfortunately, this tool has not been maintained to make it
+compatible with the most recent releases of Isabelle and HOL Light.   A more serious issue is that the proof in Isabelle/HOL uses
+reflection:  the code is verified then reflection is used to produce a theorem asserting the output of execution of the code as
+a theorem.   The HOL Light kernel does not permit reflection.  Thus, the reflected portions of the formal proof would have to be
+modified as part of the import.
+
+Instead, we leave the formalization of the Kepler conjecture distributed between two different proof assistants.
+In HOL Light, the Isabelle work appears as an assumption
+\verb!import_tame_classification!.  This constant is 
+
+
+\begin{obeylines}
+
+\begin{verbatim}
+|- import_tame_classification <=>
+     (!g. g IN PlaneGraphs /\ tame g 
+        ==> fgraph g IN_simeq archive)
+\end{verbatim}
+
+\end{obeylines}
+
+which was translated from the Isabelle (stripped of its usual pretty printing):
+
+\begin{obeylines}
+
+\begin{verbatim}
+|- "g \<in> PlaneGraphs" and "tame g" 
+       shows "fgraph g \<in>\<^isub>\<simeq> Archive"
+\end{verbatim}
+
+\end{obeylines}
+
+
+In informal terms, the assumption asserts that every tame graph is isomorphic to a graph appearing in a certain
+long explict list (the archive) of graphs.  All of the HOL terms \verb!PlaneGraphs!, \verb!tame!, \verb!archive!,
+\verb!iso_fgraph!, \verb!fgraph! are verbatim translations of the corresponding definitions in Isabelle (extended
+recursively to the constants appearing in the definitions).  The types are similarly translated (lists to lists, natural numbers
+to natural numbers, and so forth).  The archive of graphs is generated from the same ML file for
+both the HOL Light and the Isabelle statements.  
+
+It would be desirable (again this is a plea to an industrious graduate student) to have all of the formalization under a single roof.
+The verbatim definitions between the two systems were translated by hand, and this becomes the single most important potential
+source of an error in our work.  Also,  there is no guarantee that
+the formal proofs in two different systems will remain compatible future versions of Isabelle and HOL Light.
+
+Since the formal proof is distributed between two different systems with two different logics, we briefly indicate why
+this theorem in Isabelle must also be a proof in HOL (assuming the consistency of Isabelle).  Briefly, this particular statement
+can be expressed as a tautology in first-order propositional logic, and tautologies in first-order propositional logic that hold
+in Isabelle also hold in HOL Light.  The point is that all quantifiers in the theorem are actually bounded and can thus be
+expanded as finitely many cases in propositional logic.   Each of the finitely many possible graphs can be specified by a finite number of
+boolean conditions.  Similarly, graph isomorphism can be replaced by an enumeration of finitely
+many possible bijections of vertices.  
+Tameness involves some conditions in integer arithmetic, but again everything is bounded, 
+and arithmetic operations can be expanded into boolean gates using the usual tricks.    Thus, it is only a propositional tautology
+that we share between systems.
+
+
+
+\section{imported libraries from Coq}
+
+Various libraries of theorems that were developed in Coq have turned out to be very useful for the Flyspeck project, 
+especially in the final stages of Flyspeck.  This has been made possible by the package HOL-SSReflect developed by
+ A. Solovyev as part of thesis \cite{XX}.  HOL-SSReflect is a proof scripting language modeled on the SSReflect 
+package for Coq \cite{XX}.  Although the underlying logics of Coq and HOL Light are quite different, 
+many of the proofs take place at a high level where the details about the underlying logic are abstracted away.  
+In this way, the syntactic presentation of a proof in Coq can be nearly identical to the syntactic 
+presentation of a proof in HOL Light.  Solovyev has been able to import entire libraries of results from 
+Coq to HOL, making only minor changes in the proof scripts.  
+Approximately 5\% of the proof scripts in the project have been written in SSReflect-HOL.
+
+In particular, the ssreflect libraries for booleans (ssrbool), natural numbers (ssrnat), and sequences (ssreflect.seq.html)
+have been imported to HOL light and
+have been used extensively in our project.
+
+See http://ssr2.msr-inria.inria.fr/doc/ssreflect-1.4/Ssreflect.seq.html
+
+Our approach here is remarkably different from our approach to Isabelle, since the results from Coq have been fully
+formalized within HOL Light. 
+
+
+\section{Verifying nonlinear inequalities}
+
+\section{Verifying linear programs}
+
+\section{Requirements}
+
+- How a user can run everything.
+- Software requirements: MONO, Ocaml, HOL Light, Java, etc.
+
+
+\section{On trustworthiness}
+
+We have already discussed above the need for the reader to check the definitions involved in the statement of the theorem.
+
+A frequent question has been whether mathematicians (and in particular, the referees of the original proof of the Kepler conjecture)
+will finally accept the proof of the Kepler conjecture without reservation.  This misses the point of the formalization entirely.
+The point of the formalization is to render their judgement irrelevant.  The proof verification aspects of the referees 
+have been bypassed, replaced by technology
+more reliable than a human referee has ever been.
+
+This does not mean that human judgement is no longer needed.  What it means is that the element of human evaluation has shifted from
+the logical correctness of a particular proof (in this case the Kepler conjecture) to the trustworthiness of the proof assistant
+(in this case HOL Light) and the broader computer environment in which the software runs.
+
+
+\section{Acknowledgements}
+
+The various roles of project members appears in the statement announcing the completion of the project.
+
+We wish to acknowledge the help, support, influence, and various contributions of the following individuals:
+%Dang Tat Dat, 
+%Hoang Le Truong,
+Nguyen Duc Thinh,  
+Nguyen Duc Tam, 
+%Nguyen Tat Thang,
+%Nguyen Quang Truong, 
+%Ta Thi Hoai An, 
+%Tran Nam Trung, 
+%Trieu Thi Diep, 
+%Vu Khac Ky, 
+Vu Quang Thanh,
+%Vuong Anh Quyen,
+% 
+%Mark Adams,
+Catalin Anghel, 
+Jeremy Avigad, 
+Henk Barendregt,
+%Gertrud Bauer, 
+%
+Herman Geuvers,
+Georges Gonthier,
+Daron Green,
+Mary Johnston,
+%Thomas Hales,
+%John Harrison, 
+%Cezary Kaliszyk,
+%Victor Magron,
+Christian Marchal,
+Laurel %Beth 
+Martin, 
+%Sean McLaughlin, 
+%Tobias Nipkow, 
+%Steven Obua, 
+%Joe Pleso, 
+%
+Jason Rute,
+Robert Solovay,
+%Alexey Solovyev,
+Erin Susick,
+Dan Synek,
+%Josef Urban,
+Nicholas Volker, 
+Matthew Wampler-Doty, 
+Freek Wiedijk, 
+Carl Witty,
+Wenming Ye,
+%and Roland Zumkeller.
+
+We wish to thank the following sources of institutional support:
+NSF grant 0503447 on the "Formal Foundations of Discrete Geometry" and NSF grant 0804189 on the "Formal Proof of the Kepler Conjecture", 
+Microsoft Azure Research, William Benter Foundation, University of Pittsburgh, Radboud University, Institute of Math (VAST), VIASM.
+
+
+\newpage
+\section{Appendix on definitions}
+
+The following theorem provides evidence that key definitions in the statement of the Kepler conjecture
+are the expected ones.
+
+\begin{obeylines}
+
+\begin{verbatim}
+|-  
+// real absolute value:
+   (&0 <= x ==> abs x = x) /\ (x < &0 ==> abs x = -- x) /\   
+
+// powers:
+    x pow 0 = &1 /\ x pow SUC n = x * x pow n /\
+
+// square root:
+   (&0 <= x ==> &0 <= sqrt x /\ sqrt x pow 2 = x) /\ 
+
+// finite sums:
+   sum (0..0) f = f 0 /\ sum (0..SUC n) f =  
+     sum (0..n) f + f (SUC n) /\ 
+
+// pi:
+   abs (pi / &4 - sum (0..n) (\i. (-- &1) pow i / &(2 * i + 1))) 
+     <= &1 / &(2 * n + 3) /\
+
+// finite sets and their cardinalities:
+   (A HAS_SIZE n <=> FINITE A /\ CARD A = n) /\
+   {} HAS_SIZE 0 /\ {a} HAS_SIZE 1 /\ 
+   (A HAS_SIZE m /\ B HAS_SIZE n /\ (A INTER B) HAS_SIZE p 
+     ==> (A UNION B) HAS_SIZE (m+n - p)) /\
+
+// bijection between R^3 and ordered triples of reals:
+   triple_of_real3 o r3 = (\w:real#real#real. w) /\
+   r3 o triple_of_real3 = (\v:real^3. v) /\ 
+
+// the origin:
+   vec 0 = r3(&0,&0,&0) /\
+
+// the metric on R^3:
+   dist(r3(x,y,z),r3(x',y',z')) = 
+     sqrt((x - x') pow 2 + (y - y') pow 2 + (z - z') pow 2) /\
+
+// a packing:
+   (packing V <=> 
+     (!u v. u IN V /\ v IN V /\ dist(u,v) < &2 ==> u = v))
+\end{verbatim}
+
+\end{obeylines}
+
+
+
+References.

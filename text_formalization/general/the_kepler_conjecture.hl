@@ -16,28 +16,36 @@ open Tame_defs2;;
 open Tame_list;;
 open Hypermap;;
 
-let the_kepler_conjecture_def = new_definition
+let the_kepler_conjecture_def = new_definition'
   `the_kepler_conjecture <=>
      (!V. packing V
             ==> (?c. !r. &1 <= r
                          ==> &(CARD(V INTER ball(vec 0,r))) <=
                              pi * r pow 3 / sqrt(&18) + c * r pow 2))`;;
 
-let linear_programming_results = new_definition
-  `linear_programming_results <=>
+let good_linear_programming_results = new_definition'
+  `good_linear_programming_results a <=>
+      ((ALL good_list a) /\
       (!V. lp_ineqs /\ lp_main_estimate /\
-	 (?L. MEM L tame_archive_lists /\ 
+	 (?L. MEM (L:((A)list)list) a /\ 
 	    iso (hypermap_of_fan (V,ESTD V)) (hypermap_of_list L)) ==>
-	 ~(contravening V))`;;
+	 ~(contravening V)))`;;
 
-let the_nonlinear_inequalities = new_definition
+let the_nonlinear_inequalities = new_definition'
   `the_nonlinear_inequalities <=>
   (pack_nonlinear_non_ox3q1h /\ ox3q1h /\ 
      main_nonlinear_terminal_v11 /\ lp_ineqs /\ pack_ineq_def_a /\
     kcblrqc_ineq_def)`;;
 
+let tame_classification = new_definition' 
+  `!(a:(((A)list)list)list). tame_classification a = 
+  (!g. PlaneGraphs g /\ tame g ==> 
+     (?y. y IN set_of_list a /\ iso_fgraph (fgraph g) y))`;;
+
+(*
 let import_tame_classification = 
   Import_tame_classification.import_tame_classification;;
+*)
 
 let restricted_hypermaps_are_planegraphs = new_definition'
   `restricted_hypermaps_are_planegraphs_v4 <=>
@@ -111,9 +119,9 @@ let tame_hypermap_restricted = prove_by_refinement(
   (* }}} *)
 
 let kepler_conjecture_with_assumptions = prove_by_refinement(
-  `linear_programming_results /\ 
-    the_nonlinear_inequalities /\
-    import_tame_classification 
+  `!a. tame_classification a /\
+    good_linear_programming_results a /\ 
+    the_nonlinear_inequalities
     ==> the_kepler_conjecture
     `,
   (* {{{ proof *)
@@ -122,7 +130,7 @@ let kepler_conjecture_with_assumptions = prove_by_refinement(
   ASSUME_TAC Reduction5.restricted_hypermaps_are_planegraphs; 
   MATCH_MP_TAC kc_imp_the_kc;
   REPEAT (POP_ASSUM MP_TAC);
-  REWRITE_TAC[linear_programming_results;the_nonlinear_inequalities;import_tame_classification;restricted_hypermaps_are_planegraphs;Import_tame_classification.archive;IN_SET_OF_LIST;];
+  REWRITE_TAC[good_linear_programming_results;the_nonlinear_inequalities;tame_classification;restricted_hypermaps_are_planegraphs;IN_SET_OF_LIST;];
   REPEAT WEAKER_STRIP_TAC;
   PROOF_BY_CONTR_TAC;
   FIRST_X_ASSUM_ST `lp_ineqs /\ u` MP_TAC;
@@ -155,7 +163,8 @@ let kepler_conjecture_with_assumptions = prove_by_refinement(
   REPEAT WEAKER_STRIP_TAC;
   INTRO_TAC Elllnyz.ELLLNYZ [`fgraph gH`;`y`];
   ASM_REWRITE_TAC[];
-  MP_TAC Good_list_archive.good_list_archive;
+  FIRST_X_ASSUM_ST `ALL` MP_TAC;
+(*  MP_TAC Good_list_archive.good_list_archive; *)
   REWRITE_TAC[Seq2.ALL_all;GSYM Seq.allP];
   ASM_SIMP_TAC[];
   DISCH_TAC;
@@ -193,31 +202,107 @@ let kepler_conjecture_with_assumptions = prove_by_refinement(
   ]);;
   (* }}} *)
 
+(* add in the archive *)
+
+let linear_programming_results = new_definition
+  `linear_programming_results <=>
+      (!V. lp_ineqs /\ lp_main_estimate /\
+	 (?L. MEM L tame_archive_lists /\ 
+	    iso (hypermap_of_fan (V,ESTD V)) (hypermap_of_list L)) ==>
+	 ~(contravening V))`;;
+
+(*
+let good_linear_programming_results_lpr = prove_by_refinement(
+  `good_linear_programming_results tame_archive_lists <=> 
+    ALL good_list tame_archive_lists /\
+    linear_programming_results`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[good_linear_programming_results;linear_programming_results];
+  ]);;
+  (* }}} *)
+*)
+
+let archive = new_definition' `archive = set_of_list tame_archive_lists`;;
+
+let import_tame_classification = new_definition' 
+  `import_tame_classification = 
+  (!g. PlaneGraphs g /\ tame g ==> (?y. y IN archive /\ iso_fgraph (fgraph g) y))`;;
+
+let import_tame_classification_tame = prove_by_refinement(
+  `import_tame_classification = tame_classification tame_archive_lists`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[archive;import_tame_classification;tame_classification];
+  ]);;
+  (* }}} *)
+
+parse_as_infix ("IN_simeq", (11, "right"));;
+
+let IN_SIMEQ = new_definition'
+  `!A (x:((A)list)list). 
+  x IN_simeq A <=> (?(y:((B)list)list). y IN A /\ iso_fgraph x y)`;;
+
+let import_tame_classification_alt = prove_by_refinement(
+  `import_tame_classification <=> 
+  (!g. g IN PlaneGraphs /\ tame g ==> fgraph g IN_simeq archive)`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[import_tame_classification;IN_SIMEQ;IN])
+  ]);;
+  (* }}} *)
+
+let kepler_conjecture_with_assumptions_and_archive = prove_by_refinement(
+  `import_tame_classification /\
+    linear_programming_results /\ 
+    the_nonlinear_inequalities
+    ==> the_kepler_conjecture
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC kepler_conjecture_with_assumptions [`tame_archive_lists`];
+  DISCH_THEN MATCH_MP_TAC;
+  ASM_REWRITE_TAC[good_linear_programming_results;GSYM linear_programming_results];
+  ASM_REWRITE_TAC[GSYM import_tame_classification_tame];
+  MP_TAC Good_list_archive.good_list_archive;
+  BY(REWRITE_TAC[Good_list_archive.good_list_archive])
+  ]);;
+  (* }}} *)
+
+(* final result *)
+
 let tame_nonlinear_imp_kepler_conjecture = 
   REWRITE_RULE[Linear_programming_results.linear_programming_results_th]
-    kepler_conjecture_with_assumptions;;
+    kepler_conjecture_with_assumptions_and_archive;;
+
+(* simple -> full corrected Sep 9, 2014 *)
 
 let check_md5 c md5 = 
   let imp = mk_imp (c,c) in
   let _ = is_const c or failwith "constant expected in check_md5" in
   let th' = Serialization.canonize_thm (MESON[] imp) in
-  let md5' = Serialization.simple_digest_thm th' in
+  let md5' = Serialization.full_digest_thm th' in
   let check = (md5' = md5) in
   let _ = if (not check) then 
     report ("FAILED MD5 CHECK "^(string_of_term c)^" "^md5') in 
     check;;
 
 let check_nonlinear_md5 = 
-  check_md5 `the_nonlinear_inequalities` "1f054717131cf915bd8cc95ab7b645c3";;
+  check_md5 `the_nonlinear_inequalities` "a4a27fe9b050b585a81af8414db2f340";;
+   (* simple: "1f054717131cf915bd8cc95ab7b645c3" *)
 
 let check_linear_md5 = 
-  check_md5 `linear_programming_results` "ff5f953dece7d2a4bb712303d0a7a179";;
+  check_md5 `linear_programming_results` "0";;
+   (* simple: "ff5f953dece7d2a4bb712303d0a7a179";; *)
 
 let check_graph_md5 = 
-  check_md5 `import_tame_classification` "921b44e90681ed302d31b4f9ce93ddad";;
+  check_md5 `import_tame_classification` "0";;
+   (* simple: "921b44e90681ed302d31b4f9ce93ddad";; *)
 
 let check_kepler_conjecture_md5 = 
-    check_md5 `the_kepler_conjecture` "0fb2a76af8f8c13cbb7ea0d4e2ab4149";;
+    check_md5 `the_kepler_conjecture` "0";;
+   (* simple: "0fb2a76af8f8c13cbb7ea0d4e2ab4149";; *)
 
 let check_all_md5 = 
   check_nonlinear_md5 &&

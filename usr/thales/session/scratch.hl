@@ -16,6 +16,8 @@
   let prove_by_refinement (s,t) = 
     (report (string_of_term s); prove_by_refinement_bak(s,t));;
 
+rflyspeck_needs "general/the_kepler_conjecture.hl";;
+The_kepler_conjecture.kepler_conjecture_with_assumptions;;
 
 (* reset goalstate *)
 loadt "tactics.ml";;
@@ -23,6 +25,7 @@ rflyspeck_needs "general/hol_pervasives.hl";;
 (* then local build stuff *)
 
 rflyspeck_needs "fan/introduction.hl";;
+reset();;
 
 flyspeck_needs "tame/AQ12.hl";;
 flyspeck_needs "tame/AQ13.hl";;
@@ -93,6 +96,8 @@ open Current;;
 
 CONJ (UNDISCH (ASSUME `t ==> a`)) (UNDISCH (ASSUME `t ==> b`));;
 
+type_of `tame_archive_lists`;;
+Good_list_archive.good_list_archive;;
 
 let rr = 
   let ineqs = !Ineq.ineqs in
@@ -5223,6 +5228,7 @@ let quad_idv = [
 	     ];;
 
 (* tests of completeness of Flyspeck project *)
+
 flyspeck_needs   "tame/good_list_archive.hl";;
 flyspeck_needs "general/the_kepler_conjecture.hl";;
 The_kepler_conjecture.kepler_conjecture_with_assumptions;;
@@ -5285,14 +5291,20 @@ let check_frees thm =
     (badvs);;
 
 let bad_thm = filter (fun (_,thm) -> not (check_frees thm = [])) !theorems;;
+let bad_thm' = filter (fun (s,_,_) -> String.contains s '.' ) (map (fun (s,t) -> (s,t,check_frees t)) bad_thm);;
+
+List.length bad_thm';;
+
+assoc "CONTINUOUS_AT_SQRT" bad_thm;;
 
 map (fun (s,t) -> (check_frees t,s,t)) bad_thm;;
 List.length bad_thm;;
 
 check_frees (snd ( bad_thm));;
-hd bad_thm;;
+List.nth bad_thm' 3;;
 
 help "SPECL";;
+type_of `D4`;;
 
 (* make fs variable names all free, with the same names.
    make ns variable names lead the block of quantifiers
@@ -5326,3 +5338,23 @@ let gtheorems = map (setify) gtheorems;;
 let gtheorems' = filter (fun t -> List.length t > 1) gtheorems;;
 List.length gtheorems';;
 List.nth gtheorems' 130;;
+
+let regularize_name2 s = 
+  let lc =  s in
+  let b = String.contains lc '.' in
+    if not b then lc else
+      let i = String.index lc '.' in
+	String.sub lc (i+1) (String.length lc - (i+1));;
+
+let rtheorems = map (fun (s,t) -> (regularize_name2 s,s,t)) !theorems;;
+
+
+let stheorems = sort (fun (s,_,_) (s',_,_) -> s < s') rtheorems;;
+let gtheorems = group_dup (fun (s,_,_)->s) [] [hd stheorems] (tl stheorems);;   
+let gtheorems' = filter 
+  (fun t -> List.length (setify (map (fun (_,_,r) -> Serialization.canonize_thm r) t)) > 1 ) 
+  gtheorems;;
+
+List.length gtheorems';;
+List.rev gtheorems';;
+ (map (fun (a,_,_) -> a) (map (fun t -> hd t) gtheorems'));;

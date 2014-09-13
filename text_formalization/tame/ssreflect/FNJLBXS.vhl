@@ -20,7 +20,7 @@ Module Fnjlbxs.
 "open Tame_defs".
 "open Fan_defs".
 
-Lemma packing V: `packing V <=> (!u v. u IN V /\ v IN V /\ ~(u = v) ==> &2 <= dist (u,v))`.
+Lemma packing_in V: `packing V <=> (!u v. u IN V /\ v IN V /\ ~(u = v) ==> &2 <= dist (u,v))`.
 Proof. by rewrite Sphere.packing -!(IN V). Qed.
 
 "let inE = CONJUNCT2 IN_ELIM_THM".
@@ -214,7 +214,7 @@ Qed.
 
 Lemma min_dist_imp_packing l: `(!i. i < sizel l ==> &2 <= min_dist_k i l) ==> packing (set_of_list l)`.
 Proof.
-rewrite packing !IN_SET_OF_LIST => h u v.
+rewrite packing_in !IN_SET_OF_LIST => h u v.
 rewrite !MEM_EXISTS_EL -size => [] [] [i] [i_lt] -> [] [j] [j_lt] -> neq.
 apply: REAL_LE_TRANS; exists `min_dist_k j l`.
 rewrite h // andTb min_dist_min i_lt andTb.
@@ -225,7 +225,7 @@ Lemma packing_eq_min_dist l: `uniq l /\ 2 <= sizel l ==>
         (packing (set_of_list l) <=> !i. i < sizel l ==> &2 <= min_dist_k i l)`.
 Proof.
 move => [uniq_l size_ge]; split; last exact: min_dist_imp_packing.
-rewrite packing !IN_SET_OF_LIST => pack k k_lt.
+rewrite packing_in !IN_SET_OF_LIST => pack k k_lt.
 move: (min_dist_exists size_ge k) => [m] [m_lt] [n_mk] ->.
 by rewrite pack !MEM_EL ?(EL_nth `vec 0`) -?size // nth_uniq.
 Qed.
@@ -1436,7 +1436,7 @@ have inY y: `y IN Y <=> y IN V /\ &2 < dist (y, v)`.
     move => [yV dist_gt]; rewrite yV /=; split; last by move: dist_gt; arith.
     by apply: contraL dist_gt => ->; rewrite DIST_REFL; arith.
   move => [] [yV] ynv; rewrite yV /= REAL_LT_LE eq_sym => -> /=.
-  by rewrite packing in packV; apply: packV.
+  by rewrite packing_in in packV; apply: packV.
 have inX x: `x IN X <=> x IN V /\ dist (x, v) = &2`.
   by rewrite -X_def in_set_of_edge_ECTC.
 have not_inY y: `y IN V /\ ~(y = v) /\ ~(y IN Y) ==> y IN X`.
@@ -1458,7 +1458,7 @@ have n_vu: `~(v = u)`.
   move: n_iso; rewrite -MEMBER_NOT_EMPTY => [] [x] /dist_lt.
   by rewrite v_eq_u REAL_LT_REFL.
 have nuV: `~(u IN V)`.
-  apply: contraT; rewrite negbK => uV; rewrite packing in packV.
+  apply: contraT; rewrite negbK => uV; rewrite packing_in in packV.
   by move: (packV vV uV n_vu) dist_vu e_le1; arith.
 set W := `u INSERT (V DELETE v)`.
 set f := `\x. if x = v then u else x`.
@@ -1472,7 +1472,7 @@ exists W f; split.
 have norm_eqV x: `x IN V ==> norm x = norm (f x)`.
   by move => xV; rewrite -f_def /=; case eq: `x = v` => /=; rewrite eq norm_eq.
 have dist_gt2: `!x. x IN V /\ ~(x = v) ==> &2 < dist (x, u)`.
-  move => x [xV xnv]; rewrite packing in packV.
+  move => x [xV xnv]; rewrite packing_in in packV.
   case xY: `x IN Y` => /=; last first.
     rewrite DIST_SYM.
     by move/dist_lt: (not_inY xY xV xnv); apply/REAL_LET_TRANS; apply: packV.
@@ -1482,8 +1482,8 @@ have dist_gt2: `!x. x IN V /\ ~(x = v) ==> &2 < dist (x, u)`.
   rewrite -e_def Yn0 /= REAL_MIN_LE; right.
   rewrite REAL_INF_LE_FINITE ?FINITE_IMAGE ?IMAGE_EQ_EMPTY //.
   by exists `dist (x, v) - &2`; rewrite REAL_LE_REFL IN_IMAGE /=; exists x.
-rewrite packing; split => [x y|].
-  rewrite -W_def !IN_INSERT !IN_DELETE; rewrite packing in packV.
+rewrite packing_in; split => [x y|].
+  rewrite -W_def !IN_INSERT !IN_DELETE; rewrite packing_in in packV.
   move => [] [->| [xV xnv]] [] [->| [yV ynv]] // neq; last by apply: packV.
     by rewrite DIST_SYM REAL_LT_IMP_LE dist_gt2.
   by rewrite REAL_LT_IMP_LE dist_gt2.
@@ -1530,7 +1530,7 @@ have D_n0: `~(D = {})`.
     rewrite !Tame_defs.scriptL SUM_SING SUM_CLAUSES ?FINITE_SING SUM_SING IN_SING neg_w /=.
     rewrite NORM_NEG norm_w (Sphere.lmfun `&2 / &2`) Sphere.h0.
     by rewrite SUBSET in subV; move: (lmfun_in_ball_annulus (subV vV)); arith.
-  rewrite packing SUBSET !IN_INSERT !NOT_IN_EMPTY /= in_ball_annulus; split.
+  rewrite packing_in SUBSET !IN_INSERT !NOT_IN_EMPTY /= in_ball_annulus; split.
     by move => x y [] [->] [] [->] //; rewrite ?(DIST_SYM `--w:real^3`) dist;
         rewrite "VECTOR_ARITH `w - --w = &2 % w:real^3`" NORM_MUL norm_w; arith.
   by move => x [->]; rewrite ?NORM_NEG norm_w Sphere.h0; arith.
@@ -1541,7 +1541,7 @@ have inf_gt0: `&0 < inf D`.
   apply: contraLR edges0; rewrite -MEMBER_NOT_EMPTY REAL_SUB_LT REAL_NOT_LT => dist_le.
   exists u; rewrite set_of_edge ECTC inE IN_ELIM_THM /= uV andbT.
   exists v u; do !split => //.
-  by rewrite packing in packV; rewrite DIST_SYM -REAL_LE_ANTISYM dist_le packV.
+  by rewrite packing_in in packV; rewrite DIST_SYM -REAL_LE_ANTISYM dist_le packV.
 have e_gt0: `&0 < e`.
   by rewrite -e_def REAL_LT_DIV REAL_LT_MIN inf_gt0; by move: norm_gt2; arith.
 have e_lt1: `e < &1`.
@@ -1562,7 +1562,7 @@ have d_vw: `dist (v, w) = min (inf D) (norm v - &2)`.
   by move: (subV vV) inf_gt0 norm_gt2; arith.
 have in_w: `~(w IN V DELETE v)`.
   rewrite IN_DELETE negb_and negbK; left.
-  apply: contraL packV => wV; rewrite packing !NOT_FORALL_THM NOT_IMP.
+  apply: contraL packV => wV; rewrite packing_in !NOT_FORALL_THM NOT_IMP.
   exists v w; do !split => //.
     by apply: contraL norm_w_lt => ->; rewrite REAL_LT_REFL.
   by rewrite d_vw; move: (subV vV) norm_gt2 inf_gt0; arith.
@@ -1573,11 +1573,11 @@ exists W; split; last first.
   rewrite in_w /= SUM_DELETE //=.
   suff: `lmfun (norm v / &2) < lmfun (norm w / &2)` by arith.
   by move: (subV vV) norm_w_lt; rewrite !Sphere.lmfun Sphere.h0; arith.
-rewrite SUBSET packing; split => [x y | x]; last first.
+rewrite SUBSET packing_in; split => [x y | x]; last first.
   rewrite -W_def in_ball_annulus IN_INSERT IN_DELETE Sphere.h0.
   case => [->|]; first by move: norm_w_ge2 norm_w_lt (subV vV); arith.
   by move => [/subV] [->] ->.
-rewrite -W_def !IN_INSERT !IN_DELETE; rewrite packing in packV.
+rewrite -W_def !IN_INSERT !IN_DELETE; rewrite packing_in in packV.
 have h z: `z IN V /\ ~(z = v) ==> &2 <= dist (z, w)`.
   move => [zV znv]; apply: REAL_LE_TRANS; exists `dist (z, v) - dist (v, w)`; split; last first.
     by move: (DIST_TRIANGLE z w v); rewrite (DIST_SYM w); arith.

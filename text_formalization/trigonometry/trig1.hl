@@ -24,27 +24,6 @@ module  Trigonometry1 = struct
 prioritize_real();;
 
 
-(* This is close to CIRCLE_SINCOS *)
-
-let atn2_spec_t = `!x y. ?r. ((-- pi < atn2(x, y)) /\ (atn2(x,y) <= pi) /\
-     (x = r* (cos(atn2(x,y)))) /\ (y = r* (sin (atn2( x, y)))) /\ 
-     (&0 <= r))`;;
-
-let acs_atn2_t = `!y. (-- &1 <= y /\ y <=  &1) ==> (acs y = pi/(&2) - atn2(sqrt(&1 - y pow 2),y))`;;
-
-let arcVarc_t = `!u v w:real^3. ~(u=v) /\ ~(u=w) ==> arcV u v w = arclength (dist( u, v)) (dist( u, w)) (dist( v, w))`;;
-
-let law_of_cosines_t = `!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
-   ((c pow 2) = (a pow 2) + (b pow 2) - &2 * a * b * (cos(arclength a b c)))`;;
-
-let law_of_sines_t = `!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
-   (&2 * a * b * sin (arclength a b c) = sqrt(ups_x (a pow 2) (b pow 2) (c pow 2)))`;;
-
-let cross_mag_t = `!u v. norm (u cross v) = (norm u) * (norm v) * sin(arcV (vec 0) u v)`;;
-
-let cross_skew_t = `!u v. (u cross v) = -- (v cross u)`;;
-
-let cross_triple_t = `!u v w.  (u cross v) dot w =  (v cross w) dot u`;;
 
 
 (*
@@ -370,6 +349,10 @@ let euler_triangle_t = `!v0 v1 v2 v3:real^3.
   (* These three and the definition should suffice as the basic *)
   (* specifications for atn2. No more need for atan2_temp.*)
   
+let atn2_spec_t = `!x y. ?r. ((-- pi < atn2(x, y)) /\ (atn2(x,y) <= pi) /\
+     (x = r* (cos(atn2(x,y)))) /\ (y = r* (sin (atn2( x, y)))) /\ 
+     (&0 <= r))`;;
+
   let atn2_spec = prove
    (atn2_spec_t,
     REWRITE_TAC [ATAN_TEMP_ATN2; ATAN2_TEMP_SPEC]);; 
@@ -471,6 +454,8 @@ let ATN_UPS_X_BREAKDOWN1 = prove_by_refinement (
 
   (* lemma:acs_atn2 *)   
   
+let acs_atn2_t = `!y. (-- &1 <= y /\ y <=  &1) ==> (acs y = pi/(&2) - atn2(sqrt(&1 - y pow 2),y))`;;
+
   let acs_atn2 = prove
    (acs_atn2_t,
     STRIP_TAC THEN ASM_CASES_TAC `y = &1 \/ y = --(&1)` THENL
@@ -606,12 +591,18 @@ let ATN_UPS_X_BREAKDOWN1 = prove_by_refinement (
       (fun th -> ASM_SIMP_TAC [ATN2_LMUL_EQ; th]) THEN 
     ASM_SIMP_TAC [TRI_UPS_X_SQRT; TRI_LEMMA]);;
 
+let law_of_cosines_t = `!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
+   ((c pow 2) = (a pow 2) + (b pow 2) - &2 * a * b * (cos(arclength a b c)))`;;
+
   let law_of_cosines = prove    
    (law_of_cosines_t,
     REPEAT STRIP_TAC THEN 
     REWRITE_TAC [REAL_ARITH `&2 * a * b * x = (&2 * a * b) * x`] THEN
     ASM_SIMP_TAC [ACS_ARCLENGTH; TRI_SQUARES_BOUNDS; COS_ACS; TRI_LEMMA] THEN 
     REAL_ARITH_TAC);;
+
+let law_of_sines_t = `!a b c. (&0 < a) /\ (&0 < b) /\ (&0 <= c) /\ (c <= a + b) /\ (a <= b + c) /\ (b <= c + a) ==>
+   (&2 * a * b * sin (arclength a b c) = sqrt(ups_x (a pow 2) (b pow 2) (c pow 2)))`;;
 
   let law_of_sines =  prove
    (law_of_sines_t,
@@ -632,6 +623,8 @@ let ATN_UPS_X_BREAKDOWN1 = prove_by_refinement (
      dist(u,v) <= dist(u,w) + dist(v,w) /\
      dist(u,w) <= dist(v,w) + dist(u,v)`,
 		NORM_ARITH_TAC);;
+
+let arcVarc_t = `!u v w:real^3. ~(u=v) /\ ~(u=w) ==> arcV u v w = arclength (dist( u, v)) (dist( u, w)) (dist( v, w))`;;
 
   let arcVarc = prove
 	 (arcVarc_t,
@@ -750,11 +743,16 @@ let ATN_UPS_X_BREAKDOWN1 = prove_by_refinement (
 		                      (ISPEC `vector [a;b;c]:real^3` COMPONENTS_3) in
     REWRITE_TAC [th]);;
 
+let cross_skew_t = `!u v. (u cross v) = -- (v cross u)`;;
+
   let cross_skew = prove
 	 (cross_skew_t,
 	  REWRITE_TAC [CART_EQ_3; CROSS_COMPONENTS; VECTOR_NEG_COMPONENT_3] THEN 
 		REAL_ARITH_TAC);;
 	  
+let cross_triple_t = `!u v w.  (u cross v) dot w =  (v cross w) dot u`;;
+
+
   let cross_triple = prove
 	 (cross_triple_t,
 	  REWRITE_TAC [ DOT_3; CROSS_COMPONENTS] THEN REAL_ARITH_TAC);;
@@ -813,7 +811,9 @@ let ATN_UPS_X_BREAKDOWN1 = prove_by_refinement (
 	   &2 * (norm u) * (norm v) * sin (arcV (vec 0) u v) =
               sqrt (ups_x (norm u pow 2) (norm v pow 2) (dist (u,v) pow 2))`,
 		 SIMP_TAC [arcVarc; DIST_TRIANGLE_DETAILS; law_of_sines; DIST_L_ZERO]);; 	
-						
+			
+let cross_mag_t = `!u v. norm (u cross v) = (norm u) * (norm v) * sin(arcV (vec 0) u v)`;;
+			
 	let cross_mag = prove
 	 (cross_mag_t,
 	  REPEAT STRIP_TAC THEN 

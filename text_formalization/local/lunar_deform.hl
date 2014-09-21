@@ -30,62 +30,6 @@ open Sphere;;
 (* ================================== *)
 
 
-
-
-(*
-let asms_search0 sths =
-  let rec immediatesublist l1 l2 =
-    match (l1,l2) with
-      [],_ -> true
-    | _,[] -> false
-    | (h1::t1,h2::t2) -> h1 = h2 & immediatesublist t1 t2 in
-  let rec sublist l1 l2 =
-    match (l1,l2) with
-      [],_ -> true
-    | _,[] -> false
-    | (h1::t1,h2::t2) -> immediatesublist l1 l2 or sublist l1 t2 in
-  let exists_subterm_satisfying p (n,th) = can (find_term p) (concl th)
-  and name_contains s (n,th) = sublist (explode s) (explode n) in
-  let rec filterpred tm =
-    match tm with
-      Comb(Var("<omit this pattern>",_),t) -> not o filterpred t
-    | Comb(Var("<match theorem name>",_),Var(pat,_)) -> name_contains pat
-    | Comb(Var("<match aconv>",_),pat) -> exists_subterm_satisfying (aconv pat)
-    | pat -> exists_subterm_satisfying (can (term_match [] pat)) in
-  fun pats ->
-    let triv,nontriv = partition is_var pats in
-    (if triv <> [] then
-      warn true
-         ("Ignoring plain variables in search: "^
-          end_itlist (fun s t -> s^", "^t) (map (fst o dest_var) triv))
-     else ());
-    (if nontriv = [] & triv <> [] then []
-     else itlist (filter o filterpred) pats sths);;
-
-let asms_search tms =
-  let gstk = !current_goalstack in
-  match gstk with
-    [] -> []
-  | (meta,gl::_,just)::_
-       -> let (sths,_) = gl in
-          map snd (asms_search0 sths tms)
-  | _  -> failwith "asm_searchs: Invalid goal state";;
-
-let ASMS_SEARCH_TCL (tms:(term)list) (thstac:(thm)list->tactic) : tactic =
-  fun (gl:goal) ->
-  let (sths,tm) = gl in
-  let ths1 = map snd (asms_search0 sths tms) in
-  thstac ths1 gl;;
-
-let ASM_SEARCH_TCL (tms:(term)list) (thstac:thm->tactic) : tactic =
-  let foo ths = match ths with
-                  [] -> failwith "ASM_SEARCH_TCL: No matching asms found"
-                | _  -> thstac (hd ths) in
-  ASMS_SEARCH_TCL tms foo;;
-
-let ASM_SEARCH_TC = asms_search;;
-*)
-
 let ATTACH thm = MATCH_MP (MESON[]` ! a b. ( a ==> b ) ==> ( a <=> a /\ b )`) thm;;
 
 let NHANH tm = ONCE_REWRITE_TAC[ ATTACH (SPEC_ALL ( tm ))];;
@@ -101,19 +45,6 @@ let DOWN = FIRST_X_ASSUM MP_TAC;;
 let DOWNS n = REPLICATE_TAC n DOWN THEN PHA;;
 
 let REMOVE_TAC = FIRST_X_ASSUM MP_TAC THEN MATCH_MP_TAC (TAUT` a ==> b ==> a`);;
-
-
-(*
-let types_thm th = let cl = concl th in
-List.map dest_var (frees cl );;
-
-let seans_fn () =
-let (tms,tm) = top_goal () in
-let vss = map frees (tm::tms) in
-let vs = setify (flat vss) in
-map dest_var vs;;
-*)
-
 
 
 
@@ -853,84 +784,7 @@ ASM_REWRITE_TAC[];
 PHA;
 REPEAT STRIP_TAC; 
 
-
-
-
-
-(* ====================================
-
-prove_by_refinement (`FINITE V /\
- convex_local_fan (V,E,FF) /\
- ~(?v w u.
-       {v, w} IN E /\
-       u IN V /\
-       ~(aff_gt {vec 0} {v, w} INTER aff_lt {vec 0} {u} = {})) /\
- {v, w} SUBSET V /\
- ~(v = w) /\
- collinear {vec 0, v, w} /\
- (!x. x IN E ==> x SUBSET V) /\
- f u (&0) = u /\
- f u continuous atreal (&0) /\
- interior_angle1 (vec 0) FF v < pi /\
- a < &0 /\
- &0 < b /\
- ~(u = v) /\
- ~(u = w) /\
- (!u' t. u' IN V /\ ~(u = u') /\ t IN real_interval (a,b) ==> f u' t = u') /\
- (!t. t IN real_interval (a,b) ==> f u t IN affine hull {vec 0, v, w, u}) /\
- (!u. u IN V DIFF {v, w} ==> interior_angle1 (vec 0) FF u = pi) /\
- &0 < interior_angle1 (vec 0) FF v /\
- interior_angle1 (vec 0) FF v <= pi /\
- interior_angle1 (vec 0) FF v = interior_angle1 (vec 0) FF w /\
- i < CARD V /\
- ~(i = 0) /\
- ~(i = 1) /\
- {ITER l (rho_node1 FF) v | 0 < l /\ l < i} =
- aff_gt {vec 0, v} {rho_node1 FF v} INTER V /\
- j < CARD V /\
- ~(j = 0) /\
- ~(j = 1) /\
- {ITER l (rho_node1 FF) w | 0 < l /\ l < j} =
- aff_gt {vec 0, w} {rho_node1 FF w} INTER V /\
- (!t. t IN real_interval (a,b) ==> {v, w} SUBSET IMAGE (\v. f v t) V) /\
- ((?e. &0 < e /\
-       (!t. --e < t /\ t < e
-            ==> ~(?v w u.
-                      {v, w} IN IMAGE (IMAGE (\v. f v t)) E /\
-                      u IN IMAGE (\v. f v t) V /\
-                      ~(aff_gt {vec 0} {v, w} INTER aff_lt {vec 0} {u} = {})) /\
-                {v, w} SUBSET IMAGE (\v. f v t) V /\
-                ~(v = w) /\
-                collinear {vec 0, v, w})) <=>
-  CONCL) /\
- &0 < e /\
- (!t u'. --e < t /\ t < e /\ u' IN V /\ ~(u' = u) ==> ~(f u t = f u' t)) /\
- (t IN real_interval (a,b) /\ --e < t /\ t < e
-  ==> (!v w u'.
-           {v, w} IN IMAGE (IMAGE (\v. f v t)) E /\
-           u' IN IMAGE (\v. f v t) V /\
-           ~(f u t IN {u', v, w})
-           ==> aff_gt {vec 0} {v, w} INTER aff_lt {vec 0} {u'} = {})) /\
- local_fan (V,E,FF) /\
- i + j = CARD V /\
- v IN V /\
- {ITER n (rho_node1 FF) v | n < CARD V} = V /\
- n < CARD V /\
- ITER n (rho_node1 FF) v = u /\
- ITER j (rho_node1 FF) w = v /\
- ITER i (rho_node1 FF) v = w /\
- w IN V /\
- {ITER n (rho_node1 FF) w | n < CARD V} = V /\
- n' < CARD V /\
- ITER n' (rho_node1 FF) w = u   /\
- u IN aff_gt {vec 0, v} {rho_node1 FF v} 
- ==> CONCL`,
-
- [STRIP_TAC ;
-
-
-================================= *)
-
+(* ===== *)
 
 SUBGOAL_THEN` aff_gt {vec 0, v} {rho_node1 FF v} = aff_gt {vec 0, v} {u} ` MP_TAC;
 MATCH_MP_TAC Local_lemmas.COLL_IN_AFF_GT_AFF_GT_EQ;

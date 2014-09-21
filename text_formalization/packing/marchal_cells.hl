@@ -255,17 +255,6 @@ let TRUNCATE_SIMPLEX_EXPLICIT_3 = prove_by_refinement (
  (ASM_REWRITE_TAC[APPEND])]);;
 
 
-(* -------------------------------------------------------------------------- *)
-
-let OMEGA_LIST_TRUNCATE_0 = prove_by_refinement (
- `!V u0:real^3 u1 u2 u3. 
-     omega_list_n V [u0;u1;u2;u3] 0 = omega_list V [u0] `,
-[ (REPEAT GEN_TAC);
- (REWRITE_TAC[OMEGA_LIST]);
- (REWRITE_WITH `LENGTH [u0:real^3] - 1 = 0`);
- (REWRITE_TAC[LENGTH; ARITH_RULE `SUC 0 - 1 = 0`]);
- (REWRITE_TAC[OMEGA_LIST_N]);
- (MESON_TAC[HD])]);;
 
 
 (* -------------------------------------------------------------------------- *)
@@ -470,53 +459,6 @@ let BARV_3_EXPLICIT = prove_by_refinement (
  (ASM_REWRITE_TAC[])]);;
 
 
-(* ------------------------------------------------------------------------- *)
-
-let BARV_K_EXPLICIT = prove_by_refinement (
- `!V a b c d.
-     barV V 3 [a; b; c; d]
-     ==> barV V 2 [a; b; c] /\ barV V 1 [a; b] /\ barV V 0 [a]`,
-[ (REPEAT GEN_TAC);
- (REWRITE_TAC[BARV]);
- (REPEAT STRIP_TAC);
- (REWRITE_TAC[LENGTH;ARITH_RULE `SUC (SUC (SUC 0)) = 2 + 1`]);
- (MATCH_MP_TAC (ASSUME
-  `!vl. initial_sublist vl [a:real^3; b; c; d] /\ 0 < LENGTH vl
-           ==> voronoi_nondg V vl`));
- (ASM_REWRITE_TAC[]);
- (UNDISCH_TAC `initial_sublist vl [a; b; c:real^3]` THEN  
-   REWRITE_TAC[INITIAL_SUBLIST]);
- (STRIP_TAC);
- (EXISTS_TAC `APPEND yl [d:real^3]`);
- (REWRITE_TAC[APPEND_ASSOC; GSYM (ASSUME `[a; b; c:real^3] = APPEND vl yl`)]);
- (REWRITE_TAC[APPEND]);
- (REWRITE_TAC[LENGTH]);
- (ARITH_TAC);
-
- (MATCH_MP_TAC (ASSUME 
-  `!vl. initial_sublist vl [a:real^3; b; c; d] /\ 0 < LENGTH vl
-           ==> voronoi_nondg V vl`));
- (ASM_REWRITE_TAC[]);
- (UNDISCH_TAC `initial_sublist vl [a; b:real^3]` THEN  
-   REWRITE_TAC[INITIAL_SUBLIST]);
- (STRIP_TAC);
- (EXISTS_TAC `APPEND yl [c;d:real^3]`);
- (REWRITE_TAC[APPEND_ASSOC; GSYM (ASSUME `[a; b:real^3] = APPEND vl yl`)]);
- (REWRITE_TAC[APPEND]);
- (REWRITE_TAC[LENGTH]);
- (ARITH_TAC);
-
- (MATCH_MP_TAC (ASSUME 
-  `!vl. initial_sublist vl [a:real^3; b; c; d] /\ 0 < LENGTH vl
-           ==> voronoi_nondg V vl`));
- (ASM_REWRITE_TAC[]);
- (UNDISCH_TAC `initial_sublist vl [a:real^3]` THEN  
-   REWRITE_TAC[INITIAL_SUBLIST]);
- (STRIP_TAC);
- (EXISTS_TAC `APPEND yl [b;c;d:real^3]`);
- (REWRITE_TAC[APPEND_ASSOC; GSYM (ASSUME `[a:real^3] = APPEND vl yl`)]);
- (REWRITE_TAC[APPEND])]);;
-
 
 (* ------------------------------------------------------------------------- *)
 
@@ -589,87 +531,10 @@ let BALL_CONVEX_HULL_LEMMA = prove_by_refinement (
 
 (* ------------------------------------------------------------------------- *)
 
-let CONVEX_RCONE_GT = prove_by_refinement (
- `!a:real^N b r. &0 <= r ==> convex (rcone_gt a b r)`,
-[ (REPEAT STRIP_TAC);
- (REWRITE_TAC[rcone_gt;convex;rconesgn;IN;IN_ELIM_THM]);
- (REPEAT STRIP_TAC);
- (REWRITE_WITH `(u % x + v % y) - a = u % (x - a) + v % (y - a:real^N)`);
- (ASM_REWRITE_TAC[VECTOR_SUB_LDISTRIB; VECTOR_MUL_LID; 
-  VECTOR_ARITH `a - x % b + c - y % b = (a + c) - (x + y) % b`]);
- (REWRITE_TAC[DOT_LADD;DOT_LMUL]);
- (ASM_CASES_TAC `&0 < u`);
-
-  (* 2 Subgoals *)
-
- (NEW_GOAL 
-  `u * ((x:real^N - a) dot (b - a)) + v * ((y - a) dot (b - a)) > 
-   u * dist (x,a) * dist (b,a) * r + v *  dist (y,a) * dist (b,a) * r`);
-   (* Subgoal 1.1 *)
-
- (NEW_GOAL
-  `u * ((x:real^N - a) dot (b - a)) > u * dist (x,a) * dist (b,a) * r`);
- (MATCH_MP_TAC (REAL_ARITH `&0 < a - b ==> a > b`));
- (REWRITE_TAC[REAL_ARITH `a * b * c * d = a * (b * c * d)`; 
-               REAL_ARITH `a * b - a * c = a * (b - c)`]);
- (MATCH_MP_TAC REAL_LT_MUL);
- (ASM_REAL_ARITH_TAC);
-
- (NEW_GOAL
-  `v * ((y:real^N - a) dot (b - a)) >= v * dist (y,a) * dist (b,a) * r`);
- (MATCH_MP_TAC (REAL_ARITH `&0 <= a - b ==> a >= b`));
- (REWRITE_TAC[REAL_ARITH `a * b * c * d = a * (b * c * d)`; 
-               REAL_ARITH `a * b - a * c = a * (b - c)`]);
- (MATCH_MP_TAC REAL_LE_MUL);
- (ASM_REAL_ARITH_TAC);
- (ASM_REAL_ARITH_TAC);
-
- (NEW_GOAL 
-`dist (u % x + v % y,a) * dist (b,a:real^N) * r <= 
- u * dist (x,a) * dist (b,a) * r + v *  dist (y,a) * dist (b,a) * r`);
-   (* Subgoal 1.2 *)
-
- (MATCH_MP_TAC (REAL_ARITH `&0 <= a - b ==> b <= a`));
- (REWRITE_TAC[REAL_ARITH `(a * b * x + c * d * x) - e * x  = 
-                            (a * b + c * d - e) * x`]);
- (MATCH_MP_TAC REAL_LE_MUL);
- STRIP_TAC;
- (REWRITE_TAC[dist]);
- (REWRITE_WITH `(u % x + v % y) - a = u % (x - a) + v % (y - a:real^N)`);
- (ASM_REWRITE_TAC[VECTOR_SUB_LDISTRIB; VECTOR_MUL_LID; 
-   VECTOR_ARITH `a - x % b + c - y % b = (a + c) - (x + y) % b`]);
- (REWRITE_TAC[REAL_ARITH `&0 <= a + b - c <=> c <= a + b`]);
- (MATCH_MP_TAC (REAL_ARITH 
-  `m <= norm (u % (x - a:real^N)) + norm (v % (y - a)) /\
-   norm (u % (x - a)) = b /\   
-   norm (v % (y - a)) = c ==> m <= b + c`));
- (REWRITE_TAC[NORM_TRIANGLE;NORM_MUL]);
- (REWRITE_WITH `abs u = u /\ abs v = v`);
- (ASM_SIMP_TAC[REAL_ABS_REFL]);
-
- (MATCH_MP_TAC REAL_LE_MUL);
- (ASM_REWRITE_TAC[DIST_POS_LE]);
- (ASM_REAL_ARITH_TAC);
-
-(* Subgoal 2 *)
-
- (NEW_GOAL `u = &0`);
- (ASM_REAL_ARITH_TAC);
- (NEW_GOAL `v = &1`);
- (ASM_REAL_ARITH_TAC);
- (ASM_REWRITE_TAC[REAL_MUL_LZERO;REAL_ADD_LID;REAL_MUL_LID]);
- (ASM_REWRITE_TAC[VECTOR_MUL_LZERO;VECTOR_ADD_LID;VECTOR_MUL_LID])]);; 
+ 
 
 
 
-(* ------------------------------------------------------------------------- *)
-
-let RCONE_GT_CONVEX_HULL_LEMMA = prove_by_refinement (
- `!a:real^N b r s. 
- (s SUBSET rcone_gt a b r) /\ &0 <= r ==> 
- (convex hull s SUBSET rcone_gt a b r)`,
-[ (REPEAT STRIP_TAC);
- (ASM_MESON_TAC[CONVEX_HULL_SUBSET;CONVEX_RCONE_GT; CONVEX_HULL_EQ])]);;
 
 
 

@@ -450,26 +450,6 @@ let facet_rep_in_poly = prove_by_refinement(
   ]);;
   (* }}} *)
 
-let facet_rep_not_in_facet = prove_by_refinement(
-  `!(P:real^2->bool) c c' r. polyhedron P /\ (c facet_of P) /\ (c' facet_of P) /\
-  (&0 < r) /\ (!p. norm p < r ==> P p) /\ (c' (r % facet_rep_a P c)) ==>
-  (c' = c)`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAK_STRIP_TAC;
-  MATCH_MP_TAC facet_rep_in_facet;
-  EXISTSv_TAC "P";
-  EXISTSv_TAC "r";
-  ASM_REWRITE_TAC [];
-  (fun gl -> (MP_TAC (SPECL ( envl gl [`P`;`c'`]) facet_rep_def)) gl);
-  ASM_REWRITE_TAC [];
-  REPEAT WEAK_STRIP_TAC;
-  (fun gl -> ( let asm_9 = snd(List.nth (List.rev (goal_asms gl)) 9 ) in HASH_RULE_TAC 2871 ( ONCE_REWRITE_RULE [ asm_9 ] )) gl);
-  REWRITE_TAC [ IN_ELIM_THM;INTER ];
-  REAL_ARITH_TAC
-  ]);;
-  (* }}} *)
-
 let facet_arg_lt_pi = prove_by_refinement(
   `!(P:real^2->bool) c r. polyhedron P /\ bounded P /\ c facet_of P /\
   (&0 < r) /\ (!p. norm p < r ==> P p) ==>
@@ -954,75 +934,6 @@ let bisector_point_exists = prove_by_refinement(
   (* }}} *)
 
 let bisector_point = new_specification ["bisector_point"] (REWRITE_RULE[SKOLEM_THM] bisector_point_exists);;
-
-let RCONE_LINEAR_INVARIANT = prove_by_refinement(
-  `!(f:real^M->real^N) v a.  
-   linear f /\ (!y. ?x. f x = y) /\ (!x. norm (f x) = norm x) 
-  ==>   rcone_gt (vec 0) (f v) a    = IMAGE f (rcone_gt (vec 0) v a)`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC [rcone_gt;rconesgn; VECTOR_SUB_RZERO; DIST_0];
-  ONCE_REWRITE_TAC [FUN_EQ_THM];
-  REWRITE_TAC [IMAGE;IN_ELIM_THM;IN];
-  MESON_TAC[ PRESERVES_NORM_PRESERVES_DOT ]
-  ]);;
-  (* }}} *)
-
-let FCHANGED_LINEAR_INVARIANT = prove_by_refinement(
-  `!(f:real^M->real^N) c. linear f /\ (!x y. (f x = f y) ==> x = y)
-    ==> fchanged (IMAGE f c) = IMAGE f (fchanged c)`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAK_STRIP_TAC;
-  REWRITE_TAC [Polyhedron.fchanged];
-  ONCE_REWRITE_TAC [FUN_EQ_THM];
-  REWRITE_TAC[ IN_ELIM_THM];
-  (fun gl -> (MP_TAC (ISPECL ( envl gl [`f`;`c`]) RELATIVE_INTERIOR_INJECTIVE_LINEAR_IMAGE )) gl);
-  ASM_REWRITE_TAC [];
-  DISCH_THEN SUBST1_TAC;
-  GEN_TAC;
-  EQ_TAC;
-    REWRITE_TAC [IN_ELIM_THM;IN;IMAGE];
-    REPEAT WEAK_STRIP_TAC;
-    EXISTS_TAC `(t % x'):real^M`;
-    ASM_SIMP_TAC [ LINEAR_CMUL ];
-    BY(ASM_MESON_TAC []);
-  REWRITE_TAC [ X_IN IN_IMAGE ];
-  DISCH_THEN (MP_TAC o (REWRITE_RULE [IN_ELIM_THM]));
-  REPEAT WEAK_STRIP_TAC;
-  EXISTS_TAC `(f:real^M->real^N) v1`;
-  EXISTSv_TAC "t";
-  ASM_SIMP_TAC [ LINEAR_CMUL ];
-  ASM_MESON_TAC [IN_IMAGE;IN_ELIM_THM;IN]
-  ]);;
-  (* }}} *)
-
-let BALL_LINEAR_INVARIANT = prove_by_refinement(
-  `!(f:real^M->real^M)  r. linear f /\ (!x. norm (f x) = norm x ) /\ (!y. ?x. f x = y)
-    ==> IMAGE f (ball (vec 0,r)) = (ball (vec 0,r))`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAK_STRIP_TAC;
-  ONCE_REWRITE_TAC [FUN_EQ_THM];
-  REWRITE_TAC[ X_IN IN_IMAGE; X_IN IN_BALL_0 ];
-  ASM_MESON_TAC []
-  ]);;
-  (* }}} *)
-
-let cos_acs_pi6 = prove_by_refinement(
-  `!h. &1 <= h /\ h <= h0 ==>
-    cos (acs (h/ &2) - pi/ &6) = h * sqrt3 / #4.0 + sqrt(&1- (h/ &2) pow 2) / &2`,
-  (* {{{ proof *)
-  [
-REWRITE_TAC[COS_SUB;COS_PI6;SIN_PI6;Sphere.h0;Sphere.sqrt3];
-REPEAT STRIP_TAC;
-  SUBGOAL_THEN `-- &1 <= h/ &2 /\ h/ &2 <= &1` MP_TAC;
-ASM_REAL_ARITH_TAC;
-REPEAT STRIP_TAC;
-ASM_SIMP_TAC[SIN_ACS;COS_ACS];
-REAL_ARITH_TAC
-  ]);;
-  (* }}} *)
 
 let regular_spherical_polygon_area_asnFnhk = prove_by_refinement(
   `!h k . (3 <= k /\ &1 <= h /\ h <= h0) ==>
@@ -1728,82 +1639,6 @@ MESON_TAC []
   ]);;
   (* }}} *)
 
-let RADIAL_NORM_LINEAR_INVARIANT = prove_by_refinement(
-   `!(f:real^M->real^N) s r. linear f /\ (!x. norm (f x) = norm x ) /\ (!y. ?x. f x = y)
-     ==> radial r (vec 0) (IMAGE f s) = radial r (vec 0) s`,
-   (* {{{ proof *)
-  [
-  REWRITE_TAC [Sphere.radial; VECTOR_ADD_LID ];
-  REPEAT WEAK_STRIP_TAC;
-  MATCH_MP_TAC (TAUT `(a <=> b) /\( (a <=> b) ==> (c <=>d)) ==> (a /\ c <=> b /\ d)`);
-  STRIP_TAC;
-    REWRITE_TAC [Trigonometry1.DIST_L_ZERO;ball;SUBSET;IMAGE;IN_ELIM_THM];
-    BY(ASM_MESON_TAC[]);
-  REPEAT WEAK_STRIP_TAC;
-  REWRITE_TAC[Geomdetail.EQ_EXPAND];
-  CONJ_TAC;
-    REPEAT WEAK_STRIP_TAC;
-    HASH_RULE_TAC 7266 (SPEC `(f:real^M->real^N) u`);
-    REWRITE_TAC[IN;IMAGE;IN_ELIM_THM];
-    ANTS_TAC;
-      BY(ASM_MESON_TAC[IN]);
-    STRIP_TAC;
-    HASH_RULE_TAC 503 (SPEC `(t:real)`);
-    ASM_REWRITE_TAC[];
-    REPEAT WEAK_STRIP_TAC;
-    SUBGOAL_THEN `x = t % (u:real^M)` MP_TAC;
-      BY(ASM_MESON_TAC[linear;PRESERVES_NORM_INJECTIVE;IN]);
-    BY(ASM_MESON_TAC[IN]);
-  REPEAT WEAK_STRIP_TAC;
-  HASH_UNDISCH_TAC 662;
-  REWRITE_TAC[IN;IMAGE;IN_ELIM_THM];
-  WEAK_STRIP_TAC;
-  BY(ASM_MESON_TAC[IN;linear])
-  ] );;
-  (* }}} *)
-
-let linear_inter_normball = prove_by_refinement(
-  `!(f:real^M->real^N) s r. linear f /\ (!x. norm (f x) = norm x ) ==>
-   ( IMAGE f s INTER normball (vec 0) r = IMAGE f (s INTER normball (vec 0) r))`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAK_STRIP_TAC;
-  ONCE_REWRITE_TAC[FUN_EQ_THM];
-  GEN_TAC;
-  REWRITE_TAC[IMAGE;INTER;normball;DIST_0;IN;IN_ELIM_THM];
-  Tactics_jordan.NAME_CONFLICT_TAC;
-  BY(ASM_MESON_TAC[])
-  ]);;
-  (* }}} *)
-
-let sol0_linear = prove_by_refinement(
-  `!(f:real^3->real^3) s.  linear f /\ (!x. norm (f x) = norm x) /\  (!y. ?x. f x = y)==>
-    ( (?r. r > &0 /\
-         measurable (IMAGE f s INTER normball (vec 0) r) /\
-         radial r (vec 0) (IMAGE f s INTER normball (vec 0) r)) <=>
-   (?r. r > &0 /\
-         measurable (s INTER normball (vec 0) r) /\
-         radial r (vec 0) (s INTER normball (vec 0) r)))`,
-  (* {{{ proof *)
-  [
-  BY(ASM_MESON_TAC[linear_inter_normball;RADIAL_NORM_LINEAR_INVARIANT;PRESERVES_NORM_INJECTIVE;MEASURABLE_LINEAR_IMAGE_EQ])
-  ]);;
-  (* }}} *)
-
-let sol0_linear_r = prove_by_refinement(
-  `!(f:real^3->real^3) s r.  linear f /\ (!x. norm (f x) = norm x) /\  (!y. ?x. f x = y) /\ (r > &0) ==>
-    (( 
-         measurable (IMAGE f s INTER normball (vec 0) r) /\
-         radial r (vec 0) (IMAGE f s INTER normball (vec 0) r)) <=>
-   ( 
-         measurable (s INTER normball (vec 0) r) /\
-         radial r (vec 0) (s INTER normball (vec 0) r)))`,
-  (* {{{ proof *)
-  [
-  BY(ASM_MESON_TAC[linear_inter_normball;RADIAL_NORM_LINEAR_INVARIANT;PRESERVES_NORM_INJECTIVE;MEASURABLE_LINEAR_IMAGE_EQ])
-  ]);;
-  (* }}} *)
-
 let dropout_pad2d3d = prove_by_refinement(
   `!x. dropout 3 (pad2d3d x) = x`,
   (* {{{ proof *)
@@ -1889,20 +1724,6 @@ let pad2d3d_facet = prove_by_refinement(
     BY(ASM_MESON_TAC[SUBSET_REFL;IMAGE_o;FACET_OF_LINEAR_IMAGE;PRESERVES_NORM_INJECTIVE;LINEAR_PAD2D3D;NORM_PAD2D3D]);
   BY(ASM_MESON_TAC[])
    ]);;
-  (* }}} *)
-
-let ARG_SCALE = prove_by_refinement(
-  `!u w r. (&0 < r) ==> (Arg ((Cx r * u)/w) = Arg (u/w)) /\ (Arg (u/ (Cx r * w)) = Arg (u/w)) `,
-  (* {{{ proof *)
-  [
-  REPEAT WEAK_STRIP_TAC;
-  ASM_CASES_TAC `w = Cx (&0)`;
-    BY(ASM_REWRITE_TAC[complex_div;COMPLEX_MUL_RZERO;COMPLEX_MUL_LZERO;COMPLEX_INV_0]);
-  SUBGOAL_THEN `~(Cx r * w = Cx(&0))` ASSUME_TAC;
-    BY(ASM_SIMP_TAC[COMPLEX_ENTIRE;CX_INJ;REAL_ARITH `&0 < r ==> ~(r = &0)`]);
-  ASM_SIMP_TAC [Ysskqoy.ARG_CNJ;CNJ_CX;CNJ_MUL];
-  BY(ASM_MESON_TAC[ARG_MUL_CX;COMPLEX_MUL_AC])
-  ]);;
   (* }}} *)
 
 let complex_frac_cancel = prove_by_refinement(
@@ -2667,28 +2488,6 @@ let AZIM_COMP_LE = prove_by_refinement(
   ]);;
   (* }}} *)
 
-let AZIM_COMP2_LE = prove_by_refinement(
-  `!x y z u v. &0 < azim x y u z /\  &0 < azim x y v z /\ azim x y u z <= azim x y v z ==>
-     azim x y z v <= azim x y z u `,
-  (* {{{ proof *)
-  [
-  REPEAT WEAK_STRIP_TAC;
-  ONCE_REWRITE_TAC[Rogers.AZIM_COMPL_EXT];
-  BY(REPEAT COND_CASES_TAC THEN (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN REAL_ARITH_TAC)
-  ]);;
-  (* }}} *)
-
-let AZIM_COMP2_LT = prove_by_refinement(
-  `!x y z u v. &0 < azim x y u z /\  &0 < azim x y v z /\ azim x y u z < azim x y v z ==>
-     azim x y z v < azim x y z u `,
-  (* {{{ proof *)
-  [
-  REPEAT WEAK_STRIP_TAC;
-  ONCE_REWRITE_TAC[Rogers.AZIM_COMPL_EXT];
-  BY(REPEAT COND_CASES_TAC THEN (REPEAT (FIRST_X_ASSUM MP_TAC)) THEN REAL_ARITH_TAC)
-  ]);;
-  (* }}} *)
-
 let WEDGE_ORDER_DISJOINT = prove_by_refinement(
   `!x y z n g.
      ~(collinear {x,y,z}) /\
@@ -3335,50 +3134,6 @@ let FACET_AFF_DIM_2 = prove_by_refinement(
 );;
   (* }}} *)
 
-let CONE0_RELATIVE_INTERIOR_FACET = prove_by_refinement(
-  `!p f (u0:real^3) u1 u2.
-     polyhedron p /\ bounded p /\ (vec 0 IN interior p) /\
-    f facet_of p /\ ~(collinear {u0,u1,u2}) /\
-    {u0,u1,u2} SUBSET f  ==>
-    aff_gt {}  {u0,u1,u2} SUBSET relative_interior f
-`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAK_STRIP_TAC;
-  MATCH_MP_TAC SUBSET_TRANS;
-  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `relative_interior (convex hull {u0,u1,u2})`)));
-  CONJ_TAC;
-    MATCH_MP_TAC AFF_GT_RELATIVE_INTERIOR;
-    SUBCONJ_TAC;
-      BY(REWRITE_TAC[ FINITE_INSERT; FINITE_EMPTY ]);
-    DISCH_TAC;
-    MATCH_MP_TAC TWO_IMP_HAS_SIZE_GE_2;
-    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `u0`)));
-    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `u1`)));
-    ASM_REWRITE_TAC[ IN_INSERT ];
-    BY(BY(ASM_MESON_TAC[ Collect_geom.NOT_COLLINEAR_IMP_2_UNEQUAL ]));
-  MATCH_MP_TAC SUBSET_RELATIVE_INTERIOR;
-  CONJ_TAC;
-    BY(ASM_MESON_TAC[ FACE_OF_IMP_CONVEX; Marchal_cells.CONVEX_HULL_SUBSET; CONVEX_HULL_EQ ; facet_of ]);
-  MATCH_MP_TAC AFF_DIM_EQ_AFFINE_HULL;
-  SUBCONJ_TAC;
-    BY(ASM_MESON_TAC[ FACE_OF_IMP_CONVEX; Marchal_cells.CONVEX_HULL_SUBSET; CONVEX_HULL_EQ ; facet_of ]);
-  DISCH_TAC;
-  MATCH_MP_TAC (arith ` (a <= &2 /\ &2 <= c ==> (a:int) <= c)`);
-  CONJ_TAC;
-    FIRST_ASSUM (fun t -> ASSUME_TAC (MATCH_MP (Polyhedron.AFF_DIM_INTERIOR_EQ_3) t));
-    BY(ASM_MESON_TAC[ facet_of ; arith `&3 - &1 = (&2):int` ;arith `(x:int <= x)`]);
-  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w `{u0,u1,u2} SUBSET convex hull {u0,u1,u2}`) ASSUME_TAC));
-    BY(REWRITE_TAC[ Ldurdpn.SUBSET_P_HULL ]);
-  FIRST_ASSUM (fun t -> ASSUME_TAC (MATCH_MP (AFF_DIM_SUBSET) t));
-  MATCH_MP_TAC (arith `!b. (a:int) <= b /\ b <= c ==> (a <=c)`);
-  GOAL_TERM (fun w -> (EXISTS_TAC ( env w `aff_dim {u0,u1,u2}`)));
-  ASM_REWRITE_TAC[];
-  BY(ASM_MESON_TAC [ NOT_COLLINEAR_AFF_DIM_2 ; arith `(x:int <= x)`])
-  ]);;
-  (* }}} *)
-
-
 let CONE0_FCHANGED_AFF_GT = prove_by_refinement(
   `!(s:real^N->bool). FINITE s /\ CARD s > 1 /\ ~(vec 0 IN s)
     ==>
@@ -3523,35 +3278,6 @@ let CONE0_FCHANGED = prove_by_refinement(
   CONJ_TAC;
     BY(ASM_MESON_TAC[ FACET_AFF_DIM_2]);
   BY(ASM_MESON_TAC[ AFF_DIM_CONVEX_HULL; NOT_COLLINEAR_AFF_DIM_2 ])
-  ]);;
-  (* }}} *)
-
-let COLLINEAR_ORTHO_PLANE = prove_by_refinement(
-  `!p v u0 b (u1:real^N).
-    ~(v = vec 0) /\
-    ~(u0 = u1) /\
-    u0 dot v = b /\
-    p dot v = b /\
-    (u1 = u0 + v) /\
-    collinear {u0,u1,p } ==>
-    (p = u0)`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAK_STRIP_TAC;
-  REPEAT (FIRST_X_ASSUM_ST `collinear` MP_TAC);
-(*  ALL_SEARCH [`collinear`]; *)
-  ASM_SIMP_TAC [ COLLINEAR_3_AFFINE_HULL ];
-  REWRITE_TAC [ AFFINE_HULL_2_ALT ];
-  REWRITE_TAC[ IN_ELIM_THM ; IN_UNIV];
-  SUBST1_TAC ( VECTOR_ARITH ( `(u0 + (v:real^N) ) - u0 = v`));
-  REPEAT WEAK_STRIP_TAC;
-  REPEAT (FIRST_X_ASSUM_ST `dot` MP_TAC);
-(*  ALL_SEARCH [`dot`]; *)
-  ASM_REWRITE_TAC[];
-  GOAL_TERM (fun t -> (REWRITE_TAC[ VECTOR_ARITH ( env t`(u0 + u % (v)) dot v = u0 dot v + u * (v dot v)`)]));
-  DISCH_THEN SUBST1_TAC;
-  GOAL_TERM (fun t -> (REWRITE_TAC[ VECTOR_ARITH ( env t` (u0 + u % v = u0) <=> u % v = vec 0`); arith `b + c = b <=> c = &0`;REAL_ENTIRE; VECTOR_MUL_EQ_0 ]));
-  BY(REWRITE_TAC[ DOT_EQ_0 ])
   ]);;
   (* }}} *)
 
@@ -3990,23 +3716,6 @@ let CONE0_SUBSET_WEDGE = prove_by_refinement(
     BY((MESON_TAC[cone0_subset_lune]));
   MATCH_MP_TAC WEDGE_LUNE_GT;
   BY((ASM_REWRITE_TAC[]))
-  ]);;
-  (* }}} *)
-
-let FACET_INTER_DISJOINT = prove_by_refinement(
-  `!(p:real^A->bool) f.
-    polyhedron p /\
-    vec 0 IN interior p /\
-    f facet_of p ==> ~((vec 0) IN f)`,
-  (* {{{ proof *)
-  [
-  REPEAT GEN_TAC;
-  REWRITE_TAC[ facet_of ];
-  GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w[`f`;`p`]) FACE_OF_DISJOINT_INTERIOR)));
-  REWRITE_TAC[ Local_lemmas.EMPTY_NOT_EXISTS_IN ];
-  REWRITE_TAC[ INTER; IN;];
-  REWRITE_TAC[ INTER; IN; IN_ELIM_THM];
-  BY(ASM_MESON_TAC[ arith `~(x = (x:int) - &1)`])
   ]);;
   (* }}} *)
 
@@ -4516,26 +4225,6 @@ let gotcjah_prep = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
-
-let azim_pos = prove_by_refinement(
-  `!x v u w1 w2.
-    azim x v u w1 < azim x v u w2 /\
-     ~collinear {x, v, w1} /\
-          ~collinear {x, v, w2} /\
-          ~collinear {x, v, u}
-          ==> &0 < azim x v w1 w2`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAK_STRIP_TAC;
-  GOAL_TERM (fun w -> (MP_TAC (ISPECL ( envl w [`x`;`v`;`u`;`w1`;`w2`]) Fan.sum4_azim_fan )));
-  ASM_REWRITE_TAC[];
-  ANTS_TAC;
-    BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC);
-  BY(REPEAT (FIRST_X_ASSUM MP_TAC) THEN REAL_ARITH_TAC)
-  ]);;
-  (* }}} *)
-
 let convex_sum_corollary = prove_by_refinement(
   `!n t bet. 0 < n /\ 
   &0 < t /\ t < &1 /\  
@@ -4878,26 +4567,6 @@ let rcone_dot_pos = prove_by_refinement(
   ]);;
   (* }}} *)
 
-let rcone_hyperplane = prove_by_refinement(
-  `!(v:real^A) t b q p. 
-    (&0 < t /\ t < &1) /\
-    (p IN rcone_gt (vec 0) v t) /\
-     ( ( b / (p dot v)) % p = q) ==>
- 	(q dot v = b)`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[ rcone_def_alt];
-  REPEAT WEAK_STRIP_TAC;
-  GOAL_TERM (fun w -> (SUBGOAL_THEN ( env w`&0 < (p dot v)`) ASSUME_TAC));
-    MATCH_MP_TAC rcone_dot_pos;
-    BY(ASM_MESON_TAC[ rcone_def_alt ]);
-  EXPAND_TAC "q";
-  REWRITE_TAC[ DOT_LMUL ];
-  Calc_derivative.CALC_ID_TAC;
-  BY(FIRST_X_ASSUM MP_TAC THEN REAL_ARITH_TAC)
-  ]);;
-  (* }}} *)
-
 let rcone_gt_arcV = prove_by_refinement(
   `!(v:real^3) g p.
     (&0 < g) /\ (g < pi / &2) /\
@@ -5064,62 +4733,6 @@ let rcone_gt_facet = prove_by_refinement(
   ]);;
   (* }}} *)
 
-
-let edges_of_facet_of = prove_by_refinement(
-  `!(P:real^3->bool)  f.
-    polyhedron P /\ bounded P /\ (vec 0 IN interior P) ==>
-    (f edge_of P <=> (?c. f facet_of c /\ c facet_of P))`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAK_STRIP_TAC;
-  REWRITE_TAC[edge_of];
-  REWRITE_TAC [ Geomdetail.EQ_EXPAND ];
-  CONJ_TAC;
-    REPEAT WEAK_STRIP_TAC;
-    INTRO_TAC FACE_OF_POLYHEDRON_SUBSET_FACET [`P`;`f`];
-    ASM_REWRITE_TAC[];
-    ANTS_TAC;
-      REWRITE_TAC[ GSYM AFF_DIM_POS_LE ];
-      CONJ_TAC;
-        ASM_REWRITE_TAC[];
-        BY(INT_ARITH_TAC);
-      DISCH_TAC;
-      INTRO_TAC Polyhedron.AFF_DIM_INTERIOR_EQ_3 [`(vec 0):real^3`;`P`];
-      ASM_REWRITE_TAC[];
-      EXPAND_TAC "P";
-      ASM_REWRITE_TAC[];
-      BY(INT_ARITH_TAC);
-    REPEAT WEAK_STRIP_TAC;
-    GOAL_TERM (fun w -> (EXISTS_TAC ( env w `f'`)));
-    ASM_REWRITE_TAC[ ];
-    REWRITE_TAC[ facet_of ];
-    ASM_REWRITE_TAC[];
-    CONJ_TAC;
-      GMATCH_SIMP_TAC FACE_OF_FACE;
-      BY(ASM_MESON_TAC[ facet_of ]);
-    CONJ_TAC;
-      REWRITE_TAC[ GSYM AFF_DIM_POS_LE ];
-      ASM_REWRITE_TAC[];
-      BY(INT_ARITH_TAC);
-    GMATCH_SIMP_TAC FACET_AFF_DIM_2;
-    CONJ_TAC;
-      BY(ASM_MESON_TAC[]);
-    BY(INT_ARITH_TAC);
-  REPEAT WEAK_STRIP_TAC;
-  CONJ_TAC;
-    BY(ASM_MESON_TAC [ FACE_OF_TRANS ; facet_of ]);
-  INTRO_TAC FACET_AFF_DIM_2 [`P`;`c`];
-  ANTS_TAC;
-    BY(ASM_REWRITE_TAC[]);
-  FIRST_X_ASSUM kill;
-  FIRST_X_ASSUM MP_TAC;
-  REWRITE_TAC[ facet_of ];
-  DISCH_THEN (fun t-> REWRITE_TAC[t]);
-  DISCH_THEN (fun t-> REWRITE_TAC[t]);
-  BY(INT_ARITH_TAC)
-  ]);;
-  (* }}} *)
-
 let BIJ_SYM = prove_by_refinement(
   `!(a:A->bool) (b:B->bool). 
     (?f. BIJ f a b) ==> (?g. BIJ g b a)`,
@@ -5135,24 +4748,6 @@ let BIJ_TRANS = prove_by_refinement(
   (* {{{ proof *)
   [
   MESON_TAC[ Hypermap.COMPOSE_BIJ ]
-  ]);;
-  (* }}} *)
-
-let SND_BIJ = prove_by_refinement(
-  `!(a:A) B:(B->bool). BIJ SND { (x,y) | x = a /\ B y } B`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[BIJ;INJ;SURJ;IN_ELIM_THM;IN];
-  BY(MESON_TAC[FST;SND])
-  ]);;
-  (* }}} *)
-
-let FST_BIJ = prove_by_refinement(
-  `!(A:A->bool) b:B. BIJ FST { (x,y) | A x  /\ ( y = b) } A`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[BIJ;INJ;SURJ;IN_ELIM_THM;IN];
-  BY(MESON_TAC[FST;SND])
   ]);;
   (* }}} *)
 

@@ -173,50 +173,6 @@ let GAMMAX_MCELL2 = prove_by_refinement(
   ]);;
   (* }}} *)
 
-(* renamed from RCONE_GT_BALL_PLANE *)
-
-let RCONE_GT_HYPERPLANE = prove_by_refinement(
-  `!v0 v1 b t (p:real^A) r.  
-      p dot (v1 - v0) = b /\  ~(v1 = v0) /\ (&0 < t) /\  (b - v0 dot (v1 - v0) = r * t * dist(v1,v0))  ==> 
-       (p IN rcone_gt v0 v1 t <=> p IN ball (v0,r))`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[Sphere.rcone_gt;Sphere.rconesgn;ball;IN_ELIM_THM];
-  REPEAT WEAK_STRIP_TAC;
-  TYPIFY `(p - v0) dot (v1 - v0) = p dot (v1 - v0) - v0 dot (v1 - v0)` (C SUBGOAL_THEN SUBST1_TAC);
-    BY(VECTOR_ARITH_TAC);
-  ASM_REWRITE_TAC[];
-  REWRITE_TAC[arith `dp * d * t > r * t * d <=> (&0  < d * t * (dp - r))`];
-  GMATCH_SIMP_TAC REAL_LT_MUL_EQ;
-  ASM_REWRITE_TAC[];
-  GMATCH_SIMP_TAC REAL_LT_MUL_EQ;
-  ASM_REWRITE_TAC[GSYM DIST_NZ];
-  BY(MESON_TAC[DIST_SYM;arith `&0 < x - y <=> y < x`])
-  ]);;
-  (* }}} *)
-
-let RCONE_GE_HYPERPLANE = prove_by_refinement(
-  `!v0 v1 b t (p:real^A) r.  
-      p dot (v1 - v0) = b /\  ~(v1 = v0) /\ (&0 < t) /\  (b - v0 dot (v1 - v0) = r * t * dist(v1,v0))  ==> 
-       (p IN rcone_ge v0 v1 t <=> p IN cball (v0,r))`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[Sphere.rcone_ge;Sphere.rconesgn;cball;IN_ELIM_THM];
-  REPEAT WEAK_STRIP_TAC;
-  TYPIFY `(p - v0) dot (v1 - v0) = p dot (v1 - v0) - v0 dot (v1 - v0)` (C SUBGOAL_THEN SUBST1_TAC);
-    BY(VECTOR_ARITH_TAC);
-  ASM_REWRITE_TAC[];
-  REWRITE_TAC[arith `dp * d * t >= r * t * d <=> (&0  <= d * t * (dp - r))`];
-  GMATCH_SIMP_TAC REAL_LE_MUL_EQ;
-  ASM_REWRITE_TAC[];
-  GMATCH_SIMP_TAC REAL_LE_MUL_EQ;
-  ASM_REWRITE_TAC[GSYM DIST_NZ];
-  BY(MESON_TAC[DIST_SYM;arith `&0 <= x - y <=> y <= x`])
-  ]);;
-  (* }}} *)
-
-(* renamed from BALL_DIFF_RCONE_GE *)
-
 let BALL_DIFF_RCONE_GT = prove_by_refinement(
   `!u0 u1 (p:real^A) a r.  
      p IN ball(u0,r) DIFF rcone_gt u0 u1 a /\ &0 <= a ==>
@@ -401,47 +357,6 @@ let CONVEX_HULL_4_AFF_GE = prove_by_refinement(
   INTRO_TAC Cfyxfty.inter_aff_ge_3_1_is_aff_ge_1_3 [`w0`;`w1`;`w2`;`w3`];
   ASM_REWRITE_TAC[];
   BY(SET_TAC[])
-  ]);;
-  (* }}} *)
-
-let RADIAL_ALT = prove_by_refinement(
-  `!(x:real^A) r A. radial r x A <=> (A SUBSET ball(x,r) /\ 
-    (!y t. &0 < t /\ y IN A /\ x + t % (y- x) IN ball(x,r) ==> x + t % (y - x)
-  IN A))`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAK_STRIP_TAC;
-  REWRITE_TAC[Sphere.radial];
-  TYPIFY `A SUBSET ball(x,r)` ASM_CASES_TAC;
-    ASM_REWRITE_TAC[];
-    MATCH_MP_TAC (TAUT `((a ==> b) /\ (b ==> a)) ==> (a = b)`);
-    CONJ_TAC;
-      REPEAT WEAK_STRIP_TAC;
-      FIRST_X_ASSUM (C INTRO_TAC [`y - (x:real^A)`]);
-      ANTS_TAC;
-        TYPIFY `x + y - x = (y:real^A)` (C SUBGOAL_THEN SUBST1_TAC);
-          BY(VECTOR_ARITH_TAC);
-        BY(ASM_REWRITE_TAC[]);
-      DISCH_THEN (C INTRO_TAC [`t`]);
-      DISCH_THEN MATCH_MP_TAC;
-      ASM_SIMP_TAC[arith `&0 < t ==> t > &0`];
-      FIRST_X_ASSUM MP_TAC;
-      REWRITE_TAC[ball;IN_ELIM_THM;dist];
-      TYPIFY `x - (x + t % (y - x)) = (-- t) % (y - x)` (C SUBGOAL_THEN SUBST1_TAC);
-        BY(VECTOR_ARITH_TAC);
-      REWRITE_TAC[NORM_MUL];
-      BY(ASM_SIMP_TAC[arith `&0 < t ==> abs (-- t) = t`]);
-    COMMENT "second direction";
-    REPEAT WEAK_STRIP_TAC;
-    FIRST_X_ASSUM_ST `ball` (C INTRO_TAC [`x + (u:real^A)`;`t`]);
-    TYPIFY `(x + u) - x = (u:real^A)` (C SUBGOAL_THEN SUBST1_TAC);
-      BY(VECTOR_ARITH_TAC);
-    DISCH_THEN MATCH_MP_TAC;
-    ASM_SIMP_TAC[arith `t > &0 ==> &0 < t`];
-    FIRST_X_ASSUM MP_TAC;
-    REWRITE_TAC[ball;IN_ELIM_THM;dist;varith `x - (x + t % u) = (-- t) % (u:real^A)`;NORM_MUL];
-    BY(ASM_SIMP_TAC[arith `t > &0 ==> abs(-- t) = t`]);
-  BY(ASM_REWRITE_TAC[])
   ]);;
   (* }}} *)
 

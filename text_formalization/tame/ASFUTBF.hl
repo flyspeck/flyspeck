@@ -370,37 +370,6 @@ let affine_hull_neg = prove_by_refinement(
   ]);;
   (* }}} *)
 
-let cyclic_set_neg = prove_by_refinement(
-  `!V E (v:real^N). cyclic_set (set_of_edge (-- v) (IMAGE (--) V) (IMAGE (IMAGE (--)) E)) (vec 0) (--v) = 
-      cyclic_set (set_of_edge v V E) (vec 0) v`,
-  (* {{{ proof *)
-  [
-  REWRITE_TAC[Sphere.cyclic_set];
-  REPEAT WEAKER_STRIP_TAC;
-  REWRITE_TAC[set_of_edge_neg;VECTOR_NEG_NEG];
-  REWRITE_TAC[arith `vec 0 = -- (v:real^N) <=> vec 0 = v`];
-  ASM_CASES_TAC `(vec 0 = v:real^N)` THEN ASM_REWRITE_TAC[];
-  REWRITE_TAC[FINITE_NEG];
-  TYPIFY `~(FINITE (set_of_edge v V E))` ASM_CASES_TAC THEN RULE_ASSUM_TAC(REWRITE_RULE[]) THEN ASM_REWRITE_TAC[];
-  REWRITE_TAC[GSYM affine_hull_neg;INTER_NEG];
-  REWRITE_TAC[IMAGE_EQ_EMPTY];
-  TYPIFY `~(set_of_edge v V E INTER affine hull {vec 0, v} = {})` ASM_CASES_TAC THEN RULE_ASSUM_TAC(REWRITE_RULE[]) THEN ASM_REWRITE_TAC[];
-  TYPIFY_GOAL_THEN `!A (p:real^N). IMAGE (--) A p <=> A (--p)` (unlist REWRITE_TAC);
-    BY(MESON_TAC[IN_NEG;IN]);
-  REWRITE_TAC[arith `p = q + h % (vec 0 - -- v) <=> (--p) = (--q) + h % (vec 0 - v)`];
-  REWRITE_TAC[Geomdetail.EQ_EXPAND];
-  REPEAT WEAKER_STRIP_TAC;
-  CONJ_TAC THEN REPEAT WEAKER_STRIP_TAC;
-    ONCE_REWRITE_TAC[arith ` p = q <=> -- (p:real^N) = -- q`];
-    FIRST_X_ASSUM MATCH_MP_TAC;
-    REWRITE_TAC[VECTOR_NEG_NEG];
-    BY(ASM_MESON_TAC[]);
-  ONCE_REWRITE_TAC[arith ` p = q <=> -- (p:real^N) = -- q`];
-  FIRST_X_ASSUM MATCH_MP_TAC;
-  BY(ASM_MESON_TAC[])
-  ]);;
-  (* }}} *)
-
 let azim_cycle_mono = prove_by_refinement(
   `!V E v x x'. FAN (vec 0,V,E) /\ 
     x IN set_of_edge v V E /\ x' IN set_of_edge v V E /\
@@ -416,29 +385,6 @@ let azim_cycle_mono = prove_by_refinement(
   REPEAT (GMATCH_SIMP_TAC Localization.AZIM_CYCLE_EQ_SIGMA_FAN_ALT);
   ASM_REWRITE_TAC[];
   INTRO_TAC Fan.MONO_SIGMA_FAN [`(vec 0):real^3`;`V`;`E`;`v`;`x`;`x'`];
-  BY(ASM_REWRITE_TAC[])
-  ]);;
-  (* }}} *)
-
-let IVS_AZIM_CYCLE_SIMPLE = prove_by_refinement(
-  `!V E (v:real^3) x p. FAN (vec 0,V,E) /\ 
-    x IN set_of_edge v V E /\ 
-    (azim_cycle (set_of_edge v V E) (vec 0) v x = p) ==>
-     ivs_azim_cycle (set_of_edge v V E) (vec 0) v p = x
-`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAKER_STRIP_TAC;
-  INTRO_TAC (GEN_ALL Lvducxu.PROPERTIES_OF_IVS_AZIM_CYCLE2) [`V`;`E`;`(vec 0):real^3`;`v`;`p`];
-  ASM_SIMP_TAC[Localization.EE_elim];
-  TYPIFY `p IN set_of_edge v V E` (C SUBGOAL_THEN ASSUME_TAC);
-    FIRST_X_ASSUM (SUBST1_TAC o GSYM);
-    ASM_SIMP_TAC[Localization.AZIM_CYCLE_EQ_SIGMA_FAN_ALT];
-    INTRO_TAC Fan.sigma_fan_in_set_of_edge [`(vec 0):real^3`;`V`;`E`;`v`;`x`];
-    BY(ASM_SIMP_TAC[]);
-  ASM_REWRITE_TAC[];
-  REPEAT WEAKER_STRIP_TAC;
-  INTRO_TAC azim_cycle_mono [`V`;`E`;`v`;`(ivs_azim_cycle (set_of_edge v V E) (vec 0) v p)`;`x`];
   BY(ASM_REWRITE_TAC[])
   ]);;
   (* }}} *)
@@ -992,41 +938,7 @@ let hyp_conj_hyp_iso = prove_by_refinement(
   ]);;
   (* }}} *)
 
-let hyp_conj_node_hyp_iso = prove_by_refinement(
-  `!H:(A) hypermap. hyp_iso (node_map H) (H,hyp_conj (node_map H) H)`,
-  (* {{{ proof *)
-  [
-  REPEAT WEAKER_STRIP_TAC;
-  MATCH_MP_TAC hyp_conj_hyp_iso;
-  BY(REWRITE_TAC[Hypermap.node_map_and_darts])
-  ]);;
-  (* }}} *)
-
-
-
-
 (* next. opposite -- *)
-
-(*
-let NF_FAN_PAIR_EXT = prove_by_refinement(
-  `!V E d. FAN(vec 0,V,E) /\ d IN dart1_of_fan(V,E)
-  ==> (f_fan_pair_ext (V,E) o n_fan_pair_ext (V,E)) d = e_fan_pair_ext (V,E) d`,
-  (* {{{ proof *)
-  [
-  st/r
-  intro Add_triangle.f_fan_pair_eq_inv_n_o_e [`V`;`E`]
-  art[]
-  asimp[Fan_defs.f_fan_pair_ext]
-  dthen gm
-    type `x IN dart_of_fan (V,E)` asmcase
-  rt[
-  #
-  ]);;
-  (* }}} *)
-
-Add_triangle.f_fan_pair_eq_inv_n_o_e;;
-((\ uv. -- FST uv,-- SND uv) o inverse (node_map (hypermap_of_fan(V,ESTD V))))
-*)
 
 let n_fan_pair_ext_neg_lemma = prove_by_refinement(
   `!V E v w. 

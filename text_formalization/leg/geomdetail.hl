@@ -53,11 +53,6 @@ Note:  I have split the file into 2 pieces: geomdetail.ml and geomdetail_08.ml. 
 let near = new_definition ` near (v0:real^N) (r:real) s = { x | x IN s /\
   dist(x,v0) < r } `;;
 
-(*
-let voronoi_trg = new_definition ` voronoi_trg v S = { x | !w. ((S w) /\ ~(w=v))
-==> (dist ( x , v ) < dist ( x , w )) }`;;
-*)
-
 let conv0_2 = new_definition ` conv0_2 s = conv0 s `;;
 
 let convex = new_definition `convex s <=> !x y u v. x IN s /\ y IN s /\ &0 <= u /\
@@ -79,159 +74,8 @@ let centered_pac = new_definition ` centered_pac s v = ( packing s /\ v IN s )`;
 
 let dist3 = new_definition ` dist3 (x:real^3) y = dist (x,y)`;;
 
-(* let voronoi2 = new_definition ` voronoi2 v S = {x| x IN voronoi_trg v S /\ dist3 x v < &2 }`;; *)
-
-(* let voro2 = new_definition ` voro2 v s = {x| x IN voronoi_open s v /\ dist3 x v < &2 }`;; *)
-
-(*
-removed 2013-07-27:
-let t0 = new_definition ` t0 = #1.255`;;
-
-let quasi_tri = new_definition ` quasi_tri tri s = ( packing s /\
-  tri SUBSET s /\
-  (? a b c. ~( a=b \/ b=c\/ c=a) /\  { a, b, c } = tri ) /\
-  (! x y.  ( x IN tri /\ y IN tri /\ (~(x=y)) ) ==> ( dist3 x y <= &2 * t0 )))`;;
-
-*)
-
-let geomdetail_simplex = new_definition ` geomdetail'simplex (d:real^3 -> bool) s = ( packing s /\
-  d SUBSET s /\
-( ? v1 v2 v3 v4. ~( v1 = v2 \/ v3 = v4 ) /\ {v1, v2 } INTER {v3, v4 } = {}/\ {v1,v2,v3,v4} = d )
- )`;;
-
-(*
-let quarter = new_definition ` quarter (q:real^3 -> bool) s =
-  ( packing s /\
-         geomdetail'simplex q s /\
-         (?v w.
-              v IN q /\
-              w IN q /\
-              &2 * t0 <= dist3 v w /\
-              dist3 v w <= sqrt (&8) /\
-              (!x y.
-                   x IN q /\ y IN q /\ ~({x, y} = {v, w})
-                   ==> dist3 x y <= &2 * t0)))`;;
-*)
-
-(*
-
-let quasi_reg_tet = new_definition ` quasi_reg_tet x s = ( geomdetail'simplex x s /\
-   (! v w. ( v IN x /\ w IN x /\
-    ( ~ ( v = w)))
-  ==> ( dist3 v w <= &2 * t0 )) )`;;
-
-
-let diagonal = new_definition ` diagonal d1 d2 q s = ( quarter q s /\
-         {d1, d2} SUBSET q /\
-         (!x y. x IN q /\ y IN q ==> dist3 x y <= dist3 d1 d2))`;;
-
-
- let strict_qua = new_definition ` strict_qua d s = ( quarter d s /\
-  ( ? x y. x IN d /\ y IN d /\ &2 * t0 < dist3 x y /\ dist3 x y < sqrt( &8 ) ))`;;
-
-let strict_qua2 = new_definition ` strict_qua2 d (ch:real^3 -> bool ) s = ( quarter d s /\ ch SUBSET d
-  /\ ( ? x y. ~( x = y ) /\ ch = {x,y} /\ &2 * t0 < dist3 x y /\ dist3 x y < sqrt ( &8 ) ) )`;;
-
-
-
-
-let quartered_oct = new_definition `quartered_oct  (v:real^3)  (w:real^3) (v1:real^3)  (v2:real^3)  (v3:real^3)  (v4:real^3)  s =
-         ( packing s /\
-         ( &2 * t0 < dist (v,w) /\ dist (v,w) < sqrt (&8) ) /\
-         (!x. x IN {v1, v2, v3, v4}
-              ==> dist (x,v) <= &2 * t0 /\ dist (x,w) <= &2 * t0) /\
-         {v, w, v1, v2, v3, v4} SUBSET s /\
-         (&2 <= dist (v1,v2) /\ dist (v1,v2) <= &2 * t0) /\
-         (&2 <= dist (v2,v3) /\ dist (v2,v3) <= &2 * t0) /\
-         (&2 <= dist (v3,v4) /\ dist (v3,v4) <= &2 * t0) /\
-         &2 <= dist (v4,v1) /\
-         dist (v4,v1) <= &2 * t0 ) `;;
-
-let adjacent_pai = new_definition ` adjacent_pai v v1 v3 v2 v4 s = ( strict_qua2 { v , v1 , v3 , v2 } { v1 , v3 } s
-  /\ strict_qua2 { v , v1 , v3 , v4 } { v1 , v3 } s /\
-  ( conv0 { v , v1 , v3 , v2 } INTER conv0 { v , v1 , v3 , v4 } = {} ) )`;;
-
-
-let conflicting_dia = new_definition ` conflicting_dia v v1 v3 v2 v4 s = ( adjacent_pai v v1 v3 v2 v4 s
-/\ adjacent_pai v v2 v4 v1 v3 s )`;;
-
-
- let interior_pos = new_definition `interior_pos v v1 v3 v2 v4 s = ( conflicting_dia v v1 v3 v2 v4 s
-  /\ ~( conv0 { v1, v3 } INTER conv0 { v , v2 , v4 } = {} ))`;;
-
-let isolated_qua = new_definition ` isolated_qua q s = ( quarter q s /\ ~( ? v v1 v2 v3 v4. q =
-  {v, v1, v2, v3} /\ adjacent_pai v v1 v2 v3 v4 s))`;;
-
-let isolated_pai = new_definition ` isolated_pai q1 q2 s = ( isolated_qua q1 s /\ isolated_qua q2 s /\
-  ~ (conv0 q1 INTER conv0 q2 = {}))`;;
-
-let anchor = new_definition ` anchor (v:real^3) v1 v2 s = ( {v, v1, v2} SUBSET s /\ dist3 v1 v2 <= sqrt ( &8 ) /\
-  dist3 v1 v2 >= &2 * t0 /\ dist3 v v1 <= &2 * t0 /\ dist3 v v2 <= &2 * t0 )`;;
-
-
-let anchor_points = new_definition ` anchor_points v w s = { t | &2 * t0 <= dist3 v w /\
-  anchor t v w s }`;;
-
-
-let Q_SYS = new_definition ` Q_SYS s = {q | quasi_reg_tet q s \/
-              strict_qua q s /\
-              (?c d.
-                   !qq. c IN q /\
-                        d IN q /\
-                        dist3 c d > &2 * t0 /\
-                        (quasi_reg_tet qq s \/ strict_qua qq s) /\
-                        conv0 {c, d} INTER conv0 qq = {}) \/
-              strict_qua q s /\
-              (CARD
-               {t | ?v w.
-                        v IN q /\ w IN q /\ &2 * t0 < dist3 v w /\ anchor t v w s} >
-               4 \/
-               CARD
-               {t | ?v w.
-                        v IN q /\ w IN q /\ &2 * t0 < dist3 v w /\ anchor t v w s} =
-               4 /\
-               ~(?v1 v2 v3 v4 v w. v IN q /\
-                     w IN q /\
-                     {v1, v2, v3, v4} SUBSET anchor_points v w s
-                      /\
-
-                     &2 * t0 < dist3 v w /\
-                     quartered_oct v w v1 v2 v3 v4 s))
-  \/ (? v w v1 v2 v3 v4. q = { v, w, v1, v2} /\ quartered_oct v w v1 v2 v3 v4 s )
-  \/ (? v v1 v3 v2 v4. ( q = {v, v1, v2, v3} \/ q = {v, v1, v3, v4} ) /\
-  interior_pos v v1 v3 v2 v4 s /\ anchor_points v1 v3 s = { v, v2, v4} /\
-  anchor_points v2 v4 s = { v, v1, v3 } )}`;;
-*)
-
 (* deprecated - thales *)
 let conv = new_definition `conv S:real^A->bool = affsign sgn_ge {} S`;;
-
-
-(*
-let barrier = new_definition ` barrier s = { { (v1 : real^3 ) , ( v2 :real^3 ) , (v3 :real^3) } |
-  quasi_tri { v1 , v2 , v3 } s \/
-  (? v4. ( { v1 , v2 , v3 } UNION { v4 }) IN Q_SYS s ) } `;;
-
-let obstructed = new_definition ` obstructed x y s = ( ? bar. bar IN barrier s /\
-  ( ~ (conv0_2 { x , y } INTER conv_trg bar = {})))`;;
-
-let obstruct = new_definition ` obstruct x y s = ( ? bar. bar IN barrier s /\
-  ( ~ (conv0 { x , y } INTER conv bar = {})))`;;
-
-let unobstructed = new_definition ` unobstructed x y s = ( ~( obstructed x y s ))`;;
-
-let VC_trg = new_definition ` VC_trg x s = { z | dist3 x z < &2 /\ ~obstructed x z s /\
-  (! y. y IN s /\ ~ ( x = y ) /\ ~(obstructed z y s)   ==> dist3 x z < dist3 y z )} `;;
-
-let VC_INFI_trg = new_definition ` VC_INFI_trg s = { z | ( ! x. x IN s /\
-  ~( z IN VC_trg x s ))}`;;
-
-let VC = new_definition `VC v s = { x | v IN lambda_x x s /\
-(!w. w IN lambda_x x s /\ ~(w = v) ==> dist3 x v < dist3 x w) }`;;
-
-let VC_INFI = new_definition ` VC_INFI s = { z | ( ! x. ~( z IN VC x s ))}`;;
-*)
-
 
 let SET_TAC =
    let basicthms =
@@ -285,101 +129,13 @@ let CUTHE7 th = MATCH_MP (MESON[]` ( ! a b c d e f h. P a b c d e f h) ==> P a b
 let NHANH tm = ONCE_REWRITE_TAC[ ATTACH (tm)];;
 
 
-let trg_sub_bo = prove ( `A SUBSET B <=> (!x. A x ==> B x)`, SET_TAC[] );;
-
-let trg_sub_se = prove ( `A SUBSET B <=> (!x. x IN A  ==> x IN B )`, SET_TAC[] );;
-
-let trg_setbool = prove (`x IN A <=> A x `, SET_TAC[] );;
-
-let trg_boolset = prove (` A x <=>  x IN A `, SET_TAC[] );;
-
-let trg_in_union = prove (` x IN ( A UNION B ) <=> x IN A \/ x IN B `, SET_TAC[]);;
-
-let not_in_set3 = prove ( `~ ( x IN { z | A z /\ B z /\ C z } ) <=> ~ A x \/ ~ B x \/ ~ C x `,
-  SET_TAC[]);;
-
 let trg_dist3_sym = prove ( `! x y. dist3 x y = dist3 y x `, SIMP_TAC[dist3; DIST_SYM]);;
-
-let affine_hull_e = prove (`affine hull {} = {}`,
- REWRITE_TAC[AFFINE_EMPTY; AFFINE_HULL_EQ]);;
 
 let wlog = MESON[]` (! a b. ( P a b = P b a ) /\ ( Q a b \/ Q b a ) ) ==> ((? a b . P a b ) <=> ( ? a b. P a b
   /\ Q a b ))`;;
 
-let wlog_real = MESON[REAL_ARITH `( ! a b:real. a <= b \/ b <= a )`] `
-(! a:real b:real . P a b = P b a ) ==> ((? a:real b . P a b ) <=> ( ? a b. P a b
-  /\ a <= b ))`;;
-
-let dkdx = MESON[REAL_ARITH ` ! a b:real. a <= b \/ b <= a `]`! P. (!a b u v m n p . P a b u v m n p <=> P b a v u m n p)
-     ==> ((?a b u v m n p. P a b u v m n p) <=> (?a b u v m n p. P a b u v m n p /\ a <= b))`;;
-
-
 let AFFINE_HULL_SINGLE = prove(`!x. affine hull {x} = {x}`,
   SIMP_TAC[AFFINE_SING; AFFINE_HULL_EQ]);;
-
-let usefull = MESON[] ` (!x. a x ==> b x ) ==>(?x. a x ) ==> c ==> d <=>
- (!x. a x ==> b x) ==> (?x. a x /\ b x ) ==> c ==> d `;;
-
-let v1_in_convex3 = prove (` ! v1 v2 v3. v1 IN {t | ?a b c.
-              &0 <= a /\ &0 <= b /\ &0 <= c /\ a + b + c = &1 /\
- t = a % v1 + b % v2 + c % v3}`, REPEAT GEN_TAC THEN REWRITE_TAC[ IN_ELIM_THM] THEN
-EXISTS_TAC ` &1 ` THEN EXISTS_TAC ` &0 ` THEN EXISTS_TAC ` &0 ` THEN
-REWRITE_TAC[ VECTOR_ARITH ` &1 % v1 + &0 % v2 + &0 % v3 = v1 `] THEN REAL_ARITH_TAC);;
-
-
-let v3_in_convex3 = prove( `! v1 v2 v3. v3 IN
-     {t | ?a b c.
-              &0 <= a /\
-              &0 <= b /\
-              &0 <= c /\
-              a + b + c = &1 /\
-              t = a % v1 + b % v2 + c % v3}`, REWRITE_TAC[IN_ELIM_THM] THEN REPEAT GEN_TAC
-THEN REPLICATE_TAC 2 (EXISTS_TAC `&0`) THEN EXISTS_TAC ` &1` THEN REWRITE_TAC[VECTOR_MUL_LZERO;
- VECTOR_ADD_LID; VECTOR_MUL_LID] THEN REAL_ARITH_TAC);;
-
-
-let v1v2v3_in_convex3 = prove (` ! v1 v2 v3 . v1 IN {t | ?a b c. &0 <= a /\ &0 <= b /\ &0 <= c /\
-a + b + c = &1 /\ t = a % v1 + b % v2 + c % v3}
-   /\ v2 IN {t | ?a b c. &0 <= a /\ &0 <= b /\ &0 <= c /\ a + b + c = &1 /\ t = a % v1 + b % v2 + c % v3}
-  /\ v3 IN {t | ?a b c. &0 <= a /\ &0 <= b /\ &0 <= c /\ a + b + c = &1 /\ t = a % v1 + b % v2 + c % v3}`,
-REWRITE_TAC[v1_in_convex3; v3_in_convex3] THEN REPEAT GEN_TAC THEN REWRITE_TAC[IN_ELIM_THM] THEN
-EXISTS_TAC ` &0` THEN EXISTS_TAC ` &1` THEN EXISTS_TAC ` &0` THEN
-REWRITE_TAC[VECTOR_ARITH` v2 = &0 % v1 + &1 % v2 + &0 % v3`] THEN REAL_ARITH_TAC);;
-
-
-let convex3 = prove( `!v1 v2 v3.
-     convex
-     {t | ?a b c.
-              &0 <= a /\
-              &0 <= b /\
-              &0 <= c /\
-              a + b + c = &1 /\
-              t = a % v1 + b % v2 + c % v3}`,
-REWRITE_TAC[convex; IN_ELIM_THM] THEN
-REPEAT GEN_TAC THEN STRIP_TAC THEN
-EXISTS_TAC ` u * a + v * a'` THEN
-EXISTS_TAC ` u * b + v * b'` THEN
-EXISTS_TAC ` u * c + v * c'` THEN
-REPEAT (FIRST_X_ASSUM MP_TAC) THEN
-REWRITE_TAC[MESON[] ` a==> b==> c <=> a /\ b==> c`] THEN PHA THEN
-REWRITE_TAC[ MESON[]` &0 <= a /\ l <=> l /\ &0 <= a `] THEN PHA THEN
-NHANH (MESON[REAL_LE_MUL; REAL_ARITH ` &0 <= a /\ &0 <= b ==> &0 <= a +b `]` &0 <= v /\
- &0 <= u /\
- &0 <= c' /\
- &0 <= b' /\
- &0 <= a' /\
- &0 <= c /\
- &0 <= b /\
- &0 <= a ==> &0 <= u * c + v * c' /\
-     &0 <= u * b + v * b' /\
-     &0 <= u * a + v * a'`) THEN
-REWRITE_TAC[REAL_ARITH` ( a + y ) + ( b + x ) + c + z = ( a + b + c) + (
-  y + x + z ) `] THEN
-REWRITE_TAC[REAL_ARITH ` a * b + a * c = a * ( b + c) `] THEN
-SIMP_TAC[] THEN
-REWRITE_TAC[ REAL_ARITH ` a * &1 = a `] THEN SIMP_TAC[] THEN
-REWRITE_TAC[VECTOR_ARITH` u % (a % v1 + b % v2 + c % v3) + v % (a' % v1 + b' % v2 + c' % v3) =
-     (u * a + v * a') % v1 + (u * b + v * b') % v2 + (u * c + v * c') % v3`]);;
 
 let INTERS_SUBSET = SET_RULE `! P t0. P t0 ==> INTERS { t| P t } SUBSET t0`;;
 
@@ -387,128 +143,10 @@ let SET3_SUBSET = SET_RULE`! a b c. {a,b,c} SUBSET s <=> a IN s /\ b IN s /\ c I
 
 let SUM_TWO_RATIO = REAL_FIELD ` ~(a + b = &0) <=> a / ( a + b) + b /(a+b) = &1`;;
 
-let minconvex3 = prove(`!t v1 v2 v3.
-         convex t /\ {v1, v2, v3} SUBSET t
-         ==> (!a b c.
-                  &0 <= a /\ &0 <= b /\ &0 <= c /\ a + b + c = &1
-                  ==> a % v1 + b % v2 + c % v3 IN t)`,
-REPEAT GEN_TAC THEN
-REWRITE_TAC[convex; SET3_SUBSET] THEN
-STRIP_TAC THEN
-REPEAT GEN_TAC THEN
-ONCE_REWRITE_TAC[ MESON[]` &0 <= a /\ &0 <= b /\ l<=> ( a + b = &0 \/
-  ~( a + b = &0)) /\ &0 <= a /\ &0 <= b /\ l`] THEN
-REWRITE_TAC[RIGHT_OR_DISTRIB] THEN
-REWRITE_TAC[ MESON[]` a \/ b ==> c <=> ( a ==> c ) /\ ( b ==> c )`] THEN
-REWRITE_TAC[REAL_ARITH` a + b = &0 /\ &0 <= a /\ &0 <= b /\ &0 <= c /\ a + b + c = &1
-  <=> &0 = a /\ &0 = b /\ &1 = c `] THEN
-ONCE_REWRITE_TAC[ EQ_SYM_EQ] THEN
-SIMP_TAC[] THEN
-ASM_REWRITE_TAC[ VECTOR_MUL_LZERO; VECTOR_MUL_LID; VECTOR_ADD_LID] THEN
-REWRITE_TAC[MESON[]`&0 = a + b <=> a + b = &0`; SUM_TWO_RATIO] THEN
-NHANH (MESON[REAL_ARITH ` &0 <= a /\ &0 <= b ==> &0 <= a + b `]`
-  dau /\ &0 <= a /\ &0 <= b /\ l ==> &0 <= a + b `) THEN
-NHANH (MESON[REAL_LE_DIV]` (aa /\ &0 <= a /\ &0 <= b /\ bb) /\ &0 <= a + b
-     ==> &0 <= a / (a + b) /\ &0 <= b / (a + b)`) THEN
-REWRITE_TAC[GSYM SUM_TWO_RATIO] THEN
-PHA THEN
-NHANH (MESON[REAL_DIV_LMUL]` ~(a + b = &0) ==> a = (a+b) *(a/(a+b)) /\ b =
-  (a+b) *(b/(a+b))`) THEN
-REWRITE_TAC[MESON[VECTOR_MUL_RCANCEL]` ( dau /\ a = (a + b) * a / (a + b) /\ b = (a + b) * b / (a + b))
-  /\ l ==> a % v1 + b % v2 + c % v3 IN t <=>
-  ( dau /\ a = (a + b) * a / (a + b) /\ b = (a + b) * b / (a + b))
-  /\ l ==> ((a + b) * a / (a + b)) % v1 + ((a + b) * b / (a + b)) % v2 + c % v3 IN t`] THEN
-REWRITE_TAC[ VECTOR_ARITH ` ((a + b) * a / (a + b)) % v1 + ((a + b) * b / (a + b)) % v2 + c % v3
-  = (a + b) % ( (a / (a + b)) % v1 + (b / (a + b)) % v2) + c % v3 `] THEN
-REWRITE_TAC[SUM_TWO_RATIO] THEN
-ASM_MESON_TAC[ REAL_ARITH` a + b + c = (a + b ) + c`]);;
-
-
 let EQ_EXPAND = MESON[] `(a <=> b) <=> ( a ==> b ) /\ ( b ==> a )` ;;
 
 
-
-let OTHER_CONVEX_CONDI = prove(` ! s. convex s <=> (! a b c v1 v2 v3. {v1, v2, v3} SUBSET s /\
-    &0 <= a /\ &0 <= b /\ &0 <= c /\ a + b + c = &1
-                  ==> a % v1 + b % v2 + c % v3 IN s)`,
-REWRITE_TAC[EQ_EXPAND; MESON[minconvex3]`!s. (convex s
-      ==> (!a b c v1 v2 v3.
-               {v1, v2, v3} SUBSET s /\
-               &0 <= a /\
-               &0 <= b /\
-               &0 <= c /\
-               a + b + c = &1
-               ==> a % v1 + b % v2 + c % v3 IN s))`; convex] THEN STRIP_TAC THEN
-REWRITE_TAC[SET3_SUBSET] THEN DISCH_TAC THEN
-REWRITE_TAC[REAL_ARITH`&0 <= u /\ &0 <= v /\ u + v = &1 <=>
-  &0 <= u /\ &0 <= v / &2 /\ u + v/ &2 + v / &2 = &1`] THEN
-ONCE_REWRITE_TAC[MESON[REAL_ARITH` a = a / &2 + a / &2`]` u % x + v % y =
-   u % x + ( v/ &2 + v/ &2 ) % y `] THEN REWRITE_TAC[ VECTOR_ADD_RDISTRIB] THEN
-ASM_MESON_TAC[]);;
-
-
-(* ============== *)
-
-
-let convex3_in_inters = prove (` ! v1 v2 v3. {t | ?a b c.
-          &0 <= a /\
-          &0 <= b /\
-          &0 <= c /\
-          a + b + c = &1 /\
-          t = a % v1 + b % v2 + c % v3} SUBSET
- INTERS {t | convex t /\ {v1, v2, v3} SUBSET t} `,
-REPEAT GEN_TAC THEN
-MATCH_MP_TAC (SET_RULE ` ( ! x. x IN A ==> x IN B ) ==> A SUBSET B`) THEN
-REWRITE_TAC[IN_ELIM_THM] THEN REWRITE_TAC[IN_INTERS] THEN
-REWRITE_TAC[MESON[] `( !x. (?a b c.
-          &0 <= a /\
-          &0 <= b /\
-          &0 <= c /\
-          a + b + c = &1 /\
-          x = a % v1 + b % v2 + c % v3)
-     ==> (!t. convex t /\ {v1, v2, v3} SUBSET t ==> x IN t))
-  <=>( !x. (?a b c.
-          &0 <= a /\
-          &0 <= b /\
-          &0 <= c /\
-          a + b + c = &1 /\
-          x = a % v1 + b % v2 + c % v3)
-     ==> (!t. convex t /\ {v1, v2, v3} SUBSET t /\ (?a b c.
-          &0 <= a /\
-          &0 <= b /\
-          &0 <= c /\
-          a + b + c = &1 /\
-          x = a % v1 + b % v2 + c % v3) ==> x IN t)) `] THEN
-GEN_TAC THEN DISCH_TAC THEN GEN_TAC THEN FIRST_X_ASSUM MP_TAC THEN
-REWRITE_TAC[ IN_ELIM_THM ; TAUT ` a ==> b ==> c <=> a /\ b ==> c `] THEN
-MESON_TAC[minconvex3]);;
-
-
-(* =========== *)
-
-
-
-let simpl_conv3 =prove(` ! v1 v2 v3. conv_trg {v1 , v2 ,v3} = {t | ?a b c. &0 <= a /\ &0 <= b /\ &0 <= c /\ a + b + c = &1
-/\ t = a % v1 + b % v2 + c % v3}`, REPEAT GEN_TAC THEN
-REWRITE_TAC[conv; hull] THEN REPEAT GEN_TAC THEN
-REWRITE_TAC[ SET_RULE` a = b <=> a SUBSET b /\ b SUBSET a `] THEN
-REWRITE_TAC[conv_trg; hull] THEN
-MATCH_MP_TAC (MATCH_MP ( MESON[] `(! a b. P a b) ==> P a b` ) (MESON[INTERS_SUBSET ]`
-  ! P t0 . ( P t0 /\ aa ) ==> INTERS {t | P t} SUBSET t0 /\ aa`)) THEN
- REWRITE_TAC[convex3] THEN REWRITE_TAC[ SET_RULE `{v1 , v2, v3} SUBSET a <=>
-  v1 IN a /\ v2 IN a /\ v3 IN a`] THEN REWRITE_TAC [ v1v2v3_in_convex3] THEN
-REWRITE_TAC[ SET_RULE` v1 IN t /\ v2 IN t /\ v3 IN t <=> {v1, v2, v3} SUBSET t`] THEN
-REWRITE_TAC[convex3_in_inters]);;
-
-
 (* =========== begining lemma 8.2 ========== *)
-
-
-(*
-let near2t0 = new_definition ` near2t0 v0 s = { x | x IN s /\ dist(v0,x) < &2 * t0 }`;;
-
-let e_plane = new_definition ` e_plane (a:real^N) (b:real^N) x = ( ~( a=b) /\ dist(a,x) = dist(b,x))`;;
-*)
 
 let min_dist = new_definition ` min_dist (x:real^3) s = ((?u. u IN s /\
                   (!w. w IN s /\ ~(u = w) ==> dist (u,x) < dist (w,x))) \/
@@ -548,25 +186,6 @@ let CONV_SING = prove(`!u. conv {u:real^A} = {u}`,
  REPEAT STRIP_TAC THENL [ASM_MESON_TAC[VECTOR_MUL_LID];
  ASM_REWRITE_TAC[]] THEN EXISTS_TAC `\ (v:real^A). &1` THEN
  MESON_TAC[VECTOR_MUL_LID;REAL_ARITH `&0 <= &1`] );;
-
-
-let NOV9 = prove(`!x y z.(x = y /\ y = z
-      ==> conv {y, z} =
-          {w | ?a b c.
-                   &0 <= a /\
-                   &0 <= b /\
-                   &0 <= c /\
-                   a + b + c = &1 /\
-                   w = a % y + b % y + c % z})`,
-SIMP_TAC[] THEN REWRITE_TAC[SET_RULE` {a,a} = {a}`] THEN
-REWRITE_TAC[ CONV_SING;  GSYM VECTOR_ADD_RDISTRIB] THEN
-REWRITE_TAC[ MESON[]` a + b + c = &1 /\ w = (a + b + c) % z <=>a + b + c = &1 /\
-   w = &1 % z `; VECTOR_MUL_LID] THEN REWRITE_TAC[ FUN_EQ_THM] THEN
-REWRITE_TAC[ SET_RULE ` {a} x <=> a = x `; IN_ELIM_THM] THEN
-REPEAT GEN_TAC THEN DISCH_TAC THEN GEN_TAC THEN
-NGOAC THEN REWRITE_TAC[ LEFT_EXISTS_AND_THM] THEN
-MATCH_MP_TAC (MESON[] ` a ==> ( z = x <=> a /\ x = z )`) THEN
-REPLICATE_TAC 2 (EXISTS_TAC `&0`) THEN EXISTS_TAC ` &1` THEN REAL_ARITH_TAC);;
 
 let IN_ACT_SING = SET_RULE `! a x. ({a} x <=> a = x ) /\ ( x IN {a} <=> x = a) /\ {a} a`;;
 
@@ -781,10 +400,6 @@ EXISTS_TAC ` (\d. if d = (x:real^A) then (a:real) else ( if d = (y:real^A) then
   (b:real)  else c ))` THEN REPEAT (FIRST_X_ASSUM MP_TAC) THEN
 REWRITE_TAC[ MESON[]`~( a \/ b ) <=> ~a /\ ~b `] THEN SIMP_TAC[]);;
 
-(* ========== *)
-let CONV3_EQ = prove(` ! x y z. conv_trg {x,y,z} = conv {x,y,z} `, REWRITE_TAC[simpl_conv3;
-CONV_SET3]);;
-(* ========= *)
 
 (* ==== CARD ASSERTION ==== *)
 
@@ -801,11 +416,6 @@ MESON_TAC[ CARD_CLAUSES; ARITH_RULE ` a <= SUC a /\ a <= a `]);;
 
 (* =================== *)
 
-(* done in HOL light standard libraries.
-let CARD_SING = prove( `! a: A. CARD {a} = 1`, REWRITE_TAC[ MESON[ FINITE6; CARD_EQ_NSUM ]
-` CARD {a} = nsum {a} (\x. 1)`] THEN REWRITE_TAC[ NSUM_SING ]);;
-*)
-
 let CARD_SET2 = prove( ` ! a b . ( CARD {a, b} = 2 <=> ~(a = b)) /\ (CARD {a, b} = 1 <=> a = b ) `,
 REWRITE_TAC[ MESON[ FINITE6; CARD_CLAUSES ] ` CARD {a,b} = (if a IN {b} then CARD {b} else SUC (CARD {b}))`]
 THEN REWRITE_TAC[ MESON[ FINITE6; CARD_CLAUSES ] ` CARD {a} = (if a IN {} then CARD {} else SUC (CARD {}))`]
@@ -819,12 +429,6 @@ let CARD_EQUATION = prove(`!(s: A -> bool) t.
      ==> CARD (s UNION t) + CARD (s INTER t) = CARD s + CARD t `,
 NHANH (MESON[FINITE_INTER; FINITE_UNION] `FINITE s /\ FINITE t ==> FINITE ( s UNION t ) /\
     FINITE ( s INTER t ) `) THEN MESON_TAC[ CARD_EQ_NSUM; NSUM_INCL_EXCL]);;
-
-
-let CARD_DISJOINT = prove(` ! s: A -> bool t. FINITE s /\ FINITE t ==>
-       ( CARD s + CARD t = CARD ( s UNION t ) <=> s INTER t ={} )`,
-MESON_TAC[CARD_EQUATION; ARITH_RULE ` a + b = a <=> b = 0 `; FINITE_INTER; CARD_EQ_0]);;
-
 
 let CARD2 = prove(` ! a b . CARD {a,b} <= 2 /\ ( CARD {a,b} = 2 <=> ~(a = b ) )`,
 REWRITE_TAC[ MESON[ CARD_SET2] ` CARD {a, b} = 2 <=> ~(a = b)`] THEN MP_TAC CARD_SET2 THEN
@@ -881,43 +485,6 @@ REWRITE_TAC[ CARD3] THEN
 MESON_TAC[ FINITE_RULES; FINITE_INTER; CARD_EQ_0; SET_RULE `
   {a} INTER {b, c, d} = {} <=> ~(a IN {b, c, d})` ]);;
 
-
-let CARD5 = prove(` ! a b c d e. CARD {a,b,c,d,e} <= 5 /\
-  ( CARD {a,b,c,d,e} = 5 <=> ~( a IN {b,c,d,e}) /\
-                            ~(b IN {c, d, e}) /\ ~(c = d \/ d = e \/ e = c))`,
-ONCE_REWRITE_TAC[ MESON[ FINITE_RULES; CARD_CLAUSES_IMP] ` CARD {a, b, c, d, e} <= 5 <=>
-  CARD {a, b, c, d, e} <= SUC ( CARD {b,c,d,e} ) ==> CARD {a, b, c, d, e} <= 5`] THEN
-ONCE_REWRITE_TAC[ MESON[CARD4] ` aa ==> CARD {a, b, c, d, e} <= 5 <=>
-  aa /\ CARD {b,c,d,e} <= 4 ==> CARD {a, b, c, d, e} <= 5`] THEN
-REWRITE_TAC[ ARITH_RULE ` a <= SUC b /\ b <= 4 ==> a <= 5 `] THEN
-REWRITE_TAC[ ARITH_RULE ` CARD {a, b, c, d, e} = 5 <=>
-  CARD {a, b, c, d, e} + CARD ({a} INTER {b,c,d,e} ) = 5 + CARD ({a} INTER {b,c,d,e} )`] THEN
-REWRITE_TAC[ SET_RULE ` {a,b,c,d,e} = {a} UNION {b,c,d,e} `] THEN
-REWRITE_TAC[ MESON[FINITE_RULES; CARD_EQUATION; CARD_SING ]` CARD ({a} UNION {b, c, d, e}) +
-  CARD ({a} INTER {b, c, d, e})  = 1 + CARD {b,c,d,e} `] THEN
-ONCE_REWRITE_TAC[ MESON[ CARD4] ` 1 + CARD {b, c, d, e} = aa <=> CARD {b,c,d,e} <= 4 /\
-     1 + CARD {b, c, d, e} = aa `] THEN
-REWRITE_TAC[ ARITH_RULE ` a <= 4 /\ 1 + a = 5 + b <=> a = 4 /\ b = 0`] THEN
-REWRITE_TAC[ CARD4; MESON[FINITE_RULES; FINITE_INTER; CARD_EQ_0] `
-  CARD ({a} INTER {b, c, d, e}) = 0 <=> {a} INTER {b, c, d, e} ={} `] THEN SET_TAC[]);;
-(* ============ *)
-
-let set_3elements = prove(`(?a b c. ~(a = b \/ b = c \/ c = a) /\ {a, b, c} = {v1, v2, v3}) <=>
- ~(v1 = v2 \/ v2 = v3 \/ v3 = v1)`, REWRITE_TAC[GSYM CARD3] THEN
-MESON_TAC[]);;
-
-
-(*
-let db_t0 = prove(`&2 * t0 = &2 * #1.255 /\ &2 * t0 = #2.51 /\ &2 * #1.255 = #2.51`,
-  REWRITE_TAC[t0] THEN REAL_ARITH_TAC);;
-*)
-
-let without_lost = MESON[] ` ! P x. (!a b. P a b <=> P b a) /\ (?a b. P a b /\ x = a)
-     ==> (?a b. P a b /\ (x = a \/ x = b))`;;
-
-let condi_of_wlofg = MESON[]` (!a b. P a b <=> P b a)
-     ==> ((?a b. P a b /\ (x = a \/ x = b)) <=> (?a b. P a b /\ x = a))`;;
-
 (* ============ *)
  let CARD_SET_OF_LIST_LE = prove
   (`!l. CARD(set_of_list l) <= LENGTH l`,
@@ -925,21 +492,9 @@ let condi_of_wlofg = MESON[]` (!a b. P a b <=> P b a)
    SIMP_TAC[LENGTH; set_of_list; CARD_CLAUSES; FINITE_SET_OF_LIST] THEN
    ASM_ARITH_TAC);;
 
- let HAS_SIZE_SET_OF_LIST = prove
-  (`!l. (set_of_list l) HAS_SIZE (LENGTH l) <=> PAIRWISE (\x y. ~(x = y)) l`,
-   REWRITE_TAC[HAS_SIZE; FINITE_SET_OF_LIST] THEN LIST_INDUCT_TAC THEN
-   ASM_SIMP_TAC[CARD_CLAUSES; LENGTH; set_of_list; PAIRWISE; ALL;
-                FINITE_SET_OF_LIST; GSYM ALL_MEM; IN_SET_OF_LIST] THEN
-   COND_CASES_TAC THEN ASM_REWRITE_TAC[SUC_INJ] THEN
-   ASM_MESON_TAC[CARD_SET_OF_LIST_LE; ARITH_RULE `~(SUC n <= n)`]);;
 
-(* ====================In your theorem we want the n=4 case, so we instantiate it:
-=========================== *)
+(* =In your theorem we want the n=4 case, so we instantiate it: == *)
 
- let HAS_SIZE_SET_OF_LIST_4 = prove
-  (`!a b c d:A. {a,b,c,d} HAS_SIZE 4 <=> PAIRWISE (\x y. ~(x = y)) [a;b;c;d]`,
-   REPEAT GEN_TAC THEN MP_TAC(ISPEC `[a;b;c;d]:A list`HAS_SIZE_SET_OF_LIST) THEN
-   REWRITE_TAC[LENGTH; set_of_list; ARITH])  ;;
 
 (* ============================================================================
  Then finally, using this and a bit of straightforward rearrangement,
@@ -947,38 +502,6 @@ we can collapse the desired theorem to a lemma that MESON can prove
 automatically:
 ===============================================================================*)
 
- let SET_OF_4 = prove
-  (`! a b c d. ( ? v1 v2 v3 v4:A. ~( v1 = v2 \/ v3 = v4 ) /\
-                                {v1, v2 } INTER {v3, v4 } = {} /\
-                                { a , b , c , d } = { v1 , v2, v3 ,v4}) <=>
-    ~ ( a = b \/ a = c \/ a = d \/ b = c \/ b = d \/ c = d )`,
-   REPEAT GEN_TAC THEN
-   REWRITE_TAC[IN_INSERT; NOT_IN_EMPTY; INTER_EMPTY; SET_RULE
-    `(a INSERT s) INTER t = {} <=> ~(a IN t) /\ s INTER t = {}`] THEN
-   MP_TAC(MESON[]
-    `(?v1 v2 v3 v4:A. {a,b,c,d} = {v1,v2,v3,v4} /\ {v1,v2,v3,v4} HAS_SIZE 4) <=>
-     {a,b,c,d} HAS_SIZE 4`) THEN
-   REWRITE_TAC[HAS_SIZE_SET_OF_LIST_4; PAIRWISE; ALL; DE_MORGAN_THM; CONJ_ACI]);;
-
-
-let def_simplex = prove(`! s a b c d. geomdetail'simplex {a, b, c, d} s <=>
-  packing s /\
-         {a, b, c, d} SUBSET s /\
-  ~ ( a = b \/ a = c \/ a = d \/ b = c \/ b = d \/ c = d ) `, REWRITE_TAC[ geomdetail_simplex]
-THEN REPEAT GEN_TAC THEN MATCH_MP_TAC (MESON[] ` ( x <=> y ) ==> ( a /\ b /\ x <=>
-a /\ b /\ y ) `) THEN ONCE_REWRITE_TAC[MESON[]` {v1, v2, v3, v4} = {a, b, c, d} <=>
- {a, b, c, d}  = {v1, v2, v3, v4} ` ] THEN REWRITE_TAC[ SET_OF_4]);;
-
-
-(* =========== *)
-
-let PAIR_D3 = prove(` ! i j u w. {u,w} = {i,j} ==> dist3 i j = dist3 u w `,
-REWRITE_TAC[ SET_RULE ` {u, w} = {i, j} <=>  u= i /\ w = j \/ u = j /\ w = i `] THEN
-MESON_TAC[ trg_dist3_sym]);;
-
-let PAIR_DIST = prove(` ! i j u w. {u,w} = {i,j} ==> dist(i,j) = dist(u,w) `,
-REWRITE_TAC[ SET_RULE ` {u, w} = {i, j} <=>  u= i /\ w = j \/ u = j /\ w = i `] THEN
-MESON_TAC[ DIST_SYM]);;
 
 (* ================== *)
 
@@ -1042,18 +565,6 @@ REWRITE_TAC[convex; CONV_SET2] THEN SET_TAC[]);;
 
 (* have not added *)
 
-let U_IN_CONV2 = prove(`! u v. u IN conv {u,v} `,
-REWRITE_TAC[ CONV_SET2; IN_ELIM_THM] THEN REPEAT GEN_TAC
-THEN EXISTS_TAC `&1` THEN EXISTS_TAC `&0 ` THEN
-REWRITE_TAC[VECTOR_MUL_LID; VECTOR_MUL_LZERO; VECTOR_ADD_RID] THEN
-REAL_ARITH_TAC);;
-
-let UV_IN_CONV2 = prove(` ! u v. u IN conv {u,v} /\ v IN conv {u,v} `,
-MESON_TAC[U_IN_CONV2; SET_RULE ` {u,v} = {v,u} `]);;
-
-let CONVEX_AS_CONV2 = prove(` ! s. convex s ==> ( ! u v. u IN s /\ v IN s <=>
-   conv {u,v} SUBSET s )`, REWRITE_TAC[ EQ_EXPAND] THEN
-SIMP_TAC[CONVEX_IM_CONV2_SU ] THEN MESON_TAC[SUBSET; UV_IN_CONV2]);;
 
 let CONV0_SING = prove(`! x:real^A . conv0 {x} = {x} `,
 REWRITE_TAC[conv0; FUN_EQ_THM; affsign; lin_combo] THEN
@@ -1103,11 +614,6 @@ let CONV02_SU_CONV2 = prove(` ! u v. conv0 {u,v} SUBSET conv {u,v} `,
 REWRITE_TAC[ CONV_SET2; CONV0_SET2] THEN
 MP_TAC (REAL_ARITH ` ! a . &0 < a ==> &0 <= a `) THEN SET_TAC[]);;
 
-
-let CONVEX_IM_CONV02_SU = prove(`! s u v. convex s /\ u IN s /\ v IN s ==>
-conv0 {u, v} SUBSET s`,
-MESON_TAC[CONV02_SU_CONV2; CONVEX_IM_CONV2_SU; SUBSET_TRANS]);;
-
 let PAIR_EQ_EXPAND =
  SET_RULE `{a,b} = {c,d} <=> a = c /\ b = d \/ a = d /\ b = c`;;
 
@@ -1115,11 +621,7 @@ let IN_SET3 = SET_RULE ` x IN {a,b,c} <=> x = a \/ x = b \/ x = c `;;
 
 let IN_SET4 = SET_RULE ` x IN {a,b,c,d} <=> x = a \/ x = b \/ x = c \/ x = d `;;
 
-let FOUR_IN = SET_RULE `!a b c d. a IN {a,b,c,d} /\ b IN {a,b,c,d} /\c IN {a,b,c,d} /\ d IN {a,b,c,d} ` ;;
-
 (* TAG 1 *)
-
-let D3_REFL = prove(` !x. dist3 x x = &0 ` , MESON_TAC[dist3; DIST_REFL]);;
 
 let db_t0_sq8 = MATCH_MP REAL_LT_RSQRT (REAL_ARITH ` #2.51 pow 2 < &8 `);;
 

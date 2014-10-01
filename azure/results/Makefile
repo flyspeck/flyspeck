@@ -25,3 +25,11 @@ max-time:
 	grep -r "Time" output | \
 		sed -e 's/.*Time.*://' -e 's/ //g' | \
 		awk '{if ($$0 > s) {s = $$0}} END {print s}'
+
+filter-sharp:
+	sed -e '/13158,(prep-TSKAJXY-RIBCYXU sharp,0)/{d}' \
+	    -e '/13077,(prep-TSKAJXY-IYOUOBF sharp v2,0)/{d}' \
+	    -e '/11966,(prep-OMKYNLT 3336871894,0)/{d}' \
+	    -e '/11959,(prep-GRKIBMP B V2,0)/{d}' \
+	    -e '/13075,(prep-QZECFIC wt0 corner,0)/{d}' \
+	    ineqs/ineqs_all.txt > ../ineqs.txt

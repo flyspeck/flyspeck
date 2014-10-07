@@ -1,12 +1,20 @@
 hashes:
-	grep -r "Hash" output | sort -V | \
+#	grep -r "Hash" output | sort -V | \
+#		sed -e 's/.*Hash  //' -e 's/^.*,(/(/' > hashes0.txt
+	find output -type f ! -regex ".*/\..*" -exec grep "Hash" '{}' \; | sort -V | \
 		sed -e 's/.*Hash  //' -e 's/^.*,(/(/' > hashes0.txt
 	sed -e '/prep-5744538693/{d}' \
 	    -e '/prep-6944699408 a reduced/{d}' \
 	    -e '/prep-7043724150 a reduced v2/{d}' hashes0.txt > hashes.txt
-	grep -r "Hash" out-extra | sort -V | \
+	find out-extra -type f ! -regex ".*/\..*" -exec grep "Hash" '{}' \; | sort -V | \
 		sed -e 's/.*Hash  //' -e 's/^.*,(/(/' >> hashes.txt
 	rm hashes0.txt
+
+hashes-urban:
+	find urban/out -type f ! -regex ".*/\..*" -exec grep "Hash" '{}' \; | sort -V | \
+		sed -e 's/.*Hash  //' -e 's/^.*,(/(/' > hashes2.txt
+	grep "Hash" output/fail/sharp_out.txt | \
+		sed -e 's/.*Hash  //' -e 's/^.*,(/(/' >> hashes2.txt
 
 fails:
 	grep -r "FAIL" output | sort -V > fails.txt
@@ -16,13 +24,22 @@ fails:
 	mv fails0.txt fails.txt
 
 time:
-	grep -r "Time" output | \
+	find output -type f ! -regex ".*/\..*" -exec grep "Time" '{}' \; | \
 		sed -e 's/.*Time.*://' -e 's/ //g' | \
 		awk '{s += $$0} END {print s / 3600}'
 
+time-urban:
+	find urban/out -type f ! -regex ".*/\..*" -exec grep "Time" '{}' \; | \
+		sed -e 's/.*Time.*://' -e 's/ //g' | \
+		awk '{s += $$0} END {print s / 3600}'
 
 max-time:
-	grep -r "Time" output | \
+	find output -type f ! -regex ".*/\..*" -exec grep "Time" '{}' \; | \
+		sed -e 's/.*Time.*://' -e 's/ //g' | \
+		awk '{if ($$0 > s) {s = $$0}} END {print s}'
+
+max-time-urban:
+	find urban/out -type f ! -regex ".*/\..*" -exec grep "Time" '{}' \; | \
 		sed -e 's/.*Time.*://' -e 's/ //g' | \
 		awk '{if ($$0 > s) {s = $$0}} END {print s}'
 

@@ -35,7 +35,7 @@
 
 module Build = struct
  
-let build_sequence = 
+let build_sequence_full = 
   ["general/hol_pervasives.hl";
    "general/lib.hl";
    "general/flyspeck_lib.hl";
@@ -213,7 +213,8 @@ let build_sequence =
       (could be moved down but it is better to load them here since
       they require quite a lot of memory which is freed after the final
       result is constructed) *)
-(* TEST: *)
+
+(* LP SECTION: *)
    "../formal_lp/hypermap/arith_link.hl"; 
    "../glpk/glpk_link.ml";
    "../glpk/tame_archive/lpproc.ml";
@@ -230,8 +231,7 @@ let build_sequence =
    "../formal_lp/hypermap/ineqs/lp_gen_theory-compiled.hl";
    "tame/good_list_archive.hl";
    "tame/linear_programming_results.hl";
-   (* End of linear programming section *)
-(* END TEST: *)
+(* END LP SECTION: *)
 
    "local/ZITHLQN.hl";
    "local/XWITCCN.hl";  
@@ -279,7 +279,8 @@ let build_sequence =
    "local/MIQMCSN.hl"; (* 2013-08-15 *)
    "local/JEJTVGB.hl"; (* 2013-08-15 *)
 
-   (* these three are loaded earlier if LP files are loaded. Secondary load: *)
+   (* these three are loaded earlier if LP files are loaded. 
+   Secondary load: *)
    "../formal_lp/hypermap/ineqs/lp_gen_theory-compiled.hl";
    "../formal_lp/hypermap/computations/more_theory-compiled.hl";
    "local/RNSYJXM-compiled.hl";
@@ -348,15 +349,40 @@ let build_sequence =
    "packing/flyspeck_devol.hl";
    "general/serialization.hl";
    "general/kepler_spec.hl";
+   "general/the_main_statement.hl"; 
    "general/the_kepler_conjecture.hl"; 
 
-   (*  
-       This uses the "serialization" version of HOL Light to prove
-       |- the_nonlinear_inequalities
+
+    (*   This uses the "serialization" version of HOL Light to prove
+       |- the_nonlinear_inequalities *)
      "nonlinear/mk_all_ineq.hl";
-   *)
+
 
   ];;
+
+let rec cut_at s acc = function
+  | [] -> (List.rev acc,[])
+  | b::bs as a -> if (s =b) then (List.rev acc,a) else cut_at s (b::acc) bs;;
+
+(* The main statement verification skips
+   the linear programming and proof of "goodness",
+   the definition of the archive,
+   the serialized nonlinear inequalities 
+*)
+
+let build_sequence_main_statement =
+  let (r1,r1') = cut_at "../formal_lp/hypermap/arith_link.hl" [] build_sequence_full in
+  let (r2,r2') = cut_at "tame/linear_programming_results.hl" [] r1' in
+  let b =     r1 @ tl r2' in
+  let skip = [   "general/the_kepler_conjecture.hl"; 
+		 "nonlinear/mk_all_ineq.hl";
+	     ] in
+    filter (fun t -> not(mem t skip)) b;;
+
+let build_sequence_nonserial = 
+  filter (fun t -> not (t =    "nonlinear/mk_all_ineq.hl"))
+    build_sequence_full;;
+
 
 
 end;;

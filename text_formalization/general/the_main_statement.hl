@@ -1,0 +1,254 @@
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter:  Final Conclusion                                           *)
+(* Date: March 12, 2014                                                 *)
+(* ========================================================================== *)
+
+
+
+module The_main_statement = struct
+
+
+open Hales_tactic;;
+open Tame_defs;;
+open Tame_defs2;;
+open Tame_list;;
+open Hypermap;;
+
+let the_kepler_conjecture_def = new_definition'
+  `the_kepler_conjecture <=>
+     (!V. packing V
+            ==> (?c. !r. &1 <= r
+                         ==> &(CARD(V INTER ball(vec 0,r))) <=
+                             pi * r pow 3 / sqrt(&18) + c * r pow 2))`;;
+
+(* Combine all nonlinear inequalities related to linear programs 
+   into one definition *)
+
+let lp_ineqs_def =
+  let check_lp_tags =
+    let rec check tags =
+      match tags with
+	| Lp :: _ -> true
+	| Tablelp :: _ -> true
+	| Lp_aux _ :: _ -> true
+	| h :: t -> check t
+	| [] -> false in
+      fun ineq -> check ineq.tags in
+  let ineq_ids = ["6170936724"] in
+  let lp_ineqs = filter (fun ineq -> 
+	not (mem ineq.idv Tame_lemmas.deprecated_quads) &&
+	(check_lp_tags ineq or mem ineq.idv ineq_ids)) !Ineq.ineqs in
+  let lp_tms = setify (map (fun t -> t.ineq) lp_ineqs) in
+  let lp_tm = end_itlist (curry mk_conj) lp_tms in
+    new_definition (mk_eq (`lp_ineqs:bool`, lp_tm));;
+
+let good_linear_programming_results = new_definition'
+  `good_linear_programming_results a <=>
+      ((ALL good_list a) /\
+      (!V. lp_ineqs /\ lp_main_estimate /\
+	 (?L. MEM (L:((A)list)list) a /\ 
+	    iso (hypermap_of_fan (V,ESTD V)) (hypermap_of_list L)) ==>
+	 ~(contravening V)))`;;
+
+let the_nonlinear_inequalities = new_definition'
+  `the_nonlinear_inequalities <=>
+  (pack_nonlinear_non_ox3q1h /\ ox3q1h /\ 
+     main_nonlinear_terminal_v11 /\ lp_ineqs /\ pack_ineq_def_a /\
+    kcblrqc_ineq_def)`;;
+
+let tame_classification = new_definition' 
+  `!(a:(((A)list)list)list). tame_classification a = 
+  (!g. PlaneGraphs g /\ tame g ==> 
+     (?y. y IN set_of_list a /\ iso_fgraph (fgraph g) y))`;;
+
+(*
+let import_tame_classification = 
+  Import_tame_classification.import_tame_classification;;
+*)
+
+let restricted_hypermaps_are_planegraphs = new_definition'
+  `restricted_hypermaps_are_planegraphs_v4 <=>
+  (!Ln:((num)list)list. 
+  good_list Ln /\ good_list_nodes Ln /\
+  is_restricted (hypermap_of_list Ln) ==>
+  (?gn. PlaneGraphs gn /\ 
+     good_graph_v4 gn /\
+     iso (hypermap_of_list Ln) (hypermap_of_list (fgraph gn))))`;;
+
+(* ..........  END NEW DEFS *)
+
+let kc_imp_the_kc = prove_by_refinement(
+  `kepler_conjecture ==> the_kepler_conjecture`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[the_kepler_conjecture_def;Pack_defs.kepler_conjecture];
+  DISCH_TAC;
+  FIRST_X_ASSUM (ASSUME_TAC o MATCH_MP Flyspeck_devol.FLYSPECK_DEVOLUTION);
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Flyspeck_devol.CPNKNXN [`V`];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`V'`]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY` c` EXISTS_TAC;
+  REPEAT WEAKER_STRIP_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`r`]);
+  ASM_REWRITE_TAC[];
+  TYPIFY `&(CARD (V INTER ball (vec 0,r))) <= &(CARD (V' INTER ball (vec 0,r)))` ENOUGH_TO_SHOW_TAC;
+    BY(REAL_ARITH_TAC);
+  REWRITE_TAC[ REAL_OF_NUM_LE];
+  MATCH_MP_TAC CARD_SUBSET;
+  CONJ_TAC;
+    BY(FIRST_X_ASSUM_ST `SUBSET` MP_TAC THEN SET_TAC[]);
+  BY(ASM_MESON_TAC[Pack2.KIUMVTC])
+  ]);;
+  (* }}} *)
+
+(* This intermediate result is quoted in the paper: *)
+let reduction_to_local_annulus_inequality = prove_by_refinement(
+  `the_nonlinear_inequalities /\ 
+   (!V. cell_cluster_inequality V) /\
+   (!V. packing V /\ V SUBSET ball_annulus 
+        ==> local_annulus_inequality V) 
+   ==> the_kepler_conjecture`,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  MATCH_MP_TAC kc_imp_the_kc;
+  PROOF_BY_CONTR_TAC;
+  INTRO_TAC Rdwkarc.RDWKARC [];
+  ASM_SIMP_TAC[];
+  TYPIFY `pack_nonlinear_non_ox3q1h` (C SUBGOAL_THEN ASSUME_TAC);
+    BY(ASM_MESON_TAC[the_nonlinear_inequalities]);
+  TYPIFY `TSKAJXY_statement` (C SUBGOAL_THEN ASSUME_TAC);
+    REWRITE_TAC[Pack_concl.TSKAJXY_statement];
+    REPEAT WEAKER_STRIP_TAC;
+    MATCH_MP_TAC Tskajxy.TSKAJXY;
+    BY(ASM_REWRITE_TAC[]);
+  BY(ASM_MESON_TAC[])
+  ]);;
+  (* }}} *)
+
+
+let contravening_tame_planar_hypermap = Mqmsmab.MQMSMAB;;
+
+(*
+let is_no_double_joins_joins = prove_by_refinement(
+  `is_no_double_joins = is_no_double_joins`,
+  (* {{{ proof *)
+  [
+    BY(REWRITE_TAC[is_no_double_joins;Hypermap.is_no_double_joins;FUN_EQ_THM])
+  ]);;
+  (* }}} *)
+*)
+
+let tame_planar_hypermap_restricted = prove_by_refinement(
+  `!H. tame_planar_hypermap H ==> is_restricted H`,
+  (* {{{ proof *)
+  [
+  REWRITE_TAC[tame_planar_hypermap;Hypermap.is_restricted;(* is_no_double_joins_joins; *) tame_1;tame_2;tame_3;tame_4;tame_5a;tame_8];
+  SIMP_TAC[Hypermap.lemma_node_nondegenerate];
+  REPEAT WEAKER_STRIP_TAC;
+  nCONJ_TAC 2;
+    BY(ASM_MESON_TAC[tame_9a;arith `n >= 3 <=> 3 <= n`]);
+  nCONJ_TAC 1;
+    BY(ASM_MESON_TAC[tame_11a;arith `n >= 3 ==> 2 <= n`]);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  INTRO_TAC Hypermap.lemma_card_face_collection [`H`];
+  REPEAT WEAKER_STRIP_TAC;
+  TYPIFY `( (face_collection H) = {})` ENOUGH_TO_SHOW_TAC;
+    BY(ASM_MESON_TAC[Oxl_2012.CARD_EMPTY;arith `~(0 >= 3)`]);
+  ASM_REWRITE_TAC[Hypermap.face_collection];
+  BY(REWRITE_TAC[EXTENSION;IN_ELIM_THM;NOT_IN_EMPTY])
+  ]);;
+  (* }}} *)
+
+let kepler_conjecture_with_assumptions = prove_by_refinement(
+  `!a. tame_classification a /\
+    good_linear_programming_results a /\ 
+    the_nonlinear_inequalities
+    ==> the_kepler_conjecture
+    `,
+  (* {{{ proof *)
+  [
+  REPEAT WEAKER_STRIP_TAC;
+  ASSUME_TAC Reduction5.restricted_hypermaps_are_planegraphs_thm; 
+  MATCH_MP_TAC kc_imp_the_kc;
+  REPEAT (POP_ASSUM MP_TAC);
+  REWRITE_TAC[good_linear_programming_results;the_nonlinear_inequalities;tame_classification;restricted_hypermaps_are_planegraphs;IN_SET_OF_LIST;];
+  REPEAT WEAKER_STRIP_TAC;
+  PROOF_BY_CONTR_TAC;
+  FIRST_X_ASSUM_ST `lp_ineqs /\ u` MP_TAC;
+  ASM_SIMP_TAC[Jejtvgb.nonlinear_imp_lp_main_estimate];
+  DISCH_TAC;
+  INTRO_TAC Oxlzlez.PACKING_CHAPTER_MAIN_CONCLUSION [];
+  ASM_REWRITE_TAC[Fnjlbxs.local_annulus_inequality_scriptL;arith `~(x <= &12) <=> x > &12`];
+  DISCH_TAC;
+  INTRO_TAC Fnjlbxs.FCDJDOT [];
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  MP_TAC contravening_tame_planar_hypermap;
+  ASM_SIMP_TAC[Jejtvgb.nonlinear_imp_lp_main_estimate];
+  DISCH_THEN (C INTRO_TAC [`V`]) THEN ASM_SIMP_TAC[];
+  DISCH_TAC;
+  TYPIFY `is_restricted (hypermap_of_fan (V,ESTD V))` (C SUBGOAL_THEN ASSUME_TAC);
+    MATCH_MP_TAC tame_planar_hypermap_restricted;
+    BY(ASM_REWRITE_TAC[]);
+  MP_TAC (INST_TYPE [`:real^3#real^3`,`:A`] Jcajydu.JCAJYDU);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`hypermap_of_fan (V,ESTD V)`]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Wmlnymd.tame_correspondence_iso [`gH`;`hypermap_of_fan (V,ESTD V)`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`gH`]);
+  ASM_REWRITE_TAC[];
+  REPEAT WEAKER_STRIP_TAC;
+  INTRO_TAC Elllnyz.ELLLNYZ [`fgraph gH`;`y`];
+  ASM_REWRITE_TAC[];
+  FIRST_X_ASSUM_ST `ALL` MP_TAC;
+(*  MP_TAC Good_list_archive.good_list_archive; *)
+  REWRITE_TAC[Seq2.ALL_all;GSYM Seq.allP];
+  ASM_SIMP_TAC[];
+  DISCH_TAC;
+  TYPIFY_GOAL_THEN `good_list (fgraph gH)` (unlist REWRITE_TAC);
+    BY(ASM_MESON_TAC[good_graph]);
+  TYPIFY `iso (hypermap_of_list (fgraph gH)) (hypermap_of_list y)` ASM_CASES_TAC;
+    FIRST_X_ASSUM (C INTRO_TAC [`V`]);
+    ANTS_TAC;
+      TYPIFY `y` EXISTS_TAC;
+      INTRO_TAC Hypermap.iso_trans [`hypermap_of_fan (V,ESTD V)`;`hypermap_of_list (fgraph gH)`;`hypermap_of_list y`];
+      BY(ASM_SIMP_TAC[]);
+    BY(ASM_REWRITE_TAC[]);
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  INTRO_TAC Asfutbf.hypermap_of_fan_neg [`V`];
+  ASM_REWRITE_TAC[];
+  DISCH_TAC;
+  FIRST_X_ASSUM (C INTRO_TAC [`IMAGE (--) (V:real^3->bool)`]);
+  ANTS_TAC;
+    TYPIFY `y` EXISTS_TAC;
+    ASM_REWRITE_TAC[];
+    TYPED_ABBREV_TAC `hneg = hypermap_of_fan (IMAGE (--) V,ESTD (IMAGE (--) V))`;
+    TYPED_ABBREV_TAC `h = (hypermap_of_fan (V,ESTD V))`;
+    TYPED_ABBREV_TAC `hgH = hypermap_of_list (fgraph gH)`;
+    TYPED_ABBREV_TAC `hy = hypermap_of_list y`;
+    TYPIFY `iso (opposite_hypermap h) (opposite_hypermap hgH)` (C SUBGOAL_THEN ASSUME_TAC);
+      BY(ASM_REWRITE_TAC[GSYM Asfutbf.iso_opposite_eq]);
+    TYPIFY `iso (opposite_hypermap h) (hy)` (C SUBGOAL_THEN ASSUME_TAC);
+      INTRO_TAC Hypermap.iso_trans [`opposite_hypermap h`;`opposite_hypermap hgH`;`hy`];
+      BY(ASM_SIMP_TAC[]);
+    INTRO_TAC Hypermap.iso_trans [`hneg`;`opposite_hypermap h`;`hy`];
+    BY(ASM_SIMP_TAC[]);
+  REWRITE_TAC[] THEN MATCH_MP_TAC Asfutbf.contravening_negative;
+  BY(ASM_REWRITE_TAC[])
+  ]);;
+  (* }}} *)
+
+end;;

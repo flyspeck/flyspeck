@@ -44,10 +44,10 @@ let split list n =
     aux  [] list;;
 let new_build_silent() =
   let loaded = try_do (fun s -> flyspeck_needs s; s) 
-  (fst(split Build.build_sequence "nonlinear/merge_ineq.hl"))
+  (fst(split Build.build_sequence_main_statement "nonlinear/merge_ineq.hl"))
   in
   let unloaded = filter(not o already_loaded) 
-  (fst(split Build.build_sequence "nonlinear/merge_ineq.hl"))
+  (fst(split Build.build_sequence_main_statement "nonlinear/merge_ineq.hl"))
   in
   (loaded,unloaded);;
 new_build_silent();;

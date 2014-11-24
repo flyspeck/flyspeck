@@ -8,7 +8,9 @@
 
 (*
 Needs genera/serialization.hl for the reconstruction of nonlinear
- inequalities.
+ inequalities.  Before it loads, serialization needs to be turned on:
+
+Unix.putenv "FLYSPECK_SERIALIZATION" "1";;
 
 The main result is the_nonlinear_inequalities
  |- the_nonlinear_inequalities
@@ -195,6 +197,25 @@ let mk_pack_nonlinear =
 
 let dequad xs = filter (fun s -> not (mem s quad_enclosed)) xs;;
 
+(* Combine all nonlinear inequalities related to linear programs into one definition *)
+let lp_ineqs_def =
+  let check_lp_tags =
+    let rec check tags =
+      match tags with
+	| Lp :: _ -> true
+	| Tablelp :: _ -> true
+	| Lp_aux _ :: _ -> true
+	| h :: t -> check t
+	| [] -> false in
+      fun ineq -> check ineq.tags in
+  let ineq_ids = ["6170936724"] in
+  let lp_ineqs = filter (fun ineq -> 
+	not (mem ineq.idv Tame_lemmas.deprecated_quads) &&
+	(check_lp_tags ineq or mem ineq.idv ineq_ids)) !Ineq.ineqs in
+  let lp_tms = setify (map (fun t -> t.ineq) lp_ineqs) in
+  let lp_tm = end_itlist (curry mk_conj) lp_tms in
+    new_definition (mk_eq (`lp_ineqs:bool`, lp_tm));;
+
 let nonlinear_imp_the_nonlinear_inequalities = Prove_by_refinement.prove_by_refinement(
   `nonlinear ==> the_nonlinear_inequalities`,
   (* {{{ proof *)
@@ -208,7 +229,7 @@ let nonlinear_imp_the_nonlinear_inequalities = Prove_by_refinement.prove_by_refi
     BY(REWRITE_TAC (Ysskqoy.pack_ineq_def_a :: map get_nonlinear pack_ineq_s));
   nCONJ_TAC 3;
     ASM_REWRITE_TAC[];
-    BY(ASM_SIMP_TAC (Lp_ineqs.lp_ineqs_def :: map get_nonlinear (dequad lp_ineqs_s)));
+    BY(ASM_SIMP_TAC ((* Lp_ineqs. *) lp_ineqs_def :: map get_nonlinear (dequad lp_ineqs_s)));
   nCONJ_TAC 2;
     BY(REWRITE_TAC (main_nonlinear :: map get_nonlinear get_main_nonlinear_s));
   nCONJ_TAC 1;

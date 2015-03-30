@@ -34,7 +34,7 @@ Unix.dup2 flyspeck_stdout Unix.stdout;;
 Unix.dup2 flyspeck_stderr Unix.stderr;;
 Unix.close hollight_stdout;;
 Unix.close hollight_stderr;;
-#use "strictbuild.hl";;
+#use "build/strictbuild.hl";;
 (* change to quick build for nonlinear proving *)
 let split list n =
     let rec aux acc = function

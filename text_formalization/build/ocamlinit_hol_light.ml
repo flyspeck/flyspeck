@@ -18,7 +18,7 @@ hol_version;;
 let flyspeck_dir = 
   (try Sys.getenv "FLYSPECK_DIR" with Not_found -> Sys.getcwd());;
 
-loadt (Filename.concat flyspeck_dir "strictbuild.hl");; 
+loadt (Filename.concat flyspeck_dir "build/strictbuild.hl");; 
 new_build_silent();;
 let _ = print_string "Done reading ocamlinit_hol_light.ml\n";;
 

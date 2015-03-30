@@ -658,3 +658,151 @@ double native_mdtau2uf_y(double y1,double y2,double y3,double y4,double y5,doubl
 
   return P2tau_uf;
 }
+
+
+// PENTAGON-PACKING 2015:
+
+double pent_rho() {
+  return cos(pi()/5.0);
+}
+
+double pent_e() {
+  return sin(pi()/5.0);
+}
+
+double area_del_dl() {
+  return 1.5*(1.0+pent_rho())*(pent_rho()*pent_e());
+}
+
+double ell(double h,double psi) {
+  double rho = pent_rho();
+  double r = sqrt(h*h+rho*rho);
+  return sqrt(1.0+r*r - 2.0*r*cos(psi+acos(h/r)));
+}
+
+double ellx(double xb,double beta) {
+  return ell(pent_e() - xb,beta + 0.3*pi());
+}
+
+double lawsines(double a,double alpha,double beta) {
+  return (a / sin(alpha))*sin(beta);
+}
+
+double area_triangle(double a,double b, double c) {
+  return 0.5*a*b*sin(arc(a,b,c));
+}
+
+double pinwheel_a(double alpha,double beta,double xc) {
+  double p = pi();
+  double gamma = p/5.0 - (alpha+beta);
+  double xa = lawsines(xc,2.0*p/5.0-alpha,2.0*p/5-beta);
+  double xb = lawsines(xc,2.0*p/5.0-alpha,2.0*p/5-gamma);
+  return ellx(xa,alpha);
+}
+
+double pinwheel_b(double alpha,double beta,double xc) {
+  double p = pi();
+  double gamma = p/5.0 - (alpha+beta);
+  double xa = lawsines(xc,2.0*p/5.0-alpha,2.0*p/5-beta);
+  double xb = lawsines(xc,2.0*p/5.0-alpha,2.0*p/5-gamma);
+  return ellx(xb,beta);
+}
+
+double pinwheel_c(double alpha,double beta,double xc) {
+  double p = pi();
+  double gamma = p/5.0 - (alpha+beta);
+  double xa = lawsines(xc,2.0*p/5.0-alpha,2.0*p/5-beta);
+  double xb = lawsines(xc,2.0*p/5.0-alpha,2.0*p/5-gamma);
+  return ellx(xc,gamma);
+}
+
+double lj_a(double alpha,double beta,double xc) {
+  double p = pi();
+  double e = pent_e();
+  double gamma = 3.0*p/5.0 - (alpha+beta);
+  double alphap = 2.0*p/5.0 - alpha;
+  double betap = 2.0*p/5.0- beta;
+  double gammap = 2.0*p/5.0 - gamma;
+  double delta1 = p - (gammap + 2.0*p/5.0);
+  double delta2 = p - delta1;
+  double x1 = lawsines(xc,delta1,2.0*p/5.0);
+  double x2 = lawsines(xc,delta1,gammap);
+  double x3 = 2.0*e - x1;
+  double x4 = lawsines(x3,betap,delta2);
+  double x5 = lawsines(x3,betap,alphap);
+  double x6 = x5 - x2;
+  return ellx(x4,alpha);
+}
+
+double lj_b(double alpha,double beta,double xc) {
+  double p = pi();
+  double e = pent_e();
+  double gamma = 3.0*p/5.0 - (alpha+beta);
+  double alphap = 2.0*p/5.0 - alpha;
+  double betap = 2.0*p/5.0- beta;
+  double gammap = 2.0*p/5.0 - gamma;
+  double delta1 = p - (gammap + 2.0*p/5.0);
+  double delta2 = p - delta1;
+  double x1 = lawsines(xc,delta1,2.0*p/5.0);
+  double x2 = lawsines(xc,delta1,gammap);
+  double x3 = 2.0*e - x1;
+  double x4 = lawsines(x3,betap,delta2);
+  double x5 = lawsines(x3,betap,alphap);
+  double x6 = x5 - x2;
+  return ellx(x6,beta);
+}
+
+double lj_c(double alpha,double beta,double xc) {
+  double p = pi();
+  double gamma = 3.0*p/5.0 - (alpha+beta);
+  return ellx(xc,gamma);
+}
+
+double tj_a(double alpha,double beta,double xc) {
+  double p = pi();
+  double e = pent_e();
+  double gamma = p - (alpha+beta);
+  double alphap = 2.0*p/5.0 - alpha;
+  double betap = 2.0*p/5.0- beta;
+  double gammap = 2.0*p/5.0 - gamma;
+  double delta1 = p - (gammap + 2.0*p/5.0);
+  double delta2 = p - delta1;
+  double delta3 = p - (alphap+delta2);
+  double delta4 = p - (betap+2.0*p/5.0);
+  double x1 = lawsines(xc,delta1,2.0*p/5.0);
+  double x2 = lawsines(xc,delta1,gammap);
+  double x3 = 2.0*e - x1;
+  double x4 = lawsines(x3,delta3,delta2);
+  double x5 = lawsines(x3,delta3,alphap);
+  double x6 = 2.0*e - (x5 - x2);
+  double x7 = lawsines(x6,2.0*p/5.0,betap);
+  double x8 = lawsines(x6,2.0*p/5.0,delta4);
+  double x9 = x4 - x7;
+  return ellx(x9,alpha);
+}
+
+double tj_b(double alpha,double beta,double xc) {
+  double p = pi();
+  double e = pent_e();
+  double gamma = p - (alpha+beta);
+  double alphap = 2.0*p/5.0 - alpha;
+  double betap = 2.0*p/5.0- beta;
+  double gammap = 2.0*p/5.0 - gamma;
+  double delta1 = p - (gammap + 2.0*p/5.0);
+  double delta2 = p - delta1;
+  double delta3 = p - (alphap+delta2);
+  double delta4 = p - (betap+2.0*p/5.0);
+  double x1 = lawsines(xc,delta1,2.0*p/5.0);
+  double x2 = lawsines(xc,delta1,gammap);
+  double x3 = 2.0*e - x1;
+  double x4 = lawsines(x3,delta3,delta2);
+  double x5 = lawsines(x3,delta3,alphap);
+  double x6 = 2.0*e - (x5 - x2);
+  return ellx(x6,beta);
+}
+
+double tj_c(double alpha,double beta,double xc) {
+  double p = pi();
+  double gamma = p - (alpha+beta);
+  return ellx(xc,gamma);
+}

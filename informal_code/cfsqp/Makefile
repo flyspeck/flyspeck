@@ -67,6 +67,9 @@ maytest.o : maytest.cc  $(DEPS) numerical.cc
 feb16_phelan_weaire_text.o : feb16_phelan_weaire_text.cc  $(DEPS) numerical.cc
 	$(CC) $(CCOPTS1) feb16_phelan_weaire_text.cc $(DOTS)  -o feb16_phelan_weaire_text.o
 
+mar_pentagon.o : mar_pentagon.cc  $(DEPS) numerical.cc
+	$(CC) $(CCOPTS1) mar_pentagon.cc $(DOTS)  -o mar_pentagon.o
+
 
 #tame_hypermap.o : tame_hypermap.cc  $(DEPS)
 #	$(CC) $(CCOPTS1) tame_hypermap.cc $(DOTS)  -o tame_hypermap.o

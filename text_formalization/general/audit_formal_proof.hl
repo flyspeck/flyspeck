@@ -1,0 +1,338 @@
+
+(* ========================================================================== *)
+(* FLYSPECK - BOOK FORMALIZATION                                              *)
+(*                                                                            *)
+(* Chapter:  Final Conclusion                                           *)
+(* Date: March 28, 2015                                                 *)
+(* ========================================================================== *)
+
+(*
+This file is a guide to the results stated in 
+"A formal proof of the Kepler conjecture"
+by the Flyspeck team.
+
+This file maps the association between results stated in the article
+"A formal proof of the Kepler conjecture" 
+and this files in this project.
+*)
+
+module Audit_formal_proof = struct
+
+(* check a theorem has asserted conclusion and no assumptions *)
+
+
+let chk_thm (th,s) = 
+  let (asl,c) = dest_thm th in
+  let _ = asl = [] or failwith "thm has assumptions" in
+  let _ = (c = s) or failwith 
+    ("wrong conclusion:"^string_of_term c ^" "^string_of_term s) in
+    th;;
+
+
+(* Article Section 3 "The statement"  *)
+
+(* The definition of packing *)
+
+
+let chk_packing_def = 
+  chk_thm(Sphere.packing_lt,
+   `packing (V:real^3 -> bool) =
+      (!u:real^3 v:real^3. (u IN V) /\ (v IN V) /\ (dist( u, v) < &2) ==>
+	 (u = v))`);;
+
+(* The definition of the Kepler conjecture
+
+`the_kepler_conjecture <=>
+     (!V. packing V
+            ==> (?c. !r. &1 <= r
+                         ==> &(CARD(V INTER ball(vec 0,r))) <=
+                             pi * r pow 3 / sqrt(&18) + c * r pow 2))`
+
+ *)
+
+let chk_kepler_conjecture_def = chk_thm
+  (The_main_statement.the_kepler_conjecture_def,
+   `the_kepler_conjecture <=>
+     (!V. packing V
+            ==> (?c. !r. &1 <= r
+                         ==> &(CARD(V INTER ball(vec 0,r))) <=
+                             pi * r pow 3 / sqrt(&18) + c * r pow 2))`
+  );;
+
+
+(* What we formalize in a single session.
+   This is commented out because this file loads before
+   the file general/the_kepler_conjecture.hl.
+
+*)
+
+(*
+let chk_single_session = chk_thm
+  (
+    The_kepler_conjecture.tame_nonlinear_imp_kepler_conjecture,
+    `import_tame_classification /\
+    the_nonlinear_inequalities
+    ==> the_kepler_conjecture`);;
+*)
+
+(* Article Section 4.2 The blueprint outline.
+  The paper mentions the following reduction:
+
+ *)
+
+let chk_reduction = chk_thm
+ (The_main_statement.reduction_to_local_annulus_inequality,
+  `the_nonlinear_inequalities /\
+        (!V. cell_cluster_inequality V) /\
+        (!V. packing V /\ V SUBSET ball_annulus
+             ==> local_annulus_inequality V)
+        ==> the_kepler_conjecture`);;
+  
+
+(* Article Section 4.2 ball annulus description *)
+
+let chk_ball_annulus_def = chk_thm
+  (Fnjlbxs.in_ball_annulus,
+  `!v. v IN ball_annulus <=> &2 <= norm v /\ norm v <= &2 * h0`
+  );;
+
+let chk_h0_def = chk_thm
+  (Sphere.h0,`h0 = #1.26`);;
+
+(* Article Section 4.2 Equation (1) gives the definition
+of the local annulus inequality *)
+
+let chk_local_annulus_inequality = chk_thm
+  (Pack_defs.local_annulus_inequality,
+  `!(V:real^N->bool). local_annulus_inequality V <=>
+            sum V (\v. lmfun (hl [vec 0; v])) <= &12`
+  );;
+
+let chk_lmfun_def = chk_thm
+  (Sphere.lmfun,
+  `!h. lmfun h = if (h<=h0) then (h0 - h)/(h0 - &1) else &0`
+  );;
+
+
+
+(* Article section 4.4 appendices to DSP
+
+The appendices to DSP are available as a pdf:
+kepler_tex/AppendicesDenseSpherePackings.pdf
+
+*)
+
+(* Article section 4.4 the main estimate
+
+The main estimate is a long statement DSP Theorem 7.90.  
+It is defined by
+the constants JEJTVGB_assume_v39 and lp_main_estimates
+
+*)
+
+(* thm asserting the main estimate, 
+  assuming nonlinear inequalities.
+
+chk_the_nonlinear_inequalities_def (below) shows that
+  main_nonlinear_terminal_v11 is a consequence of
+   the_nonlinear_inequalities.
+
+ *)
+
+let chk_nonlinear_imp_main_estimate  = chk_thm
+ (Jejtvgb.JEJTVGB,
+   `main_nonlinear_terminal_v11 ==> JEJTVGB_assume_v39`
+ );;
+
+let chk_main_estimate_equivalent_def = chk_thm
+  (Jejtvgb.lp_main_estimate_JEJTVGB,`JEJTVGB_assume_v39 <=> lp_main_estimate`);;
+
+(* long statement of the main estimate *)
+let chk_main_estimate_def = chk_thm
+  (Appendix.JEJTVGB_assume_v39,
+  `JEJTVGB_assume_v39 <=>
+     (!V E FF.
+          convex_local_fan (V,E,FF) /\
+          packing V /\
+          V SUBSET ball_annulus /\
+          4 <= CARD V /\
+          CARD V <= 6 /\
+          (!v w.
+               ~(v = w) /\ v IN V /\ w IN V /\ ~({v, w} IN E)
+               ==> &2 * h0 <= dist (v,w)) /\
+          (!v w. {v, w} IN E ==> &2 <= dist (v,w) /\ dist (v,w) <= &2 * h0)
+          ==> d_tame (CARD V) <= tau_fun V E FF) /\
+     (!v1 v2 v3.
+          &2 <= norm v1 /\
+          &2 <= norm v2 /\
+          &2 <= norm v3 /\
+          norm v1 <= &2 * h0 /\
+          norm v2 <= &2 * h0 /\
+          norm v3 <= &2 * h0 /\
+          &2 <= dist (v1,v2) /\
+          &2 <= dist (v1,v3) /\
+          &2 <= dist (v2,v3) /\
+          dist (v1,v2) <= &2 * h0 /\
+          dist (v1,v3) <= &2 * h0 /\
+          dist (v2,v3) <= &2 * h0
+          ==> &0 <= tau3 v1 v2 v3) /\
+     (!V E FF.
+          convex_local_fan (V,E,FF) /\
+          packing V /\
+          V SUBSET ball_annulus /\
+          CARD V = 5 /\
+          (!v w.
+               ~(v = w) /\ v IN V /\ w IN V /\ ~({v, w} IN E)
+               ==> sqrt8 <= dist (v,w)) /\
+          (!v w. {v, w} IN E ==> &2 <= dist (v,w) /\ dist (v,w) <= &2 * h0)
+          ==> #0.616 <= tau_fun V E FF) /\
+     (!V E FF.
+          convex_local_fan (V,E,FF) /\
+          packing V /\
+          V SUBSET ball_annulus /\
+          CARD V = 5 /\
+          (!v w.
+               ~(v = w) /\ v IN V /\ w IN V /\ ~({v, w} IN E)
+               ==> &2 * h0 <= dist (v,w)) /\
+          (?v0 w0.
+               (!v w.
+                    {v, w} IN E /\ ~({v, w} = {v0, w0})
+                    ==> &2 <= dist (v,w) /\ dist (v,w) <= &2 * h0) /\
+               {v0, w0} IN E /\
+               &2 * h0 <= dist (v0,w0) /\
+               dist (v0,w0) <= sqrt8)
+          ==> #0.616 <= tau_fun V E FF) /\
+     (!V E FF.
+          convex_local_fan (V,E,FF) /\
+          packing V /\
+          V SUBSET ball_annulus /\
+          CARD V = 4 /\
+          (!v w.
+               ~(v = w) /\ v IN V /\ w IN V /\ ~({v, w} IN E)
+               ==> sqrt8 <= dist (v,w)) /\
+          (?v0 w0.
+               (!v w.
+                    {v, w} IN E /\ ~({v, w} = {v0, w0})
+                    ==> &2 <= dist (v,w) /\ dist (v,w) <= &2 * h0) /\
+               {v0, w0} IN E /\
+               &2 * h0 <= dist (v0,w0) /\
+               dist (v0,w0) <= sqrt8)
+          ==> #0.477 <= tau_fun V E FF) /\
+     (!V E FF.
+          convex_local_fan (V,E,FF) /\
+          packing V /\
+          V SUBSET ball_annulus /\
+          CARD V = 4 /\
+          (!v w.
+               ~(v = w) /\ v IN V /\ w IN V /\ ~({v, w} IN E)
+               ==> &3 <= dist (v,w)) /\
+          (!v w. {v, w} IN E ==> &2 <= dist (v,w) /\ dist (v,w) <= &2 * h0)
+          ==> #0.467 <= tau_fun V E FF)`
+  );;
+
+(* Article section 4.4 Cell Cluster Inequality
+
+Here is the theorem proving the cell cluster inequality assuming
+some nonlinear inequalities.
+
+chk_the_nonlinear_inequalities_def (below) shows that
+  pack_nonlinear_non_ox3q1h /\ ox3q1h is a consequence of
+   the_nonlinear_inequalities.
+*)
+
+let check_nonlinear_imp_cell_cluster_inequality = chk_thm
+  (Oxlzlez.OXLZLEZ,
+  `!V. pack_nonlinear_non_ox3q1h /\ ox3q1h /\ packing V /\ saturated V
+         ==> cell_cluster_inequality V`
+  );;
+
+(* Article section 4.5 the weaker form of the main statement
+*)
+
+let chk_weak_main_statement = chk_thm
+  (  The_main_statement.kepler_conjecture_with_assumptions,
+  `!a:((((A)list)list)list). tame_classification a /\
+         good_linear_programming_results a /\
+         the_nonlinear_inequalities
+         ==> the_kepler_conjecture`
+  );;
+
+
+(* Article section 6. Combining HOL Light sections
+
+The file that combines HOL Light sections is
+text_formalization/general/serialization.hl.
+
+The stored list of md5 hashes of theorems proved in other sessions
+is
+text_formalization/general/theorem_nonlinear_digest.hl.
+
+*)
+
+(* Article section 6. the_nonlinear_inequalities
+
+`the_nonlinear_inequalities`
+
+file: text_formalization/nonlinear/mk_all_ineq.hl.
+
+This is the last file loaded in the project text_formalization/build.hl.
+It needs serialization to be turned on in order to produce the theorem.
+
+We leave it as a comment, because it loads after this file.
+
+Mk_all_ineq.the_nonlinear_inequalities;;
+
+ *)
+
+
+
+(* Article section 6. The definition of the_nonlinear_inequalities
+collects the nonlinear inequalities from all the different parts of
+the project. *)
+
+let chk_the_nonlinear_inequalities_def = chk_thm
+  (The_main_statement.the_nonlinear_inequalities,
+  `the_nonlinear_inequalities <=> 
+        pack_nonlinear_non_ox3q1h /\
+        ox3q1h /\
+        main_nonlinear_terminal_v11 /\
+        lp_ineqs /\
+        pack_ineq_def_a /\
+        kcblrqc_ineq_def`  
+  );;
+
+(* Article section 7. Tame Classification *)
+
+(* Article section 12. Appendix on definitions 
+  The definitions mentioned in this section appear in
+  text_formalization/general/kepler_spec.hl.
+
+  The big conjunction of definitions that appears in the appendix is
+  the theorem Kepler_spec.basic_definitions
+*)
+
+let chk_basic_definitions = chk_thm
+  (Kepler_spec.basic_definitions,
+   `(&0 <= x ==> abs x = x) /\
+     (x < &0 ==> abs x = --x) /\
+     x pow 0 = &1 /\
+     x pow SUC n = x * x pow n /\
+     (&0 <= x ==> &0 <= sqrt x /\ sqrt x pow 2 = x) /\
+     sum (0..0) f = f 0 /\
+     sum (0..SUC n) f = sum (0..n) f + f (SUC n) /\
+     abs (pi / &4 - sum (0..n) (\i. -- &1 pow i / &(2 * i + 1))) <=
+     &1 / &(2 * n + 3) /\
+   ((A:A->bool) HAS_SIZE n <=> FINITE A /\ CARD A = n) /\
+   ({}:A->bool) HAS_SIZE 0 /\ {(a:A)} HAS_SIZE 1 /\ 
+   ((A:A->bool) HAS_SIZE m /\ B HAS_SIZE n /\ (A INTER B) HAS_SIZE p 
+      ==> (A UNION B) HAS_SIZE (m+n - p)) /\
+     triple_of_real3 o real3_of_triple = (\w. w) /\
+     real3_of_triple o triple_of_real3 = (\v. v) /\
+     vec 0 = real3_of_triple (&0,&0,&0) /\
+     dist (real3_of_triple (x,y,z),real3_of_triple (x',y',z')) =
+     sqrt ((x - x') pow 2 + (y - y') pow 2 + (z - z') pow 2) /\
+     (packing V <=> (!u v. u IN V /\ v IN V /\ dist (u,v) < &2 ==> u = v))`
+  );;
+
+
+end;;

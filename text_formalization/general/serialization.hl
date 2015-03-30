@@ -1,12 +1,16 @@
 (* ========================================================================== *)
 (* FLYSPECK - BOOK FORMALIZATION                                              *)
 (*                                                                            *)
-(* HOL LIGHT general library                                                  *)
+(* HOL Light general library                                                  *)
 (* Author: Thomas C. Hales                                                    *)
 (* Date: 2013-09-11                                                           *)
 (* ========================================================================== *)
 
-(* save theorems out to disk and reload *)
+(* save theorems out to disk and reload.
+
+   N.B. If this file is reloaded, then the reloaded file lacks the
+   ability to carry out theorem imports.
+ *)
 
 needs "general/theorem_digest.hl";;
 needs "general/theorem_nonlinear_digest.hl";;
@@ -19,6 +23,8 @@ module Serialization = struct
 
 (* state manager should reset new_type_abbrev and the_implicit_types. *)
 
+(* string comparison function *)
+
 module  String_compare : Set.OrderedType with type t = string = struct
   type t = string;;
   let  compare (t1:string) (t2:string) = Pervasives.compare (t1) (t2);;
@@ -26,9 +32,13 @@ end;;
 
 module St = Set.Make(String_compare);;
 
+(* remove duplicate entrie from a list *)
+
 let rec nub = function (* from lpproc.ml *)
   | [] -> []
   | x::xs -> x::filter ((<>) x) (nub xs);;
+
+(* join strings with given separator *)
 
 let join_ sep = 
   function 
@@ -40,8 +50,10 @@ let join_semi = join_ ";";;
 let join_space = join_ " ";;
 
 (* ********************************************************************** *)
-(* canonizing types and terms *)
+(* Types and terms are put in canonical form by renaming variables.  *)
 (* ********************************************************************** *)
+
+(* type variables are renamed A0, A1 *)
 
 let mk_vartypen n = map (fun i -> mk_vartype ("A"^(string_of_int i))) (0-- (n-1));;
 
@@ -58,6 +70,8 @@ let canonize_varty_in_thm th =
   let ctyl = canonize_tyl tyl in
     INST_TYPE ctyl th;;
 
+(* free variables in a term are renamed x0, x1, x2, ... *)
+
 let canonize_frees_in_thm th = 
   let vl = thm_frees th in
   let n = List.length vl in
@@ -69,6 +83,8 @@ let mk_b_var base (i, v) =
   let (_,ty) = dest_var v in
   let b = mk_var(base^(string_of_int i),ty) in
     b;;
+
+(* bound variables in a term are renamed b0, b1, b2, ... *)
 
 let rec canonize_bound base (i,t) = 
   match t with 
@@ -85,6 +101,9 @@ let rec DISCH_ALL_ALT th =
   match hyp th with
       [] -> th
     | x::xs -> DISCH_ALL_ALT (DISCH x th);;
+
+(* rename bound variables in theorem, 
+   taking care if b* is already a bound variable *)
 
 let canonize_thm th = 
   let th1 = canonize_varty_in_thm th in
@@ -103,7 +122,7 @@ let canonize_thm th =
     funpow n UNDISCH th4;;
 
 (* ********************************************************************** *)
-(* finding type constants and term constants *)
+(* extract type constants and term constants from types and terms *)
 (* ********************************************************************** *)
 
 let rec get_type_constants_rec acc ty = match ty with
@@ -145,6 +164,8 @@ let get_term_constants_in_thm th =
   let al = map get_term_constants (a2::a1) in
     nub (List.flatten al);;
 
+(* These are types in HOL Light that don't get properly recorded elsewhere *)
+
 let table_stray_typ = 
   [("hreal","mk_hreal","dest_hreal"), hreal_tybij;
     ("real","mk_real","dest_real") , real_tybij;
@@ -185,7 +206,12 @@ let process_table_def_term =
     fun d -> (name d,d);;
 
 (* ********************************************************************** *)
-(* marker for deserialized theorems *)
+(* marker for deserialized theorems.
+All theorems that are imported are marked with an assumption
+  `deserialization:bool` that shows that the theorem was imported.
+ Eventually, `deserialization` can be added as an axiom, to allow all 
+ legitimate imports.
+ *)
 (* ********************************************************************** *)
 
 let bool_ty = Hol.bool_ty;;
@@ -196,13 +222,20 @@ let deserial_var = mk_var(deserial,bool_ty);;
 
 let is_deserial t = is_const t && ( dest_const t = (deserial,bool_ty));;
 
+(*
 is_var `deserialization` or failwith "deserialization variable already in use";;
+*)
 
 let is_deserial_axiom th = 
   hyp th = [] && is_deserial (concl th);;
 
 (* ********************************************************************** *)
-(* serializing and digesting types and terms *)
+(* serializing and digesting types and terms 
+  By serialization, we mean faithfully mapping types, terms, 
+   and theorems to strings.
+  The simple digest of a theorem is the md5 hash of the string of the theorem
+    in canonical form.
+*)
 (* ********************************************************************** *)
 
 let buf = Buffer.create 8000;;
@@ -213,11 +246,14 @@ let rec addbs f y = match y with
     [] -> ()
   | x::xs ->  (f x); if not(xs=[]) then addb ";"; addbs f xs ;;
 
+(* convert a types, terms, and thms to a string *)
+
 let rec serialize_typb ty = 
   match ty with
     | Tyvar s ->  addb "Tyvar \""; addb s; addb "\""
     | Tyapp (s,tyl) -> addb "Tyapp(\""; addb s; addb "\",["; 
 	addbs serialize_typb tyl; addb "])";;
+
 
 let rec serialize_termb = function
     | Var(s,ty) ->  addb "Var(\""; addb s; addb "\",";  (serialize_typb ty); addb ")" 
@@ -246,7 +282,25 @@ let example1 =
 
 (* ********************************************************************** *)
 (* history of theorems *)
+(*
+A theorem depends on an entire recursive history of 
+definitions of constants and types.
+
+For an import of a theorem to be justified, the entire history
+of the theorem in the exporting session 
+must have an identical history in the importing session.
+
+The following procedures compute the entire histories for  
+types, terms, and theorems.
+
+We then form a full digest of a theorem that takes the entire history
+into account.
+
+*)
 (* ********************************************************************** *)
+
+(* process two global lists of types: 
+   the_inductive_types and the_type_definitions *)
 
 let get_simple_table_typ =
   let split = Str.split (Str.regexp " +") in
@@ -354,6 +408,17 @@ let rec get_history_thm_rec2 ty_ignore tm_ignore (d,th)  =
     let _ = Hashtbl.add hash2 d f' in
       f';;
 
+(*
+The history ignores types that are already in the kernel, because
+they are inalterable.  The history also ignores constants in the kernel
+for the same reason.
+
+The history ignores the deserialization axiom and deserialization constant
+that are created in this module.  This permits the incremental use of
+of this module: a session using the deserialization axiom can import/export in
+the same way that a session that does not use the deserialization axiom.
+*)
+
 let get_history_thm1 = 
   let ty_ignore = ["bool";"fun";"ind"] in
   let tm_ignore = ["=";"fun";"@";deserial] in
@@ -366,6 +431,11 @@ let get_history_thm1 =
     fun th ->
       sort_uniq (ax_history @ get_history_thm_rec2 ty_ignore tm_ignore (mk th));;
 
+(* ********************************************************************** *)
+(* the full digest takes the entire history of the theorem into account,
+   it puts the history in sorted order then takes the hash *)
+(* ********************************************************************** *)
+
 let full_digest_thm th = 
   let history =  (get_history_thm1) th in
   let h2 =  (map fst) history in
@@ -375,7 +445,7 @@ let full_digest_thm th =
 full_digest_thm ETA_AX =  "63e9b5b016229a78bb720593f38b0b3e" 
       or failwith "full_digest_thm error";;
 
-(*
+(* TESTS:
 time full_digest_thm Pack2.PACKING;; (* "ba442e7e51b8bd5ee6903a114aa5eb8d" *)
 time full_digest_thm Pack2.PACKING;; (* "ba442e7e51b8bd5ee6903a114aa5eb8d" *)
 time full_digest_thm Tskajxy_034.TSKAJXY_034;; (* "04971c3d90ed713737c92af7244efeb1" *)
@@ -390,11 +460,11 @@ mem "ce0814956a89ca0159839762dfd44b7d" Theorem_digest.digest_list_extern;;
 
 let digest_thms some_thml = 
   let digests =  map 
-		  (fun t -> try full_digest_thm t;
-		   with 
-		     | Failure s -> (report ("cannot digest: "^(string_of_thm t)); "") 
-		     | Not_found -> (report ("cannot digest, not found: "^(string_of_thm t)); "")) 
-		  some_thml in
+    (fun t -> try full_digest_thm t;
+     with 
+       | Failure s -> (report ("cannot digest: "^(string_of_thm t)); "") 
+       | Not_found -> (report ("cannot digest, not found: "^(string_of_thm t)); "")) 
+    some_thml in
     filter (fun s -> not (s = "")) digests;;
   
 (*
@@ -406,6 +476,11 @@ subtract digest_list Theorem_digest.digest_list_extern;;
 subtract Theorem_digest.digest_list_extern digest_list ;;
 
 *)
+
+
+(* ********************************************************************** *)
+(* writing the digest strings out to file *)
+(* ********************************************************************** *)
 
 let save_stringarray filename xs head sep tail = 
   let wrap_str s = "\""^s^"\"" in
@@ -438,6 +513,22 @@ let dd1 = subtract Theorem_digest.digest_list_extern digest_list;;
 map (fun t -> assoc t hashes2) dd1;;
 *)
 
+let thm_list = ref [];;
+
+let add_thm th = 
+  let _ = thm_list := th :: !thm_list in
+    ();;
+
+(* Export all theorems in the HOL Light database *)
+
+let save_all_theorems() = 
+  let _ = update_database() in
+  let tt = (map snd !theorems) @ !thm_list in
+  let tt2 = uniq (sort (<) 
+		(Theorem_digest.digest_list_extern @ digest_thms tt)) in
+  let _ =   save_all tt2 in
+    ();;
+
 
 let set_of_string sl = 
   let acc = St.empty in
@@ -445,24 +536,62 @@ let set_of_string sl =
 
 (* ********************************************************************** *)
 (* deserialization axiom *)
+
+(*
+The kernel of HOL Light does not permit the import of theorems from 
+another sessions.  We have two options about how to introduce the import
+of functions.  (1) Modify the kernel, or (2) introduce and inconsistency
+into HOL Light to allow the creation of arbitrary theorems.
+
+It is not easy to modify the kernel to allow import, because the 
+kernel should be nearly the first piece of code to load, and the description
+of the import function requires a substantial number of other files to
+be loaded beforehand.
+
+We take the approach (2).  However, we restrict the scope of the inconsistency
+using the scoping rules of Objective CAML, so that the inconsistency
+can only be invoked to create a theorem using mk_deserialization_thm,
+which checks that it is a legitimate import.  In other words, 
+this is the only
+way the inconsistency can be used.
+
+The deserialization axiom is a bit of a hack that uses the fact
+that HOL Light does not make a centralized record of the types it creates.
+This allows the creation of a boolean term `deserialization`
+ that is equivalent to `F`, for which there is no record of this equivalence.
+This is what the first lines of mk_deserialize_thm is doing.
+
+We freeze the list of importable theorems at the moment this module loads.
+This module cannot be reloaded.
+
+*)
 (* ********************************************************************** *)
 
-(* can't be reloaded *)
+(* Here is the inconsistency.
+   This function can only be called once.
+   The "snd" in deserialize removes the negation to create the inconsistency *)
+
+let mk_local_inconsistency() = 
+  let pseudo_thm = prove (`(\(x:bool). x) T`,MESON_TAC[]) in
+  let abs_rep,rep_abs = Hol.new_basic_type_definition 
+    "extern_bool" ("serialize","deserialize") (pseudo_thm) in
+  let rep_abs' = MESON[rep_abs] `~(!r. deserialize (serialize r) = r)` in
+  let deserialize = new_basic_definition (mk_eq (deserial_var,snd (dest_comb (concl rep_abs')))) in
+  let falsehood_thm = UNDISCH (MESON[rep_abs';deserialize] `deserialization ==> r`) in
+    falsehood_thm;;
 
 (* XX. need to rework to allow theorems with hypotheses. *)
 
 let mk_deserialize_thm = 
   let digest_set = set_of_string 
     (Theorem_digest.digest_list_extern @ Theorem_nonlinear_digest.digest_list_extern) in
-  let pseudo_thm = prove (`(\(x:bool). x) T`,MESON_TAC[]) in
-  let abs_rep,rep_abs = Hol.new_basic_type_definition 
-    "extern_bool" ("serialize","deserialize") (pseudo_thm) in
-  let rep_abs' = MESON[rep_abs] `~(!r. deserialize (serialize r) = r)` in
-  let deserialize = new_basic_definition (mk_eq (deserial_var,snd (dest_comb (concl rep_abs')))) in
-  let deserial_thm = UNDISCH (MESON[rep_abs';deserialize] `deserialization ==> r`) in
   let rvar = `r:bool` in
-  let mk_dthm t = INST [(t,rvar)] deserial_thm in
+    (* The scope of falsehood is restricted here: *)
+  let (ok,falsehood_thm) = 
+    try (true,mk_local_inconsistency()) with _ -> (false,TRUTH) in
+  let mk_dthm t = INST [(t,rvar)] falsehood_thm in
     fun t -> 
+      let _ = ok or failwith "mk_deserialization failed" in
       let th = mk_dthm t in 
       let d = try full_digest_thm th with Not_found -> failwith ("digest failed "^string_of_thm th) in
       let _ = St.mem d digest_set or failwith ("theorem digest not found "^d) in
@@ -475,15 +604,6 @@ let deserialization_axiom =
 	find (fun u -> t = concl u && hyp u = []) (axioms())
       with _ -> Hol.new_axiom t;;
 
-(* creates a new axiom each time. since ax is computed only once:
-let deserialization_axiom = 
-  let t = mk_const (deserial,[]) in
-  let ax = axioms() in
-  let found = filter (fun u -> t = concl u && hyp u = []) ax in
-    fun () ->
-      if (not(found=[])) then hd found else Hol.new_axiom t;;
-*)
-
 let use_serialization = 
   try
     let _ = Sys.getenv "FLYSPECK_SERIALIZATION" in
@@ -495,13 +615,19 @@ let mk_ser_thm t =
   let d = deserialization_axiom() in
     PROVE_HYP d (mk_deserialize_thm t);;
 
+(* ********************************************************************** *)
+(* The remaining functions in the module are used to
+   load the entire HOL Light session quickly, by skipping
+   proofs of theorems that can be imported.
+
+   This code still needs to be cleaned up a bit. *)
+(* ********************************************************************** *)
+
+
 let report_not_found t = 
   if use_serialization then report ("(-:) "^string_of_term t);;
 
-let thm_list = ref [];;
-let add_thm th = 
-  let _ = thm_list := th :: !thm_list in
-    ();;
+
 
 (*
 let des_make_thm p t = 
@@ -603,13 +729,8 @@ let rec sort_lt_uniq lis =
 Sometimes uniq stalls for unclear reasons on this long list...
 *)
 
-let save_all_theorems() = 
-  let _ = update_database() in
-  let tt = (map snd !theorems) @ !thm_list in
-  let tt2 = uniq (sort (<) 
-		(Theorem_digest.digest_list_extern @ digest_thms tt)) in
-  let _ =   save_all tt2 in
-    ();;
+
+
 
 
 

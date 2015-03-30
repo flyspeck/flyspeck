@@ -135,5 +135,25 @@ double bump(double r);
 double beta_bumpA_y(double y1,double y2,double y3,double y4,double y5,double y6);
 double machine_eps();
 
+// functions for pentagon problem. //PENTAGON-PACKING 2015
+
+double pent_rho();
+double pent_e();
+double area_del_dl();
+double ell(double h,double psi);
+double ellx(double xb,double beta);
+double area_triangle(double a, double b, double c);
+// pinwheels:
+double pinwheel_a(double alpha,double beta,double xc);
+double pinwheel_b(double alpha,double beta,double xc);
+double pinwheel_c(double alpha,double beta,double xc);
+// L-junction;
+double lj_a(double alpha,double beta,double xc);
+double lj_b(double alpha,double beta,double xc);
+double lj_c(double alpha,double beta,double xc);
+// T-junction:
+double tj_a(double alpha,double beta,double xc);
+double tj_b(double alpha,double beta,double xc);
+double tj_c(double alpha,double beta,double xc);
 
 #endif

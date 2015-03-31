@@ -58,3 +58,17 @@ in the directory `out`.
 
     cd scripts
     ocaml create_native_formal_ineqs.ml
+
+##Verification of all Flyspeck Nonlinear Inequalities
+
+    rm -rf out
+    ./run-parallel 120
+    make sharp
+    ./sharp_verifier > out_sharp.txt
+    find out -type f ! -regex ".*/\..*" -exec grep "Hash" '{}' \; | sort -V | sed -e 's/.*Hash  //' -e 's/^.*,(/(/' > hashes.txt
+    grep "Hash" out_sharp.txt | sed -e 's/.*Hash  //' -e 's/^.*,(/(/' >> hashes.txt
+
+The result of these commands is the file `hashes.txt` which contains
+hashes of theorems for all Flyspeck nonlinear inequalities.
+
+

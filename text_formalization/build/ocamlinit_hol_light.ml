@@ -64,28 +64,44 @@ let flyspeck_dir =
 
 loadt (Filename.concat flyspeck_dir "build/strictbuild.hl");; 
 
-(* new_build_silent()  
-   loads all of the flyspeck files up through
-    the (weak) main statement of the Kepler conjecture.
-
-It can be customized to obtain somewhat different
-end results, by uncommenting 
- the following options.
+(*  To default is to load up through the weak version of the
+    main statement of the Kepler conjecture:
 *)
 
-(* build_option_main();; (* This is the default for the build, giving the weak form of the main statement. *) *)
+do_build(Build.build_sequence_main_statement);;
 
-(* build_option_main_and_lp();; (* include linear programming verifications.  This gives the main statement of the
-Kepler conjecture in its strong form. *) *)
+let chk_weak_main_statement = Audit_formal_proof.chk_thm
+  (  The_main_statement.kepler_conjecture_with_assumptions,
+  `!a:((((A)list)list)list). tame_classification a /\
+         good_linear_programming_results a /\
+         the_nonlinear_inequalities
+         ==> the_kepler_conjecture`
+  );;
 
-(* build_option_the_nonlinear_inequalites();; (* exclude linear program and include
-   import the proof of `the_nonlinear_inequalities` *) *)
-(* To use this option, serialization needs to be turned
-   with Unix.putenv "FLYSPECK_SERIALIZATION" "1",
-   as described above *)
+(*
+It takes about a day to load the strong version of the main statement:
 
 
+do_build(Build.build_sequence_nonserial);;
+    
+let strong_main_statement = Audit_formal_proof.chk_thm
+  (The_kepler_conjecture.tame_nonlinear_imp_kepler_conjecture,
+  `import_tame_classification /\ the_nonlinear_inequalities 
+  ==> the_kepler_conjecture`);;
 
-new_build_silent();;
+*)
+
+(*
+Finally, to get `the_nonlinear_inequalities` via imported theorems:
+
+let _ = Unix.putenv "FLYSPECK_SERIALIZATION" "1" in
+  do_build(Build.build_sequence_the_nonlinear_inequalities);;
+
+let chk_nonlinear_inequalities = Audit_formal_proof.chk_thm
+  (Mk_all_ineq.the_nonlinear_inequalities,
+  `the_nonlinear_inequalities`);;
+
+*)
+
 let _ = print_string "Done reading ocamlinit_hol_light.ml\n";;
 

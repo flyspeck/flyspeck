@@ -1,6 +1,8 @@
 (* ========================================================================== *)
 (* FLYSPECK - BOOK FORMALIZATION                                              *)
 (*                                                                            *)
+(* This is the "main" file of Flyspeck that loads all others as needed.       *)
+(*                                                                            *)
 (* Chapter: Build for all chapters                                            *)
 (* Author: Thomas C. Hales                                                    *)
 (* Date: 2010-07-14                                                           *)
@@ -59,7 +61,7 @@ let time_msg msg f x =
                           (string_of_float(finish_time -. start_time))^": ");
       raise e;;
 
-(* potential bug:
+(* N.B.
    the svn version does not reflect recent commits, unless followed by an update.
 *)
 
@@ -137,7 +139,7 @@ needs "general/prove_by_refinement.hl";;
 
 needs "general/theorem_digest.hl";;
 needs "general/serialization.hl";;
-needs "build.hl";;
+needs "build/build.hl";;
 
 let needb s =
   let s' = file_on_path (!load_path) s in
@@ -214,7 +216,7 @@ let (flyspeck_needs_untimed,filetable,depend,depend_reset)  =
    (* associate constants with files *) 
   let depend = ref ([]:((string*Digest.t)*(string*Digest.t)) list) in 
    (* dependency table *)
-  let host = ref (flyspeckid "build.hl") in
+  let host = ref (flyspeckid "build/build.hl") in
   let fn = fun s->
   let id = flyspeckid s in 
     if (List.mem id (!loaded_files))
@@ -264,22 +266,29 @@ let define = Debug.define;;
 (* let ISPECL = Debug.verbose_thm ISPECL;; *)
 
 (*  By default, the project will generate
-    the main statement.  To do more change the following line. *)
+    the main statement.  To do more, call one of the given options. *)
 
-let build_list = Build.build_sequence_main_statement;;
+let build_list = ref Build.build_sequence_main_statement;;
 
-(* let build_list = Build.build_sequence_nonserial;; *)
+let build_option_main() =
+  (build_list := Build.build_sequence_main_statement);;
+
+let build_option_main_and_lp() = 
+  (build_list:= Build.build_sequence_nonserial);;
+
+let build_option_the_nonlinear_inequalities() =
+  (build_list:=Build.build_sequence_the_nonlinear_inequalities);;
 
 let build_and_report() = 
   let s = try
-    (let _ = map flyspeck_needs build_list in  "full load completed")
+    (let _ = map flyspeck_needs !build_list in  "full load completed")
   with Failure t -> t  in
-  let oc = open_out_gen [Open_append;Open_text] 436 (flyspeckpath "log.txt") in
+  let oc = open_out_gen [Open_append;Open_text] 436 (flyspeckpath "logs/log.txt") in
   (Pervasives.output_string oc (build_report s); close_out oc);;
 
 let build_silent() = 
   let s = try
-    (let _ = map flyspeck_needs build_list in  "full load completed")
+    (let _ = map flyspeck_needs !build_list in  "full load completed")
   with Failure t ->  t  in
      build_report s;;
 
@@ -298,8 +307,8 @@ let already_loaded s =
     List.mem (flyspeckid s) (!loaded_files);;
 
 let new_build_silent() = 
-  let loaded = try_do (fun s -> flyspeck_needs s; s) build_list in
-  let unloaded = filter(not o already_loaded) build_list in
+  let loaded = try_do (fun s -> flyspeck_needs s; s) !build_list in
+  let unloaded = filter(not o already_loaded) !build_list in
     (loaded,unloaded);;
 
 let rec cut_after f a acc = function
@@ -316,7 +325,7 @@ let reset () = (reset_after "hol_pervasives.hl"; depend_reset());;
 (*
 let build_all() =
   (needs "Multivariate/flyspeck.ml"; 
-   map (fun t -> State_manager.neutralize_state(); needs t) build_list);;
+   map (fun t -> State_manager.neutralize_state(); needs t) !build_list);;
 *)
 
 (*

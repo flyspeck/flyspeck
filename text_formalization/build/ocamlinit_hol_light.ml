@@ -64,7 +64,7 @@ let flyspeck_dir =
 
 loadt (Filename.concat flyspeck_dir "build/strictbuild.hl");; 
 
-(*  To default is to load up through the weak version of the
+(*  The default is to load up through the weak version of the
     main statement of the Kepler conjecture:
 *)
 

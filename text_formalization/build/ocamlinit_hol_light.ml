@@ -92,7 +92,8 @@ let chk_weak_main_statement = Audit_formal_proof.chk_thm
   );;
 
 (* It takes about a day to load the strong version of the main
-   statement:
+   statement. Because of memory requirements, it is recommended
+   not to do this in the same session as the audit of the weak version.
 
 
    do_build(Build.build_sequence_nonserial);;

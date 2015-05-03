@@ -69,6 +69,8 @@ void pinwheel_constraint(int numargs,int whichFn,double* y, double* ret,void*) {
 	 case 2: negval = pinwheel_area(y[0],y[1],y[2])-area_del_dl(); break;
 	 case 3: negval = pinwheel_b(y[0],y[1],y[2])-pinwheel_a(y[0],y[1],y[2]); break;
 	 case 4: negval = pinwheel_c(y[0],y[1],y[2])-pinwheel_a(y[0],y[1],y[2]); break;
+	 case 5 : negval = - pinwheel_a(y[0],y[1],y[2]) + 1.72; break;
+	 case 6 : negval = pinwheel_a(y[0],y[1],y[2]) - 1.85; break;
        default : cout << "out of bounds " << endl; break;
        }
 	 *ret = negval;
@@ -91,6 +93,25 @@ Minimizer mpin() {
 	return M;
 }
 trialdata dpin(mpin(),"ID pin: pentagon-pinwheel acute inequality");
+
+
+void tpin2(int numargs,int whichFn,double* y, double* ret,void*) {
+  *ret = pinwheel_area(y[0],y[1],y[2]) - (1.28 - 0.330769 * (-1.72 + pinwheel_a(y[0],y[1],y[2]) ));
+	}
+Minimizer mpin2() {
+  int trialcount = 100;
+    double xmin[3]= {0.0,0.0,0.0};
+    double xmax[3]= {2.0*pi()/5.0,2.0*pi()/5.0, 2.0*pent_e()};
+  //    double xmin[3]= {0.2,0.2,0.1};
+  //  double xmax[3]= {0.3,0.3,0.3};
+	Minimizer M(trialcount,3,6,xmin,xmax);
+	M.func = tpin2;
+	M.cFunc = pinwheel_constraint;
+	return M;
+}
+trialdata dpin2(mpin2(),"ID pin2: pentagon-pinwheel acute inequality");
+
+
 
 // L-junction test:
 double lj_area(double alpha,double beta,double xc) {

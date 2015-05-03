@@ -1,0 +1,371 @@
+(* continuation of pent.hl
+   Dimer calculations *)
+
+
+
+(* ******************************************************************************** *)
+(* BMIEZDS test that comes up in dimer contraction of middle edge AA' to contact.
+   We want to show that if edges are at most 2.1. and
+   AA'B triangle, B is a double pointer, angles beta+gamma<= 0.941
+   Then area > 1.345.  *)
+
+  (* See Diagram BMIEZDS  *)
+(* ******************************************************************************** *)
+
+let areaBMIEZDS xbeta beta xgamma gamma = 
+  let ellxb = ellx xbeta beta in
+  let ellxc = ellx xgamma gamma in
+  let hb = xbeta - iee in
+  let hc = xgamma - iee in
+  let rb = isqrt (hb * hb + irho * irho) in
+  let rc = isqrt (hc * hc + irho * irho) in
+  let phib = iarc one ellxb rb in
+  let phic = iarc one ellxc rc in
+  let angleB = m (2.0 *. pi /. 5.0) + phib + phic in
+    ellxb * ellxc * isin (angleB) / two;;
+
+let opedgeBMIEZDS xbeta beta xgamma gamma = 
+  let ellxb = ellx xbeta beta in
+  let ellxc = ellx xgamma gamma in
+  let hb = xbeta - iee in
+  let hc = xgamma - iee in
+  let rb = isqrt (hb * hb + irho * irho) in
+  let rc = isqrt (hc * hc + irho * irho) in
+  let phib = iarc one ellxb rb in
+  let phic = iarc one ellxc rc in
+  let angleB = m (2.0 *. pi /. 5.0) + phib + phic in
+    iloc ellxb ellxc angleB;;
+
+let oneopBM abx = 
+  let [xbeta;beta;xgamma;gamma] = abx in 
+  let ab = beta+gamma in
+    if m (0.313) >>> ab then true
+    else
+      try
+	let opedge = opedgeBMIEZDS xbeta beta xgamma gamma in
+	  (opedge >>> m 2.1) 	  
+      with | Unstable -> false;;
+
+let oneareaBM abx = 
+  let [xbeta;beta;xgamma;gamma] = abx in 
+  let ab = beta+gamma in
+    if m (0.313) >>> ab then true
+    else
+      try
+	let ar = areaBMIEZDS xbeta beta xgamma gamma in
+	let opedge = opedgeBMIEZDS xbeta beta xgamma gamma in
+	  (ar >>> m 1.345) or (opedge >>> m 2.1)  	  
+      with | Unstable -> false;;
+
+mktest("oneopBM",fun() ->
+	 recurseltofinish oneopBM 
+	   [[(mk_interval (0.0, ee)); 
+	     (mk_interval(0.0,0.313));
+	     (mk_interval (0.0, ee)); 
+	     (mk_interval(0.0,0.313))]]);; 
+
+mktest("oneareaBM",fun()->
+	 recurseltofinish oneareaBM 
+	   [[(mk_interval (ee,2.0*. ee)); 
+	     (mk_interval(0.0,0.313));
+	     (mk_interval (0.0,2.0 *. ee)); 
+	     (mk_interval(0.0,0.313))]]);; 
+
+opedgeBMIEZDS (m 0.5877) (m 0.2347) (m 0.0) (m 0.078);;
+
+(* end BMIEZDS *)
+
+
+(* ******************************************************************************** *)
+(* ISOCELES calculations, subcritical.
+   Assume the subcritical is "2C", but not "3C".
+   On subcritical side, we assume we have an isoceles triangle (two long edges)
+   We show that the two long edges are never less than 1.76.
+   We show that the area is never less than 1.265. (was 1.27)
+   We show that the longitudinal angles theta, theta' are ...
+*)
+(* ******************************************************************************** *)
+
+let slider h = 
+  let trho = two * irho in
+  let alpha = iatan (h / trho) in
+  let m = isqrt (h * h + trho * trho) in
+    (m,alpha);;
+
+slider (m 0.0);;
+ellx (two * iee) (m (2.0 *. pi /. 5.0));;
+thetax (two * iee) (m (2.0 *. pi /. 5.0));;
+
+
+(* Case SS = slider+slider *)
+
+let slider_slider h1 h2 = 
+  let (m1,alpha1) = slider h1 in
+  let (m2,alpha2) = slider h2 in
+  let beta = m (2.0 *. pi /. 5.0) + alpha1 + alpha2 in
+    (m1,m2,(iloc m1 m2 beta),alpha1,alpha2);;
+
+(*
+let one_iso_slider_slider hs =
+  let [h1;h2] = hs in
+    try 
+      let (l1,l2,l3,alpha1,alpha2) = slider_slider h1 h2 in
+	if (l1 >>> l3) or (l3 >>> l1) or (l2 >>> l1) then true
+	else 
+	  let a = areamin_acute l1 l2 l3 in
+	  let theta1 = iarc_acute l1 l3 l2 + alpha1 - m (pi /. 5.0) in
+	  let theta2 = iarc_acute l2 l3 l1 + alpha2 - m (pi /. 5.0) in
+	    not (pet l3 theta1 theta2) or ((a >>  1.265) && (l1 >>> m 1.76))
+    with Unstable -> false;;
+
+recurseltofinish one_iso_slider_slider [[(mk_interval (-. 2.0 *. ee,2.0*. ee));(mk_interval (-. 2.0 *. ee,2.0*. ee))]];;
+
+slider_slider (m (-. 0.3226)) (m ( -. 0.00245));;
+
+let slider_midpointer h t variant_angle =
+  let trho = two * rho in
+  let alpha = iatan (h / trho) in
+  let m = isqrt( h * h + trho*trho) in
+  let b = loc m one (alpha + m variant_angle) in 
+    ();;
+*)
+
+let ellthetax xalpha alpha sgn =  (* swap if false *)
+  let (el,th,th') = thetax xalpha alpha in
+  let (th,th') = if sgn then (th,th') else (th',th) in
+    (el,th,th');;
+
+(* timing tests *)
+
+let nn = m 0.1;;
+time (thetax nn) nn;; (* 5e-5 *)
+time (ellx nn) nn;; (* 2.5e-5 *)
+time (iarc nn nn) nn;; (* 1.4e-5 *)
+time periodize_pent nn;; (* 1.5e-5 *)
+time (iarc_acute nn nn) nn;; (* 7e-6 *)
+time (areamin_acute nn nn) nn;; (* 5e-6 *)
+time (cos) 0.1 (* 5e-6 *);;
+
+let nn = m 0.1;;
+time icos nn;; (* 1.2e-5. 7e-6 *)
+time isin nn;; (* 1e-5 *)
+time isqrt nn;; (* 8e-6 *)
+time iacos nn;; (* 5e-6 *)
+
+let mm = mk_interval (1.1,1.15);;
+time (iarea mm mm) mm;; (* 1.4e-5 *)
+
+iarc mm mm mm;;
+iarc_acute mm mm mm;;
+
+
+let one_two_isoceles sgnalpha sgnbeta xs =
+  let [xalpha; alpha;  xbeta; beta] = xs in
+    try
+      let (elalpha,thABC,thBAC) = ellthetax xalpha alpha sgnalpha in
+      let (elgamma,thCBA,thBCA) = ellthetax xbeta beta sgnbeta in
+      let arcB = iarc_acute elalpha elgamma elalpha in
+      let arcC = arcB in
+      let arcA = iarc_acute elalpha elalpha elgamma in
+      let pB = periodize_pent (thBAC+thBCA +arcB) in
+      let a = areamin_acute elalpha elalpha elgamma in
+      let has0 x = (x.lo <= 0.0) && (0.0 <= x.hi) in
+      let neg x = (x.hi <= 0.0) in
+      let sumt x = (x.lo >> 0.15) in (* was 0.2 nix, alpha open out condition *)
+(*      let minedge = m 1.74 in  was 1.76 nix, was 1.75 nix, was 1.74 nix *)
+      let minarea = 1.265 in (* was 1.27 nix *)
+	if elgamma >>> elalpha then true
+	else if not(exists has0 pB) then true
+	else if (a >> adl) then true
+	else
+	  let thACB = - thABC - arcA in
+	  let thCAB = - thCBA - arcC in
+	    if not(pet elalpha thACB thCAB) then true
+	    else 
+	      let mm = m 0.2 in
+	      let thACBs = periodize_pent (thACB + mm) in
+	      let thCABs = periodize_pent (thCAB + mm) in
+		  ((a >> minarea) && (* (elalpha >>> minedge) && *)
+		     (forall sumt
+			(periodize_pent (thACB + thCAB))) &&
+		     (forall neg (thACBs)) &&
+		     (forall neg (thCABs))
+		  )
+(*
+		  (forallpair2 sumt thACBs thCABs) *)
+    with Unstable -> false;;
+
+
+
+
+let init_1_2_iso = [[(mk_interval (0.0,2.0*. ee));(mk_interval (0.0,2.0 *. pi /. 5.0));(mk_interval (0.0,2.0*. ee));(mk_interval (0.0,2.0 *. pi /. 5.0))]];;
+
+(*
+let fakei = [[mk_interval(0.3,0.4);mk_interval(0.3,0.4);mk_interval(0.8,1.0);mk_interval(1.2,2.0 *. pi /. 5.0)]];;
+let test = recurser (1.0e-3) 0 (one_two_isoceles true true) fakei;;
+*)
+
+
+
+let isott = recurseltofinish (one_two_isoceles true true) init_1_2_iso (* 53684627,true *);;
+
+
+let isotf = recurseltofinish (one_two_isoceles true false) init_1_2_iso;; (* (55492767, true) *)
+
+(* running *apr3* : *)
+let isoff = recurseltofinish (one_two_isoceles false false) init_1_2_iso;;
+
+(* running *hol-light-toplevel* *)
+let isoft = recurseltofinish (one_two_isoceles false true) init_1_2_iso;;
+
+
+(*
+let isoo = 
+  map (fun (b,c) -> recurseltofinish (one_two_isoceles b c) init_1_2_iso)
+    [(true,true);(true,false);(false,true);(false,false)];;
+*)
+
+(* [(0.,0.000574009035442);(0.308636934523,0.309250526838);(0.,0.000574009035442);(0.,0.000613592315154)] in 
+[(0.34921875,0.35);(0.33984375,0.340625);(0.8484375,0.84921875);(1.25575210735,1.25663706144)] in 
+[(0.181960864235,0.182534873271);(0.311091303783,0.311704896098);(1.01886603791,1.01944004694);(1.25602346912,1.25663706144)] in 
+ [(0.0457856026359,0.0457856113946);(0.256866309442,0.256866318805);(0.0423911138092,0.0423911225679);(0.115355345886,0.115355355249)] in 
+[(0.0624774185729,0.0624774273316);(0.238344249805,0.238344259168);(0.0595587889823,0.059558797741);(0.152170884796,0.152170894158)] in 
+[(0.102931882513,0.102931891271);(0.213740533085,0.213740542448);(0.111115531503,0.111115540262);(0.214577837173,0.214577846536)] in *)
+(* [(0.,0.000574009035442);(0.308636934523,0.309250526838);(0.,0.000574009035442);(0.,0.000613592315154)] in 
+[(0.34921875,0.35);(0.33984375,0.340625);(0.8484375,0.84921875);(1.25575210735,1.25663706144)] in 
+    [(0.181960864235,0.182534873271);(0.311091303783,0.311704896098);(1.01886603791,1.01944004694);(1.25602346912,1.25663706144)] in 
+    [(0.0457856026359,0.0457856113946);(0.256866309442,0.256866318805);(0.0423911138092,0.0423911225679);(0.115355345886,0.115355355249)] in 
+    [(0.0624774185729,0.0624774273316);(0.238344249805,0.238344259168);(0.0595587889823,0.059558797741);(0.152170884796,0.152170894158)] in 
+[(0.102931882513,0.102931891271);(0.213740533085,0.213740542448);(0.111115531503,0.111115540262);(0.214577837173,0.214577846536)] in *)
+
+
+let ce = [(0.614911514765,0.614911523524);(0.903207878544,0.903207887907);(0.0296781660148,0.0296781747735);(0.,9.36267570731e-09)] ;;
+
+let ce =  [(0.587785243534,0.587785252292);(0.932806910448,0.932806919811);(0.0212230153751,0.0212230241338);(0.,9.36267570731e-09)] ;;
+
+let test1 = 
+  let low (x,_) = m x in
+  let [xalpha;alpha;xbeta;beta] = map (low) ce in
+  let (elalpha,thBAC,thABC) = ellthetax xalpha alpha false in
+  let (elgamma,thCAB,thACB) = ellthetax xbeta beta true in
+    (elalpha.lo,elgamma.lo,elalpha.lo,thABC.lo,thBAC.lo,thCAB.lo);;
+
+let test2 = 
+  let low (x,_) = m x in
+  let sgnalpha = false in
+  let sgnbeta = true in
+  let [xalpha;alpha;xbeta;beta] = map (low) ce in
+      let (elalpha,thABC,thBAC) = ellthetax xalpha alpha sgnalpha in
+      let (elgamma,thCBA,thBCA) = ellthetax xbeta beta sgnbeta in
+      let arcB = iarc_acute elalpha elgamma elalpha in
+      let arcC = arcB in
+      let arcA = iarc_acute elalpha elalpha elgamma in
+      let pB = periodize_pent (thBAC+thBCA +arcB) in
+      let a = areamin_acute elalpha elalpha elgamma in
+      let thACB = - thABC - arcA in
+      let thCAB = - thCBA - arcC in
+	periodize_pent (thACB + thCAB);;
+
+
+
+let test3 =  
+  let sgnalpha = false in
+  let sgnbeta = true in
+  let xs1 = [mk_interval(0.,0.000574009035442);
+	     mk_interval(0.264458287831,0.265071880147);
+	     mk_interval(0.,0.000574009035442);
+	     mk_interval(0.0859029241216,0.0865165164368)] in
+  let xs = [mk_interval(0.348423484513,0.348997493549);
+	     mk_interval(0.312932080729,0.313545673044);
+	     mk_interval(0.881103869403,0.881677878439);
+	     mk_interval(1.24620599208,1.24681958439)] in
+  let xs = map mk_interval 
+    [(0.32421875,0.325);(0.32421875,0.325);(0.8890625,0.88984375);(1.24921875,1.25)] in
+  let xs = map mk_interval ce in
+  let [xalpha; alpha;  xbeta; beta] = xs in
+    try
+      let (elalpha,thABC,thBAC) = ellthetax xalpha alpha sgnalpha in
+      let (elgamma,thCBA,thBCA) = ellthetax xbeta beta sgnbeta in
+      let arcB = iarc_acute elalpha elgamma elalpha in
+      let arcC = arcB in
+      let arcA = iarc_acute elalpha elalpha elgamma in
+      let pB = periodize_pent (thBAC+thBCA +arcB) in
+      let a = areamin_acute elalpha elalpha elgamma in
+      let has0 x = (x.lo <= 0.0) && (0.0 <= x.hi) in
+      let neg x = (x.hi <= 0.0) in
+      let sumt x = (x.lo >> 0.2) in (* alpha open out condition *)
+      let minedge = m 1.75 in (* was 1.76 *)
+      let minarea = 1.265 in
+	if elgamma >>> elalpha then true
+	else if not(exists has0 pB) then true
+	else if (a >> adl) then true
+	else
+	  let thACB = - thABC - arcA in
+	  let thCAB = - thCBA - arcC in
+	    if not(pet elalpha thACB thCAB) then true
+	    else 
+	      let mm = m 0.2 in
+	      let thACBs = periodize_pent (thACB + mm) in
+	      let thCABs = periodize_pent (thCAB + mm) in
+	      let s = string_of_interval in
+	      let _ = report ("a: "^(s (m a))^"elalpha: "^(s elalpha)^" thACB+0.2:"^(s (thACB+mm))^" thCAB+0.2:"^(s (thCAB+mm))^" sumtheta:"^(s (thCAB+thACB)))   in
+		  ((a >> minarea) && (elalpha >>> minedge) &&
+		     (forall sumt
+			(periodize_pent (thACB + thCAB))) &&
+		     (forall neg (thACBs)) &&
+		     (forall neg (thCABs))
+		  )
+    with Unstable -> true;;
+
+let pp d = periodize_pent (mk_interval d);;
+
+pp (-1.377193447,-1.37004685799) ;;
+pp (-0.459079344183,-0.452623045655);;
+pp (-2.23627279118,-2.22266990364);;
+pp (-1.05663706323,-1.05663689594);;
+
+mk_interval (-1.5827563572,-1.5754833694) + m (2.0 *. pi /. 5.0);;
+mk_interval (-2.2141281388,-2.20027002701) + m (2.0 *. pi /. 5.0);;
+mk_interval (-0.631371781604,-0.624786657611);;
+ pi /. 5.0;;
+pp (-2.27547088689,-2.27547071545);;
+periodize_pent (mk_interval (-2.24124743185,-2.22789326866));;
+area 1.79 1.79 (2.0 *. rho);;
+
+
+      let minarea = adl.lo + (adl.lo -  1.265);;
+
+let dimer_contra_isoceles_unfinished sgnalpha sgnbeta xs =
+  let [xalpha; alpha;  xbeta; beta] = xs in
+    try
+      let (elalpha,thABC,thBAC) = ellthetax xalpha alpha sgnalpha in
+      let (elgamma,thCBA,thBCA) = ellthetax xbeta beta sgnbeta in
+      let arcB = iarc_acute elalpha elgamma elalpha in
+      let arcC = arcB in
+      let arcA = iarc_acute elalpha elalpha elgamma in
+      let pB = periodize_pent (thBAC+thBCA +arcB) in
+      let a = areamin_acute elalpha elalpha elgamma in
+      let has0 x = (x.lo <= 0.0) && (0.0 <= x.hi) in
+      let neg x = (x.hi <= 0.0) in
+      let sumt x = (x.lo >> 0.15) in (* alpha open out condition *)
+      let minarea = 1.265 in
+	if elgamma >>> elalpha then true
+	else if not(exists has0 pB) then true
+	else if (a >> adl) then true
+	else
+	  let thACB = - thABC - arcA in
+	  let thCAB = - thCBA - arcC in
+	    if not(pet elalpha thACB thCAB) then true
+	    else 
+	      let mm = m 0.2 in
+	      let thACBs = periodize_pent (thACB + mm) in
+	      let thCABs = periodize_pent (thCAB + mm) in
+		  ((a >> minarea) && (* (elalpha >>> minedge) && *)
+		     (forall sumt
+			(periodize_pent (thACB + thCAB))) &&
+		     (forall neg (thACBs)) &&
+		     (forall neg (thCABs))
+		  )
+(*
+		  (forallpair2 sumt thACBs thCABs) *)
+    with Unstable -> false;;

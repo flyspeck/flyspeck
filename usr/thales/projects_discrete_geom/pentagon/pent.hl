@@ -9,11 +9,13 @@ then run init.hl.
 
 
 module Pent = struct
+end;;
 
 let i16 = mk_interval (16.0,16.0);;
 
 let m r = mk_interval(r,r);;
 
+let mk x y = mk_interval(x,y);;
 
 let imem r i = (i.lo <= r && r <= i.hi);;
 
@@ -23,6 +25,7 @@ let eps = 1.0e-10;;
 (* ******************************************************************************** *)
 (* trig functions *)
 (* ******************************************************************************** *)
+
 
 let pi = 4.0 *. atan (1.0);;
 let pi2 = 2.0 *. atan (1.0);;
@@ -101,11 +104,21 @@ let icos y =
 
 let isin y = icos (y - m ( pi /. 2.0 ));;
 
+let safeacos y = 
+  if y <= -1.0 then pi 
+  else if y >= 1.0 then 0.0 else
+    acos y;;
+
+safeacos (-. 0.99);;
+safeacos (-. 1.1);;
+safeacos (0.9999);;
+safeacos (1.0);;
+
 let iacos y = (* corrected may 1, 2015 *)
   let _ = y.hi >= -1.0 or raise Unstable in
   let _ = y.lo <= 1.0 or raise Unstable in
-  let a1 = if y.lo <= -1.0 then pi else acos y.lo in
-  let a2 = if y.hi >= 1.0 then 0.0 else acos y.hi in
+  let a1 = safeacos y.lo in 
+  let a2 = safeacos y.hi in 
     mk_interval (a2,a1);;
 
 let iasin y = 
@@ -118,25 +131,59 @@ iasin (m 0.22);;
 
 (* law of cosines *)
 
-let iloc a b theta = 
-  isqrt(a * a + b * b - two * a * b * icos (theta));;
+let locc a b costheta = 
+  sqrt( a *. a +. b *. b -. 2.0 *. a *. b *. costheta);;
 
-iloc (m 0.1) (m 0.2) (m 0.3);;
-
-let loc a b theta = 
-  sqrt( a *. a +. b *. b -. 2.0 *. a *. b *. cos(theta));;
+let loc a b theta = locc a b (cos theta);;
 
 loc 0.1 0.2 0.3;;
 
-let arc a b cop =
-  acos (((a *. a) +. (b *. b) -. (cop *. cop)) /. (2.0 *. a *. b));;
+let ilocc a b costheta = 
+  isqrt(a * a + b * b - two * a * b * costheta);;
 
-let iarc a b cop = 
+let iloc a b theta = ilocc a b (icos theta);;
+
+iloc (m 0.1) (m 0.2) (m 0.3);;
+
+(* on acute triangles we have monotonicity of iloc. It is faster
+and more accurate.  *)
+
+let ilocc_mono a b costheta = 
+  mk_interval(locc a.lo b.lo costheta.hi, locc a.hi b.hi costheta.lo);;
+
+let iloc_mono a b theta = 
+    ilocc_mono a b (icos theta);;
+
+iloc_mono (mk_interval(1.0,1.1)) (mk_interval(1.1,1.2)) (mk_interval(1.2,1.3));;
+iloc (mk_interval(1.0,1.1)) (mk_interval(1.1,1.2)) (mk_interval(1.2,1.3));;
+
+let iloc_general a b theta = 
+  let costheta = icos theta in
+  if (theta.lo > pi2) or ((b >>> a*costheta) && (a >>> b*costheta) )
+  then ilocc_mono a b costheta
+  else ilocc a b costheta ;;
+
+time (iloc_general (mk_interval(1.0,1.1)) (mk_interval(1.1,1.2))) (mk_interval(2.3,2.4));; (* 9e-6 *)
+time (iloc (mk_interval(1.0,1.1)) (mk_interval(1.1,1.2))) (mk_interval(2.3,2.4));; (* 1.5e-5 *)
+
+let arc a b cop =
+  safeacos (((a *. a) +. (b *. b) -. (cop *. cop)) /. (2.0 *. a *. b));;
+
+let iarc_general a b cop = 
   iacos (((a * a) + (b*b) - (cop*cop)) / (two * a * b));;
 
-
-let iarc_acute a b cop =  (* for acute triangles *)
+let iarc_mono a b cop =  (* for acute triangles *)
   mk_interval(arc a.hi b.hi cop.lo, arc a.lo b.lo cop.hi);;
+
+let iarc a b cop = 
+  let (a,b) = if a.lo <= b.lo then (a,b) else (b,a) in
+    if b.lo *. b.lo >> a.hi *. a.hi +. cop.hi *. cop.hi 
+    then (* obtuse *)
+      mk_interval (arc a.lo b.hi cop.lo, arc a.hi b.lo cop.hi)
+    else if a.lo *. a.lo +. cop.lo *. cop.lo >> b.hi *. b.hi
+    then 
+      iarc_mono a b cop
+    else iarc_general a b cop;;
 
 arc 0.1 0.2 0.1085659;;
 
@@ -203,18 +250,52 @@ let periodize_pent ix =
 
 periodize_pent (mk_interval (0.6,0.8));;
 
-(* ******************************************************************************** *)
+(* find the smallest integer or smallest multiple of r in interval ix. *)
+
+let smallest_int_in ix = 
+  let fl = floor ix.lo in
+    if ix.lo <= fl then fl
+    else let s = fl +. 1.0 in
+      if s <= ix.hi then s else failwith "smallest_int_in";;
+
+smallest_int_in (m 3.0);;
+smallest_int_in (mk_interval (2.5,3.5));;
+smallest_int_in (mk_interval (2.,7.5));;
+can smallest_int_in (mk_interval (2.3,2.4));;
+
+let smallest_mult_in r ix = 
+  let r = abs_float r in
+  let _ = r > eps or failwith "smallest_mult_in underflow" in
+    r *. (smallest_int_in (mk_interval (ix.lo /. r, ix.hi /. r)));;
+
+smallest_mult_in 0.5 (mk_interval (1.0,2.0));;
+smallest_mult_in 0.5 (mk_interval (1.5,2.0));;
+smallest_mult_in 0.5 (mk_interval (1.7,2.5));;
+smallest_mult_in 0.5 (mk_interval (1.7,2.1));;
+can (smallest_mult_in 0.5) (mk_interval (1.7,1.9));;
+
 (* ******************************************************************************** *)
 
-let ell h psi =
+(* ell, ellx, thetax, fillout. *)
+(* ******************************************************************************** *)
+
+let ell_deprecated h psi =
   let r = isqrt (h * h + irho* irho) in
   let theta = iacos (h / r) in
     isqrt (one + r * r - two * r * icos (psi + theta));;
 
+let ell h psi =
+  let r = isqrt (h * h + irho* irho) in
+  let theta = iacos (h / r) in
+    iloc_general one r (psi+theta);;
+
+ell (mk 1.1 1.2) (mk 1.3 1.4);;
+ell_deprecated (mk 1.1 1.2) (mk 1.3 1.4);;
+
 let ellx  = 
-  let mm = m (3.0 *. pi /. 10.0) in
+  let m310 = m (3.0 *. pi /. 10.0) in
   fun x alpha ->
-    ell (iee - x) (alpha + mm);;
+    ell (iee - x) (alpha + m310);;
 
 (* N.B.  theta has a jump discontinuity near pm pi/5, which is an inconvenience
    for the interval calculation. We try to deal with this gracefully
@@ -223,55 +304,126 @@ let ellx  =
    
    NB. May 2, 2015: pet now puts angles in range. 
    So we now always allow theta to exceed pi/5.
+
+   Recall that pentagon associated with thetap is the pointer, 
+   and pentagon theta is the receptor.
+
+   We assume the pentagons are in contact.
 *)
 
+
 let thetax xalpha alpha = 
-  let grace = 0.1 in 
   let h = xalpha - iee in
   let r = isqrt (h*h + irho*irho) in
-  let psi = iasin (h / r) in 
-  let elx = ellx xalpha alpha in 
-  let yalpha = two * iee - xalpha in
-  let gamma = 
-    if (yalpha.lo > 0.1) then iarc r yalpha one 
-    else (m pi) - iarc r xalpha one in 
-  let sgnf = m (3.0 *. pi /. 10.0) + alpha + gamma - m pi in
-  let sgn = if sgnf.lo >=0.0 then 1 else 
-    if sgnf.hi <= 0.0 then -1 else 0 in
-  let thetapp = iarc elx one r in 
-  let phipp = iarc elx r one in 
-  let phi = if sgn=1 then phipp else 
-    if sgn= -1 then -phipp else mk_interval (-. phipp.hi,phipp.hi) in
-  let theta1 = m (pi /. 5.0) + phi - psi in 
-  let is_inrange  = true in
-(*    
-    let b1 = (theta1.lo <= pi/. 5.0) in
-    let b2 = (theta1.hi <= pi/. 5.0 +. grace) in
-    let _ = not(b1) or b2 or raise Unstable in
-      b1 in 
-*)
-  let theta = if is_inrange  then theta1 else theta1 - m (2.0 *. pi /. 5.0) in
-  let thetap = if sgn=1 then thetapp else 
-    if sgn= -1 then -thetapp else mk_interval (-. thetapp.hi,thetapp.hi) in
-    (elx,theta, thetap);;
+  let phi = iacos (h / r) in
+  let psi = m (7.0 *. pi /. 10.0) - alpha in
+  let psi' = psi + phi in
+  let elx = iloc_general r one psi' in
+  let ely = iloc_general r (two * iee) (m (17.0 *. pi /. 10.0) - psi') in
+  let theta' = (iarc one elx ely) - m (2.0 *. pi /. 5.0) in
+  let theta = alpha - theta' in
+    (elx,theta,theta');;
 
 thetax (m 0.1) (m 0.2);;
 thetax (m 0.2) (m 0.19);;
+thetax (mk 0.1 0.11) (mk 0.2 0.22);;
+thetax (mk ee (ee+.0.01)) (mk (pi /. 5.0) ( pi/. 5.0 +. 0.01));;
 
+
+(* This can raise Failure _ or Unstable.  
+   Unstable means the intervals are still too big.
+   We catch Failure _ and return None.
+
+   Fillout coord input some interval bounds for a Delaunay triangle and
+   computes the others.
+   bAC is meant to be rough bounds. dAB is a computed better interval bound.
+   dij = distance i to j.
+   thetaABC = thetax coordinate at A along AB, opening outwards as usual.
+   arcA = Delaunay triangle angle at pent center A.
+
+   The theta intervals are only correct up to multiples of 2Pi/5.  They
+   are not normalized to (-pi/5,pi/5).
+*)
+
+let fillout dAB thetaABC thetaBAC dBC thetaBCA thetaCBA  bAC = 
+  try
+    let arc1 = iarc dAB dBC bAC in
+    let s = thetaBAC + thetaBCA + arc1 in
+    let _ = (s.hi -. s.lo <= 2.0 *. pi /. 5.0) or raise Unstable in
+    let tpi5k = smallest_mult_in (2.0 *. pi /. 5.0) s in 
+    let arcB = isect arc1 (m tpi5k - (thetaBAC + thetaBCA)) in
+    let dAC = isect bAC (iloc_general dAB dBC arcB) in
+    let arcA = iarc dAB dAC dBC in
+    let arcC = iarc dAC dBC dAB in
+    let thetaACB = - (arcA + thetaABC) in
+    let thetaCAB = - (arcC + thetaCBA) in
+    let _ = pet dAC thetaACB thetaCAB or failwith "fillout:pet" in
+      Some (arcA,arcB,arcC,dAC,thetaACB,thetaCAB)
+  with Failure _ -> None;;
+
+(* test fillout coord. 
+   We compute various edges and angles in two ways and compare. *)
+
+let testfillout alpha beta xgamma  = 
+  let m25 = m (2.0 *. pi /. 5.0) in
+  let gamma = m (pi /. 5.0) - (alpha + beta) in
+  let (xalpha,xbeta) = lawsines xgamma (m25 - alpha) (m25 - beta) (m25 - gamma) in
+  let (dBC,thetaCBA,thetaBCA) = thetax xalpha alpha in
+  let (dAB,thetaBAC,thetaABC) = thetax xbeta beta in
+  let bAC = mk 1.76 1.78 in 
+  let Some (arcA,arcB,arcC,dAC,thetaACB,thetaCAB) = 
+    fillout dAB thetaABC thetaBAC dBC thetaBCA thetaCBA bAC in
+  let (dAC',thetaACB',thetaCAB') = thetax xgamma gamma in
+  let (dBC'',dAB'',dAC'') = pinwheeledge alpha beta xgamma in
+  let pp = periodize_pent in
+    (
+      ("thetaABC",thetaABC),("thetaBAC",thetaBAC),
+      ("thetaBCA",thetaBCA),("thetaCBA",thetaCBA),
+      ("arcA,B,C:",
+     (arcA,arcB,arcC)),
+     ("bAC",(bAC,dAC,dAC',dAC'')),
+     ("dAB",(dAB,dAB'')),
+     ("dBC",(dBC,dBC'')),
+     ("thetaACB",(pp thetaACB,pp thetaACB')),
+     ("thetaCAB",(pp thetaCAB,pp thetaCAB')));;
+
+let _ = 
+  let alpha = (mk_interval (0.1,0.11)) in
+  let beta = (mk_interval(0.2,0.22)) in
+  let xgamma = (mk_interval(0.3,0.31))  in
+    testfillout alpha beta xgamma;;
+
+let _ = 
+  let alpha = (mk_interval (0.1,0.101)) in
+  let beta = (mk_interval(0.2,0.202)) in
+  let xgamma = (mk_interval(0.3,0.301))  in
+    testfillout alpha beta xgamma;;
+
+let _ = 
+  let alpha = (m (0.1)) in
+  let beta = (m 0.2) in
+  let xgamma = (m 0.3)  in
+    testfillout alpha beta xgamma;;
+
+(* ******************************************************************************** *)
+(* pinwheel *)
+(* ******************************************************************************** *)
 let pinwheeledge alpha beta xgamma = 
   let gamma = m (pi /. 5.0) - (alpha + beta) in
-  let mm = m (2.0 *. pi /. 5.0) in
-  let (xalpha,xbeta) = lawsines xgamma (mm - alpha) (mm - beta) (mm - gamma) in
+  let m25 = m (2.0 *. pi /. 5.0) in
+  let (xalpha,xbeta) = lawsines xgamma (m25 - alpha) (m25 - beta) (m25 - gamma) in
     ((ellx xalpha alpha), (ellx xbeta beta), (ellx xgamma gamma));;
 
 pinwheeledge (m 0.1) (m 0.2)  (m 0.3);;
 
+
+
 let deltajedge alpha beta xalpha = 
   let gamma = m (pi /. 5.0) - (alpha + beta) in
-  let mm = m (2.0 *. pi /. 5.0) in
-  let alpha' = mm - alpha in
-  let beta' = mm - beta in
-  let gamma' = mm - gamma in
+  let m25 = m (2.0 *. pi /. 5.0) in
+  let alpha' = m25 - alpha in
+  let beta' = m25 - beta in
+  let gamma' = m25 - gamma in
   let (yalpha,ygamma) = lawsines (two * iee) (beta') (alpha') (gamma') in
   let xbeta = two * iee - (ygamma + xalpha) in
   let xgamma = two * iee - yalpha in
@@ -433,9 +585,13 @@ let pet il itheta itheta' =
 
 (* pet tests *)
 Random.init 0;;
+
 let rf a b = a +. Random.float ((b -. a)/. 2.0);;
+
 rf 1.0 2.0;;
+
 let ri eps = mk_interval ((rf (-. eps) 0.0), (rf 0.0 eps));;
+
 let rin eps = 
   let neps = -. eps in
   let eps2 = neps /. 10.0 in
@@ -488,7 +644,7 @@ let string_of_list f xs = "["^join_semi (map f xs)^"]";;
 let splitlist eps xs = 
   let _ = not(xs=[]) or failwith "empty list" in
   let (i,w) = maxwidth 0 (0,0.0) xs in
-  let _ = w > eps or failwith ("splitlist width" ^ string_of_float w ^ " " ^ string_of_int i ^","^string_of_list string_of_interval xs) in
+  let _ = w > eps or failwith ("splitlist width:" ^ string_of_float w ^ " " ^ string_of_int i ^",\n"^string_of_list string_of_interval xs) in
   let (us,v::vs) = chop_list i xs in
   let t = (v.lo +. v.hi) /. 2.0 in
   let v1 = mk_interval(v.lo,t) in
@@ -755,4 +911,41 @@ mktest ("onetjamin",fun() ->
 	      (mk_interval(pi/. 5.0,2.0 *. pi /. 5.0) ); 
 	      (mk_interval (0.0,2.0*. sin1))]]);;
 
-end;;
+(* ******************************************************************************** *)
+(* timing tests *)
+(* ******************************************************************************** *)
+
+(*
+time (thetax_old nn) nn;; (* 5e-5 *)
+time (thetax_old2 nn) nn;; (* 3e-5 *)
+*)
+
+let nn = m 0.1;;
+time (thetax nn) nn;; (* 3e-5 *)
+time (ellx nn) nn;; (* 2.5e-5 *) (* 1.8e-5 *)
+time (iarc_general nn nn) nn;; (* 1.4e-5 *)
+time periodize_pent nn;; (* 1.5e-5 *)
+time (iarc_mono nn nn) nn;; (* 7e-6 *)
+time (iarc nn nn) nn;; (* 1e-5 *)
+time (areamin_acute nn nn) nn;; (* 5e-6 *)
+time (cos) 0.1 (* 5e-6 *);;
+
+let nn = m 0.1;;
+time icos nn;; (* 1.2e-5. 7e-6 *)
+time isin nn;; (* 1e-5 *)
+time isqrt nn;; (* 8e-6 *)
+time iacos nn;; (* 5e-6 *)
+
+let mm = mk_interval (1.1,1.15);;
+time (iarea mm mm) mm;; (* 1.4e-5 *)
+
+iarc_general mm mm mm;;
+iarc_mono mm mm mm;;
+iarc mm mm mm;;
+let m' = mk 1.8 1.85;;
+ (iarc_general mm m') mm;; 
+ (iarc mm m') mm;; 
+
+1;;
+
+

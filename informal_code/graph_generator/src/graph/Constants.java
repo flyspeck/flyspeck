@@ -170,7 +170,7 @@ public class Constants {
       return squanderTarget;
     }
     final private static int squanderTarget = config.getIntProperty("squanderTarget",1);
-    // default was 14800 in svn 1076.  Changed  May 2010.
+    // default was 14800. Changed  May 2010.
 
     /**
      * This is a constant that is used to help initialize the arrays.

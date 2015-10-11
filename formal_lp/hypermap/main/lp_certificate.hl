@@ -85,6 +85,28 @@ let case_info lp_case =
 
 let certificate_info cert = case_info cert.root_case;;
 
+let run_command dir com =
+  let cur_dir = Sys.getcwd() in
+  let _ = Sys.chdir dir in
+  let result = Sys.command com in
+  let _ = Sys.chdir cur_dir in
+    result;;
+
+let create_tmp_dir base_dir = 
+  let tmp_dir = Filename.concat base_dir "tmp" in
+    if Sys.file_exists tmp_dir then
+      if Sys.is_directory tmp_dir then
+	if Array.length (Sys.readdir tmp_dir) > 0 then
+	  failwith ("create_tmp_dir: the directory is not empty: " ^
+		      tmp_dir)
+	else
+	  tmp_dir
+      else
+	failwith ("create_tmp_dir: cannot create the directory " ^
+		    tmp_dir)
+    else
+      let _ = Unix.mkdir tmp_dir 0o777 in
+	tmp_dir;;
 
 (* Writes a certificate into a binary file *)
 let write_lp_certificates fname (certificates : lp_certificate list) =
@@ -93,11 +115,33 @@ let write_lp_certificates fname (certificates : lp_certificate list) =
     close_out out;;
 
 (* Reads a certificate from a binary file *)
-let read_lp_certificates fname =
+let read_raw_lp_certificates fname =
   let input = open_in_bin fname in
   let certificates = (Marshal.from_channel input : lp_certificate list) in
   let _ = close_in input in
     certificates;;
+
+let read_compressed_lp_certificates fname =
+  let base_dir = Filename.dirname fname in
+  let tmp_dir = create_tmp_dir base_dir in
+  let cmd = Format.sprintf "tar -xvzf \"%s\"" fname in
+  let _ = run_command tmp_dir cmd in
+  let files = Sys.readdir tmp_dir in
+  let certs =
+    Array.fold_left 
+      (fun all file ->
+	 let fname = Filename.concat tmp_dir file in
+	 let cs = read_raw_lp_certificates fname in
+	   cs @ all) [] files in
+  let _ = run_command base_dir (Format.sprintf "rm -rf \"%s\"" tmp_dir) in
+    certs;;
+
+let read_lp_certificates fname =
+  if Filename.check_suffix fname ".gz" then
+    read_compressed_lp_certificates fname
+  else
+    read_raw_lp_certificates fname;;
+
 	
 (******************)
 (* Test functions *)

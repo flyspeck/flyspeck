@@ -5,15 +5,15 @@ in the HOL Light proof assistant.
 
 The project was completed August 10, 2014.
 
-# Introduction
+## Introduction
 
 The purpose of the flyspeck project was to produce a formal proof of the Kepler Conjecture. The name `flyspeck` comes from matching the pattern `/f.*p.*k/` against an English dictionary. FPK in turn is an acronym for "The Formal Proof of Kepler."
 
-# Resources
+## Resources
 
-There is an [installation guide](https://github.com/flyspeck/flyspeck/wiki/Installation%20Guide) for the project and other Wiki pages.
+There is an [installation guide](https://github.com/flyspeck/flyspeck/wiki/Installation%20Guide) for the project and other [Wiki pages](https://github.com/flyspeck/flyspeck/wiki/).
 
-# Directory structure 
+## Directory structure 
 
 The main proof scripts are in the subdirectory `text_formalization`.
 The primary files used to build the project are in text_formalization/build.

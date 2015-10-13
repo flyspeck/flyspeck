@@ -13,6 +13,8 @@ The purpose of the flyspeck project was to produce a formal proof of the Kepler 
 
 There is an [installation guide](https://github.com/flyspeck/flyspeck/wiki/Installation%20Guide) for the project and other [Wiki pages](https://github.com/flyspeck/flyspeck/wiki/).
 
+The formalization project is based on the book [Dense Sphere Packings](https://github.com/flyspeck/flyspeck/files/12655/DenseSpherePackings.pdf), which is available from Cambridge University Press.
+
 ## License
 
 This project is distributed under the [MIT Licence](http://opensource.org/licenses/mit-license.php).

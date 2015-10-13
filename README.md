@@ -13,6 +13,10 @@ The purpose of the flyspeck project was to produce a formal proof of the Kepler 
 
 There is an [installation guide](https://github.com/flyspeck/flyspeck/wiki/Installation%20Guide) for the project and other [Wiki pages](https://github.com/flyspeck/flyspeck/wiki/).
 
+## License
+
+This project is distributed under the [MIT Licence](http://opensource.org/licenses/mit-license.php).
+
 ## Thanks
 
 This project was supported by NSF through grant 0503447 on the "Formal Foundations of Discrete Geometry" and grant 0804189 on the "Formal Proof of the Kepler Conjecture", the Benter Foundation, Microsoft Azure Research, the University of Pittsburgh, Radboud Research Facilities, Institute of Math (VAST), and VIASM.

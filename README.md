@@ -25,8 +25,10 @@ This project was supported by NSF through grant 0503447 on the "Formal Foundatio
 
 ## Directory structure 
 
-The main proof scripts are in the subdirectory `text_formalization`.
-The primary files used to build the project are in text_formalization/build.
+The main proof scripts are in the subdirectory 
+[`text_formalization`](text_formalization).
+The primary files used to build the project are in 
+[text_formalization/build](text_formalization/build).
 See especially `text_formalization/build/ocamlinit_hol_light.ml`
 
 The directory structure for the flyspeck project is as follows.

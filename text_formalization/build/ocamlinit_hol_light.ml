@@ -5,7 +5,7 @@
 
   Before following the script here, install HOL Light and download the
   Flyspeck project, as described at
-  https://code.google.com/p/flyspeck/wiki/InstallationGuide
+  https://github.com/flyspeck/flyspeck/wiki/Installation%20Guide
 
   This file sets up the directories where HOL Light and the Flyspeck
   project are found.
@@ -38,7 +38,7 @@
 
 let _ = "SAMPLE load file";;
 let _ = print_string "Reading ocamlinit_hol_light.ml\n";;
-let homedir = "/Users/flyspeck/Desktop/googlecode/";; (*customize this*)
+let homedir = "/Users/flyspeck/Desktop/github/";; (*customize this*)
 
 #load "unix.cma";;
 #load "str.cma";;

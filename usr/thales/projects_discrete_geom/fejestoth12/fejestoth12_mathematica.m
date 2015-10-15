@@ -7,7 +7,7 @@ Article: http://arxiv.org/abs/1209.6043
 Title: A proof of Fejes Toth's conjecture on sphere packings with kissing number twelve.
 
 The file sphere.m should be loaded first.
-http://code.google.com/p/flyspeck/source/browse/trunk/mathematica/sphere.m
+mathematica/sphere.m at https://github.com/flyspeck/flyspeck
 
 ID of this file: "HFBBNUL".  
 *)

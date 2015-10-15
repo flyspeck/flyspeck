@@ -19,7 +19,7 @@ glpk needs to be installed, and glpsol needs to be found in the path.
 *)
 
 (* 
-#directory "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
+#directory "/local-path/flyspeck/glpk/";;
 #use  "glpk_link.ml";;
 *)
 
@@ -28,9 +28,9 @@ module Lipstick_ft = struct
 open Glpk_link;;
 
 (* external files. Edit for local system. *)
-(* let datapath = "/Users/thomashales/Desktop/googlecode/flyspeck/graph_generator/output/";; *)
+(* let datapath = "/local-path/flyspeck/graph_generator/output/";; *)
 let datapath = "/tmp/";;
-let glpkpath = "/Users/thomashales/Desktop/googlecode/flyspeck/glpk/";;
+let glpkpath = "/local-path/flyspeck/glpk/";;
 
 (* let archiveraw = datapath ^ "fejesToth.txt";; (*read only *) *)
 let archiveraw = datapath ^ "graph_out.txt";; (*read only *)

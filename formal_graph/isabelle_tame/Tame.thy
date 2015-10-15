@@ -1,6 +1,6 @@
 (*  Author:     Gertrud Bauer, Tobias Nipkow
 The definitions should be identical to the ones in the file
-http://code.google.com/p/flyspeck/source/browse/trunk/text_formalization/tame/tame_defs.hl
+text_formalization/tame/tame_defs.hl
 by Thomas Hales. Modulo a few inessential rearrangements.
 *)
 

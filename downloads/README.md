@@ -23,3 +23,7 @@ The most recent version of the tool is available
 ### Dense Sphere Packings: a blueprint for formal proofs (book), T. Hales
 
 * [DenseSpherePackings.pdf](DenseSpherePackings.pdf)
+
+### The Kepler Conjecture (2005 version published in Disc. Comp. Geom.)
+
+* [Kepler Conjecture](/usr/thales/latex/dcg/kepler_proof_2005.pdf)

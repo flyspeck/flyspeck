@@ -1,7 +1,8 @@
 # The Flyspeck Project
 
 Welcome to the Flyspeck project, which gives a formal proof of the Kepler conjecture
-in the HOL Light proof assistant.
+in the HOL Light proof assistant.  The Kepler conjecture asserts that no packing of congruent balls
+in Euclidean 3-space has density greater than that of the familiar cannonball arrangement. 
 
 The project was completed August 10, 2014.
 

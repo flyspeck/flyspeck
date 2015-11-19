@@ -124,10 +124,9 @@ let chk_weak_main_statement = Audit_formal_proof.chk_thm
 
 *)
 
-(* Finally, to get `the_nonlinear_inequalities` via imported theorems:
+  (* Finally, to get `the_nonlinear_inequalities` via imported theorems.
+      This adds the deserialization axiom when needed.:
 
-   let _ = Unix.putenv "FLYSPECK_SERIALIZATION" "1" in
-   let _ = reneeds "build/strictbuild.hl" in
    do_build(Build.build_sequence_the_nonlinear_inequalities);;
 
    *)

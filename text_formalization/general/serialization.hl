@@ -9,7 +9,8 @@
 (* save theorems out to disk and reload.
 
    N.B. If this file is reloaded, then the reloaded file lacks the
-   ability to carry out theorem imports.
+   ability to carry out theorem imports. The mk_local_inconsistency function
+   occurs in a local context that is wiped out by a reload.
  *)
 
 needs "general/theorem_digest.hl";;
@@ -604,14 +605,17 @@ let deserialization_axiom =
 	find (fun u -> t = concl u && hyp u = []) (axioms())
       with _ -> Hol.new_axiom t;;
 
-let use_serialization = 
+let init_serialization () =
+( 
   try
     let _ = Sys.getenv "FLYSPECK_SERIALIZATION" in
       true
- with Not_found -> false;;
+ with Not_found -> false);;
+
+let use_serialization = ref (init_serialization());;
 
 let mk_ser_thm t = 
-  let _ = use_serialization or failwith "mk_ser_thm" in
+  let _ = !use_serialization or failwith "mk_ser_thm" in
   let d = deserialization_axiom() in
     PROVE_HYP d (mk_deserialize_thm t);;
 
@@ -625,7 +629,7 @@ let mk_ser_thm t =
 
 
 let report_not_found t = 
-  if use_serialization then report ("(-:) "^string_of_term t);;
+  if !use_serialization then report ("(-:) "^string_of_term t);;
 
 
 

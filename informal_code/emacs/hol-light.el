@@ -42,6 +42,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;                      Compatibility functions
 
+;; inserted tch dec 2015.
+
+(defalias 'make-local-hook 'ignore)
+
 (defalias 'hol-light-match-string
   (if (fboundp 'match-string-no-properties)
       'match-string-no-properties
@@ -1442,11 +1446,11 @@ If found, return the actual text of the keyword or operator."
 (defun hol-light-find-match ()
   (hol-light-find-kwop hol-light-find-kwop-regexp))
 
-(defconst hol-light-find-,-match-regexp
+(defconst hol-light-find-comma-match-regexp
   (hol-light-make-find-kwop-regexp
    "\\<\\(and\\|match\\|begin\\|else\\|exception\\|then\\|try\\|with\\|or\\|fun\\|function\\|let\\|do\\)\\>\\|->\\|[[{(]"))
-(defun hol-light-find-,-match ()
-  (hol-light-find-kwop hol-light-find-,-match-regexp))
+(defun hol-light-find-comma-match ()
+  (hol-light-find-kwop hol-light-find-comma-match-regexp))
 
 (defconst hol-light-find-with-match-regexp
   (hol-light-make-find-kwop-regexp
@@ -1926,7 +1930,7 @@ Returns t iff skipped to indentation."
 		  ((string= kwop ",")
 		   (if (looking-at ",[ \t]*\\((\\*\\|$\\)")
 		       (progn
-			 (setq kwop (hol-light-find-,-match))
+			 (setq kwop (hol-light-find-comma-match))
 			 (if (or (looking-at "[[{(]\\|\\.<")
 				 (and (looking-at "[<|]")
 				      (char-equal ?\[ (preceding-char))

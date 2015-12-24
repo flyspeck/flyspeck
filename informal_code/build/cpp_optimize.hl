@@ -1,0 +1,455 @@
+(* ========================================================================= *)
+(* FLYSPECK - BOOK FORMALIZATION                                             *)
+(*                                                                           *)
+(* Chapter: nonlinear inequalities                                           *)
+(* Author:  Thomas Hales      *)
+(* Date: 2015-12-22                                                          *)
+(* ========================================================================= *)
+
+(* Separated from nonlinear/optimize.hl to achieve separation of the
+   informal and formal code. *)
+
+
+module Cpp_optimize = struct
+
+open Optimize;;
+
+(* ========================================================================== *)
+(*    PARSING INEQUALITIES                                                    *)
+(* ========================================================================== *)
+
+
+
+let dest_nonlin t = 
+  let (_,r,il) = dest_ineq t in 
+  let p1 (a,_,_) = a in
+  let p2 (_,b,_) = b in
+  let p3 (_,_,c) = c in
+  let dest x = try dest_binop `(real_lt)` x with Failure _ -> dest_binop `(real_le)` x in
+  let (iis,zzs) = unzip( map (dest) il) in
+  let zz = nub zzs in
+  let _ = (zz = [`&0`]) or failwith "zero expected" in
+  let _ = ((map p2 r = x6list) or (map p2 r = x9list) or (map p2 r = x10list)) or failwith "x1..x6 or x1..x9 expected" in
+  (map p1 r, map p3 r,iis);;
+
+ (* these names don't change in cpp interval code *)
+
+let idem_assoc = [];; (* make it the default *)
+
+(* these names can change in cpp (hol_name,cpp_name).
+    Don't generate function defs for these.
+    "NOT_IMPLEMENTED" is a special tag to suppress the
+    production of test routines. We would be better
+    off using an option. *)
+
+let native_fun = [
+  ("unit6","Lib::unit");
+  ("two6","Lib::two6");
+  ("proj_x1","Lib::x1");
+  ("proj_x2","Lib::x2");
+  ("proj_x3","Lib::x3");
+  ("proj_x4","Lib::x4");
+  ("proj_x5","Lib::x5");
+  ("proj_x6","Lib::x6");
+  ("proj_y1","Lib::y1");
+  ("sqrt_x1","Lib::y1");
+  ("delta_x","Lib::delta_x");
+(*  ("sol_x","Lib::sol_euler_x"); *)
+  ("dih_x","Lib::dih_x");
+  ("rad2_x","Lib::rad2_x");
+  ("rho_x","NOT_IMPLEMENTED");
+  ("delta_y","NOT_IMPLEMENTED");
+  ("dih_y","NOT_IMPLEMENTED");
+  ("sol_y","NOT_IMPLEMENTED");
+  ("delta_x4","Lib::delta_x4");
+  ("edge_flat2_x","Lib::edge_flat2_x");
+  ("halfbump_x1","Lib::halfbump_x1");
+  ("ups_126","Lib::ups_126");
+  ("eta2_126","Lib::eta2_126");
+  ("compose6","Function::compose");
+  ("constant6","Lib::constant6");
+  ("uni","Lib::uni");
+  ("sqrt","univariate::i_sqrt");
+  ("acs","univariate::i_acos");
+  ("asn","univariate::i_asin");
+  ("atn","univariate::i_atan");
+  ("cos","univariate::i_cos");
+  ("sin","univariate::i_sin");
+  ("pow2","univariate::i_pow2");
+  ("matan","univariate::i_matan");
+  ("gchi","Lib::i_gchi");
+  ("lfun","Lib::i_lfun");
+  ("rho","Lib::i_rho");
+  ("flat_term_x","Lib::i_flat_term_x");
+  ("sqn","univariate::i_sqn");
+  ("promote1_to_6","Lib::promote1_to_6");
+  ("gamma2_x_div_azim_v2","Lib::i_gamma2_x_div_azim_v2");
+  ("num1","Lib::num1");
+];;
+
+
+(* and for these 
+gradually eliminate this list.
+The default will be to have the same names.
+*)
+
+let cpp_assoc = 
+  let pref = "" in
+  let p (a,b) = (a, (pref^b)) in map p 
+  (idem_assoc @ [
+  ("sqrt_x2","proj_y2");
+  ("sqrt_x3","proj_y3");
+  ("sqrt_x4","proj_y4");
+  ("sqrt_x5","proj_y5");
+  ("sqrt_x6","proj_y6");
+  ("promote_pow2","x1square");
+  ("promote_pow3","x1cube");
+
+ ]);;
+
+let cpp_fn_name s = 
+  try Lib.assoc s native_fun 
+  with Failure _ ->
+    try Lib.assoc s cpp_assoc
+    with Failure _ -> s;;
+
+let cpp0_assoc = 
+  [("sqrt8","sqrt8");("pi","pi");("const1","const1");
+   ("hminus","hminus");("sqrt3","sqrt3");
+   ("arc_hhn","arc_hhn");
+   ("adodec","aStrongDodec");
+   ("bdodec","bStrongDodec");
+   ("ydodec","yStrongDodec");
+   ];;
+
+let cpp_of_constant s  = 
+  try (assoc s cpp0_assoc) with 
+      Failure _ -> failwith (s^" find: cpp_of_constant") ;;
+
+let cpp_of_fun to_string xlist s xs = 
+  let (arg,xss) = chop_list (length xs - length xlist) xs in
+  let _ = (xss = xlist) or failwith ("standard x list expected in "^s) in
+  let hd =  (cpp_fn_name s) in
+  let arg_s = map (paren o to_string) arg in
+  let p = if (length arg > 0) then paren else I in
+    (hd ^ " " ^ p(join_comma arg_s));;
+
+(* 2013-08-14, changed for AWS compiler. was interval::interval( ... ) *)
+let i_mk s = "interval("^quoted s ^")";;
+
+let i_mk2 t = (* treat small integers exactly *)
+  let n = dest_numeral t in
+  let s = if (Num.is_integer_num n) && (Num.sign_num n >= 0) && (n </ Int 100) 
+     then string_of_num n else string_of_num' n in
+    i_mk s;;
+
+let cpp_string_of_term = 
+  let rec soh t = 
+    if is_var t then fst (dest_var t) else
+      let (f,xs) = strip_comb t in
+      let _  = (is_const f) or 
+	failwith ("constant expected:" ^ string_of_term f) in
+      let ifix i = let [a;b] = xs in paren(soh a ^ " " ^ i ^ " " ^ soh b) in
+	match fst (dest_const f) with
+	  | "real_add" -> ifix "+"
+	  | "real_mul" -> ifix "*"
+	  | "real_div" -> ifix "/"
+	  | "\\/" -> ifix "\\/"
+	  | "real_neg" -> let [a] = xs in "(-" ^ soh a ^ ")"
+	  | "real_of_num" -> let [a] = xs in i_mk2( a)  
+	  | "NUMERAL" -> let [a] = xs in string_of_num' (dest_numeral t)
+	  | "<" -> let [a;b] = xs in paren(soh a ^ " < " ^ soh b)
+	  | ">" -> let [a;b] = xs in paren(soh a ^ " > " ^ soh b)
+	  | "+" -> let [a;b] = xs in paren(soh a ^ " + " ^ soh b)
+	  | "*" -> let [a;b] = xs in paren(soh a ^ " * " ^ soh b)
+	  | "DECIMAL" ->  i_mk(string_of_num' (dest_decimal t))
+	  | s -> if (xs = []) 
+	    then "("^cpp_of_constant s^")"  
+	    else paren(cpp_of_fun soh x6list s xs) in
+    fun t -> 
+      try (soh t) 
+      with Failure s -> failwith (s^" .......   "^string_of_term t);;
+
+(* generation of cpp code *)
+
+let cpp_template_taylor c (i,s) = Printf.sprintf 
+"       Function F%s%d = %s;" c i s;;
+
+let cpp_template_t c iis = 
+  join_lines 
+    (map (cpp_template_taylor c) (zip (1--(length iis)) iis));;
+
+let cpp_template_F c i = Printf.sprintf "&F%s%d" c i;;
+
+let cpp_template_Fc c len = join_comma 
+  (map (cpp_template_F c) (1-- len));;
+
+let rec delta126min = function 
+    | [] -> -1.0
+    | Delta126min t :: _ -> t
+    | _ :: a -> delta126min a;;
+
+let rec widthCut = function
+  | [] -> (false,0.0)
+  | Widthcutoff t::_ -> (true,t)
+  | _:: a -> widthCut a;;
+
+let rec delta126max = function 
+    | [] -> -1.0
+    | Delta126max t :: _ -> t
+    | _ :: a -> delta126max a;;
+
+let rec delta135min = function 
+    | [] -> -1.0
+    | Delta135min t :: _ -> t
+    | _ :: a -> delta135min a;;
+
+let rec delta135max = function 
+    | [] -> -1.0
+    | Delta135max t :: _ -> t
+    | _ :: a -> delta135max a;;
+
+let cpp_template_gen = Printf.sprintf "
+ const char ver[] = %s;
+ const char ineq_id[] = %s;
+
+ int testRun() // autogenerated code
+	{
+	interval tx[6]={%s};
+	interval tz[6]={%s};
+	domain x = domain::lowerD(tx);
+	domain z = domain::upperD(tz);
+        domain x0=x;
+        domain z0=z;
+        %s
+        const Function* I[%d] = {%s}; // len ...
+        cellOption opt;
+        opt.allowSharp = %d; // sharp
+        opt.onlyCheckDeriv1Negative = %d; // checkderiv
+        %s // other options.
+	return  prove::recursiveVerifier(0,x,z,x0,z0,I,%d,opt); // len
+	}";;
+
+let mk_cpp_proc t s tags = 
+  let sharp = if  mem Sharp tags then 1 else 0 in
+  let checkderiv = if  mem Onlycheckderiv1negative tags then 1 else 0 in
+  let ifd b s = if b then s else "" in
+  let setrad2 = ifd (mem Set_rad2 tags) "\topt.setRad2 = 1;\n" in
+  let (b,f) = widthCut tags in
+  let sWidth = ifd b (Printf.sprintf "\topt.widthCutoff = %8.16f;\n" f) in 
+  let d126min = delta126min tags in
+  let s126min = ifd (d126min > -1.0) 
+    (Printf.sprintf  "\topt.delta126Min = %8.16f;\n" d126min) in
+  let d126max = delta126max tags in
+  let s126max = ifd (d126max > -1.0) 
+    (Printf.sprintf "\topt.delta126Max = %8.16f;\n" d126max) in
+  let d135min = delta135min tags in
+  let s135min = ifd (d135min > -1.0) 
+    (Printf.sprintf "\topt.delta135Min = %8.16f;\n" d135min) in
+  let d135max = delta135max tags in
+  let s135max = ifd (d135max > -1.0)  
+    (Printf.sprintf "\topt.delta135Max = %8.16f;\n" d135max) in
+  let s206A = ifd (s="2065952723 A1" ) 
+    (Printf.sprintf "\topt.strategy206A=1;\n") in 
+  let disallowderiv = ifd  (mem Disallow_derivatives tags)
+    "\topt.allowDerivatives=0;\n" in    
+  let others = setrad2 ^ s126min ^ s126max ^ s135min ^ s135max ^ 
+    sWidth ^ s206A ^ disallowderiv in
+  let c = map cpp_string_of_term in
+  let f (x,y,z) = (c x,c y,c z) in
+  let (aas,bbs,iis) = f (dest_nonlin t) in
+  let len = length iis in
+  let sq = quoted s in
+  let ver = (quoted(version())) in
+  let jaas = join_comma aas in
+  let jbbs = join_comma bbs in
+    cpp_template_gen ver sq jaas jbbs (cpp_template_t "" iis) 
+      len (cpp_template_Fc "" len) sharp  checkderiv others len;;
+
+(* quad clusters *)
+
+let has_subterm sub tm = 
+  can (find_term ((=) sub)) tm;; 
+
+let has_cross_diag = has_subterm `quad_cross_diag2_x`;;
+
+let has_delta_top = has_subterm `delta_top_x`;;
+
+let is_quad_cluster tags = (can (find (function Quad_cluster _ -> true | _ -> false)) tags);;
+
+let quad_margin tags = (function Quad_cluster t -> t | _ -> 0.0) 
+  (find ((function Quad_cluster _ -> true | _ -> false))  tags);;
+
+let check_quad_partition_term (r,s,t) tm = 
+  let tm2 = list_mk_binop `(+)` (r @ s @ t) in
+  let t = mk_eq (tm ,tm2) in 
+      (REAL_ARITH) t;;
+
+let partition_quad_term tm = 
+  let rec split tm = 
+    if (has_cross_diag tm) then ([],[],[tm]) else
+    if (has_delta_top tm) then ([],[],[tm]) else
+      if (subset (frees tm) x6list) then ([tm],[],[]) else
+	if (subset (frees tm) x_backlist) then ([],[tm],[]) else
+	  let (a1,a2) = dest_binop `(+)` tm in
+	  let  (r1,s1,t1) = split a1 in
+	  let (r2,s2,t2) = split a2  in
+	    (r1 @ r2, s1 @ s2, t1 @ t2) in
+  let (r,s,t) = split tm in
+  let _ = check_quad_partition_term (r,s,t) tm in
+  let v =  vsubst [`x1:real`,`x7:real`;  `x5:real`,`x8:real`; `x6:real`,`x9:real`] in
+  let w = function | [] -> 
+   `unit6 (x1:real) (x2:real) (x3:real) (x4:real) (x5:real) (x6:real) * #0.0` | xl -> list_mk_binop `(+)` xl in
+   (w r,w(map v s), t);;
+
+
+let cppq_template_gen = Printf.sprintf "
+ char* ver = %s;
+ char* ineq_id = %s;
+
+ int testRun()  // quad cluster case, autogenerated code
+        {
+	interval txA[6]={%s};
+	interval tzA[6]={%s};
+	domain xA = domain::lowerD(txA);
+	domain zA = domain::upperD(tzA);
+	interval txB[6]={%s};
+	interval tzB[6]={%s};
+	domain xB = domain::lowerD(txB);
+	domain zB = domain::upperD(tzB);
+        // Declare FA, FB...
+        %s
+        %s
+	const Function* IA[%d] = {%s};
+	const Function* IB[%d] = {%s};
+	cellOption opt;
+        %s // options.
+	return prove::recursiveVerifierQ(0,xA,xB,zA,zB,IA,IB,%d,opt);
+        }";;
+
+let get_cross_diag_squared is9 =
+  let id9' = filter (fun (_,_,c)-> length c >0 && has_cross_diag (hd c)) is9 in
+  let is9'' = (fun (_,_,[c])::_ -> c ) id9' in
+  let tm = term_match x9list `quad_cross_diag2_x x1 x2 x3 x4 x5 x6 x7 x8 x9 +
+    unit6 x1 x2 x3 x4 x5 x6 * t` is9'' in
+  let t =   (fun ([],[(x,_)],[]) -> x) tm in
+    mk_binop `( * )` t t;;  (* t is negative, but it gets squared *)
+
+let get_delta_top_squared is9 =
+  let id9' = filter (fun (_,_,c)-> length c >0  && has_delta_top (hd c)) is9 in
+  let is9'' = (fun (_,_,[c])::_ -> c ) id9' in
+  let tm = term_match x9list `delta_top_x t x1 x2 x3 x4 x5 x6 x7 x8 x9` is9'' in
+  let t =   (fun ([],[(x,_)],[]) -> x) tm in
+    mk_binop `( * )` t t;;  (* gets squared *)
+
+let cde_template = 
+  Printf.sprintf "opt.crossDiagMinEnclosed = interMath::inf(%s);\n";;
+
+let cdt_template = 
+  Printf.sprintf "opt.crossDiagMinDelta = interMath::inf(%s);\n";;
+
+let mk_cppq_proc t s tags =   
+  let ver = (quoted(version())) in
+  let ineq_id = quoted s in
+  let cpp = cpp_string_of_term in
+  let (x,z,is) = dest_nonlin t  in
+  let is' = map partition_quad_term is in
+  let (is9,is6) = partition (fun (_,_,c) -> length c > 0)   is' in
+  let (is6A,is6B) = unzip (map (fun (a,b,_) -> (cpp a,cpp b)) is6) in
+  let len = length  is6 in
+  let xs = map cpp x in
+  let zs = map cpp z in
+  let nth = List.nth in
+  let a_part u = [nth u 0;nth u 1;nth u 2;nth u 3; nth u 4;nth u 5] in
+  let b_part u = [nth u 6;nth u 1;nth u 2;nth u 3;nth u 7; nth u 8] in
+  let xA = join_comma(a_part xs) in
+  let xB = join_comma(b_part xs) in
+  let zA = join_comma(a_part zs) in
+  let zB = join_comma(b_part zs) in
+  let opt_cross = 
+    try 
+      (  cde_template (cpp ( get_cross_diag_squared is9) ))
+    with _ -> "" in
+  let opt_delta_top = 
+    try 
+      (  cdt_template (cpp ( get_delta_top_squared is9) )) 
+    with _ -> "" in
+  let backsym = 
+    if (mem Dim_red_backsym tags) 
+    then "\topt.dimRedBackSym = 1;\n" else "" in
+  let sWidth = 
+    let (b,f) = widthCut tags in
+      if b then Printf.sprintf "\topt.widthCutoff = %8.16f;\n" f else ""  in
+  let margin = Printf.sprintf "\topt.margin = %8.16f;\n\n" (quad_margin tags) in
+  let options = opt_cross ^ opt_delta_top ^ backsym^margin^sWidth in
+  cppq_template_gen ver ineq_id xA zA xB zB 
+    (cpp_template_t "A" is6A) (cpp_template_t "B" is6B) 
+    len (cpp_template_Fc "A" len) len (cpp_template_Fc "B" len) options len ;;
+
+(*
+let t = snd(top_goal());;
+let s = "test";;
+let tags = [Quad_cluster 3.0];;
+*)
+
+(*     next: put together header, proc, tail and run *)
+
+let tmpfile = flyspeck_dir^"/../informal_code/interval_code/test_auto.cc";;
+
+let cpp_header() = join_lines (load_file  (flyspeck_dir^"/../informal_code/interval_code/generic_head.txt"));;
+
+let cpp_tail() = join_lines (load_file  (flyspeck_dir^"/../informal_code/interval_code/generic_tail.txt"));;
+
+let mkfile_cpp  t s tags  = 
+  output_filestring tmpfile 
+   (join_lines [cpp_header(); (mk_cpp_proc t s tags);cpp_tail()]);;
+
+let mkfile_cppq  t s tags =
+  output_filestring tmpfile 
+   (join_lines [cpp_header(); (mk_cppq_proc t s tags);cpp_tail()]);;
+
+let compile_cpp = 
+  let err = Filename.temp_file "cpp_err" ".txt" in
+    fun () -> 
+      let e = Sys.command("cd "^flyspeck_dir^"/../informal_code/interval_code; make test_auto >& "^err) in
+      let _ =   (e=0) or (let _ = Sys.command ("cat "^err) in failwith "compiler error") in
+	();;
+
+ let execute_interval ex tags s testineq = 
+  let interval_dir = flyspeck_dir^"/../informal_code/interval_code" in
+  let quad_cluster = is_quad_cluster tags  in
+  let _ = if quad_cluster then
+   mkfile_cppq testineq s tags
+  else 
+      mkfile_cpp testineq s tags in
+  let _ = compile_cpp() in 
+  let _ = (not ex) or (0=  Sys.command(interval_dir^"/test_auto")) or failwith "interval execution error" in
+    ();;
+
+(* ========================================================================== *)
+(*    VERIFYING INEQUALITIES                                                  *)
+(* ========================================================================== *)
+
+ let process_and_exec ex (s,tags,case) = 
+  let _ = report ("process and exec: "^s) in
+  let (s,tags,testineq) = preprocess (s,tags,case) in
+    execute_interval ex tags s testineq;;
+
+ (*
+testsplit_idq
+  ** strips let
+  ** splits cases at h0 according to the split tags
+  ** ships the cases off to process_and_exec.
+
+*)
+
+let testsplit_idq ex idq = 
+  let splits = preprocess_split_idq idq in
+    map (fun (s,tags,testineq) -> execute_interval ex tags s testineq) splits;;
+
+let testsplit ex s = testsplit_idq ex (hd (Ineq.getexact s));;
+
+
+
+end;;
+

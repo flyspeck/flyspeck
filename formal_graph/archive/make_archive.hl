@@ -7,6 +7,11 @@
 (* ========================================================================== *)
 
 (*
+
+Check compatibility of different representations of the tame
+graph archive.
+
+
 Generate the tame archive files Tri.ML Quad.ML Pent.ML Hex.ML
 from the java-generated data.
 
@@ -15,39 +20,117 @@ Convert Tri.ML etc. from ML format back into Ocaml lists.
 The files Tri.ML,... were generated on Jan 24, 2014.
 *)
 
-flyspeck_needs "../glpk/glpk_link.ml";;
-flyspeck_needs "../glpk/tame_archive/lpproc.ml";;
+
+flyspeck_needs "../formal_graph/archive/archive_all.ml";;
+
+
+(* ========================================================================== *)
+
+
 
 module Make_archive = struct
 
-let tame = Glpk_link.strip_archive (!Lpproc.archiveraw);;
 
-let _ = 
-  (List.length tame = 19715);; (* as of Jul 2014. *)
 
-let tame_list = map Glpk_link.convert_to_list tame;;
+(* ========================================================================== *)
+
+let check1 = 
+  (List.length Archive_all.tame_list = 19715) or failwith "list length";; (* as of Jul 2014. *)
+
+(* ========================================================================== *)
+
+(* Generate a graph list from the output of the informal Java code *)
+
+(* ========================================================================== *)
+
+let project_root_dir = (Filename.concat (flyspeck_dir) Filename.parent_dir_name);;
+
+let archive_dir = Filename.concat project_root_dir "formal_graph/archive";;
+
+let archiveraw = (Filename.concat archive_dir "string_archive.txt");;
+
+let strip_archive filename =  (* strip // comments, blank lines, quotation marks etc. *)
+  let (ic,oc) = Unix.open_process(sprintf "cat %s | grep -v '=' | grep -v 'list' | grep -v '^//' | grep -v '^$' | grep '^[^a-z/-]' | sed 's/\"[,;]*//g' | sed 's/_//g' " filename) in
+  let s = Flyspeck_lib.load_and_close_channel false ic in
+  let _ = Unix.close_process (ic,oc) in
+    s;;
+
+let convert_to_list3  = 
+  let split_sp=  Str.split (Str.regexp " +") in
+  let strip_ = Str.global_replace (Str.regexp "_") "" in
+  let rec movelist n (x,a) = 
+    if n=0 then (x,a) else match x with y::ys -> movelist (n-1) (ys, y::a) in
+  let getone (x,a) = match x with
+    | [] -> ([],a)
+    | y::ys -> let (u,v) = movelist y (ys,[]) in (u,v::a) in 
+  let rec getall (x,a) =
+    if (x=[]) then (x,a) else getall (getone (x,a)) in
+  fun s ->
+    let h::ss = (split_sp (strip_ s)) in
+    let _::ns = map int_of_string ss in
+    let (_,a) = getall (ns,[]) in
+      (h,s,rev (map rev a));;
+
+let archive_from_java_generator = map convert_to_list3 (strip_archive archiveraw);;
+
+(* check compatibility with master list *)
+
+let check2 =
+  (archive_from_java_generator = Archive_all.tame_list)
+  or failwith "mismatch between archives";;
+
+(* ========================================================================== *)
+
+(* Automatically regenerate Archive_all module from a tame_list *)
+
+(* ========================================================================== *)
+
+let ocaml_string name ss = 
+  let p = Printf.sprintf in
+  let join s = Flyspeck_lib.unsplit s (fun x -> x) in
+  let il s = p "[%s]" (join ";" (map string_of_int s)) in
+  let il2 (h,s,ls) = p "(\"%s\",\"%s\",\n[%s])" h s (join ";\n   " (map il ls)) in
+  let il3 s = (join ";\n\n" (map il2 s)) in
+    p "let %s = [\n%s\n];;\n\n" name (il3 ( ss));;
+
+
+let save_out_archive,tmp_archive =
+  let fall_out =  Filename.temp_file "archive_all" ".ml" in
+    (fun list ->
+       let s = "module Archive_all = struct\n\n" ^
+	 ocaml_string "tame_list" list ^
+	 "end;;" in
+	 Flyspeck_lib.output_filestring fall_out s),fall_out;;
+
+(* save_out_archive Archive_all.tame_list *)
+
+
+(* ========================================================================== *)
+(* Regenerate *.ML files from the master Archive_all *)
+(* ========================================================================== *)
+
+
 
 let (tame3,tame4,tame5,tame6) =
   let ord a b = if (a < b) then 1 else if (a > b) then -1 else 0 in
   let msize t = hd(uniq(List.sort ord (map List.length t))) in
   let pt = partition in
-  let (t3,t_gt3) = pt (fun (_,t) -> msize t = 3) tame_list in
-  let (t4,t_gt4) = pt (fun (_,t) -> msize t = 4) t_gt3 in
-  let (t5,t_gt5) = pt (fun (_,t) -> msize t = 5) t_gt4 in
-  let (t6,t_gt6) = pt (fun (_,t) -> msize t = 6) t_gt5 in
+  let (t3,t_gt3) = pt (fun (_,_,t) -> msize t = 3) Archive_all.tame_list in
+  let (t4,t_gt4) = pt (fun (_,_,t) -> msize t = 4) t_gt3 in
+  let (t5,t_gt5) = pt (fun (_,_,t) -> msize t = 5) t_gt4 in
+  let (t6,t_gt6) = pt (fun (_,_,t) -> msize t = 6) t_gt5 in
   let _ = t_gt6 = [] or failwith "empty list expected" in
     (t3,t4,t5,t6);;
 
 (* based on Jul 2, 2014 values *)
 
-let vv l = string_of_int (List.length l);;
-
-let _ = 
+let check3 =
+  let vv l = string_of_int (List.length l) in
   let _ = List.length tame3 = 9 or failwith ("missing3"^ vv tame3) in
   let _ = List.length tame4 = 1253 or failwith ("missing4" ^ vv tame4) in
   let _ = List.length tame5 = 16080 or failwith ("missing5" ^ vv tame5) in
   let _ = List.length tame6 = 2373 or failwith ("missing6" ^ vv tame6) in
-  ();;
+   true;;
 
 let ml_string name ss = 
   let p = Printf.sprintf in
@@ -55,7 +138,8 @@ let ml_string name ss =
   let il s = p "[%s]" (join "," (map string_of_int s)) in
   let il2 s = p "[%s]" (join ",\n   " (map il s)) in
   let il3 s = (join ",\n\n" (map il2 s)) in
-    p "val %s = [\n%s\n];" name (il3 (map snd ss));;
+    p "val %s = [\n%s\n];\n" name (il3 (map (fun (_,_,x) -> x) ss));;
+
 
 (*
 ml_string "Tri'" tame3;;
@@ -78,32 +162,36 @@ let save_out () =
 
 (* To save permanently, copy f3_out to Tri.ML etc. *)
 
-(* RELOAD archives by converting ML to ocaml *)
 
-let archive_dir = 
- Filename.concat (Filename.concat (flyspeck_dir) Filename.parent_dir_name) 
- "formal_graph/archive";;
+
+(* ========================================================================== *)
+(* test *.ML against the temporary copy generated from master. *)
+(* ========================================================================== *)
+
+let check4 =
+  let _ = save_out() in
+  let l = Filename.concat archive_dir in
+  let md5check f1 f2 = (Digest.compare (Digest.file f1) (Digest.file f2) =0) in
+  let _ = (md5check (l "Tri.ML") f3_out) or failwith "Tri.ML" in
+  let _ = (md5check (l "Quad.ML") f4_out) or failwith "Quad.ML" in
+  let _ = (md5check (l "Pent.ML") f5_out) or failwith "Pent.ML" in
+  let _ = (md5check (l "Hex.ML") f6_out) or failwith "Hex.ML" in
+    true;;
+
+let checks = check1 && check2 && check3 && check4;;
+
+(* ========================================================================== *)
+(* Reconvert *.ML files to Ocaml, for a redundant check that lists agree. *)
+(* ========================================================================== *)
+
 
 (* translate commas to semicolons in lists.
-   translate "val Tri' = " to "let arc3 = " etc.
+   translate "val Tri' = " to "let arc3' = " etc.
    creates arc3 = [[ ... ] ...] *)
-
-let join_space = 
-  let sp = " " in
-    function | [] -> ""
-      | (x::xs) -> List.fold_left (fun s t -> s^sp^(t)) (x) xs;;
-
-let join_space = 
-    let sp = " " in
-      end_itlist (fun s t -> s^sp^t);;
-
-let join_space = 
-        let sp = " " in
-	  map (fun t -> t^sp) 
 
 let convert_archive filename ext = 
   let (ic,oc) = Unix.open_process(sprintf 
-     "cat %s | tr 'A-Z' 'a-z'| sed 's/;/;;/g'| sed 's/,/;/g'| sed 's/val *[a-z']*/let arc%d/g' " 
+     "cat %s | tr 'A-Z' 'a-z'| sed 's/;/;;/g'| sed 's/,/;/g'| sed 's/val *[a-z]*/let arc%d/g' " 
      filename ext) in
   let s = Flyspeck_lib.load_and_close_channel false ic in
   let _ = Unix.close_process (ic,oc) in
@@ -113,22 +201,27 @@ let convert_archive filename ext =
 
 (*
 convert_archive f3_out 3;;
-arc3 = map snd tame3;;
+arc3' = map snd tame3;;
 
 convert_archive f4_out 4;;
-arc4 = map snd tame4;;
+arc4' = map snd tame4;;
 
 convert_archive f5_out 5;;
-arc5 = map snd tame5;;
+arc5' = map snd tame5;;
 
 convert_archive f6_out 6;;
-arc6 = map snd tame6;;
+arc6' = map snd tame6;;
+
+map snd Archive_all.tame_list = (arc3' @ arc4' @ arc5' @ arc6');;
 *)
 
-(* test Isabelle graph list against Flyspeck graph list *)
+(* ========================================================================== *)
+(*  experimental section *)
+(* ========================================================================== *)
 
+(* md5 comparison of lists after conversion to strings *)
 
-
+(*
 let md5_of_list2 = 
   let join_semi  = String.concat ";" in
   let enclose xs = "["^ join_semi xs ^ "]" in
@@ -137,7 +230,8 @@ let md5_of_list2 =
     fun xss ->
     Digest.to_hex (Digest.string (string_of_list_list (xss)));;
 
-let md5_graph_archive = map md5_of_list2 (map snd tame_list);;
+let md5_graph_archive = map md5_of_list2 (map snd Archive_all.tame_list);;
+*)
 
 (*
 convert_archive (archive_dir^"/Tri.ML") 3;;
@@ -169,5 +263,9 @@ let test_archive_list =
   (map snd Good_list_archive.archive_list = (arc3 @ arc4 @ arc5 @ arc6));;
 
 *)
+
+(* convert rawarchive to a list and compare with Isabelle *)
+
+
 
 end;;

@@ -38,10 +38,6 @@ The directory structure for the flyspeck project is as follows.
  Files related to the formal verification of nonlinear inequalities.
  These inequalities were first formally verified by a computation on the Microsoft Azure Cloud.
 
-[`emacs`](emacs)
-  Files related to the HOL Light mode for emacs.
-  These files are not part of the flyspeck project, but they may be useful for those who run HOL Light inside emacs.
-
 [`formal_graph`](formal_graph)
   Files related to the formal verification of the classification of tame graphs in
   the Isabelle proof assistant.  Most of these files are a backup of files are part of the
@@ -57,9 +53,6 @@ The directory structure for the flyspeck project is as follows.
 
 [`formal_lp`](formal_lp)
   Files related to the formal verification on linear programs.
-
-[`glpk`](glpk)
-  Files related to the informal verification of linear programs.  
 
 [`informal_code`](informal_code)
   Code used for the informal computer programs used in the proof of the Kepler conjecture.

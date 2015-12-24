@@ -1,0 +1,76 @@
+needs "../formal_lp/glpk/build_certificates.hl";;
+
+open List;;
+open Glpk_link;;
+open Lpproc;;
+open Lp_certificate;;
+open Lp_informal_computations;;
+open Build_certificates;;
+open Hard_lp;;
+
+let hard_bbs = hard_bb();;
+
+test_mode := false;;
+
+test_mode := true;;
+print_progress := true;;
+
+let bb = nth hard_bbs 8;;
+map length (faces bb);;
+let cert = build_certificate true bb;;
+certificate_info cert;;
+build_test_split cert.root_case;;
+
+write_lp_certificates (sprintf "%s/hard8.dat" !output_dir) [cert];;
+certificate_info cert;;
+build_test_split cert.root_case;;
+
+
+
+let rec correct bb cert =
+  match cert with
+    | Lp_terminal _ -> cert
+    | Lp_split (info, cs) ->
+	(match info.split_type with
+	   | "add_big" ->
+	       let opp xs = nub (xs @ map (C opposite_edge bb) xs) in
+	       let long_edge = opp bb.d_edge_225_252 in
+	       let long_edge_faces = zip (map (C face_of_dart bb) long_edge) long_edge in
+	       let dart = assoc info.split_face long_edge_faces in
+	       let cases = map (correct bb) cs in
+		 Lp_split ({info with split_face = dart}, cases)
+	   | "edge" ->
+	       let bb1 = modify_bb bb false ["e_225_252", info.split_face] [] in
+	       let cases = map2 correct [bb1; bb] cs in
+		 Lp_split (info, cases)
+	   | _ ->
+	       let cases = map (correct bb) cs in
+		 Lp_split (info, cases));;
+
+
+
+let rec get_infos name = function
+  | Lp_terminal _ -> []
+  | Lp_split (info, cs) ->
+      let list = flatten (map (get_infos name) cs) in
+	if info.split_type = name then info :: list else list;;
+
+		 
+let c = hd (read_lp_certificates (sprintf "%s/hard1.dat" !output_dir));;
+certificate_info c;;
+build_test_split c.root_case;;
+let add_big1 = get_infos "add_big" c.root_case;;
+
+let bb = nth hard_bbs 0;;
+let c2_root = correct bb c.root_case;;
+let c2 = {c with root_case = c2_root};;
+
+certificate_info c;;
+certificate_info c2;;
+
+build_test_split c2.root_case;;
+let add_big2 = get_infos "add_big" c2.root_case;;
+
+write_lp_certificates (sprintf "%s/hard0.dat" !output_dir) [c2];;
+
+let c = 

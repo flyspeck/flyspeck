@@ -13,6 +13,9 @@
 
 flyspeck_needs "nonlinear/prep.hl";;
 flyspeck_needs "../informal_code/build/scripts.hl";;
+flyspeck_needs "../informal_code/build/cpp_optimize.hl";;
+flyspeck_needs "../informal_code/build/auto_lib.hl";;
+flyspeck_needs "../informal_code/build/test_auto_lib.hl";;
 flyspeck_needs "nonlinear/break_case_type.hl";;
 flyspeck_needs "nonlinear/break_case_log.hl";;
 
@@ -21,7 +24,7 @@ module Break_case_make = struct
 
 open Break_case_exec;;
 
-(* lines moved from line 111 of 
+(* lines moved from line 111 of *)
 (* ********************************************************************** *)
 (* I/O *)
 (* ********************************************************************** *)
@@ -45,7 +48,7 @@ let getprep s = hd(filter (fun t -> t.idv = s) (!Prep.prep_ineqs));;
 (* omit the quad cases for now: *)
 
 let idvlist = 
-  let nonquad = filter (fun t -> not(Optimize.is_quad_cluster t.tags))  (!Prep.prep_ineqs) in
+  let nonquad = filter (fun t -> not(Cpp_optimize.is_quad_cluster t.tags))  (!Prep.prep_ineqs) in
     map (fun t -> t.idv) nonquad;;
 
 let nth = List.nth;;
@@ -108,23 +111,23 @@ let mk_cpp_arg_proc t s tags =
   let sharp = if  mem Sharp tags then 1 else 0 in
   let checkderiv = if  mem Onlycheckderiv1negative tags then 1 else 0 in
   let ifd b s = if b then s else "" in
-  let (b,f) = Optimize.widthCut tags in
+  let (b,f) = Cpp_optimize.widthCut tags in
   let sWidth = ifd b (sprintf "\topt.widthCutoff = %8.16f;\n" f) in 
-  let c = map Optimize.cpp_string_of_term in
+  let c = map Cpp_optimize.cpp_string_of_term in
   let f (x,y,z) = (c x,c y,c z) in
-  let (aas,bbs,iis) = f (Optimize.dest_nonlin t) in
+  let (aas,bbs,iis) = f (Cpp_optimize.dest_nonlin t) in
   let len = length iis in
   let sq = Optimize.quoted s in
   let ver = (Optimize.quoted(Optimize.version())) in
-    cpp_template_arg ver sq (Optimize.cpp_template_t "" iis) 
-      len (Optimize.cpp_template_Fc "" len) sharp  checkderiv sWidth len;;
+    cpp_template_arg ver sq (Cpp_optimize.cpp_template_t "" iis) 
+      len (Cpp_optimize.cpp_template_Fc "" len) sharp  checkderiv sWidth len;;
 
 let mkfile_arg =
   let cpp_tail = Optimize.join_lines (Optimize.load_file  (flyspeck_dir^"/../informal_code/interval_code/arg_tail.txt")) in
-  let cpp_header = Optimize.cpp_header() in
+  let cpp_header = Cpp_optimize.cpp_header() in
     fun t s tags  ->
-	Flyspeck_lib.output_filestring Optimize.tmpfile
-	  (Optimize.join_lines [cpp_header;Auto_lib.interval_code;(mk_cpp_arg_proc t s tags);cpp_tail]);;
+	Flyspeck_lib.output_filestring Cpp_optimize.tmpfile
+	  (Optimize.join_lines [cpp_header;Test_auto_lib.interval_code;(mk_cpp_arg_proc t s tags);cpp_tail]);;
 
 let execute_args ex tags s testineq xlist zlist =  
    let x = List.nth xlist in
@@ -133,14 +136,14 @@ let execute_args ex tags s testineq xlist zlist =
       (x 0) (x 1) (x 2) (x 3) (x 4) (x 5)     (z 0) (z 1) (z 2) (z 3) (z 4) (z 5) in
   let interval_dir = flyspeck_dir^"/../informal_code/interval_code" in
   let _ = mkfile_arg testineq s tags in
-  let _ = Optimize.compile_cpp() in 
+  let _ = Cpp_optimize.compile_cpp() in 
   let _ = (not ex) or (0=  Sys.command(interval_dir^"/test_auto"^args)) or failwith "interval execution error" in
     ();;
 
 let process_and_prep_args ex (s,tags,case) = 
   let _ = report ("process and prep args: "^s) in
   let (s,tags,testineq) = (* preprocess debug *) (s,tags,case) in
-  let (x,y,_) = Optimize.dest_nonlin testineq in
+  let (x,y,_) = Cpp_optimize.dest_nonlin testineq in
     (execute_args ex tags s testineq , x, y);;
 
 let rerun_timer =
@@ -174,7 +177,7 @@ let scrub_c t =
 
 let get_constants_xy s = 
   let (s,tags,case) = Optimize.idq_fields (getprep s) in
-  let (x,y,_) = Optimize.dest_nonlin case in
+  let (x,y,_) = Cpp_optimize.dest_nonlin case in
     (map scrub_c x,map scrub_c y);;
 
 let get_constants s = 

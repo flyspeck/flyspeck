@@ -17,7 +17,7 @@ It also computes the constant a(5,0,1).
 
 *)
 
-flyspeck_needs "strictbuild.hl";;
+flyspeck_needs "build/strictbuild.hl";;
 flyspeck_needs "../formal_lp/glpk/glpk_link.ml";;
 flyspeck_needs "../informal_code/graph_generator/graph_control.hl";;
 

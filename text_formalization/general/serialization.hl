@@ -605,6 +605,17 @@ let deserialization_axiom =
 	find (fun u -> t = concl u && hyp u = []) (axioms())
       with _ -> Hol.new_axiom t;;
 
+let has_deserialization_axiom =
+  let t = mk_const (deserial,[]) in
+    fun () ->
+      try
+	(find (fun u -> t = concl u && hyp u = []) (axioms()); true)
+      with _ -> false;;
+
+let warn_axiom() =
+  warn (has_deserialization_axiom()) ("Deserialization axiom installed!");;
+
+
 let init_serialization () =
 ( 
   try
@@ -733,9 +744,32 @@ let rec sort_lt_uniq lis =
 Sometimes uniq stalls for unclear reasons on this long list...
 *)
 
+let deserial_const = mk_const(deserial,[]);;
 
+let is_deserial_const = ((=) deserial_const);;
 
+let deserial_imp t = mk_imp(deserial_const,t);;
 
+let is_deserial_imp t =
+  try
+    let (a,_) = dest_imp t in
+      (is_deserial_const a)
+  with Failure _ -> false;;
+
+let deserial_dt gl =
+  let g = goal_concl gl in
+    if is_deserial_imp g then DISCH_TAC gl else ALL_TAC gl;;
+
+let deserial_un thm =
+  if is_deserial_imp (concl thm) then UNDISCH thm else thm;;
+
+let if_axiom =
+    if (Serialization.has_deserialization_axiom()) then Serialization.deserialization_axiom
+    else (fun ()-> TRUTH);;
+
+let des_prove_explicit(g,tac) =
+  let g' = deserial_imp g in deserial_un(
+      REWRITE_RULE[if_axiom()] (prove(g',deserial_dt THEN tac)));;
 
 
 end;;

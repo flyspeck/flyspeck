@@ -154,9 +154,6 @@ let process_exec = Preprocess.exec();;
 flyspeck_needs "../graph_generator/graph_control.hl";;
 Graph_control.run(Graph_control.flyspeck_properties_2014);;
 let graph_out = Graph_control.graph_out;;
-  let tame = Glpk_link.strip_archive (!Lpproc.archiveraw);;
-List.length tame;; (* 19713 *)
-Glpk_link.convert_to_list (List.nth tame 0);;
 
 
 
@@ -5471,7 +5468,7 @@ hd Good_list_archive.archive_list;;
 List.length Good_list_archive.archive_list;;
 
 flyspeck_needs "../formal_graph/archive/make_archive.hl";;
-
+archive_dir;;
 Make_archive.convert_archive (archive_dir^"/Tri.ML") 3;;
 Make_archive.convert_archive (archive_dir^"/Quad.ML") 4;;
 Make_archive.convert_archive (archive_dir^"/Pent.ML") 5;;
@@ -5482,3 +5479,111 @@ let md5_graph_archive_ml = map md5_of_list2 (arc3 @ arc4 @ arc5 @ arc6);;
 
 List.length (constants());;
 constants();;
+
+Flyspeck_lib.eval_command "3+3;;";;
+(* Dec 2015 *)
+
+let ocaml_string name ss = 
+  let p = Printf.sprintf in
+  let join s = Flyspeck_lib.unsplit s (fun x -> x) in
+  let il s = p "[%s]" (join ";" (map string_of_int s)) in
+  let il2 s = p "(\"%s\",[%s])" (fst s) (join ";\n   " (map il (snd s))) in
+  let il3 s = (join ";\n\n" (map il2 s)) in
+    p "let %s = [\n%s\n];;\n\n" name (il3 ( ss));;
+
+let fall_out =  Filename.temp_file "archive_all" ".ml";;
+
+list1;;
+let save_out_ocaml () = 
+  let s = "module Archive_all = struct\n\n" ^
+    ocaml_string "tame_list" list1 ^
+    "end;;" in
+    Flyspeck_lib.output_filestring fall_out s;;
+
+save_out_ocaml();;
+fall_out;;
+needs "/var/folders/qd/t_z5ssxj2877zw5nv_xqcqyr0000gn/T/archive_allb96c05.ml";;
+Archive_all.tame_list = list1;;
+
+(* Comparison with Isabelle .ML graphs *)
+
+(* Comparison with Informally generated java planar graph generation *)
+
+let convert_test filename ext = 
+  let (ic,oc) = Unix.open_process(sprintf 
+     "cat %s | tr 'A-Z' 'a-z'| sed 's/;/;;/g'| sed 's/,/;/g'| sed 's/val *[a-z]*/let arc%d/g' " 
+     filename ext) in
+  let s = Flyspeck_lib.load_and_close_channel false ic in
+  let _ = Unix.close_process (ic,oc) in s;;
+
+let convert_archive filename ext = 
+  let (ic,oc) = Unix.open_process(sprintf 
+     "cat %s | tr 'A-Z' 'a-z'| sed 's/;/;;/g'| sed 's/,/;/g'| sed 's/val *[a-z]*/let arc%d/g' " 
+     filename ext) in
+  let s = Flyspeck_lib.load_and_close_channel false ic in
+  let _ = Unix.close_process (ic,oc) in
+  let ss = String.concat " " s in
+    Flyspeck_lib.eval_command ~silent:true ss;;
+
+
+convert_archive Make_archive.f3_out 3;;
+arc3' = map snd Make_archive.tame3;;
+convert_ocaml Make_archive.f4_out 4;;
+convert_ocaml Make_archive.f5_out 5;;
+convert_ocaml Make_archive.f6_out 6;;
+
+let commands = sprintf 
+     "cat %s | tr 'A-Z' 'a-z'| sed 's/;/;;/g'| sed 's/,/;/g'| sed 's/val *[a-z]*/let arc%d/g' > %s1" 
+     Make_archive.f3_out 3 Make_archive.f3_out;;
+
+Unix.system(commands);;
+
+let convert_archive filename ext = 
+  let (ic,oc) = Unix.open_process(sprintf 
+     "cat %s | tr 'A-Z' 'a-z'| sed 's/;/;;/g'| sed 's/,/;/g'| sed 's/val *[a-z']*/let arc%d/g' " 
+     filename ext) in
+  let s = Flyspeck_lib.load_and_close_channel false ic in
+  let _ = Unix.close_process (ic,oc) in
+  let ss = String.concat " " s in
+    Flyspeck_lib.eval_command ~silent:true ss;;
+
+
+Make_archive.save_out();;
+Make_archive.convert_archive Make_archive.f3_out 3;;
+Make_archive.f3_out;;
+
+
+
+let archive_dir = Filename.concat project_root_dir "formal_graph/archive";;
+f3_out;;
+tmp_archive;;
+
+  #print_length 50;;
+
+
+(* general test run. turn on serialization, weak, then nonlinear, then... *)
+
+flyspeck_needs "../formal_graph/archive/archive_all.ml";;
+flyspeck_needs "../formal_graph/archive/make_archive.hl";;
+Make_archive.checks;;
+needs "../formal_lp/glpk/sphere.ml";;
+flyspeck_needs "../formal_lp/glpk/glpk_link.ml";;
+flyspeck_needs "../formal_lp/glpk/lpproc.ml";;
+flyspeck_needs "../formal_lp/glpk/hard_lp.ml";;
+flyspeck_needs "../formal_lp/glpk/build_main.hl";;
+
+(* restart lp *)
+
+
+
+
+(* compare to Isabelle *)
+List.length list2;;
+
+Make_archive.checks;;
+flyspeck_needs "tame/good_list_archive.hl";;
+
+new_definition `axxy = 1`;;
+
+(* goodness *)
+

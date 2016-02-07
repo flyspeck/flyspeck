@@ -830,7 +830,7 @@ let IMAGE_DIFF_INJ = prove
            ==> (IMAGE f (s DIFF t) = (IMAGE f s) DIFF (IMAGE f t))`,
   REWRITE_TAC[EXTENSION; IN_IMAGE; IN_DIFF] THEN MESON_TAC[]);;
 
-let IMAGE_DELETE_INJ = prove
+let IMAGE_DELETE_INJ_COMPAT = prove
  (`!f s a. (!x. (f(x) = f(a)) ==> (x = a))
            ==> (IMAGE f (s DELETE a) = (IMAGE f s) DELETE (f a))`,
   REWRITE_TAC[EXTENSION; IN_IMAGE; IN_DELETE] THEN MESON_TAC[]);;

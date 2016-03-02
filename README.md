@@ -8,7 +8,7 @@ The project was completed August 10, 2014.
 
 ## Introduction
 
-The purpose of the flyspeck project was to produce a formal proof of the Kepler Conjecture. The name `flyspeck` comes from matching the pattern `/f.*p.*k/` against an English dictionary. FPK in turn is an acronym for "The Formal Proof of Kepler."  More expansively, FLYSPECK is the Formidably Long, Yet Systematic Proof by Exhaustion of the Conjecture of Kepler (as suggested by G. Lawlor).
+The purpose of the flyspeck project was to produce a formal proof of the Kepler Conjecture. The name `flyspeck` comes from matching the pattern `/f.*p.*k/` against an English dictionary. FPK in turn is an acronym for "The Formal Proof of Kepler."  
 
 ## Resources
 

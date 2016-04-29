@@ -71,4 +71,14 @@ in the directory `out`.
 The result of these commands is the file `hashes.txt` which contains
 hashes of theorems for all Flyspeck nonlinear inequalities.
 
+##Import of Flyspeck Nonlinear Inequalities into the project
+
+After verification, the list of md5 hashes in `hashes.txt` coincides with list of hashes in general/theorem_nonlinear_digest.hl.
+
+To check that the two lists of md5 hashes agree: 
+
+     cat azure/results/hashes.txt | sed -e 's/^.*: *//' | sort > hash1.txt
+     cat text_formalization/general/theorem_nonlinear_digest.hl | grep -F '"' | sed -e 's/^.*:", *"//' -e 's/".*$//' | sort > hash2.txt
+     md5 hash1.txt hash2.txt
+
 

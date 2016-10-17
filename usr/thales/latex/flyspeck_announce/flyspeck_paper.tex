@@ -1,7 +1,7 @@
 % submitted to Pi, November 21, 2014, 
 % managing editor Henry Cohn
 % submitted version 3694
-
+% updated version, after referees, Oct 17, 2016.
 
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\IR}{\mathbb{IR}}
@@ -10,7 +10,7 @@
 \newcommand{\iabs}{\mathop{\rm iabs}}
 \newcommand{\bx}{{\bf x}}
 \newcommand{\GT}{G_{\hbox{\tiny Taylor}}}
-
+\parskip=0.5\baselineskip
 
 
 
@@ -86,15 +86,15 @@ theorem~\cite{gonthier2013machine}, the CompCert project giving a
 verified C compiler \cite{CC}, and the seL4 project that verified an
 operating system micro-kernel \cite{Klein-SOSP09}.  The Flyspeck
 project might actually set the current record in terms of lines of
-code in a verification project.  
-
+code in a verification project.  Unlike these other projects, our
+final result has the weakness of being spread over two different proof
+assistants and multiple computers in a cloud computation.
 
 The code and documentation for the Flyspeck project are available at a
-Google code repository devoted to the
+github code repository devoted to the
 project~\cite{website:FlyspeckProject}.  The parts of the project that
 have been carried out in Isabelle are available from the Archive of
 Formal Proofs~(\url{afp.sf.net}).  Other required software tools are
-Subversion (for interactions with the code repository),
 Isabelle/HOL~\cite{LNCS2283}, HOL Light~\cite{HOLL}, OCaml (the
 implementation language of HOL Light), the CamlP5 preprocessor (for a
 syntax extension to OCaml for parsing of mathematical terms), and GLPK
@@ -171,7 +171,7 @@ complex analysis.  Libraries include multivariate (gauge) integration,
 differential calculus, transcendental functions, and point-set
 topology on $\ring{R}^n$.
 
-Proof scripts in the HOL Light are written directly as OCaml code and
+Proof scripts in HOL Light are written directly as OCaml code and
 are executed in the OCaml read-eval-print loop.  Mathematical
 terms are expressed in a special syntax, set apart from ordinary OCaml
 code by backquotes.  For example, typed at the OCaml prompt,
@@ -279,9 +279,6 @@ HOL Light.  The computer calculations are as follows.
 \begin{enumerate}
 \item The proof of the Kepler conjecture relies on nearly a thousand
   nonlinear inequalities.  
-%These inequalities can be expressed in
-%  terms of trigonometric and inverse trigonometric functions, the
-%  square root function, and arithmetic over the real numbers.  
   The term \verb!the_nonlinear_inequalities! in HOL Light is the
   conjunction of these nonlinear inequalities.  See
   Section~\ref{sec:ni}.
@@ -319,16 +316,13 @@ single session is a theorem
 This theorem represents the formalization of two of the four parts of
 the proof: the text part of the proof and the linear programming.  It
 leaves the other two parts (nonlinear inequalities and tame
-classification) as assumptions.  The formal proof of the assumption
+classification) as explicit assumptions.  The formal proof of the assumption
 \verb!the_nonlinear_inequalities! is described in
 Section~\ref{sec:ni}.  The formal proof of
 \verb!import_tame_classification! in Isabelle is described in
 Section~\ref{sec:tc}.  Thus, combining all these results from various
 sessions of HOL Light and Isabelle, we have obtained a formalization
 of every part of the proof of the Kepler conjecture.
-
-
-
 
 
 \section{Text formalization}\label{sec:tf}
@@ -400,18 +394,46 @@ balls.
 
 The first step of the proof reduces the problem from a packing $V$
 involving a countably infinite number of congruent balls to a packing
-involving at most finitely many balls in close proximity to one further
-fixed central ball.  This reduction is obtained by making a geometric
-partition of Euclidean space that is adapted to the given packing.
-The pieces of this partition are called Marchal cells (replacing the
-decomposition stars in the original proof)~\cite{Marchal11}.  A key
-inequality (the Cell Cluster Inequality, which is discussed in
-Section~\ref{sec:ab}) provides the link between the Kepler conjecture
-and a local optimization problem (the local annulus inequality)
-involving at most finitely many balls.  This reduction appears as the
-following formal result:
+involving at most finitely many balls in close proximity to a
+ fixed central ball.  This reduction is obtained by making a
+geometric partition of Euclidean space that is adapted to the given
+packing.  The pieces of this partition are called Marchal cells
+(replacing the decomposition stars in the original
+proof)~\cite{Marchal11}.  
 
-% XX check this 
+A cell is not in general a polyhedron.  An element of $V$ that lies on
+the boundary of a cell is called a {\it vertex} of the cell.  Each
+line segment between vertices of the cell that lies entirely on the
+boundary of the cell is called an {\it edge} of the cell.  All the
+cells that share a {\it critical edge} (that is, an edge satisfying
+a certain restrictive length condition) form a {\it cell cluster}
+\cite[Def. 6.89]{DSP}.
+
+A real number $\Gamma(\ee,X)$ is attached to each cell $X$ together with
+one of its critical edges $\ee$.  This real number is defined
+geometrically in terms of the volume of the cell $X$, the solid angles
+at its vertices, the dihedral angles along its edges, and the lengths
+of edges \cite[Defs.~6.79, 6.91]{DSP}.
+
+A key inequality (the cell-cluster inequality, which is discussed
+further in Section~\ref{sec:ab}) provides the link between the Kepler
+conjecture and a local optimization problem (the local annulus
+inequality) involving at most finitely many balls \cite[6.93]{DSP}.
+The cell-cluster inequality asserts that for every critical edge $\ee$
+with corresponding cell cluster $C$,
+\[
+\sum_{X\in C} \Gamma(\ee,X)\ge 0.
+\]
+A related inequality, which  is easier to prove, holds when a cell does
+not have any critical edges \cite[6.92]{DSP}.  The significance of
+these inequalities is that they transform a problem about volumes and
+densities into a problem (the local annulus inequality) about
+distances between sphere centers.
+
+The relationship among the cell-cluster inequality, the local annulus
+inequality, and the Kepler conjecture is expressed formally as a
+key intermediate result:
+% 
 
 \begin{verbatim}
 |- the_nonlinear_inequalities /\ 
@@ -420,6 +442,7 @@ following formal result:
         ==> local_annulus_inequality V) 
    ==> the_kepler_conjecture
 \end{verbatim}
+
 All three assumptions can be viewed as explicit optimization problems
 of continuous functions on compact spaces.
 The constant {\it ball annulus} is defined as the set
@@ -433,8 +456,8 @@ packing $V\subset A$ can be stated in the following form:
 where $f(t) = (2.52-t)/(2.52-2)$ is the linear function that decays
 from $1$ to $0$ on the given annulus.  An argument which we do not
 repeat here shows that it is enough to consider $V$ with at most $15$
-elements~\cite[Lemma~6.110]{DSP}.  We discuss the nonlinear
-inequalities and the cell cluster inequality elsewhere in this paper.
+elements~\cite[Lemma~6.110]{DSP}.  We discuss the proofs of the nonlinear
+inequalities and the cell-cluster inequality elsewhere in this paper.
 The local annulus inequality has been used to solve other open
 problems in discrete geometry: Bezdek's strong dodecahedral conjecture
 and Fejes-T\'oth's contact conjecture~\cite{hales2011strong}.
@@ -466,8 +489,8 @@ counterexample $V$ cannot exist.  Eliminating all possible
 counterexamples in this way, we conclude that the Kepler conjecture
 must hold.
 
-\subsection{differences between the original proof and the blueprint
-  proof}
+\subsection{differences between
+ the original proof and the blueprint  proof}
 
 The blueprint proof follows the same general outline as the original
 proof.  However, many changes have been made to make it more suitable
@@ -525,16 +548,17 @@ the main estimate~\cite[Sec~7.4]{DSP}.  The main estimate is the most
 technically challenging part of the original text, and its
 formalization was the most technically challenging part of the
 blueprint text.  In fact, the original proof of the main estimate
-contained an error that is described and corrected in \cite{HalesHMNOZ10}.
-This is the most significant error that was found.
+contained an error that is described and corrected in
+\cite{HalesHMNOZ10}.  This is the most significant error that was
+found.
 
 A second major part of the appendix is devoted to the proof of the
-Cell Cluster Inequality~\cite[Thm~6.93]{DSP}.   In the blueprint text, the proof is
-skipped, with the following comment: ``The proof of this cell cluster
-inequality is a computer calculation, which is the most delicate
-computer estimate in the book.  It reduces the cell cluster inequality
-to hundreds of nonlinear inequalities in at most six variables.''
-The appendix gives full details.
+cell-cluster inequality~\cite[Thm~6.93]{DSP}.  In the blueprint text,
+the proof is skipped, with the following comment: ``The proof of this
+cell cluster inequality is a computer calculation, which is the most
+delicate computer estimate in the book.  It reduces the cell cluster
+inequality to hundreds of nonlinear inequalities in at most six
+variables.''  The appendix gives full details.
 
 A final part of the appendix deals with the final integration of the
 various libraries in the project.  As a large collaborative effort
@@ -604,18 +628,14 @@ theorems to the users of other proof assistants.
 %defect in the implementation of this architecture is avoided when the
 %proof scripts are replayed directly in the core system.  
 
-
-
-
-
 \section{Nonlinear inequalities}\label{sec:ni}
 
 All but a few nonlinear inequalities in the Flyspeck project have the
 following general form
 \begin{equation}\label{eqn:D}
-\forall \bx,\ \bx \in D \implies f_1(\bx) < 0 \vee \ldots \vee f_k(\bx) < 0.
+\forall \bx,\ \bx \in D \implies f_1(\bx) < 0 \vee \cdots \vee f_k(\bx) < 0.
 \end{equation}
-where $D = [a_1,b_1] \times \ldots \times [a_n, b_n]$ is a rectangular
+where $D = [a_1,b_1] \times \cdots \times [a_n, b_n]$ is a rectangular
 domain inside $\R^n$ and $\bx = (x_1,\ldots,x_n)$. In the remaining
 few inequalities, the form is similar, except that $k=1$ and the
 inequality is not strict.  In every case, the number of variables $n$
@@ -642,7 +662,8 @@ This definition can be easily extended to functions on $\R^k$. It is
 easy to construct interval extensions of basic arithmetic operations
 and elementary functions. For instance,
 \begin{equation*}
-[a_1,b_1] \oplus [a_2,b_2]= [a, b] \text { for some $a \le a_1 + a_2$ and $b \ge b_1 + b_2$}.
+[a_1,b_1] \oplus [a_2,b_2]= [a, b] 
+\text { for some $a \le a_1 + a_2$ and $b \ge b_1 + b_2$}.
 \end{equation*}
 Here, $\oplus$ denotes an interval extension of $+$. We do not define
 the result of $\oplus$ as $[a_1 + a_2, b_1 + b_2]$ since we may want
@@ -665,10 +686,10 @@ because the number of subdivisions required to establish some
 inequalities would be enormous, especially for multivariate
 inequalities.
 
-Both the  C++ informal verification code (from
-the original proof of the Kepler conjecture) and our formal
-verification procedure implemented in OCaml and HOL Light use improved
-interval extensions based on Taylor approximations.
+Both the C++ informal verification code (from the original proof of
+the Kepler conjecture) and our formal verification procedure
+implemented in OCaml and HOL Light use improved interval extensions
+based on Taylor approximations.
 
 Suppose that a function $g:\ring{R}\to\ring{R}$ is twice differentiable. Fix $y \in
 [a,b]$. Then we have the following formula for all $x \in [a,b]$:
@@ -726,12 +747,12 @@ Taylor series, we obtain a Taylor interval approximation in a similar way:
 \begin{equation*}
 \forall x \in [a,b]. \quad g'(x) \in \GT'([a,b])
 \end{equation*}
-for some interval $\GT'([a,b])$.  If $0$ is not in this interval, then the
-derivative has fixed sign, and
-the function $g$ is monotonic, so that the maximum value of $g$ occurs
-at the appropriate endpoint.  More generally, in multivariate inequalities,
-a partial derivative of fixed sign may be used to reduce the verification on a
-rectangle of dimension $k$ to an abutting rectangle of dimension $k-1$.
+for some interval $\GT'([a,b])$.  If $0$ is not in this interval, then
+the derivative has fixed sign, and the function $g$ is monotonic, so
+that the maximum value of $g$ occurs at the appropriate endpoint.
+More generally, in multivariate inequalities, a partial derivative of
+fixed sign may be used to reduce the verification on a rectangle of
+dimension $k$ to an abutting rectangle of dimension $k-1$.
 
 A few of the inequalities are sharp.  That is, the inequalities to be
 proved have the form $f \le 0$, where $f(\bx_0)=0$ at some point $\bx_0$
@@ -844,12 +865,6 @@ one master theorem.
 \section{Tame Classification}\label{sec:tc}
 
 
-% FIXME
-%Fonts for formulas? I have enclosed them in $s, which looks ugly because of
-%the missing spaces. The $s are merely markers for you to edit that text.
-% I have also written $Archive$, sometimes referring to the Isabelle/HOL
-%constant and sometimes to "the archive".
-
 The first major success of the Flyspeck project was the formalization
 of the classification of tame plane graphs. In the original proof of
 the Kepler conjecture, this classification was done by computer, using
@@ -873,14 +888,14 @@ frame=none,framesep=8pt,mathescape,morekeywords={and,shows},columns=flexible]
 
 The meaning of the
 terms \verb!PlaneGraphs!, \verb!tame!, \verb!fgraph!, and
-\verb!Archive! is explaned in the following paragraphs.
+\verb!Archive! is explained in the following paragraphs.
 In informal terms, the completeness theorem 
 asserts that every tame plane graph is
 isomorphic to a graph appearing in the archive.  
 
 Plane graphs are represented as an
 $n$-tuple of data including a list of faces. Faces are represented
-as lists of vertices, and each vertex is represented by an integer index.
+as lists of nodes, and each node is represented by an integer index.
 A function \verb!fgraph! strips the $n$-tuple down to the list of faces.
 
 To prove the completeness of the archive, we need to enumerate all
@@ -916,8 +931,9 @@ This is a closed formula that Isabelle proves automatically by evaluating it
 
 In the following two subsections we give a high-level overview of the
 formalization and proof. For more details see
-\cite{NipkowBS-IJCAR06,Nipkow-ITP11}. The complete machine-checked proof,
-including the archive is available online in the Archive of Formal Proofs
+\cite{NipkowBS-IJCAR06,Nipkow-ITP11}. The complete machine-checked
+proof, including the archive is available online in the Archive of
+Formal Proofs
 \url{afp.sf.net}~\cite{BauerN-AFP06}. Section~\ref{Archive} discusses
 the size of the archive and some performance issues.
 
@@ -945,9 +961,6 @@ of successor graphs reachable by subdividing one non-final face.  The
 set of plane graphs, denoted \verb!PlaneGraphs! in Isabelle/HOL, is
 defined to be the set of final graphs reachable from some seed graph in
 finitely many steps.
-%To facilitate a fair enumeration, it is
-%parameterized by an upper bound on the size of final faces in the
-%generated graphs.
 
 
 \subsection{tame graphs and their enumeration}
@@ -981,9 +994,9 @@ counterexample to the Kepler conjecture is produced, which is
 eliminated at a later stage of the proof, but we do not miss any real
 ones.
 
-Each step \verb!next_tame! is executable. The exhaustive enumeration
-of all final graphs reachable from any seed graph via \verb!next_tame!
-yields a set, denoted \verb!TameEnum!.
+Each step of \verb!next_tame! is executable. The exhaustive
+enumeration of all final graphs reachable from any seed graph via
+\verb!next_tame!  yields a set, denoted \verb!TameEnum!.
 
 \subsection{the archive}
 \label{Archive}
@@ -1041,26 +1054,12 @@ of the Kepler conjecture, as stated in Section~\ref{sec:statement}.
 The right-hand side is the verbatim translation into HOL Light of the following
 completeness theorem in Isabelle (repeated from above):
 
-%\begin{obeylines}
 
-%\begin{verbatim}
-%|- "g \<in> PlaneGraphs" and "tame g" 
-%       shows "fgraph g \<in>\<^isub>\<simeq> Archive"
-%\end{verbatim}
-
-%\end{obeylines}
-
-%\begin{verbatim}
 \begin{lstlisting}[keepspaces=true,stringstyle=\tt,basicstyle=\small,%
 frame=none,framesep=8pt,mathescape,morekeywords={and,shows},columns=flexible]
 |- "g $\in$ PlaneGraphs" and "tame g" shows "fgraph g $\in_{\simeq}$ Archive"
 \end{lstlisting}
-%\end{verbatim}
 % http://afp.sourceforge.net/browser_info/current/AFP/Flyspeck-Tame/Completeness.html
-
-%In informal terms, the completeness theorem asserts that every tame
-%plane graph is isomorphic to a graph appearing in a certain long
-%explict list (the archive) of graphs.  
 
 All of the HOL Light terms
 \verb!PlaneGraphs!, \verb!tame!, \verb!archive!, \verb!IN_simeq!,
@@ -1070,10 +1069,28 @@ appearing in the definitions).  The types are similarly translated
 between proof assistants (lists to lists, natural numbers to natural
 numbers, and so forth).  These definitions and types were translated
 by hand.  The archive of graphs is generated from the same ML file for
-both the HOL Light and the Isabelle statements.
+both the HOL Light and the Isabelle statements.  
+
+There are some insignificant differences between the Isabelle
+definitions and the HOL Light translation.  Some specifications leave
+some undefined cases, and we do not attempt a verbatim translation of
+undefined behavior.  For example, the head of an empty list is
+unspecified, and the two proof assistants might give inequivalent
+behavior for the head of an empty list.  Such differences are
+irrelevant to the formal proof, which operates at an abstract level
+that avoids reasoning about undefined behavior.  
+
+There are some insignificant differences between the types.  For
+example, a data type with two constructors in Isabelle
+is implemented in HOL Light as the boolean type:
+\begin{lstlisting}[keepspaces=true,stringstyle=\tt,basicstyle=\small,%
+frame=none,framesep=8pt,mathescape,morekeywords={and,shows},columns=flexible]
+datatype facetype = Final | Nonfinal
+\end{lstlisting}
+
 
 Since the formal proof is distributed between two different systems
-with two different logics, we briefly indicate why this theorem in
+with two different logics, we indicate why this theorem in
 Isabelle must also be a theorem in HOL Light.  Briefly, this
 particular statement could be expressed as a SAT problem in
 first-order propositional logic.  SAT problems pass directly between
@@ -1082,16 +1099,25 @@ satisfiable in the other (assuming the consistency of both systems).
 In expressing the classification theorem as a SAT problem, the point
 is that all quantifiers in the theorem run over bounded discrete sets,
 allowing them to be be expanded as finitely many cases in
-propositional logic.  We also note that the logics of Isabelle/HOL and
-HOL Light are very closely related to each another.
-%Each of the finitely many possible graphs can be
-%specified by a finite number of boolean conditions.  Similarly, graph
-%isomorphism can be replaced by an enumeration of finitely many
-%possible bijections of vertices.  Tameness involves some conditions in
-%integer arithmetic, but again everything is bounded, and a bounded arithmetic
-%table can be drawn up in boolean gates using the usual tricks.
-%Thus, at a theoretical level, there is no difficulty in sharing this
-%theorem between systems.
+propositional logic.
+
+In more detail, each graph that occurs in the tame classification has
+at most fifteen nodes.  Each of the finitely many possible graphs
+can be specified by a finite number of boolean conditions.  Similarly,
+graph isomorphism can be replaced by an enumeration of finitely many
+possible bijections of nodes.  Tameness involves some conditions in
+integer arithmetic, but again everything is bounded, and a bounded
+arithmetic table can be constructed in boolean gates using the usual
+tricks.  Thus, at a theoretical level, a SAT problem is solved, which
+can be shared between systems.
+
+More generally, the logics of Isabelle/HOL and HOL Light are very
+closely related to each another, and they implement the same
+computation rules.  If computable predicates are implemented in the
+two proof assistants using the the same functions and data types, then
+the results of the computations must agree.  In this way, computable
+predicates can pass from Isabelle to HOL Light.
+
 
 \section{Linear programs}\label{sec:lp}
 
@@ -1137,29 +1163,31 @@ not change the original nonlinear inequalities but simply introduce
 new HOL Light constants for nonlinear functions and reformulate
 nonlinear inequalities in a linear form.
 
-For example, suppose we have the following inequalities: $x +
-x^2 \le 3$ and $x \ge 2$. Define $y = x^2$ to obtain the following
-linear system of inequalities: $x + y \le 3$, $x \ge 2$, and $y \ge 4$.
-(The last inequality follows from $x \ge 2$.)  We
-ignore the nonlinear dependency of $y$ on $x$, and obtain a system of linear
-inequalities which can be easily shown to be inconsistent.
+For example, suppose we have the following inequalities: $x + x^2 \le
+3$ and $x \ge 2$. Define $y = x^2$ to obtain the following linear
+system of inequalities: $x + y \le 3$, $x \ge 2$, and $y \ge 4$.  (The
+last inequality follows from $x \ge 2$.)  We ignore the nonlinear
+dependency of $y$ on $x$, and obtain a system of linear inequalities
+which can be easily shown to be inconsistent.
 
-The generation of linear inequalities from properties of contravening packings is
-a semi-automatic procedure: many such inequalities are derived with a special
-automatic procedure but some of them need manual formal proofs.
+The generation of linear inequalities from properties of contravening
+packings is a semi-automatic procedure: many such inequalities are
+derived with a special automatic procedure but some of them need
+manual formal proofs.
 
 The next step is the relaxation of linear inequalities with irrational
-coefficients. We do not solve linear programs with
-irrational numbers directly.  Consider the example, $x - \sqrt{2} y \le
-\pi$, $x + y \le \sqrt{35}$, $x \ge 5$, $y \ge 0$. These inequalities imply
+coefficients. We do not solve linear programs with irrational numbers
+directly.  Consider the example, $x - \sqrt{2} y \le \pi$, $x + y \le
+\sqrt{35}$, $x \ge 5$, $y \ge 0$. These inequalities imply
 \begin{equation*}\label{eqn:35}
 %\begin{split}
 x\ge 5, \quad
 y \ge 0, \quad
 x - 1.42 y \le 3.15,\quad
 x + y \le 6.
-%x - \sqrt{2} y \le \pi &\implies x - 1.42 y \le \pi \implies x - 1.42 y \le 3.15,\\
-%x + y \le \sqrt{35} &\implies 
+% x - \sqrt{2} y \le \pi &\implies x - 1.42 y 
+%\le \pi \implies x - 1.42 y \le 3.15,\\
+% x + y \le \sqrt{35} &\implies
 %\end{split}
 \end{equation*}
 This system with rational coefficients is inconsistent and thus
@@ -1179,21 +1207,16 @@ programs).
 
 The last step of the formal generation of linear programs is the
 instantiation of free variables of linear inequalities with special
-values computed from an associated tame planar hypermap. In this way, each
-tame planar hypermap produces a linear program which is formally checked for
-feasibility. Not all linear programs obtained in this way are
-infeasible.  For about half of the tame planar hypermaps, linear relaxations
-are insufficiently precise and do not yield infeasible linear
-programs.  In that situation, a feasible linear program is split into
-several cases where new linear inequalities are introduced. New cases
-are produced by considering alternatives of the form $x \le a \vee a
-\le x$ where $x$ is some variable and $a$ is a constant.
-Case splitting leads to more precise linear relaxations.
-% (other forms
-%of additional inequalities are possible; it is only important that all
-%alternatives are considered). The main idea of introducing new
-%inequalities is that some other inequalities derived from nonlinear
-%properties may be replaced with more precise linear relaxations.
+values computed from an associated tame planar hypermap. In this way,
+each tame planar hypermap produces a linear program which is formally
+checked for feasibility. Not all linear programs obtained in this way
+are infeasible.  For about half of the tame planar hypermaps, linear
+relaxations are insufficiently precise and do not yield infeasible
+linear programs.  In that situation, a feasible linear program is
+split into several cases where new linear inequalities are
+introduced. New cases are produced by considering alternatives of the
+form $x \le a \vee a \le x$ where $x$ is some variable and $a$ is a
+constant.  Case splitting leads to more precise linear relaxations.
 
 Case splitting for verification of linear programs in the project is
 automatic. In fact, a special informal procedure generates all required
@@ -1204,8 +1227,8 @@ Formal verification of general linear programs is relatively easy. We
 demonstrate our verification procedure with an example. A detailed
 description of this procedure can be found in~\cite{Solovyev:LP}. All
 variables in each verified linear program must be nonnegative and
-bounded. In the following example, our goal is to verify that the following system is
-infeasible:
+bounded. In the following example, our goal is to verify that the
+following system is infeasible:
 \begin{equation*}
 \begin{split}
 x - 1.42 y \le 3.15,\ x + y \le 6,\ 
@@ -1235,14 +1258,14 @@ example at hand, we get the following modified dual solution:
 \[
  (0.704, 1, -1.705, 0.001, -0.00032, 0, 0.296, 0),
 \]
-whose entries correspond with the ordered list of eight inequalities in the system
-(\ref{eqn:lp}).  With this modified dual solution, the sum of the
-constraints of the system (\ref{eqn:lp}) with the slack variables set
-to zero, weighted by the coefficients of the dual vector, yields $0 x
-+ 0 y \le -0.2974$. This contradiction shows that our original system
-of inequalities is infeasible.  We stress that the coefficients of $x$
-and $y$ in this sum are precisely zero, and this is a key feature of
-the modified dual solutions.
+whose entries correspond with the ordered list of eight inequalities
+in the system (\ref{eqn:lp}).  With this modified dual solution, the
+sum of the constraints of the system (\ref{eqn:lp}) with the slack
+variables set to zero, weighted by the coefficients of the dual
+vector, yields $0 x + 0 y \le -0.2974$. This contradiction shows that
+our original system of inequalities is infeasible.  We stress that the
+coefficients of $x$ and $y$ in this sum are precisely zero, and this
+is a key feature of the modified dual solutions.
 
 If we know a modified dual solution, then the formal verification
 reduces to the summation of inequalities with coefficients from the
@@ -1279,7 +1302,7 @@ Kepler conjecture) agrees with the common understanding of the
 theorem.  In other words, did the right theorem get formalized?  Were
 any unapproved axioms added to the system?  The formal proof system
 itself should be audited to make sure there is no foul play in the
-syntax, visual display, and underlying internals.  A fradulent user of
+syntax, visual display, and underlying internals.  A fraudulent user of
 a proof assistant might ``exploit a flaw to get the project completed
 on time or on budget.  In their review, the auditor must assume
 malicious intent, rather than use arguments about the improbability of
@@ -1297,27 +1320,24 @@ translation.)  In particular, an audit should check that the long list
 of tame graphs that is used in Isabelle is identical to the list that
 is used in HOL Light.  (As mentioned above, both systems generated
 their list from the same master file.)
-
-%The nonlinear inequalities were also combined from various sessions of
-%HOL Light.  A specially modified version of HOL Light combines these
-%inequalities into a single theorem.  
-The auditor should also check the
-design of the special modification of HOL Light that was used to combine
-nonlinear inequalities into a single session.
-
+  
+The auditor should also check the design of the special modification
+of HOL Light that was used to combine nonlinear inequalities into a
+single session.
 
 
 \section{Related work and acknowledgements}
 
-Numerous other research projects in formal proofs have made use of
-the Flyspeck project in some way or have been inspired by the needs of
-Flyspeck.  These projects include the work cited above on linear programming
-and formal proofs of nonlinear inequalities, automated translation of proofs
-between formal proof systems~\cite{obua:import}, \cite{KaliszykK13}, 
-\cite{McLaughlin:2006:IJCAR},
-the refactoring of formal proofs \cite{adams2012recording}, machine learning
-applied to proofs and proof automation ~\cite{KU14} \cite{KaliszykU2014}, an SSReflect mode for HOL Light~\cite{Solovyev-thesis}, and a mechanism to
-execute trustworthy external arithmetic from
+Numerous other research projects in formal proofs have made use of the
+Flyspeck project in some way or have been inspired by the needs of
+Flyspeck.  These projects include the work cited above on linear
+programming and formal proofs of nonlinear inequalities, automated
+translation of proofs between formal proof systems~\cite{obua:import},
+\cite{KaliszykK13}, \cite{McLaughlin:2006:IJCAR}, the refactoring of
+formal proofs \cite{adams2012recording}, machine learning applied to
+proofs and proof automation ~\cite{KU14} \cite{KaliszykU2014}, an
+SSReflect mode for HOL Light~\cite{Solovyev-thesis}, and a mechanism
+to execute trustworthy external arithmetic from
 Isabelle/HOL~\cite{obua:phd},~\cite{ObuaN}.
 
 
@@ -1384,6 +1404,9 @@ Microsoft Azure Research, William Benter Foundation, University of
 Pittsburgh, Radboud Research Facilities, Institute of Math (VAST), and
 VIASM.
 
+We thank anonymous referees for rerunning the proof scripts, for
+improvements to the project configuration, and other suggestions.
+
 
 \section{Appendix on definitions}\label{sec:ap}
 
@@ -1434,8 +1457,4 @@ statement of the Kepler conjecture are the expected ones.
 \end{verbatim}
 
 \end{obeylines}
-
-
-
-
 

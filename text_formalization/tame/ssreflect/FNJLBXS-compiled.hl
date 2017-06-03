@@ -4,6 +4,12 @@ needs "tame/ssreflect/sort-compiled.hl";;
 (* Module Fnjlbxs*)
 module Fnjlbxs = struct
 
+parse_as_infix ("::", (12, "right"));;
+override_interface ("::", `CONS`);;
+make_overloadable "++" `:A -> A -> A`;;
+overload_interface ("++", `cat`);;
+parse_as_infix("<-", (11, "right"));;
+override_interface("<-", `MEM`);;
 open Ssrfun;;
 open Ssrbool;;
 open Ssrnat;;
@@ -12,13 +18,8 @@ open Seq2;;
 open Sort;;
 open Tame_defs;;
 open Fan_defs;;
-parse_as_infix ("::", (12, "right"));;
-override_interface ("::", `CONS`);;
-make_overloadable "++" `:A -> A -> A`;;
-overload_interface ("++", `cat`);;
-parse_as_infix("<-", (11, "right"));;
-override_interface("<-", `MEM`);;
-(* Lemma packing *)
+
+(* Lemma packing_in *)
 let packing_in = Sections.section_proof ["V"]
 `packing V <=> (!u v. u IN V /\ v IN V /\ ~(u = v) ==> &2 <= dist (u,v))`
 [
@@ -80,42 +81,6 @@ Sections.end_section "MoreList";;
 Sections.begin_section "MoreMinK";;
 
 (* Lemma min_k_continuous *)
-
-let min_k_continuous = prove
-  (`!k n (f:num->A->real) net. (!i. i < n ==> f i real_continuous net) ==>
-     (\x. min_k k (mkseq (\i. f i x) n)) real_continuous net`,
-   REPEAT GEN_TAC THEN
-     ASM_CASES_TAC `k >= n:num` THENL [
-       REWRITE_TAC[min_k] THEN
-	 set_tac "r" `\x. _ x` THEN
-	 SUBGOAL_THEN `r:A->real = \x. EL k (nseq n ((@)UNIV))` (fun th -> REWRITE_TAC[th; REAL_CONTINUOUS_CONST]) THEN
-	 EXPAND_TAC "r" THEN
-	 REWRITE_TAC[FUN_EQ_THM] THEN X_GEN_TAC `m:A` THEN
-	 apply_tac ge_length_imp_EL_eq THEN
-	 REWRITE_TAC[GSYM size; size_merge_sort; size_mkseq; size_nseq] THEN ASM_ARITH_TAC;
-       ALL_TAC
-     ] THEN
-     SUBGOAL_THEN `k < n:num` ASSUME_TAC THENL [ ASM_ARITH_TAC; ALL_TAC ] THEN
-       REWRITE_TAC[real_continuous; tendsto_real; min_k] THEN
-       REPEAT STRIP_TAC THEN
-       MATCH_MP_TAC EVENTUALLY_MONO THEN
-       EXISTS_TAC `\x:A. !i. i IN {j | j < n:num} ==> abs (f i x - f i (netlimit net)) < e` THEN
-       CONJ_TAC THENL [
-	 REWRITE_TAC[IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
-	   REPEAT (new_rewrite [] [] (ISPEC `&0` EL_nth)) THEN ASM_REWRITE_TAC[size_merge_sort; size_mkseq] THEN
-	   new_rewrite [] [] (ISPECL [`mkseq (\i. (f:num->A->real) i x) n`; `mkseq (\i. (f:num->A->real) i (netlimit net)) n`] sort_continuous) THEN
-	   ASM_SIMP_TAC[size_mkseq; nth_mkseq; real_merge_sort];
-	 new_rewrite [] [] EVENTUALLY_FORALL THENL [
-	   REWRITE_TAC[FINITE_NUMSEG_LT; GSYM MEMBER_NOT_EMPTY] THEN
-	     EXISTS_TAC `k:num` THEN ASM_REWRITE_TAC[IN_ELIM_THM];
-	   ALL_TAC
-	 ] THEN
-	   REWRITE_TAC[IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
-	   FIRST_X_ASSUM (MP_TAC o SPEC `a:num`) THEN ASM_REWRITE_TAC[] THEN
-	   DISCH_THEN (MP_TAC o SPEC `e:real`) THEN ASM_REWRITE_TAC[]
-       ]);;
-
-(*
 let min_k_continuous = Sections.section_proof ["k";"n";"f";"net"]
 `(!i. i < n ==> f i real_continuous net) ==>
         (\x. min_k k (mkseq (\i. f i x) n)) real_continuous net`
@@ -125,68 +90,20 @@ let min_k_continuous = Sections.section_proof ["k";"n";"f";"net"]
    ((THENL_FIRST) (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`r = \x. EL k (nseq n ((@)UNIV))`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))))))) ((((use_arg_then2 ("REAL_CONTINUOUS_CONST", [REAL_CONTINUOUS_CONST]))(thm_tac (new_rewrite [] [])))) THEN (done_tac)));
    ((((((use_arg_then2 ("r_def", []))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("eq_ext", [eq_ext]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (move ["m"]) THEN (simp_tac)) THEN ((use_arg_then2 ("ge_length_imp_EL_eq", [ge_length_imp_EL_eq])) (thm_tac apply_tac)));
    (((((use_arg_then2 ("size", [size]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("size_merge_sort", [size_merge_sort]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("size_mkseq", [size_mkseq]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("size_nseq", [size_nseq]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("leqNgt", [leqNgt]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
-   ((repeat_tactic 1 9 (((use_arg_then2 ("real_continuous", [real_continuous]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL tendsto_real (* REALLIM *))))(thm_tac (new_rewrite [] []))))));
-   (((fun arg_tac -> arg_tac (Arg_term (`trivial_limit net`))) (disch_tac [])) THEN case THEN (simp_tac) THEN (move ["f_cont"]) THEN (move ["e"]) THEN (move ["e_gt0"]));
-   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`?y. (?x. netord net x y) /\
-        (!x. netord net x y ==> (!i:num. i < n ==> abs (f i x - f i (netlimit net)) < e))`))) (term_tac (have_gen_tac []ALL_TAC))));
-   ((((use_arg_then2 ("MONO_EXISTS", [MONO_EXISTS])) (thm_tac apply_tac)) THEN (move ["y"]) THEN (case THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (move ["all_f"])) THEN ((((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] [])))) THEN (move ["x"]) THEN (move ["net_x"])));
-   (repeat_tactic 1 9 (((use_arg_then2 ("min_k", [min_k]))(thm_tac (new_rewrite [] [])))));
-   (((fun arg_tac -> arg_tac (Arg_term (`merge_sort (<=) _`))) (term_tac (set_tac "s"))) THEN ((fun arg_tac -> arg_tac (Arg_term (`merge_sort (<=) _`))) (term_tac (set_tac "s'"))));
-   ((repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("EL_nth", [EL_nth])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`&0`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("s_def", []))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("s'_def", []))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("size_merge_sort", [size_merge_sort]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("size_mkseq", [size_mkseq]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
-   ((((use_arg_then2 ("s_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("s'_def", []))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("sort_continuous", [sort_continuous])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`mkseq (\i. f i x) n`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`mkseq (\i. f i (netlimit net)) n`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))));
-   (((((use_arg_then2 ("s_def", []))(gsym_then (thm_tac (new_rewrite [1] []))))) THEN (((use_arg_then2 ("s'_def", []))(gsym_then (thm_tac (new_rewrite [1] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("real_merge_sort", [real_merge_sort]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("size_mkseq", [size_mkseq]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("k_lt", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)) THEN (move ["i"]) THEN (move ["i_lt"]));
-   (((repeat_tactic 1 9 (((use_arg_then2 ("nth_mkseq", [nth_mkseq]))(thm_tac (new_rewrite [] []))))) THEN ((simp_tac THEN TRY done_tac)) THEN (((use_arg_then2 ("all_f", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
-   ((fun arg_tac -> arg_tac (Arg_term (`?y x. netord net x y`))) (term_tac (have_gen_tac [](move ["ord_xy"]))));
-   ((((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("f_cont", [])) (fun fst_arg -> (use_arg_then2 ("k_lt", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e_gt0", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC THEN (case THEN (move ["y"])) THEN (case THEN ALL_TAC) THEN (case THEN (move ["x"])) THEN (move ["h"]) THEN (move ["_"])) THEN (((use_arg_then2 ("y", [])) (term_tac exists_tac)) THEN ((use_arg_then2 ("x", [])) (term_tac exists_tac))) THEN (done_tac));
-   (((THENL) (((use_arg_then2 ("f_cont", [])) (disch_tac [])) THEN (clear_assumption "f_cont") THEN ((use_arg_then2 ("n", [])) (disch_tac [])) THEN (clear_assumption "n") THEN elim) [ALL_TAC; ((move ["m"]) THEN (move ["IH"]))]) THEN ((repeat_tactic 0 10 (((use_arg_then2 ("ltn0", [ltn0]))(thm_tac (new_rewrite [] []))))) THEN (simp_tac)));
-   ((((use_arg_then2 ("ord_xy", [])) (disch_tac [])) THEN (clear_assumption "ord_xy") THEN BETA_TAC THEN (case THEN (move ["y"])) THEN (case THEN (move ["x"])) THEN (move ["ord_xy"])) THEN (((use_arg_then2 ("y", [])) (term_tac exists_tac)) THEN ((use_arg_then2 ("x", [])) (term_tac exists_tac))) THEN (done_tac));
-   ((BETA_TAC THEN (move ["f_cont"])) THEN (((use_arg_then2 ("IH", [])) (disch_tac [])) THEN (clear_assumption "IH") THEN BETA_TAC) THEN ((THENL) (ANTS_TAC) [((move ["i"]) THEN (move ["i_lt_m"]) THEN (move ["e'"]) THEN (move ["e'_gt0"])); ALL_TAC]));
-   (((((use_arg_then2 ("f_cont", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("e'_gt0", []))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("i_lt_m", [])) (disch_tac [])) THEN (clear_assumption "i_lt_m") THEN BETA_TAC) THEN (arith_tac) THEN (done_tac));
-   (((fun arg_tac -> (fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("f_cont", [])) (fun fst_arg -> (use_arg_then2 ("m", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e_gt0", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> (use_arg_then2 ("ltnSn", [ltnSn])) (fun fst_arg -> (use_arg_then2 ("m", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC);
-   ((((use_arg_then2 ("IMP_IMP", [IMP_IMP]))(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (DISCH_THEN (fun snd_th -> (use_arg_then2 ("NET_DILEMMA", [NET_DILEMMA])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN (case THEN (move ["y"])) THEN (case THEN (move ["x_ord"])) THEN (move ["h"]));
-   (((use_arg_then2 ("y", [])) (term_tac exists_tac)) THEN (((((use_arg_then2 ("x_ord", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> arg_tac (Arg_theorem (ARITH_RULE `i < SUC m <=> i = m \/ i < m`)))(thm_tac (new_rewrite [] []))))) THEN (move ["x"]) THEN (move ["ord_xy"]) THEN (move ["i"])));
-   ((THENL_FIRST) ((THENL) case [(((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))); (move ["i_lt_m"])]) ((((use_arg_then2 ("h", []))(thm_tac (new_rewrite [] [])))) THEN (done_tac)));
-   ((((fun arg_tac -> (use_arg_then2 ("h", [])) (fun fst_arg -> (use_arg_then2 ("ord_xy", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
+   ((repeat_tactic 1 9 (((use_arg_then2 ("real_continuous", [real_continuous]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("tendsto_real", [tendsto_real]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("min_k", [min_k]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac));
+   (BETA_TAC THEN (move ["f_cont"]) THEN (move ["e"]) THEN (move ["e_gt0"]));
+   (((fun arg_tac -> (use_arg_then2 ("EVENTUALLY_MONO", [EVENTUALLY_MONO])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`\x. !i. i IN {j | j < n:num} ==> abs (f i x - f i (netlimit net)) < e`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac) THEN (simp_tac));
+   (split_tac);
+   ((repeat_tactic 1 9 (((use_arg_then2 ("inE", [inE]))(thm_tac (new_rewrite [] []))))) THEN (move ["x"]) THEN (move ["net_x"]));
+   ((repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("EL_nth", [EL_nth])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`&0`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("size_merge_sort", [size_merge_sort]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("size_mkseq", [size_mkseq]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   (((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("sort_continuous", [sort_continuous])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`mkseq (\i. f i x) n`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`mkseq (\i. f i (netlimit net)) n`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))));
+   (((repeat_tactic 1 9 (((use_arg_then2 ("real_merge_sort", [real_merge_sort]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("size_mkseq", [size_mkseq]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("k_lt", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)) THEN (move ["i"]) THEN (move ["i_lt"]));
+   (((repeat_tactic 1 9 (((use_arg_then2 ("nth_mkseq", [nth_mkseq]))(thm_tac (new_rewrite [] []))))) THEN ((simp_tac THEN TRY done_tac)) THEN (((use_arg_then2 ("net_x", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((THENL_FIRST) ((((use_arg_then2 ("EVENTUALLY_FORALL", [EVENTUALLY_FORALL]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("FINITE_NUMSEG_LT", [FINITE_NUMSEG_LT]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("MEMBER_NOT_EMPTY", [MEMBER_NOT_EMPTY]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (simp_tac) THEN (((use_arg_then2 ("inE", [inE]))(thm_tac (new_rewrite [] []))))) (((use_arg_then2 ("k", [])) (term_tac exists_tac)) THEN (done_tac)));
+   ((BETA_TAC THEN (move ["a"]) THEN (move ["a_lt_n"])) THEN (((use_arg_then2 ("f_cont", []))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
 ];;
-*)
 
 (* Lemma min_k_limit *)
-
-let min_k_limit = prove
-  (`!k s s' net.
-     (!n. LENGTH (s' n) = LENGTH s) /\
-     (!i. i < LENGTH s ==> ((\n. EL i (s' n)) ---> EL i s) net)
-   ==> ((\n:A. min_k k (s' n)) ---> min_k k s) net`,
-   REPEAT STRIP_TAC THEN
-     ASM_CASES_TAC `k >= LENGTH (s:(real)list)` THENL [
-       SUBGOAL_THEN `(\n:A. min_k k (s' n)) = (\n. min_k k s)` (fun th -> REWRITE_TAC[th; REALLIM_CONST]) THEN
-	 REWRITE_TAC[min_k; FUN_EQ_THM] THEN X_GEN_TAC `m:A` THEN
-	 apply_tac ge_length_imp_EL_eq THEN
-	 REWRITE_TAC[GSYM size; size_merge_sort; size_mkseq; size_nseq] THEN
-	 ASM_REWRITE_TAC[size] THEN ASM_ARITH_TAC;
-       ALL_TAC
-     ] THEN
-     SUBGOAL_THEN `k < LENGTH (s:(real)list)` ASSUME_TAC THENL [ ASM_ARITH_TAC; ALL_TAC ] THEN
-       REPEAT (POP_ASSUM MP_TAC) THEN REWRITE_TAC[tendsto_real] THEN REPEAT STRIP_TAC THEN
-       REWRITE_TAC[min_k] THEN
-       MATCH_MP_TAC EVENTUALLY_MONO THEN
-       EXISTS_TAC `\x:A. !i. i IN {j | j < LENGTH (s:(real)list)} ==> abs (EL i (s' x) - EL i s) < e` THEN
-       CONJ_TAC THENL [
-	 REWRITE_TAC[IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
-	   REPEAT (new_rewrite [] [] (ISPEC `&0` EL_nth)) THEN ASM_REWRITE_TAC[size_merge_sort; size_mkseq; size] THEN
-	   new_rewrite [] [] (ISPECL [`(s' (x:A)):(real)list`; `s:(real)list`] sort_continuous) THEN
-	   ASM_SIMP_TAC[size_mkseq; nth_mkseq; real_merge_sort; size; GSYM EL_nth];
-	 new_rewrite [] [] EVENTUALLY_FORALL THENL [
-	   REWRITE_TAC[FINITE_NUMSEG_LT; GSYM MEMBER_NOT_EMPTY] THEN
-	     EXISTS_TAC `k:num` THEN ASM_REWRITE_TAC[IN_ELIM_THM];
-	   ALL_TAC
-	 ] THEN
-	   REWRITE_TAC[IN_ELIM_THM] THEN REPEAT STRIP_TAC THEN
-	   FIRST_X_ASSUM (MP_TAC o SPEC `a:num`) THEN ASM_REWRITE_TAC[] THEN
-	   DISCH_THEN (MP_TAC o SPEC `e:real`) THEN ASM_REWRITE_TAC[]
-       ]);;
-
-(*
 let min_k_limit = Sections.section_proof ["k";"s";"s'";"net"]
 `(!n. LENGTH (s' n) = LENGTH s) /\
         (!i. i < LENGTH s ==> ((\n. EL i (s' n)) ---> EL i s) net) ==>
@@ -197,32 +114,17 @@ let min_k_limit = Sections.section_proof ["k";"s";"s'";"net"]
    ((THENL_FIRST) (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`(\n. min_k k (s' n)) = (\n. min_k k s)`))) (term_tac (have_gen_tac [](((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] [])))))))) ((((use_arg_then2 ("REALLIM_CONST", [REALLIM_CONST]))(thm_tac (new_rewrite [] [])))) THEN (done_tac)));
    ((((repeat_tactic 1 9 (((use_arg_then2 ("min_k", [min_k]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("eq_ext", [eq_ext]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (move ["m"]) THEN (simp_tac)) THEN ((use_arg_then2 ("ge_length_imp_EL_eq", [ge_length_imp_EL_eq])) (thm_tac apply_tac)));
    (((((use_arg_then2 ("size", [size]))(gsym_then (thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("size_merge_sort", [size_merge_sort]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("size", [size]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("len_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("leqNgt", [leqNgt]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
-   ((((use_arg_then2 ("s'_to", [])) (disch_tac [])) THEN (clear_assumption "s'_to") THEN BETA_TAC) THEN (repeat_tactic 1 9 (((fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL (*REALLIM*)tendsto_real)))(thm_tac (new_rewrite [] []))))));
-   (((fun arg_tac -> arg_tac (Arg_term (`trivial_limit net`))) (disch_tac [])) THEN case THEN (simp_tac) THEN (move ["el_cont"]) THEN (move ["e"]) THEN (move ["e_gt0"]));
-   (((THENL_ROT 1)) ((fun arg_tac -> arg_tac (Arg_term (`?y. (?x. netord net x y) /\
-        (!x. netord net x y ==> (!i. i < LENGTH s ==> abs (EL i (s' x) - EL i s) < e))`))) (term_tac (have_gen_tac []ALL_TAC))));
-   ((((use_arg_then2 ("MONO_EXISTS", [MONO_EXISTS])) (thm_tac apply_tac)) THEN (move ["y"]) THEN (case THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (move ["all_el"])) THEN ((((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] [])))) THEN (move ["x"]) THEN (move ["net_x"])));
+   ((((use_arg_then2 ("s'_to", [])) (disch_tac [])) THEN (clear_assumption "s'_to") THEN BETA_TAC) THEN (((repeat_tactic 1 9 (((use_arg_then2 ("tendsto_real", [tendsto_real]))(thm_tac (new_rewrite [] []))))) THEN (simp_tac)) THEN (move ["el_cont"]) THEN (move ["e"]) THEN (move ["e_gt0"])));
    (repeat_tactic 1 9 (((use_arg_then2 ("min_k", [min_k]))(thm_tac (new_rewrite [] [])))));
-   (((fun arg_tac -> arg_tac (Arg_term (`merge_sort (<=) _`))) (term_tac (set_tac "l"))) THEN ((fun arg_tac -> arg_tac (Arg_term (`merge_sort (<=) _`))) (term_tac (set_tac "l'"))));
-   ((repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("EL_nth", [EL_nth])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`&0`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("l_def", []))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("l'_def", []))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("size_merge_sort", [size_merge_sort]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("size_mkseq", [size_mkseq]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("size", [size]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("len_eq", []))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
-   ((((use_arg_then2 ("l_def", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("l'_def", []))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("sort_continuous", [sort_continuous])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`s' x`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("s", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))));
-   (((((use_arg_then2 ("l_def", []))(gsym_then (thm_tac (new_rewrite [1] []))))) THEN (((use_arg_then2 ("l'_def", []))(gsym_then (thm_tac (new_rewrite [1] []))))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("real_merge_sort", [real_merge_sort]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("size", [size]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("len_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("k_lt", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)) THEN (move ["i"]) THEN (move ["i_lt"]));
-   (((repeat_tactic 1 9 (((use_arg_then2 ("EL_nth", [EL_nth]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("size", [size]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("len_eq", []))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("all_el", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
-   ((fun arg_tac -> arg_tac (Arg_term (`?y x. netord net x y`))) (term_tac (have_gen_tac [](move ["ord_xy"]))));
-   ((((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("el_cont", [])) (fun fst_arg -> (use_arg_then2 ("k_lt", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e_gt0", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC THEN (case THEN (move ["y"])) THEN (case THEN ALL_TAC) THEN (case THEN (move ["x"])) THEN (move ["h"]) THEN (move ["_"])) THEN (((use_arg_then2 ("y", [])) (term_tac exists_tac)) THEN ((use_arg_then2 ("x", [])) (term_tac exists_tac))) THEN (done_tac));
-   (((THENL) (((use_arg_then2 ("el_cont", [])) (disch_tac [])) THEN (clear_assumption "el_cont") THEN ((use_arg_then2 ("len_eq", [])) (disch_tac [])) THEN (clear_assumption "len_eq") THEN ((use_arg_then2 ("s'", [])) (disch_tac [])) THEN (clear_assumption "s'") THEN ((use_arg_then2 ("s", [])) (disch_tac [])) THEN (clear_assumption "s") THEN elim) [ALL_TAC; ((move ["h"]) THEN (move ["t"]) THEN (move ["IH"]))]) THEN (((repeat_tactic 1 9 (((use_arg_then2 ("LENGTH", [LENGTH]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("ltn0", [ltn0]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac))) THEN (move ["s'"]) THEN (move ["len_eq"]) THEN (move ["el_cont"])));
-   ((((fun arg_tac -> (use_arg_then2 ("IH", [])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`\n. TL (s' n)`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC) THEN (repeat_tactic 1 9 ((ANTS_TAC))));
-   ((THENL_LAST) ((BETA_TAC THEN (move ["n"])) THEN ((((use_arg_then2 ("LENGTH_TL", [LENGTH_TL]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("len_eq", []))(thm_tac (new_rewrite [] []))))))) ((arith_tac) THEN (done_tac)));
-   ((((fun arg_tac -> (use_arg_then2 ("len_eq", [])) (fun fst_arg -> (use_arg_then2 ("n", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN ((use_arg_then2 ("contraL", [contraL])) (disch_tac [])) THEN (clear_assumption "contraL") THEN (DISCH_THEN apply_tac) THEN (((conv_thm_tac DISCH_THEN)(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("LENGTH", [LENGTH]))(thm_tac (new_rewrite [] [])))) THEN (arith_tac) THEN (done_tac));
-   (BETA_TAC THEN (move ["i"]) THEN (move ["i_lt"]) THEN (move ["e'"]) THEN (move ["e'_gt0"]));
-   ((((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("el_cont", [])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`SUC i`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e'_gt0", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC) THEN ((((use_arg_then2 ("ltSS", [ltSS]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("i_lt", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac) THEN (repeat_tactic 1 9 (((use_arg_then2 ("EL", [EL]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("TL", [TL]))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
-   ((((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("el_cont", [])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`0`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("e_gt0", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN BETA_TAC) THEN ((((use_arg_then2 ("gtS0", [gtS0]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)));
-   ((((use_arg_then2 ("IMP_IMP", [IMP_IMP]))(fun arg -> ONCE_REWRITE_TAC[get_arg_thm arg]))) THEN (DISCH_THEN (fun snd_th -> (use_arg_then2 ("NET_DILEMMA", [NET_DILEMMA])) (thm_tac (match_mp_then snd_th MP_TAC)))) THEN (case THEN (move ["y"])) THEN (case THEN (move ["x_ord"])) THEN (move ["h"]));
-   ((THENL_FIRST) (((use_arg_then2 ("y", [])) (term_tac exists_tac)) THEN (((((use_arg_then2 ("x_ord", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("andTb", [andTb]))(thm_tac (new_rewrite [] []))))) THEN (move ["x"]) THEN (move ["ord_xy"]) THEN ((THENL) case [(move ["_"]); (move ["i"])]))) ((((use_arg_then2 ("h", []))(thm_tac (new_rewrite [] [])))) THEN (done_tac)));
-   (((((use_arg_then2 ("ltSS", [ltSS]))(thm_tac (new_rewrite [] [])))) THEN (move ["i_lt"])) THEN ((repeat_tactic 1 9 (((use_arg_then2 ("EL", [EL]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("TL", [TL]))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> (use_arg_then2 ("h", [])) (fun fst_arg -> (use_arg_then2 ("ord_xy", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   (((fun arg_tac -> (use_arg_then2 ("EVENTUALLY_MONO", [EVENTUALLY_MONO])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`\x. !i. i IN {j | j < LENGTH s} ==> abs (EL i (s' x) - EL i s) < e`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (disch_tac [])) THEN (DISCH_THEN apply_tac) THEN (simp_tac));
+   (split_tac);
+   ((repeat_tactic 1 9 (((use_arg_then2 ("inE", [inE]))(thm_tac (new_rewrite [] []))))) THEN (move ["x"]) THEN (move ["lim_x"]));
+   ((repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("EL_nth", [EL_nth])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`&0`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("size_merge_sort", [size_merge_sort]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("size_mkseq", [size_mkseq]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("size", [size]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)));
+   (((((fun arg_tac -> (fun arg_tac -> (use_arg_then2 ("sort_continuous", [sort_continuous])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`s' x`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg))) (fun fst_arg -> (use_arg_then2 ("s", [])) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 1 9 (((use_arg_then2 ("real_merge_sort", [real_merge_sort]))(thm_tac (new_rewrite [] []))))) THEN (((use_arg_then2 ("size", [size]))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("len_eq", []))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("k_lt", []))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)) THEN (move ["i"]) THEN (move ["i_lt"]));
+   (((repeat_tactic 1 9 (((fun arg_tac -> (use_arg_then2 ("EL_nth", [EL_nth])) (fun fst_arg -> (fun arg_tac -> arg_tac (Arg_term (`&0`))) (fun snd_arg -> combine_args_then arg_tac fst_arg snd_arg)))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("size", [size]))(thm_tac (new_rewrite [] []))))) THEN ((TRY done_tac)) THEN (((use_arg_then2 ("lim_x", []))(thm_tac (new_rewrite [] []))))) THEN (done_tac));
+   ((THENL_FIRST) ((((use_arg_then2 ("EVENTUALLY_FORALL", [EVENTUALLY_FORALL]))(thm_tac (new_rewrite [] [])))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("FINITE_NUMSEG_LT", [FINITE_NUMSEG_LT]))(thm_tac (new_rewrite [] []))))) THEN (repeat_tactic 0 10 (((use_arg_then2 ("MEMBER_NOT_EMPTY", [MEMBER_NOT_EMPTY]))(gsym_then (thm_tac (new_rewrite [] [])))))) THEN (simp_tac) THEN (((use_arg_then2 ("inE", [inE]))(thm_tac (new_rewrite [] []))))) (((use_arg_then2 ("k", [])) (term_tac exists_tac)) THEN (done_tac)));
+   ((BETA_TAC THEN (move ["a"]) THEN (move ["a_lt"])) THEN (((use_arg_then2 ("el_cont", []))(thm_tac (new_rewrite [] [])))) THEN (done_tac));
 ];;
-*)
-
 let min_dist_k = new_definition
         `min_dist_k k (l:(real^N)list) = min_k 0 (map (\v. dist (v, EL k l)) (delete_at k l))`;;
 
@@ -1074,7 +976,7 @@ let infnorm_lt = Sections.section_proof ["e"]
 `!(v:real^N). (!i. 1 <= i /\ i <= dimindex (:N) ==> abs (v$i) < e) ==>
         infnorm v < e`
 [
-   ((THENL_ROT (-1)) ((BETA_TAC THEN (move ["v"]) THEN (move ["ineqs"])) THEN ((((fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL infnorm)))(thm_tac (new_rewrite [] [])))) THEN (((fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL REAL_SUP_LT_FINITE)))(thm_tac (new_rewrite [] [])))))));
+   ((THENL_ROT (-1)) ((BETA_TAC THEN (move ["v"]) THEN (move ["ineqs"])) THEN ((((fun arg_tac -> arg_tac (Arg_theorem (GEN_ALL infnorm)))(thm_tac (new_rewrite [] [])))) THEN (((use_arg_then2 ("REAL_SUP_LT_FINITE", [REAL_SUP_LT_FINITE]))(thm_tac (new_rewrite [] [])))))));
    ((BETA_TAC THEN (move ["x"])) THEN (((((use_arg_then2 ("IN_ELIM_THM", [IN_ELIM_THM]))(thm_tac (new_rewrite [] [])))) THEN (simp_tac)) THEN ALL_TAC THEN (case THEN (move ["i"])) THEN (case THEN (DISCH_THEN (fun snd_th -> (use_arg_then2 ("ineqs", [])) (thm_tac (match_mp_then snd_th MP_TAC))))) THEN (simp_tac)) THEN (done_tac));
    (split_tac);
    ((fun arg_tac -> arg_tac (Arg_term (`GSPEC _`))) (term_tac (set_tac "s")));

@@ -5,7 +5,6 @@
 (* =========================================================== *)
 
 needs "arith/more_float.hl";;
-needs "arith/float_atn.hl";;
 needs "arith/eval_interval.hl";;
 needs "list/list_conversions.hl";;
 needs "list/list_float.hl";;
@@ -104,7 +103,7 @@ let el_thms_array =
   let gen0 n =
     let e_list = mk_list (map (fun i -> mk_var ("e"^(string_of_int i), aty)) (1--n), aty) in
     let el0_th = REWRITE_CONV[EL; HD] (mk_binop el_tm `0` e_list) in
-      Array.create n el0_th in
+      Array.make n el0_th in
   let array = Array.init (max_dim + 1) gen0 in
   let gen_i n i =
     let e_list = (rand o lhand o concl) array.(n).(i) in
@@ -131,7 +130,7 @@ let gen_comp_thm n i =
 
 let comp_thms_array = Array.init (max_dim + 1)
   (fun n -> Array.init (n + 1)
-       (fun i -> if i < 1 or n < 1 then TRUTH else gen_comp_thm n i));;
+       (fun i -> if i < 1 || n < 1 then TRUTH else gen_comp_thm n i));;
 
 
 (************************************)
@@ -608,7 +607,7 @@ let i_int_array =
   let i_tm = `i:num` in
   let i_th0 = prove(`1 <= i /\ i <= SUC n <=> (1 <= i /\ i <= n) \/ i = SUC n`, ARITH_TAC) in
   let th1 = prove(`1 <= i /\ i <= 1 <=> i = 1`, ARITH_TAC) in
-  let array = Array.create (max_dim + 1) th1 in
+  let array = Array.make (max_dim + 1) th1 in
   let prove_next n =
     let n_tm = mk_small_numeral n in
     let prev_n = num_CONV n_tm in
@@ -707,7 +706,7 @@ let eval_second_bounded pp0 second_bounded_th =
     fun pp x_vector_tm z_vector_tm ->
       let x_vals = dest_vector x_vector_tm and
 	  z_vals = dest_vector z_vector_tm in
-	if length x_vals <> n or length z_vals <> n then 
+	if length x_vals <> n || length z_vals <> n then 
 	  failwith (sprintf "Wrong vector size; expected size: %d" n)
 	else
 	  let x_vars = map (fun i -> x_vars_array.(i)) (1--n) and
@@ -808,7 +807,7 @@ let mk_eval_function_eq pp0 eq_th =
     fun pp x_vector_tm z_vector_tm ->
       let x_vals = dest_vector x_vector_tm and
 	  z_vals = dest_vector z_vector_tm in
-	if length x_vals <> n or length z_vals <> n then 
+	if length x_vals <> n || length z_vals <> n then 
 	  failwith (sprintf "Wrong vector size; expected size: %d" n)
 	else
 	  let x_vars = map (fun i -> x_vars_array.(i)) (1--n) and
@@ -1061,9 +1060,10 @@ let dest_m_taylor_thms n =
 		      d_bounds_list, d_bounds_list_var; dd_bounds_list, dd_bounds_list_var] o
 		   inst_first_type_var ty) M_TAYLOR_INTERVAL' in
       let th1 = EQ_MP th0 m_taylor_th in
-      let [domain_th; d2_th; lin_th; second_th] = CONJUNCTS th1 in
-	domain_th, d2_th, lin_th, second_th;;
-  
+	match (CONJUNCTS th1) with
+	  | [domain_th; d2_th; lin_th; second_th] -> 
+	      domain_th, d2_th, lin_th, second_th
+	  | _ -> failwith "dest_m_taylor_thms";;
 
 
 (**********************)

@@ -14,7 +14,10 @@ module Informal_taylor = struct
 open Misc_functions;;
 open Informal_interval;;
 open Informal_float;;
+open Informal_exp;;
+open Informal_log;;
 open Informal_atn;;
+open Informal_asn_acs;;
 open Informal_sin_cos;;
 open Informal_matan;;
 open Informal_eval_interval;;
@@ -63,7 +66,7 @@ let mk_m_center_domain pp x_list z_list =
   (* test: x <= y <= z *)
   let flag1 = itlist2 (fun x y a -> le_float x y && a) x_list y_list true and
       flag2 = itlist2 (fun y z a -> le_float y z && a) y_list z_list true in
-    if not flag1 or not flag2 then
+    if not flag1 || not flag2 then
       failwith "mk_m_center_domain: ~(x <= y <= z)"
     else
       let w_list =
@@ -100,7 +103,7 @@ let eval_m_taylor pp0 f_tm partials partials2 =
 	ddf = shape_list d2fs_vals 1};;
 
 
-(* mk_eval_functionq *)
+(* mk_eval_function *)
 let mk_eval_function pp0 f_tm =
   let build = eval_constants pp0 o build_interval_fun o snd o dest_abs in
   let f = build f_tm in
@@ -112,7 +115,7 @@ let mk_eval_function pp0 f_tm =
 
 
 (* error_mul_f2_hi *)
-let error_mul_f2_hi pp a int = mul_float_hi pp a (abs_interval int);;
+let error_mul_f2_hi pp a int = mul_float_hi pp a (iabs_interval int);;
 
 
 (* eval_m_taylor_error *)
@@ -271,6 +274,79 @@ let eval_m_taylor_neg taylor1 =
       ddf = map (map neg) taylor1.ddf;
     };;
 
+(* abs *)
+let eval_m_taylor_abs p_second ti =
+  let f1_bound = eval_m_taylor_bound p_second ti in
+    match (compare0_interval f1_bound) with
+      | -1 -> eval_m_taylor_neg ti
+      | 1 -> ti
+      | _ -> failwith "eval_m_taylor_abs: interval contains 0";;
+
+(* pow2 *)
+let eval_m_taylor_pow2 p_lin p_second ti =
+  let n = ti.n in
+  let ns = 1--n in
+  let f1_bound = eval_m_taylor_bound p_second ti in
+  let bounds = pow_interval p_lin 2 ti.f in
+  let u_bounds =
+    let ( * ) = mul_interval p_lin in
+      two_interval * ti.f in
+  let df =
+    let ( * ) = mul_interval p_lin in
+      map (fun d -> u_bounds * d) ti.df in
+  let d1_bounds = map (fun i -> eval_m_taylor_partial_bound p_second i ti) ns in
+  let ddf = 
+    let ( * ), ( + ) = mul_interval p_second, add_interval p_second in
+      map2 (fun dd_list di1 ->
+	      my_map2 (fun dd dj1 -> two_interval * (dj1 * di1 + f1_bound * dd))
+		dd_list d1_bounds) ti.ddf d1_bounds in
+    {
+      n = n;
+      domain = ti.domain;
+      f = bounds;
+      df = df;
+      ddf = ddf;
+    };;
+
+(* pow *)
+let eval_m_taylor_pow k =
+  if k <= 1 then failwith "Informal.eval_m_taylor_pow: k <= 1"
+  else if k = 2 then eval_m_taylor_pow2
+  else
+    let k_interval = mk_small_num_interval k in
+    let k1_interval = mk_small_num_interval (k - 1) in
+      fun p_lin p_second ti ->
+	let n = ti.n in
+	let ns = 1--n in
+	let f1_bound = eval_m_taylor_bound p_second ti in
+	let bounds_pow_k1 = pow_interval p_lin (k - 1) ti.f in
+	let bounds = 
+	  let ( * ) = mul_interval p_lin in
+	    ti.f * bounds_pow_k1 in
+	let u_bounds =
+	  let ( * ) = mul_interval p_lin in
+	    k_interval * bounds_pow_k1 in
+	let df =
+	  let ( * ) = mul_interval p_lin in
+	    map (fun d -> u_bounds * d) ti.df in
+	let d1_bounds = map (fun i -> eval_m_taylor_partial_bound p_second i ti) ns in
+	let d2 =
+	  let ( * ) = mul_interval p_second in
+	  let pow_k2 = pow_interval p_second (k - 2) in
+	    k_interval * pow_k2 f1_bound in
+	let ddf = 
+	  let ( * ), ( + ) = mul_interval p_second, add_interval p_second in
+	    map2 (fun dd_list di1 ->
+		    my_map2 (fun dd dj1 -> d2 * ((k1_interval * dj1) * di1 + f1_bound * dd))
+		      dd_list d1_bounds) ti.ddf d1_bounds in
+	  {
+	    n = n;
+	    domain = ti.domain;
+	    f = bounds;
+	    df = df;
+	    ddf = ddf;
+	  };;
+
 (* inv *)
 let eval_m_taylor_inv p_lin p_second ti =
   let n = ti.n in
@@ -320,6 +396,67 @@ let eval_m_taylor_sqrt p_lin p_second ti =
       inv_interval p_second, mul_interval p_second in
     let two_sqrt_f = two_interval * sqrt f1_bound in
       inv two_sqrt_f, neg (inv (two_sqrt_f * (two_interval * f1_bound))) in
+  let ddf = 
+    let ( * ), ( + ) = mul_interval p_second, add_interval p_second in
+      map2 (fun dd_list di1 ->
+	      my_map2 (fun dd dj1 ->
+			 (d2 * dj1) * di1 + d1 * dd) dd_list d1_bounds) ti.ddf d1_bounds in
+    {
+      n = n;
+      domain = ti.domain;
+      f = bounds;
+      df = df;
+      ddf = ddf;
+    };;
+
+(* exp *)
+let eval_m_taylor_exp p_lin p_second ti =
+  let n = ti.n in
+  let ns = 1--n in
+  let f1_bound = eval_m_taylor_bound p_second ti in
+  let bounds = exp_interval p_lin ti.f in
+  let u_bounds =
+    let exp = exp_interval p_lin in
+      exp ti.f in
+  let df =
+    let ( * ) = mul_interval p_lin in
+      map (fun d -> u_bounds * d) ti.df in
+  let d1_bounds = map (fun i -> eval_m_taylor_partial_bound p_second i ti) ns in
+  let d1, d2 =
+    let exp = exp_interval p_second in
+    let exp_f = exp f1_bound in
+      exp_f, exp_f in
+  let ddf = 
+    let ( * ), ( + ) = mul_interval p_second, add_interval p_second in
+      map2 (fun dd_list di1 ->
+	      my_map2 (fun dd dj1 ->
+			 (d2 * dj1) * di1 + d1 * dd) dd_list d1_bounds) ti.ddf d1_bounds in
+    {
+      n = n;
+      domain = ti.domain;
+      f = bounds;
+      df = df;
+      ddf = ddf;
+    };;
+
+(* log *)
+let eval_m_taylor_log p_lin p_second ti =
+  let n = ti.n in
+  let ns = 1--n in
+  let f1_bound = eval_m_taylor_bound p_second ti in
+  let bounds = log_interval p_lin ti.f in
+  let u_bounds =
+    let inv = inv_interval p_lin in
+      inv (ti.f) in
+  let df =
+    let ( * ) = mul_interval p_lin in
+      map (fun d -> u_bounds * d) ti.df in
+  let d1_bounds = map (fun i -> eval_m_taylor_partial_bound p_second i ti) ns in
+  let d1, d2 =
+    let neg, pow2, inv = 
+      neg_interval, pow_interval p_second 2, inv_interval p_second in
+    let inv_f = inv f1_bound in
+      inv_f, neg (pow2 inv_f) in
   let ddf = 
     let ( * ), ( + ) = mul_interval p_second, add_interval p_second in
       map2 (fun dd_list di1 ->
@@ -447,7 +584,6 @@ let eval_m_taylor_sin p_lin p_second ti =
       cos f1_bound, neg (sin f1_bound) in
   let ddf = 
     let ( * ), ( + ) = mul_interval p_second, add_interval p_second in
-    let neg = neg_interval in
       map2 (fun dd_list di1 ->
 	      my_map2 (fun dd dj1 ->
 			 (d2 * dj1) * di1 + d1 * dd) dd_list d1_bounds) ti.ddf d1_bounds in

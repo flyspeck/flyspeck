@@ -32,20 +32,52 @@ let num_of_float_tm tm =
   let r = !n_tm * (b ^ (!e_tm - m)) in
     if s = "T" then minus_num r else r;;
 
-(* Converts a float term to a floating point number *)
+(* Converts a float term to a floating-point number *)
 (* Note: float_of_num gives a very bad approximation in some cases *)
 let float_of_float_tm tm =
   (float_of_string o approx_num_exp 30 o num_of_float_tm) tm;;
 
-
-(* Creates a float term with the value (n * base^e) *)
-let mk_float =
-	let float_const = `float_num` in
-	fun n e ->
-  let n, s = if n < 0 then -n, `T` else n, `F` in
-  let n_tm = rand (Arith_nat.mk_small_numeral_array n) in
-  let e_tm = rand (Arith_nat.mk_small_numeral_array (e + Float_theory.min_exp)) in
-    mk_comb(mk_comb(mk_comb (float_const, s), n_tm), e_tm);;
+(* Converts a floating-point number into a float term *)
+let float_tm_of_float =
+  let split =
+    let b = float_of_int Arith_num.arith_base in
+    let log_b = log b in
+    let rec fix t k =
+      if t = 0.0 || t = infinity || t = nan then
+	t, k
+      else if t < 1.0 then
+	fix (t *. b) (k - 1)
+      else if t >= b then
+	fix (t /. b) (k + 1)
+      else
+	t, k in
+      fun f ->
+	if f = 0.0 then
+	  false, f, 0
+	else
+	  let s, x = if f < 0.0 then true, -.f else false, f in
+	  let e = -.floor (log x /. log_b) in
+	  let k = -int_of_float e in
+	  let t, n = fix (x *. (b ** e)) k in
+	    s, t, n
+  and extract =
+    let b = float_of_int Arith_num.arith_base in
+    let nb = Int Arith_num.arith_base in
+    let rec step k f acc =
+      if k <= 0 then acc
+      else
+	let d = int_of_float f in
+	  step (k - 1) ((f -. float_of_int d) *. b) (Int d +/ (nb */ acc)) in
+      fun pp f ->
+	step pp f (Int 0)
+  in
+    fun pp f ->
+      let s, x, k = split f in
+      let n = extract pp x in
+      let n_tm = rand (Arith_num.mk_numeral_array n) in
+      let e_tm = rand (Arith_num.mk_small_numeral_array (min_exp + k - pp + 1)) in
+      let sign = if s then "T" else "F" in
+	make_float sign n_tm e_tm;;
 
 (* Creates a (not normalized) floating-point number from a given natural number. *)
 (* Returns the theorem |- &n = float F n min_exp and the term n                  *)
@@ -125,7 +157,7 @@ let float_interval_lt0 th =
   let x_tm, bounds = dest_interval_arith (concl th) in
   let lo_tm, hi_tm = dest_pair bounds in
   let lt0_th = float_lt0 hi_tm in
-  let _ = ((rand o concl) lt0_th = t_const) or failwith "float_interval_lt0: &0 <= hi" in
+  let _ = ((rand o concl) lt0_th = t_const) || failwith "float_interval_lt0: &0 <= hi" in
   let th0 = INST[x_tm, x_var_real; lo_tm, lo_var_real; hi_tm, hi_var_real] FLOAT_INTERVAL_LT0' in
     (MY_PROVE_HYP th o MY_PROVE_HYP lt0_th) th0;;
 
@@ -231,6 +263,21 @@ let check_interval_pos int_tm =
       (MY_PROVE_HYP gt_th o INST[lo, lo_var_real; hi, hi_var_real]) INTERVAL_POS';;
 
 
+(* ----------------------------------------- *)
+(* interval_neg                              *)
+(* ----------------------------------------- *)
+
+let INTERVAL_NEG' = (UNDISCH_ALL o prove)
+  (`(hi < &0 <=> T) ==> interval_neg (lo:real, hi:real)`, SIMP_TAC[interval_neg]);;
+
+
+let check_interval_neg int_tm =
+  let lo, hi = dest_pair int_tm in
+  let cmp_th = float_lt0 hi in
+    if (fst o dest_const o rand o concl) cmp_th <> "T" then
+      failwith "check_interval_neg: hi < &0 <=> F"
+    else
+      (MY_PROVE_HYP cmp_th o INST[lo, lo_var_real; hi, hi_var_real]) INTERVAL_NEG';;
 
 (* ----------------------------------------- *)
 (* interval_gt                              *)
@@ -270,16 +317,35 @@ let check_interval_iabs int_tm rhs_tm =
 (* inv                                       *)
 (* ----------------------------------------- *)
 
-let INV_EQ_DIV_LEMMA = prove(`&1 / x = inv x`, REWRITE_TAC[real_div; REAL_MUL_LID]);;
+let float_inv_hi =
+  let div_lemma = (RULE o prove)
+    (`&1 / x <= hi ==> inv x <= hi`,
+     REWRITE_TAC[real_div; REAL_MUL_LID]) in
+    fun pp tm ->
+      let div_th = float_div_hi pp one_float tm in
+      let hi_tm = rand (concl div_th) in
+      let th0 = INST[tm, x_var_real; hi_tm, hi_var_real] div_lemma in
+	MY_PROVE_HYP div_th th0;;
 
+let float_inv_lo =
+  let div_lemma = (RULE o prove)
+    (`lo <= &1 / x ==> lo <= inv x`,
+     REWRITE_TAC[real_div; REAL_MUL_LID]) in
+    fun pp tm ->
+      let div_th = float_div_lo pp one_float tm in
+      let lo_tm = rand (rator (concl div_th)) in
+      let th0 = INST[tm, x_var_real; lo_tm, lo_var_real] div_lemma in
+	MY_PROVE_HYP div_th th0;;
 
-let float_interval_inv pp th =
-  let x_tm = (rand o rator o concl) th in
-  let div_th = INST[x_tm, x_var_real] INV_EQ_DIV_LEMMA in
-  let th0 = float_interval_div pp one_interval th in
-  let lhs, rhs = dest_comb (concl th0) in
-  let lhs2, rhs2 = dest_comb lhs in
-    EQ_MP (AP_THM (AP_TERM lhs2 div_th) rhs) th0;;
+let float_interval_inv =
+  let INV_EQ_DIV_LEMMA = prove(`&1 / x = inv x`, REWRITE_TAC[real_div; REAL_MUL_LID]) in
+    fun pp th ->
+      let x_tm = (rand o rator o concl) th in
+      let div_th = INST[x_tm, x_var_real] INV_EQ_DIV_LEMMA in
+      let th0 = float_interval_div pp one_interval th in
+      let lhs, rhs = dest_comb (concl th0) in
+      let lhs2, rhs2 = dest_comb lhs in
+	EQ_MP (AP_THM (AP_TERM lhs2 div_th) rhs) th0;;
 
 
 (* Explicit representation of inv(&2) *)

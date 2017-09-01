@@ -11,16 +11,28 @@ needs "arith/float_theory.hl";;
 needs "arith/interval_arith.hl";;
 needs "misc/misc_vars.hl";;
 
+needs "tests/log.hl";;
+
 (* FLOOR_DIV_DIV *)
 needs "Library/floor.ml";;
-(* sqrt and its properties *)
-needs "Multivariate/vectors.ml";;
 
 module type Arith_float_sig =
   sig
     val mk_num_exp : term -> term -> term
     val dest_num_exp : term -> (term * term)
     val dest_float : term -> (string * term * term)
+    val make_float : string -> term -> term -> term
+    val mk_float : int -> int -> term
+
+    (* num_exp normalization/denormalization *)
+    val normalize : term -> thm * bool
+    val denormalize : term -> thm
+
+    val lo_num_conv : int -> term -> thm
+    val hi_num_conv : int -> term -> thm
+    val num_exp_lo : int -> term -> thm
+    val num_exp_hi : int -> term -> thm
+
     val float_lt0 : term -> thm
     val float_gt0 : term -> thm
     val float_lt : term -> term -> thm
@@ -50,6 +62,7 @@ module type Arith_float_sig =
     val float_prove_gt_interval : term -> thm -> bool * thm
     val float_compare_interval : term -> thm -> int * thm
 
+    val init_logs : unit -> unit
     val reset_stat : unit -> unit
     val reset_cache : unit -> unit
     val print_stat : unit -> unit
@@ -63,6 +76,7 @@ module type Arith_float_sig =
 
     val float_interval_round : int -> thm -> thm
 
+    val float_interval_abs : thm -> thm
     val float_interval_neg : thm -> thm
     val float_interval_mul : int -> thm -> thm -> thm
     val float_interval_div : int -> thm -> thm -> thm
@@ -127,6 +141,22 @@ let dest_float tm =
       failwith "dest_float: not float"
     else
       (fst o dest_const) s_tm, n_tm, e_tm;;
+
+(* "s", n, e -> float_num s n e *)
+let make_float =
+  let float_const = `float_num` in
+    fun s n_tm e_tm ->
+      let s_tm = if s = "T" then t_const else f_const in
+	mk_comb (mk_comb (mk_comb (float_const, s_tm), n_tm), e_tm);;
+
+(* Creates a float term with the value (n * base^e) *)
+let mk_float =
+  let float_const = `float_num` in
+    fun n e ->
+      let n, s = if n < 0 then -n, t_const else n, f_const in
+      let n_tm = rand (Arith_nat.mk_small_numeral_array n) in
+      let e_tm = rand (Arith_nat.mk_small_numeral_array (e + Float_theory.min_exp)) in
+	mk_comb(mk_comb(mk_comb (float_const, s), n_tm), e_tm);;
 
 
 (************************************)
@@ -2365,6 +2395,31 @@ end;; (* Float_ops module *)
 (* Cached floating point operations *)
 (************************************)
 
+let init_logs () =
+  if !Arith_options.float_log then
+    begin
+      Log.open_log "mul_lo";
+      Log.open_log "mul_hi";
+      Log.open_log "div_lo";
+      Log.open_log "div_hi";
+      Log.open_log "add_lo";
+      Log.open_log "add_hi";
+      Log.open_log "sub_lo";
+      Log.open_log "sub_hi"
+    end;;
+
+let float_to_log_string tm =
+  let s, n_tm, e_tm = dest_float tm in
+  let n = (if s = "T" then minus_num else I) (raw_dest_hash n_tm) in
+  let e = raw_dest_hash e_tm -/ Int Float_theory.min_exp in
+    string_of_num n ^ "," ^ string_of_num e;;
+
+let log_binop name pp tm1 tm2 =
+  let str1 = float_to_log_string tm1 and
+      str2 = float_to_log_string tm2 in
+  let str = string_of_int pp ^ ":" ^ str1 ^ ";" ^ str2 in
+    Log.append_to_log name str;;
+    
 (* Counters for collecting stats *)
 let lt0_c = ref 0 and
     gt0_c = ref 0 and
@@ -2572,9 +2627,15 @@ let float_mul_lo =
 	with Not_found ->
 	  let result = Float_ops.float_mul_lo pp tm1 tm2 in
 	  let _ = my_add mul_table hash result in
+	  let _ = if !Arith_options.float_log then log_binop "mul_lo" pp tm1 tm2 in
 	    result
   else
-    Float_ops.float_mul_lo;;
+    if !Arith_options.float_log then
+      fun pp tm1 tm2 ->
+	let _ = log_binop "mul_lo" pp tm1 tm2 in
+	  Float_ops.float_mul_lo pp tm1 tm2
+    else
+      Float_ops.float_mul_lo;;
 
 (* mul_hi *)
 let float_mul_hi =
@@ -2587,9 +2648,15 @@ let float_mul_hi =
 	with Not_found ->
 	  let result = Float_ops.float_mul_hi pp tm1 tm2 in
 	  let _ = my_add mul_table hash result in
+	  let _ = if !Arith_options.float_log then log_binop "mul_hi" pp tm1 tm2 in
 	    result
   else
-    Float_ops.float_mul_hi;;
+    if !Arith_options.float_log then
+      fun pp tm1 tm2 ->
+	let _ = log_binop "mul_hi" pp tm1 tm2 in
+	  Float_ops.float_mul_hi pp tm1 tm2
+    else
+      Float_ops.float_mul_hi;;
 
 (* div_lo *)
 let float_div_lo =
@@ -2602,9 +2669,15 @@ let float_div_lo =
 	with Not_found ->
 	  let result = Float_ops.float_div_lo pp tm1 tm2 in
 	  let _ = my_add div_table hash result in
+	  let _ = if !Arith_options.float_log then log_binop "div_lo" pp tm1 tm2 in
 	    result
   else
-    Float_ops.float_div_lo;;
+    if !Arith_options.float_log then
+      fun pp tm1 tm2 ->
+	let _ = log_binop "div_lo" pp tm1 tm2 in
+	  Float_ops.float_div_lo pp tm1 tm2
+    else
+      Float_ops.float_div_lo;;
 
 (* div_hi *)
 let float_div_hi =
@@ -2617,9 +2690,15 @@ let float_div_hi =
 	with Not_found ->
 	  let result = Float_ops.float_div_hi pp tm1 tm2 in
 	  let _ = my_add div_table hash result in
+	  let _ = if !Arith_options.float_log then log_binop "div_hi" pp tm1 tm2 in
 	    result
   else
-    Float_ops.float_div_hi;;
+    if !Arith_options.float_log then
+      fun pp tm1 tm2 ->
+	let _ = log_binop "div_hi" pp tm1 tm2 in
+	  Float_ops.float_div_hi pp tm1 tm2
+    else
+      Float_ops.float_div_hi;;
 
 (* add_lo *)
 let float_add_lo =
@@ -2632,9 +2711,15 @@ let float_add_lo =
 	with Not_found ->
 	  let result = Float_ops.float_add_lo pp tm1 tm2 in
 	  let _ = my_add add_table hash result in
+	  let _ = if !Arith_options.float_log then log_binop "add_lo" pp tm1 tm2 in
 	    result
   else
-    Float_ops.float_add_lo;;
+    if !Arith_options.float_log then
+      fun pp tm1 tm2 ->
+	let _ = log_binop "add_lo" pp tm1 tm2 in
+	  Float_ops.float_add_lo pp tm1 tm2
+    else
+      Float_ops.float_add_lo;;
 
 (* add_hi *)
 let float_add_hi =
@@ -2647,9 +2732,15 @@ let float_add_hi =
 	with Not_found ->
 	  let result = Float_ops.float_add_hi pp tm1 tm2 in
 	  let _ = my_add add_table hash result in
+	  let _ = if !Arith_options.float_log then log_binop "add_hi" pp tm1 tm2 in
 	    result
   else
-    Float_ops.float_add_hi;;
+    if !Arith_options.float_log then
+      fun pp tm1 tm2 ->
+	let _ = log_binop "add_hi" pp tm1 tm2 in
+	  Float_ops.float_add_hi pp tm1 tm2
+    else
+      Float_ops.float_add_hi;;
 
 (* sub_lo *)
 let float_sub_lo =
@@ -2662,9 +2753,15 @@ let float_sub_lo =
 	with Not_found ->
 	  let result = Float_ops.float_sub_lo pp tm1 tm2 in
 	  let _ = my_add sub_table hash result in
+	  let _ = if !Arith_options.float_log then log_binop "sub_lo" pp tm1 tm2 in
 	    result
   else
-    Float_ops.float_sub_lo;;
+    if !Arith_options.float_log then
+      fun pp tm1 tm2 ->
+	let _ = log_binop "sub_lo" pp tm1 tm2 in
+	  Float_ops.float_sub_lo pp tm1 tm2
+    else
+      Float_ops.float_sub_lo;;
 
 (* sub_hi *)
 let float_sub_hi =
@@ -2677,9 +2774,15 @@ let float_sub_hi =
 	with Not_found ->
 	  let result = Float_ops.float_sub_hi pp tm1 tm2 in
 	  let _ = my_add sub_table hash result in
+	  let _ = if !Arith_options.float_log then log_binop "sub_hi" pp tm1 tm2 in
 	    result
   else
-    Float_ops.float_sub_hi;;
+    if !Arith_options.float_log then
+      fun pp tm1 tm2 ->
+	let _ = log_binop "sub_hi" pp tm1 tm2 in
+	  Float_ops.float_sub_hi pp tm1 tm2
+    else
+      Float_ops.float_sub_hi;;
 
 (* sqrt_lo *)
 let float_sqrt_lo =
@@ -2949,6 +3052,65 @@ let float_interval_round p th =
     MY_PROVE_HYP lo_th (MY_PROVE_HYP hi_th (MY_PROVE_HYP th th0));;
 
 
+(* ------------------------------------------------ *)
+(* Absolute value of an interval                    *)
+(* ------------------------------------------------ *)
+
+let RULE = UNDISCH_ALL o NUMERALS_TO_NUM o PURE_REWRITE_RULE[GSYM IMP_IMP; min_exp_def];;
+
+let float_interval_abs_ft = (RULE o prove)
+  (`interval_arith x (float_num F n1 e1, float_num T n2 e2)
+     ==> interval_arith (abs x) (float_num F 0 min_exp, float_num F 0 min_exp)`,
+   DISCH_THEN (MP_TAC o MATCH_MP FLOAT_INTERVAL_FT_IMP_0) THEN
+     REWRITE_TAC[FLOAT_0; interval_arith] THEN REAL_ARITH_TAC);;
+
+let float_interval_abs_ff = (RULE o prove)
+  (`interval_arith x (float_num F n1 e1, float_num F n2 e2)
+     ==> interval_arith (abs x) (float_num F n1 e1, float_num F n2 e2)`,
+   MP_TAC (SPECL[`n1:num`; `e1:num`] FLOAT_F_POS) THEN 
+     REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC);;
+
+let float_interval_abs_tt = (RULE o prove)
+  (`interval_arith x (float_num T n1 e1, float_num T n2 e2)
+     ==> interval_arith (abs x) (float_num F n2 e2, float_num F n1 e1)`,
+   MP_TAC ((GSYM o SPEC `T`) FLOAT_NEG) THEN SIMP_TAC[] THEN DISCH_TAC THEN
+     MP_TAC (SPECL[`n2:num`; `e2:num`] FLOAT_T_NEG) THEN
+     REWRITE_TAC[interval_arith] THEN REAL_ARITH_TAC);;
+
+let float_interval_abs_tf = (RULE o prove)
+  (`interval_arith x (float_num T n1 e1, float_num F n2 e2) /\
+     max (float_num F n1 e1) (float_num F n2 e2) = t
+      ==> interval_arith (abs x) (float_num F 0 min_exp, t)`,
+   MP_TAC ((GSYM o SPEC `F`) FLOAT_NEG) THEN SIMP_TAC[] THEN DISCH_TAC THEN
+     REWRITE_TAC[interval_arith; FLOAT_0] THEN REAL_ARITH_TAC);;
+
+let float_interval_abs th =
+  let x, lo, hi = dest_float_interval (concl th) in
+  let s1, n1, e1 = dest_float lo and
+      s2, n2, e2 = dest_float hi in
+  let inst = INST[x, x_var_real; 
+		  n1, n1_var_num; e1, e1_var_num;
+		  n2, n2_var_num; e2, e2_var_num] in
+    if s1 = s2 then
+      if s1 = "F" then
+	(* FF *)
+	MY_PROVE_HYP th (inst float_interval_abs_ff)
+      else
+	(* TT *)
+	MY_PROVE_HYP th (inst float_interval_abs_tt)
+    else
+      if s1 = "F" then
+	(* FT *)
+	MY_PROVE_HYP th (inst float_interval_abs_ft)
+      else
+	let max_th = float_max (make_float "F" n1 e1) hi in
+	let t_tm = rand (concl max_th) in
+	let th0 = INST[x, x_var_real; t_tm, t_var_real;
+		       n1, n1_var_num; e1, e1_var_num;
+		       n2, n2_var_num; e2, e2_var_num] float_interval_abs_tf in
+	  MY_PROVE_HYP max_th (MY_PROVE_HYP th th0);;
+
+
 (****************************************)
 (* float_interval_lt *)
 
@@ -3002,14 +3164,6 @@ let f1_1_var = `f1_1:real` and
     f2_1_var = `f2_1:real` and
     f2_2_var = `f2_2:real`;;
 
-
-let FLOAT_INTERVAL_FT_IMP_0 = prove(`interval_arith x (float_num F n1 e1, float_num T n2 e2) ==> x = &0`,
-				    REWRITE_TAC[interval_arith] THEN STRIP_TAC THEN
-				      REWRITE_TAC[GSYM REAL_LE_ANTISYM] THEN
-				      CONJ_TAC THEN MATCH_MP_TAC REAL_LE_TRANS THENL [
-					EXISTS_TAC `float_num T n2 e2` THEN ASM_REWRITE_TAC[FLOAT_T_NEG];
-					EXISTS_TAC `float_num F n1 e1` THEN ASM_REWRITE_TAC[FLOAT_F_POS]
-				      ]);;
 
 (* FT_xx *)
 let FLOAT_INTERVAL_MUL_FT_xx = (UNDISCH_ALL o NUMERALS_TO_NUM o REWRITE_RULE[GSYM IMP_IMP; min_exp_def] o prove)(
@@ -3677,7 +3831,6 @@ let FLOAT_INTERVAL_DIV_TT_FF = prove(
      REWRITE_TAC[real_div; REAL_INV_NEG; interval_arith] THEN
      REAL_ARITH_TAC);;
 
-let FLOAT_0 = prove(`!s e. float_num s 0 e = &0`, REWRITE_TAC[FLOAT_EQ_0]);;
 
 (* TF_FF *)
 let FLOAT_INTERVAL_DIV_TF_FF = prove(
@@ -3920,10 +4073,6 @@ let float_interval_sub pp th1 th2 =
 
 let s_var_bool = `s:bool`;;
 
-let FLOAT_ABS = prove(`abs (float_num s n e) = float_num F n e`,
-   BOOL_CASES_TAC `s:bool` THEN
-     REWRITE_TAC[FLOAT_NEG_T; REAL_ABS_NEG; REAL_ABS_REFL; FLOAT_F_POS]);;
-
 let float_abs tm =
   let ltm, rtm = dest_comb tm in
     if ((fst o dest_const) ltm <> "real_abs") then
@@ -3969,14 +4118,10 @@ let FLOAT_INTERVAL_SQRT = prove(`interval_arith x (float_num F n1 e1, hi) /\
      [
        MATCH_MP_TAC REAL_LE_TRANS THEN
 	 EXISTS_TAC `sqrt lo` THEN
-	 ASM_REWRITE_TAC[] THEN
-	 MATCH_MP_TAC SQRT_MONO_LE THEN
-	 ASM_REWRITE_TAC[];
+	 ASM_REWRITE_TAC[SQRT_MONO_LE_EQ];
        MATCH_MP_TAC REAL_LE_TRANS THEN
 	 EXISTS_TAC `sqrt hi` THEN
-	 ASM_REWRITE_TAC[] THEN
-	 MATCH_MP_TAC SQRT_MONO_LE THEN
-	 ASM_REWRITE_TAC[]
+	 ASM_REWRITE_TAC[SQRT_MONO_LE_EQ]
      ]);;
 
 
@@ -4013,9 +4158,10 @@ let FLOAT_TO_NUM_CONV tm =
       let e_th = TRANS e_th' (NUM_TO_NUMERAL_CONV (mk_comb(Arith_num.num_const, e_tm))) in
       let th0 = MK_COMB (AP_TERM f_tm n_th, e_th) in
       let tm0 = rand(concl th0) in
-      let th1 = REWRITE_CONV[float; num_exp; REAL_MUL_LID; GSYM REAL_OF_NUM_MUL; GSYM REAL_OF_NUM_POW; min_exp_def] tm0 in
-      let th2 = REAL_RAT_REDUCE_CONV (rand(concl th1)) in
-	TRANS th0 (TRANS th1 th2);;
+      let th1 = (REWRITE_CONV[float_alt; arith_base_def; min_exp_def] THENC
+		   NUM_REDUCE_CONV THENC 
+		   REAL_RAT_REDUCE_CONV) tm0 in
+	TRANS th0 th1;;
 
 end;;
 

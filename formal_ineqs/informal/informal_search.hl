@@ -18,6 +18,7 @@ open Certificate;;
 open Verifier_options;;
 
 type search_options = {
+  raw_intervals0 : bool;
   max_width : float;
   max_depth : int;
   mono_depth : int;
@@ -58,6 +59,7 @@ let restrict_domain j left_flag domain =
 
 
 type function_info = {
+  eval0 : int -> ifloat list -> ifloat list -> interval;
   taylor : int -> int -> m_cell_domain -> m_taylor_interval;
   index : int;
 };;
@@ -66,7 +68,7 @@ type result =
   | Cell_inconclusive
   | Cell_false
   | Cell_result of result_tree
-  | Cell_pass of function_info;;
+  | Cell_pass of bool * function_info;;
 
 
 
@@ -106,22 +108,39 @@ let rec check_cell opt dom =
       | f :: rest ->
 	  begin
 	    try
-	      let ti = f.taylor pp pp dom in
-	      let upper = eval_m_taylor_upper_bound pp ti in
-		if lt0_float upper then
-		  Cell_pass f
+	      let raw_fail, raw_pass =
+		if opt.raw_intervals0 then
+		  begin
+		    try
+		      let interval = f.eval0 pp dom.lo dom.hi in
+		      let lo, hi = dest_interval interval in
+			ge0_float lo, lt0_float hi
+		    with Failure _ | Division_by_zero ->
+		      false, false
+		  end
 		else
-		  let lower = eval_m_taylor_lower_bound pp ti in
-		    if ge0_float lower then
-		      check flag rest
-		    else 
-		      (if opt.mono_depth > 0 then
-			 try
-			   try_mono {opt with max_depth = opt.mono_depth} dom f ti
-			 with Failure _ | Division_by_zero | Construction_error _ ->
-			   check true rest
-		       else
-			 check true rest)
+		  false, false in
+		if raw_pass then
+		  Cell_pass (true, f)
+		else if raw_fail then
+		  check flag rest
+		else
+		  let ti = f.taylor pp pp dom in
+		  let upper = eval_m_taylor_upper_bound pp ti in
+		    if lt0_float upper then
+		      Cell_pass (false, f)
+		    else
+		      let lower = eval_m_taylor_lower_bound pp ti in
+			if ge0_float lower then
+			  check flag rest
+			else 
+			  (if opt.mono_depth > 0 then
+			     try
+			       try_mono {opt with max_depth = opt.mono_depth} dom f ti
+			     with Failure _ | Division_by_zero | Construction_error _ ->
+			       check true rest
+			   else
+			     check true rest)
 	    with Failure _ | Division_by_zero ->
 	      check true rest
 	  end
@@ -170,9 +189,9 @@ and construct_certificate0 opt =
 	  | Cell_false -> 
 	      error "False result" dom fs
 	  | Cell_result r -> r
-	  | Cell_pass f -> 
+	  | Cell_pass (raw_flag, f) -> 
 	      let _ = update_verified_vol dom in
-		Result_pass (f.index, false)
+		Result_pass (f.index, raw_flag)
 	  | Cell_inconclusive ->
 	      let ws = map float_of_ifloat dom.w in
 	      let _, j = find_max ws in
@@ -185,12 +204,14 @@ and construct_certificate0 opt =
       let _ = init_vol dom in
 	construct 0 dom fs;;
 
-
-let construct_certificate opt dom fs0 =
-  let mk_f f i = {taylor = f; index = i} in
-  let fs = map2 mk_f fs0 (0--(length fs0 - 1)) in
+let construct_certificate opt dom fs_informal =
+  let mk_f (f0, ft) i = {
+    eval0 = f0;
+    taylor = ft; 
+    index = i
+  } in
+  let fs = map2 mk_f fs_informal (0--(length fs_informal - 1)) in
     construct_certificate0 opt dom fs;;
-
 
 end;;
 

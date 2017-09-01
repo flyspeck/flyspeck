@@ -8,6 +8,16 @@
 
 module Misc_functions = struct
 
+exception Error of string * term list * thm list;;
+
+let error msg tms ths = raise (Error (msg, tms, ths));;
+
+let error_msg msg = raise (Error (msg, [], []));;
+
+let error_fmt str fmt =
+  let msg = sprintf str fmt in
+    error_msg msg;;
+
 (* A little faster version of PROVE_HYP *)
 let MY_PROVE_HYP hyp th = EQ_MP (DEDUCT_ANTISYM_RULE hyp th) hyp;;
 
@@ -37,18 +47,22 @@ let test n f arg =
     done;
     result, Unix.gettimeofday() -. start;;
 
+(* Do not use when msg is not a fixed string *)
+let assert_msg (cond, msg) =
+  if cond then () else failwith msg;;
+
 (* Generates a power function for the given binary operation *)
-let gen_pow op id n x =
+let gen_pow op id =
   let ( * ) = op in
-  let rec pow n =
+  let rec pow n x =
     if n <= 0 then id
     else if n = 1 then x
     else if n land 1 = 1 then
-      x * pow (n - 1)
+      x * pow (n - 1) x
     else
-      let t = pow (n lsr 1) in
+      let t = pow (n lsr 1) x in
 	t * t in
-    pow n;;
+    pow;;
 
 let rec shape_list n list =
   if length list <= n then [list]

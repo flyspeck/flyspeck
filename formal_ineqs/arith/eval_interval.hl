@@ -4,11 +4,16 @@
 (* Date: 2012-10-27                                            *)
 (* =========================================================== *)
 
+needs "arith/float_pow.hl";;
 needs "arith/more_float.hl";;
-needs "arith/float_atn.hl";;
+needs "trig/exp_eval.hl";;
+needs "trig/log_eval.hl";;
+needs "trig/atn_eval.hl";;
+needs "trig/asn_acs_eval.hl";;
 needs "trig/cos_eval.hl";;
 needs "trig/sin_eval.hl";;
 needs "trig/matan_eval.hl";;
+needs "misc/misc_functions.hl";;
 needs "misc/misc_vars.hl";;
 
 module Eval_interval = struct
@@ -16,7 +21,11 @@ module Eval_interval = struct
 open Misc_functions;;
 open Interval_arith;;
 open Arith_float;;
-open Float_atn;;
+open Float_pow;;
+open Exp_eval;;
+open Log_eval;;
+open Atn_eval;;
+open Asn_acs_eval;;
 open Cos_eval;;
 open Sin_eval;;
 open Matan_eval;;
@@ -40,8 +49,11 @@ let unary_interval_operations =
   let table = Hashtbl.create 10 in
   let add = Hashtbl.add in
     add table `--` (fun pp -> float_interval_neg);
+    add table `abs` (fun pp -> float_interval_abs);
     add table `inv` float_interval_inv;
     add table `sqrt` float_interval_sqrt;
+    add table `exp` float_interval_exp;
+    add table `log` float_interval_log;
     add table `atn` float_interval_atn;
     add table `acs` float_interval_acs;
     add table `asn` float_interval_asn;
@@ -98,7 +110,7 @@ let eval_interval_fun pp ifun vars refs =
       | Int_const th -> th
       | Int_decimal_const tm -> mk_float_interval_decimal pp tm
       | Int_named_const tm -> c_find tm pp
-      | Int_pow (n,f1) -> float_interval_pow_simple pp n (rec_eval f1)
+      | Int_pow (n,f1) -> float_interval_pow pp n (rec_eval f1)
       | Int_unary (tm,f1) -> u_find tm pp (rec_eval f1)
       | Int_binary (tm,f1,f2) -> b_find tm pp (rec_eval f1) (rec_eval f2) in
     rec_eval ifun;;
@@ -116,7 +128,7 @@ let eval_constants pp ifun =
       | Int_pow (n,f1) -> 
 	  (let f1_val = rec_eval f1 in
 	     match f1_val with
-	       | Int_const th -> Int_const (float_interval_pow_simple pp n th)
+	       | Int_const th -> Int_const (float_interval_pow pp n th)
 	       | _ -> Int_pow (n,f1_val))
       | Int_unary (tm,f1) ->
 	  (let f1_val = rec_eval f1 in
@@ -279,11 +291,9 @@ let interval_to_float_interval =
 (* Adds a new constant approximation to the table of constants *)
 let add_constant_interval int_th =
   let c_tm, _ = dest_interval_arith (concl int_th) in
-  let _ = is_const c_tm or failwith "add_constant_interval: not a constant" in
+  let _ = assert_msg (is_const c_tm, "add_constant_interval: not a constant") in
   let th = interval_to_float_interval 20 int_th in
   let approx_array = Array.init 20 (fun i -> float_interval_round i th) in
     Hashtbl.add interval_constants c_tm (fun pp -> approx_array.(pp));;
-
-
 
 end;;

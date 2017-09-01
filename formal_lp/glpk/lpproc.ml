@@ -439,7 +439,7 @@ let onepass bbs =
 
 let rec allpass count bbs = 
    let t = maxlist0 (map (fun b -> length (std_tri_prebranch b)) bbs) in
-   if t = 0 or count <= 0 then bbs else allpass (count - 1) (onepass bbs);;
+   if t = 0 || count <= 0 then bbs else allpass (count - 1) (onepass bbs);;
 
 let hardid = 
 [

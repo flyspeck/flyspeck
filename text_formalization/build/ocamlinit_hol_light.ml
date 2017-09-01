@@ -109,7 +109,7 @@ let chk_weak_main_statement = Audit_formal_proof.chk_thm
    This step cannot be combined with serialization.
 
   let canfind f x = try (f x; true) with Not_found -> false in
-  let _ = not (canfind Sys.getenv "FLYSPECK_SERIALIZATION") or failwith "serialization not allowed" in
+  let _ = not (canfind Sys.getenv "FLYSPECK_SERIALIZATION") || failwith "serialization not allowed" in
   let _ = report "building strong version of the main statement" in
   do_build(Build.build_sequence_nonserial);;
 

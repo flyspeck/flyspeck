@@ -85,7 +85,7 @@ let find_face_index fs f =
     match fs with
       | [] -> failwith "find_face_index"
       | h :: t ->
-	  let eq = fold_right (or) (map ((=) h) rots) false in
+	  let eq = fold_right (||) (map ((=) h) rots) false in
 	    if eq then 0 else find t + 1 in
     find fs;;
 
@@ -146,14 +146,14 @@ let build_terminal_case =
 	(* Create .lp file and solve a feasible problem *)
       let solve_com = sprintf "glpsol -m %s -d %s -w %s.txt --wcpxlp %s.lp > /dev/null"  !model2_path data_file out_name out_name in
       let result = run_command !tmp_dir solve_com in
-      let _ = result = 0 or failwith error_glpsol in
+      let _ = result = 0 || failwith error_glpsol in
 	(* Solve an infeasible problem *)
       let result = if infeasible then create_infeasible_solution out_name else 0 in
-      let _ = result = 0 or failwith error_glpsol in
+      let _ = result = 0 || failwith error_glpsol in
 	(* Run LP-HL.exe *)
       let com = sprintf "mono %s/LP-HL.exe %s" !lp_hl_dir (sprintf "flyspeck-%s.txt" out_name) in
       let result = run_command !tmp_dir com in
-      let _ = result = 0 or failwith (sprintf "LP-HL.exe failed for %s" bb.hypermap_id) in
+      let _ = result = 0 || failwith (sprintf "LP-HL.exe failed for %s" bb.hypermap_id) in
 	(* Create a certificate *)
       let terminal = read_binary_terminal (sprintf "%s/%s_out.bin" !tmp_dir out_name) in
 	terminal;;
@@ -180,14 +180,14 @@ let set_face_numerics_info bb =
   let edge_of_small = opp (rotation bb.std3_small) in
   let short_edge = opp bb.d_edge_200_225 in
   let long_edge = opp bb.d_edge_225_252 in
-  let _ =  (intersect edge_of_small long_edge = []) or failwith "set_face_numerics" in
+  let _ =  (intersect edge_of_small long_edge = []) || failwith "set_face_numerics" in
   let shortadds =  subtract (edge_of_small @ short_edge) bb.d_edge_200_225 in
   let shortfields = (map (fun t-> ("e_200_225",t)) shortadds) in
   let longadds =  subtract long_edge bb.d_edge_225_252 in
   let longfields = (map (fun t-> ("e_225_252",t)) longadds) in
-  let r = filter (fun t -> mem t (std_faces bb) & (length t = 3) )
+  let r = filter (fun t -> mem t (std_faces bb) && (length t = 3) )
           (nub (map (C face_of_dart bb) long_edge)) in
-  let _ = (intersect (rotation bb.std3_small) r =[]) or failwith "set_face_numerics" in
+  let _ = (intersect (rotation bb.std3_small) r =[]) || failwith "set_face_numerics" in
   let bigfields = map (fun t -> ("bt",t)) (subtract r bb.std3_big) in
   let fields = shortfields @ longfields @ bigfields in
     if fields=[] then bb, [] else
@@ -206,8 +206,8 @@ let set_node_numerics_info bb =
   let n_high = length bb.node_236_252 in
   let n_mid = length bb.node_218_236 in
   let n_highish = length (highish bb) in
-  if (n_high =0 )  & (n_mid +n_highish < 2) then bb, [] else
-  let _ = (n_mid * 18 + n_highish * 18 + n_high *36 <= 52) or failwith "set_node_numerics" in
+  if (n_high =0 )  && (n_mid +n_highish < 2) then bb, [] else
+  let _ = (n_mid * 18 + n_highish * 18 + n_high *36 <= 52) || failwith "set_node_numerics" in
   let node_new_low = subtract (node_list bb) (unions [bb.node_200_218 ;bb.node_218_236; bb.node_236_252;bb.node_218_252]) in
   let vfields_low = map (fun t -> ("200_218",t)) node_new_low in
   let vfields_mid = map(fun t->("218_236",t)) (highish bb) in

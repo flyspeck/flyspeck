@@ -225,8 +225,8 @@ let set_node_numerics bb =
   let n_high = length bb.node_236_252 in
   let n_mid = length bb.node_218_236 in
   let n_highish = length (highish bb) in
-  if (n_high =0 )  & (n_mid +n_highish < 2) then bb else
-  let _ = (n_mid * 18 + n_highish * 18 + n_high *36 <= 52) or failwith "set_node_numerics" in
+  if (n_high =0 )  && (n_mid +n_highish < 2) then bb else
+  let _ = (n_mid * 18 + n_highish * 18 + n_high *36 <= 52) || failwith "set_node_numerics" in
   let node_new_low = subtract (node_list bb) (unions [bb.node_200_218 ;bb.node_218_236; bb.node_236_252;bb.node_218_252]) in
   let vfields_low = map (fun t -> ("200_218",t)) node_new_low in
   let vfields_mid = map(fun t->("218_236",t)) (highish bb) in
@@ -245,7 +245,7 @@ set_node_numerics t1;;
 *)
 
 let opposite_edge [i;j;k] bb =
-  let f = find (fun t -> (nth t 0 = j) & (nth t 1 = i)) (rotation (faces bb)) in
+  let f = find (fun t -> (nth t 0 = j) && (nth t 1 = i)) (rotation (faces bb)) in
    [j;i;nth f 2];;
 
 (*
@@ -259,14 +259,14 @@ let set_face_numerics bb =
   let edge_of_small = opp (rotation bb.std3_small) in
   let short_edge = opp bb.d_edge_200_225 in
   let long_edge = opp bb.d_edge_225_252 in
-  let _ =  (intersect edge_of_small long_edge = []) or failwith "set_face_numerics" in
+  let _ =  (intersect edge_of_small long_edge = []) || failwith "set_face_numerics" in
   let shortadds =  subtract (edge_of_small @ short_edge) bb.d_edge_200_225 in
   let shortfields = (map (fun t-> ("e_200_225",t)) shortadds) in
   let longadds =  subtract long_edge bb.d_edge_225_252 in
   let longfields = (map (fun t-> ("e_225_252",t)) longadds) in
-  let r = filter (fun t -> mem t (std_faces bb) & (length t = 3) )
+  let r = filter (fun t -> mem t (std_faces bb) && (length t = 3) )
           (nub (map (C face_of_dart bb) long_edge)) in
-  let _ = (intersect (rotation bb.std3_small) r =[]) or failwith "set_face_numerics" in
+  let _ = (intersect (rotation bb.std3_small) r =[]) || failwith "set_face_numerics" in
   let bigfields = map (fun t -> ("bt",t)) (subtract r bb.std3_big) in
   let fields = shortfields @ longfields @ bigfields in
     if fields=[] then bb else     modify_bb bb false fields [];;
@@ -320,7 +320,7 @@ let follow_hint bb =
 let filter_feas_hint_include_flat bbs = filter_feas_f add_hints_include_flat bbs;;
 
 let switch_hint bb = 
-   if (length bb.std_faces_not_super > 0) & 
+   if (length bb.std_faces_not_super > 0) && 
       (length (hd bb.std_faces_not_super) > 3) then switch_face bb 
    else if not(bb.hints = []) then follow_hint bb else [bb];;
 

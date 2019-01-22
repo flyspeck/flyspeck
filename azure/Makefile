@@ -223,7 +223,7 @@ FLYSPECK_OBJ=$(FLYSPECK_SRC:.hl=.cmx)
 
 
 parser:
-	ocamlc -c -pp "camlp5r pa_lexer.cmo pa_extend.cmo q_MLast.cmo" -I +camlp5 $(HOL_NAT)/pa_j.ml
+	ocamlc -c -pp "camlp5r pa_lexer.cmo pa_extend.cmo q_MLast.cmo" -I `camlp5 -where` $(HOL_NAT)/pa_j.ml
 
 hol-core: $(HOL_CORE_OBJ)
 	@echo "HOL Light core compiled"

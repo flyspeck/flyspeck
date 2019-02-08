@@ -112,12 +112,10 @@ FLYSPECK_SRC0=\
 	build/native_strictbuild.hl \
 	general/hol_library.hl \
 	general/print_types.hl \
-	general/lib.hl \
 	general/flyspeck_lib.hl \
 	general/sphere.hl \
 	general/hales_tactic.hl \
 	general/truong_tactic.hl \
-	leg/basics.hl \
 	leg/geomdetail.hl \
 	leg/aff_sgn_tac.hl \
 	leg/affprops.hl \
@@ -138,7 +136,6 @@ FLYSPECK_SRC0=\
 	jordan/float.hl \
 	jordan/flyspeck_constants.hl \
 	jordan/misc_defs_and_lemmas.hl \
-	general/tactics.hl \
 	general/vukhacky_tactics.hl \
 	trigonometry/trigonometry1.hl \
 	trigonometry/trigonometry2.hl \
@@ -197,7 +194,7 @@ flyspeck-compile: $(EXTRA_HOL_OBJ) $(FLYSPECK_OBJ)
 	@echo "Flyspeck compiled" $(FLYSPECK_OBJ)
 
 flyspeck: flyspeck-compile
-	ocamlopt -linkall -o flyspeck unix.cmxa nums.cmxa $(OPTIONS) \
+	ocamlopt -linkall -o flyspeck unix.cmxa nums.cmxa str.cmxa $(OPTIONS) \
 		 $(INCLUDE) $(HOL_OBJ) $(EXTRA_HOL_OBJ) $(FLYSPECK_OBJ)
 
 clean:

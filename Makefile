@@ -7,6 +7,8 @@ CAMLP5=camlp5r pa_lexer.cmo pa_extend.cmo q_MLast.cmo -I $(HOL_NATIVE_DIR) pa_j.
 OPT_ML=ocamlopt -c -pp "$(CAMLP5_PATH)$(CAMLP5)"
 OPT_MLI=$(OPT_ML)
 OPT_HL=ocamlopt -c -pp "$(CAMLP5_PATH)$(CAMLP5) -impl"
+WARNINGS=-w +33
+#+44+45
 OPTIONS=
 
 DIRS=\
@@ -109,6 +111,7 @@ EXTRA_HOL_SRC0=\
 FLYSPECK_SRC0=\
 	general/state_manager.hl \
 	general/prove_by_refinement.hl \
+	build/native_strictbuild.mli \
 	build/native_strictbuild.hl \
 	general/hol_library.hl \
 	general/print_types.hl \
@@ -175,27 +178,30 @@ FLYSPECK_SRC=$(addprefix $(FORMALIZATION_DIR)/,$(FLYSPECK_SRC0))
 
 HOL_OBJ=$(HOL_SRC:.ml=.cmx)
 EXTRA_HOL_OBJ=$(EXTRA_HOL_SRC:.ml=.cmx)
-FLYSPECK_OBJ=$(FLYSPECK_SRC:.hl=.cmx)
+
+FLYSPECK_OBJ0=$(FLYSPECK_SRC:.hl=.cmx)
+FLYSPECK_OBJ=$(FLYSPECK_OBJ0:.mli=.cmi)
+BUILD_FLYSPECK_OBJ=$(filter-out %.cmi, $(FLYSPECK_OBJ))
 
 %.cmi : %.mli
-	$(OPT_MLI) $(OPTIONS) $(INCLUDE) $^
+	$(OPT_MLI) $(OPTIONS) $(WARNINGS) $(INCLUDE) $^
 
 %.cmx : %.hl
-	$(OPT_HL) $(OPTIONS) $(INCLUDE) -impl $^
+	$(OPT_HL) $(OPTIONS) $(WARNINGS) $(INCLUDE) -impl $^
 
 %.cmx : %.ml
-	$(OPT_ML) $(OPTIONS) $(INCLUDE) $^
+	$(OPT_ML) $(OPTIONS) $(WARNINGS) $(INCLUDE) $^
 
 .PHONY: clean all flyspeck-compile
 
 all: flyspeck
 
 flyspeck-compile: $(EXTRA_HOL_OBJ) $(FLYSPECK_OBJ)
-	@echo "Flyspeck compiled" $(FLYSPECK_OBJ)
+	@echo "Flyspeck compiled"
 
 flyspeck: flyspeck-compile
 	ocamlopt -linkall -o flyspeck unix.cmxa nums.cmxa str.cmxa $(OPTIONS) \
-		 $(INCLUDE) $(HOL_OBJ) $(EXTRA_HOL_OBJ) $(FLYSPECK_OBJ)
+		 $(INCLUDE) $(HOL_OBJ) $(EXTRA_HOL_OBJ) $(BUILD_FLYSPECK_OBJ)
 
 clean:
 	find $(FORMALIZATION_DIR) -name "*.cmi" -delete \

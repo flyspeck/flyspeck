@@ -1,5 +1,5 @@
 include Hol_core;;
-include Prove_by_refinement;;
+open Prove_by_refinement;;
 
 let dest_goal gl : goal = (gl : (string * thm) list * term);;
 let goal_asms = fst;;
@@ -10,14 +10,38 @@ let CHEAT_TAC = FAIL_TAC "cheaters never prosper";;
 let new_axiom _ = failwith "new_axiom has been disabled.";; 
 let mk_thm _ = failwith "mk_thm has been disabled.  Use mk_fthm";;
 
+let debug_flag = ref false;;
+
+let EXISTS_TAC tm = 
+  try EXISTS_TAC tm 
+  with Failure msg ->
+    failwith (Format.sprintf "%s, tm = %s" msg (string_of_term tm));;
+
+let prove args =
+  if !debug_flag then
+    let () = Format.printf "Proving: %s@." (string_of_term (fst args)) in
+    prove args
+  else
+    prove args;;
+
+let prove_by_refinement args =
+  if !debug_flag then
+    let () = Format.printf "Proving (by refinement): %s@." (string_of_term (fst args)) in
+    prove_by_refinement_2 ("thm", fst args, snd args)
+  else
+    prove_by_refinement args;;
+
+
 let flyspeck_needs s = ();;
 
 let allocated_start = ref 0.;;
 
-let load_begin () =
+let load_begin ?(debug = false) () =
+  debug_flag := debug;
   State_manager.neutralize_state ();
   allocated_start := Gc.allocated_bytes ();;
 
 let load_end fname =
+  debug_flag := false;
   let allocated = Gc.allocated_bytes () in
   Format.printf "%s loaded (%.0f)@." fname (allocated -. !allocated_start);;

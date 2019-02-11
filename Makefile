@@ -225,7 +225,19 @@ FLYSPECK_SRC0=\
 	packing/oxl_2012.hl \
 	packing/leaf_cell.hl \
 	packing/tskajxy.hl \
-	packing/oxlzlez.hl
+	packing/oxlzlez.hl \
+	local/dih2k_hypermap.hl \
+	local/wjscpro.hl \
+	local/tecoxbm.hl \
+	local/vpwshto.hl \
+	local/lfjcixp.hl \
+	local/localization.hl \
+	local/polar_fan.hl  \
+	local/hdplygy.hl \
+	local/gbycpxs.hl \
+	local/mtuwlun.hl \
+	local/pcrttid.hl \
+	local/xivphks.hl
 
 
 

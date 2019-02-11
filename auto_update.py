@@ -20,6 +20,7 @@ def to_lowercase(fname):
 
 DEF_OPEN = [
     'Iter',
+    'Products',
     'Permutations',
     'Misc',
     'Vectors',

@@ -1,5 +1,4 @@
 include module type of Hol_core
-include module type of Prove_by_refinement
 
 val dest_goal : goal -> (string * thm) list * term
 val goal_asms : goal -> (string * thm) list
@@ -10,7 +9,11 @@ val CHEAT_TAC : tactic
 val new_axiom : term -> thm
 val mk_thm : term list * term -> thm
 
+val EXISTS_TAC : term -> tactic
+val prove : term * tactic -> thm
+val prove_by_refinement : term * tactic list -> thm
+
 val flyspeck_needs : string -> unit
 
-val load_begin : unit -> unit
+val load_begin : ?debug:bool -> unit -> unit
 val load_end : string -> unit

@@ -5,7 +5,8 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Adds loaded message to files in a directory')
-    parser.add_argument('--lower', action='store_true', help='filenames to lower case letters')
+    parser.add_argument('--lower', action='store_true', help='filenames to lowercase letters')
+    parser.add_argument('--add', action='store_true', help='add headers and footers')
     parser.add_argument('path', help='directory')
     return parser.parse_args()
 
@@ -17,6 +18,36 @@ def to_lowercase(fname):
         subprocess.call(['git', 'mv', fname, new_fname])
         print(f'Renamed: {fname}')
 
+DEF_OPEN = [
+    'Iter',
+    'Permutations',
+    'Misc',
+    'Vectors',
+    'Determinants',
+    'Metric',
+    'Topology',
+    'Convex',
+    'Polytope',
+    'Integration',
+    'Measure',
+    'Transcendentals',
+    'Geom',
+    'Cross',
+    'Flyspeck'
+]
+
+def add_header_footer(fname):
+    with open(fname, 'r') as f:
+        text = f.read()
+        if text.startswith('open Native'):
+            return
+    open_text = '\n'.join(f'open {name};;' for name in DEF_OPEN)
+    with open(fname, 'w') as f:
+        f.write('open Native_strictbuild;;\nload_begin();;\n\n')
+        f.write(open_text + '\n\n')
+        f.write(text)
+        f.write('\n\nload_end __FILE__;;')
+    print(f'Updated: {fname}')
 
 def add_msg(fname, msg):
     with open(fname, 'r') as f:
@@ -33,6 +64,8 @@ def add_msg(fname, msg):
 def process_file(args, fname):
     if args.lower:
         to_lowercase(fname)
+    if args.add:
+        add_header_footer(fname)
 
 def main():
     args = parse_args()

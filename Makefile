@@ -25,7 +25,8 @@ DIRS=\
 	$(FORMALIZATION_DIR)/volume \
 	$(FORMALIZATION_DIR)/hypermap \
 	$(FORMALIZATION_DIR)/fan \
-	$(FORMALIZATION_DIR)/packing
+	$(FORMALIZATION_DIR)/packing \
+	$(FORMALIZATION_DIR)/local
 
 INCLUDE=$(addprefix -I ,$(DIRS))
 
@@ -140,6 +141,7 @@ FLYSPECK_SRC0=\
 	jordan/float.hl \
 	jordan/flyspeck_constants.hl \
 	jordan/misc_defs_and_lemmas.hl \
+	general/gen_tactics.hl \
 	general/vukhacky_tactics.hl \
 	trigonometry/trigonometry1.hl \
 	trigonometry/trigonometry2.hl \
@@ -188,7 +190,27 @@ FLYSPECK_SRC0=\
 	packing/urrphbz2.hl \
 	packing/hdtfnfz.hl \
 	packing/urrphbz3.hl \
-	packing/rvfxzbu.hl
+	packing/rvfxzbu.hl \
+	local/wrgcvdr_cizmrrh.hl \
+	local/lvducxu.hl \
+	local/ldurdpn.hl \
+	local/local_lemmas.hl \
+	tame/tame_inequalities.hl \
+	packing/ynhyjit.hl \
+	packing/njiutiu.hl \
+	packing/tezffsk.hl \
+	packing/qzksykg.hl \
+	packing/ddzuphj.hl \
+	packing/ajripqn.hl \
+	packing/qzyzmjc.hl \
+	packing/marchal_cells_3.hl \
+	packing/grutoti.hl \
+	packing/kizhltl.hl \
+	packing/bump.hl \
+	packing/sum_gammax_lmfun_estimate.hl \
+	packing/upfzbzm.hl \
+	packing/rdwkarc.hl
+
 
 
 HOL_SRC=$(addprefix $(HOL_NATIVE_DIR)/,$(HOL_SRC0))

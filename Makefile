@@ -180,7 +180,7 @@ FLYSPECK_SRC0=\
 	packing/pack_defs.hl \
 	packing/pack_concl.hl \
 	packing/packing3.hl \
-	packing/Rogers.hl \
+	packing/rogers.hl \
 	packing/tarjjuw.hl \
 	packing/marchal_cells.hl \
 	packing/upfzbzm_support_lemmas.hl \

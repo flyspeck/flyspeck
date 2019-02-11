@@ -24,7 +24,8 @@ DIRS=\
 	$(FORMALIZATION_DIR)/nonlinear \
 	$(FORMALIZATION_DIR)/volume \
 	$(FORMALIZATION_DIR)/hypermap \
-	$(FORMALIZATION_DIR)/fan
+	$(FORMALIZATION_DIR)/fan \
+	$(FORMALIZATION_DIR)/packing
 
 INCLUDE=$(addprefix -I ,$(DIRS))
 
@@ -169,7 +170,25 @@ FLYSPECK_SRC0=\
 	fan/planarity.hl \
 	fan/hypermap_and_fan.hl \
 	fan/Conforming.hl \
-	fan/polyhedron.hl
+	fan/polyhedron.hl \
+	packing/pack1.hl \
+	packing/pack2.hl \
+	packing/pack_defs.hl \
+	packing/pack_concl.hl \
+	packing/packing3.hl \
+	packing/Rogers.hl \
+	packing/tarjjuw.hl \
+	packing/marchal_cells.hl \
+	packing/upfzbzm_support_lemmas.hl \
+	packing/emnwuus.hl \
+	packing/marchal_cells_2_new.hl \
+	packing/sltstlo.hl \
+	packing/lepjbdj.hl \
+	packing/urrphbz1.hl \
+	packing/urrphbz2.hl \
+	packing/hdtfnfz.hl \
+	packing/urrphbz3.hl \
+	packing/rvfxzbu.hl
 
 
 HOL_SRC=$(addprefix $(HOL_NATIVE_DIR)/,$(HOL_SRC0))

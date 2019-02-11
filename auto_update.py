@@ -30,7 +30,9 @@ DEF_OPEN = [
     'Polytope',
     'Integration',
     'Measure',
+    'Complexes',
     'Transcendentals',
+    'Realanalysis',
     'Geom',
     'Cross',
     'Flyspeck'

@@ -26,7 +26,8 @@ DIRS=\
 	$(FORMALIZATION_DIR)/hypermap \
 	$(FORMALIZATION_DIR)/fan \
 	$(FORMALIZATION_DIR)/packing \
-	$(FORMALIZATION_DIR)/local
+	$(FORMALIZATION_DIR)/local \
+	$(FORMALIZATION_DIR)/tame
 
 INCLUDE=$(addprefix -I ,$(DIRS))
 
@@ -121,6 +122,7 @@ FLYSPECK_SRC0=\
 	general/sphere.hl \
 	general/hales_tactic.hl \
 	general/truong_tactic.hl \
+	leg/leg_basics.hl \
 	leg/geomdetail.hl \
 	leg/aff_sgn_tac.hl \
 	leg/affprops.hl \
@@ -171,7 +173,7 @@ FLYSPECK_SRC0=\
 	fan/fan_misc.hl \
 	fan/planarity.hl \
 	fan/hypermap_and_fan.hl \
-	fan/Conforming.hl \
+	fan/conforming.hl \
 	fan/polyhedron.hl \
 	packing/pack1.hl \
 	packing/pack2.hl \
@@ -209,7 +211,21 @@ FLYSPECK_SRC0=\
 	packing/bump.hl \
 	packing/sum_gammax_lmfun_estimate.hl \
 	packing/upfzbzm.hl \
-	packing/rdwkarc.hl
+	packing/rdwkarc.hl \
+	local/local_lemmas1.hl \
+	local/nkezbfc_local.hl \
+	tame/arc_properties.hl \
+	fan/cfyxfty.hl \
+	packing/ysskqoy.hl  \
+	packing/counting_spheres.hl \
+	packing/reuhady.hl \
+	packing/tskajxy_lemmas.hl \
+	packing/tskajxy_034.hl \
+	packing/oxl_def.hl \
+	packing/oxl_2012.hl \
+	packing/leaf_cell.hl \
+	packing/tskajxy.hl \
+	packing/oxlzlez.hl
 
 
 

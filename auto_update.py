@@ -19,7 +19,9 @@ def to_lowercase(fname):
         print(f'Renamed: {fname}')
 
 DEF_OPEN = [
+    'Wo',
     'Card',
+    'Floor',
     'Iter',
     'Products',
     'Permutations',
@@ -37,7 +39,9 @@ DEF_OPEN = [
     'Realanalysis',
     'Geom',
     'Cross',
-    'Flyspeck'
+    'Flyspeck',
+    'Rstc',
+    'Hol_library'
 ]
 
 def add_header_footer(fname):

@@ -31,7 +31,10 @@ DIRS=\
 	jHOLLight/caml \
 	jHOLLight/Examples \
 	$(FORMALIZATION_DIR)/tame/ssreflect \
-	formal_lp/hypermap/ssreflect
+	formal_lp/hypermap/ssreflect \
+	formal_lp/hypermap/ineqs \
+	formal_lp/hypermap/computations \
+	formal_lp/ineqs
 
 INCLUDE=$(addprefix -I ,$(DIRS))
 
@@ -256,7 +259,7 @@ FLYSPECK_SRC0=\
 	tame/jgtdebu.hl \
 	tame/tame_opposite.hl \
 	tame/fatugpd.hl \
-	tame/crttxat.hl \
+	tame/crttxat_tame.hl \
 	tame/hrxefdm_tame.hl \
 	../jHOLLight/Examples/seq.hl \
 	tame/ssreflect/seq2.hl \
@@ -264,7 +267,7 @@ FLYSPECK_SRC0=\
 	tame/ssreflect/fnjlbxs.hl \
 	../formal_lp/hypermap/ssreflect/add_triangle.hl \
 	tame/ssreflect/tame_lemmas.hl \
-	tame/cdtetat.hl \
+	tame/cdtetat_tame.hl \
 	local/appendix.hl \
 	local/terminal.hl \
 	local/pent_hex.hl \
@@ -314,50 +317,50 @@ FLYSPECK_SRC0=\
 	local/vasyyau.hl \
 	local/miqmcsn.hl \
 	local/jejtvgb.hl \
-	../formal_lp/hypermap/ssreflect/list_hypermap-compiled.hl \
-	../formal_lp/hypermap/ineqs/lp_gen_theory-compiled.hl \
-	../formal_lp/hypermap/ssreflect/list_hypermap_iso-compiled.hl \
-	../formal_lp/hypermap/computations/more_theory-compiled.hl \
-	local/RNSYJXM-compiled.hl \
+	../formal_lp/hypermap/ssreflect/list_hypermap.hl \
+	../formal_lp/hypermap/ineqs/lp_gen_theory.hl \
+	../formal_lp/hypermap/ssreflect/list_hypermap_iso.hl \
+	../formal_lp/hypermap/computations/more_list_hypermap.hl \
+	local/rnsyjxm.hl \
 	tame/tame_defs2.hl \
 	tame/tame_list.hl \
 	tame/import_tame_classification.hl \
 	tame/more_tame_concl.hl \
-	tame/OXAXUCS.hl \
-	tame/ASFUTBF.hl \
-	tame/ELLLNYZ.hl \
-	tame/WMLNYMD.hl \
-	tame/DPZGBYF.hl \
-	tame/AUQTZYZ.hl \
-	tame/AUQTZYZ_list.hl \
-	tame/RXOKSKC.hl \
-	tame/DANGEYJ.hl \
-	tame/JCAJYDU.hl \
-	tame/PWSSRAT.hl \
-	tame/OHCGKFU.hl \
-	tame/PPLHULJ.hl \
-	tame/NCVIBWU.hl \
-	tame/QCDVKEA.hl \
-	tame/PBFLHET.hl \
-	tame/PNXVWFS.hl \
-	tame/DIOWAAS.hl \
-	tame/RYIUUVK.hl \
-	tame/KBWPBHQ.hl \
-	tame/MEEIXJO.hl \
-	tame/OBDATYB.hl \
-	tame/LEBHIRJ.hl \
-	tame/HOJODCM.hl \
-	tame/AQ1.hl \
-	tame/AQ23.hl \
-	tame/AQ4.hl \
-	tame/AQ56.hl \
-	tame/AQ7.hl \
-	tame/AQ8.hl \
-	tame/AQ9.hl \
-	tame/AQ10.hl \
-	tame/AQ11.hl \
-	tame/AQ12.hl \
-	tame/AQ13.hl \
+	tame/oxaxucs.hl \
+	tame/asfutbf.hl \
+	tame/elllnyz.hl \
+	tame/wmlnymd.hl \
+	tame/dpzgbyf.hl \
+	tame/auqtzyz.hl \
+	tame/auqtzyz_list.hl \
+	tame/rxokskc.hl \
+	tame/dangeyj.hl \
+	tame/jcajydu.hl \
+	tame/pwssrat.hl \
+	tame/ohcgkfu.hl \
+	tame/pplhulj.hl \
+	tame/ncvibwu.hl \
+	tame/qcdvkea.hl \
+	tame/pbflhet.hl \
+	tame/pnxvwfs.hl \
+	tame/diowaas.hl \
+	tame/ryiuuvk.hl \
+	tame/kbwpbhq.hl \
+	tame/meeixjo.hl \
+	tame/obdatyb.hl \
+	tame/lebhirj.hl \
+	tame/hojodcm.hl \
+	tame/aq1.hl \
+	tame/aq23.hl \
+	tame/aq4.hl \
+	tame/aq56.hl \
+	tame/aq7.hl \
+	tame/aq8.hl \
+	tame/aq9.hl \
+	tame/aq10.hl \
+	tame/aq11.hl \
+	tame/aq12.hl \
+	tame/aq13.hl \
 	tame/reduction1.hl \
 	tame/reduction2.hl \
 	tame/more_lemma1.hl \
@@ -366,7 +369,21 @@ FLYSPECK_SRC0=\
 	tame/reduction4.hl \
 	tame/betwn_corek_z_x.hl \
 	tame/betwn_core0_z_y.hl \
-	tame/reduction5.hl
+	tame/reduction5.hl \
+	../formal_lp/hypermap/ineqs/lp_ineqs_defs.hl \
+	../formal_lp/ineqs/constants_approx.hl \
+	../formal_lp/hypermap/ineqs/lp_ineqs_proofs.hl \
+	../formal_lp/hypermap/ineqs/lp_main_estimate.hl \
+	../formal_lp/hypermap/ineqs/lp_ineqs_quads.hl \
+	tame/ssreflect/kcblrqc.hl \
+	tame/ssreflect/mqmsmab.hl \
+	packing/flyspeck_devol.hl \
+	general/kepler_spec.hl \
+	general/the_main_statement.hl \
+	general/audit_formal_proof.hl
+
+#	general/the_kepler_conjecture.hl
+
 
 
 

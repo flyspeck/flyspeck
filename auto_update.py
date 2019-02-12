@@ -19,6 +19,7 @@ def to_lowercase(fname):
         print(f'Renamed: {fname}')
 
 DEF_OPEN = [
+    'Card',
     'Iter',
     'Products',
     'Permutations',

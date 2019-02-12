@@ -27,7 +27,11 @@ DIRS=\
 	$(FORMALIZATION_DIR)/fan \
 	$(FORMALIZATION_DIR)/packing \
 	$(FORMALIZATION_DIR)/local \
-	$(FORMALIZATION_DIR)/tame
+	$(FORMALIZATION_DIR)/tame \
+	jHOLLight/caml \
+	jHOLLight/Examples \
+	$(FORMALIZATION_DIR)/tame/ssreflect \
+	formal_lp/hypermap/ssreflect
 
 INCLUDE=$(addprefix -I ,$(DIRS))
 
@@ -237,7 +241,36 @@ FLYSPECK_SRC0=\
 	local/gbycpxs.hl \
 	local/mtuwlun.hl \
 	local/pcrttid.hl \
-	local/xivphks.hl
+	local/xivphks.hl \
+	tame/tame_defs.hl \
+	../jHOLLight/caml/ssreflect.hl \
+	../jHOLLight/caml/sections.hl \
+	../jHOLLight/Examples/ssrfun.hl \
+	../jHOLLight/Examples/ssrbool.hl \
+	../jHOLLight/Examples/ssrnat.hl \
+	fan/hypermap_iso.hl \
+	tame/ckqowsa_3_points.hl \
+	tame/ckqowsa_4_points.hl \
+	tame/ckqowsa.hl \
+	tame/tame_general.hl \
+	tame/jgtdebu.hl \
+	tame/tame_opposite.hl \
+	tame/fatugpd.hl \
+	tame/crttxat.hl \
+	tame/hrxefdm_tame.hl \
+	../jHOLLight/Examples/seq.hl \
+	tame/ssreflect/seq2.hl \
+	tame/ssreflect/seq_sort.hl \
+	tame/ssreflect/fnjlbxs.hl \
+	../formal_lp/hypermap/ssreflect/add_triangle.hl \
+	tame/ssreflect/tame_lemmas.hl \
+	tame/cdtetat.hl \
+	local/appendix.hl \
+	local/terminal.hl \
+	local/pent_hex.hl \
+	local/lp_details.hl
+
+
 
 
 

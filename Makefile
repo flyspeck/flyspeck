@@ -268,7 +268,106 @@ FLYSPECK_SRC0=\
 	local/appendix.hl \
 	local/terminal.hl \
 	local/pent_hex.hl \
-	local/lp_details.hl
+	local/lp_details.hl \
+	local/zithlqn.hl \
+	local/xwitccn.hl \
+	local/ayqjtmd.hl \
+	local/jkqewgv.hl \
+	local/uxckfpe.hl \
+	local/sgtrnaf.hl \
+	local/qknvmlb.hl \
+	local/yxionxl.hl \
+	local/hxhytij.hl \
+	local/uaghhbm.hl \
+	local/lkgrqui.hl \
+	local/deformation.hl \
+	local/odxlstc.hl \
+	local/lunar_deform.hl \
+	local/ocbicby.hl \
+	local/yxionxl2.hl \
+	local/eyypqdw.hl \
+	local/imjxphr.hl \
+	local/zlzthic.hl \
+	local/pqcsxwg.hl \
+	local/nuxcoea.hl \
+	local/fektyiy.hl \
+	local/aursipd.hl \
+	local/ppbtydq.hl \
+	local/axjrpnc.hl \
+	local/cuxvzoz.hl \
+	local/rrcwnsj.hl \
+	local/jcyfmrp.hl \
+	local/tfitskc.hl \
+	local/cqaoqlr.hl \
+	local/jlxfdmj.hl \
+	local/yrtafyh.hl \
+	local/wkeidft.hl \
+	local/hexagons.hl \
+	local/iunbuig.hl \
+	local/otmtotj.hl \
+	local/hijqaha.hl \
+	local/cnicgsf.hl \
+	local/bkossge.hl \
+	local/jotswix.hl \
+	local/ardbzye.hl \
+	local/aueaheh.hl \
+	local/vasyyau.hl \
+	local/miqmcsn.hl \
+	local/jejtvgb.hl \
+	../formal_lp/hypermap/ssreflect/list_hypermap-compiled.hl \
+	../formal_lp/hypermap/ineqs/lp_gen_theory-compiled.hl \
+	../formal_lp/hypermap/ssreflect/list_hypermap_iso-compiled.hl \
+	../formal_lp/hypermap/computations/more_theory-compiled.hl \
+	local/RNSYJXM-compiled.hl \
+	tame/tame_defs2.hl \
+	tame/tame_list.hl \
+	tame/import_tame_classification.hl \
+	tame/more_tame_concl.hl \
+	tame/OXAXUCS.hl \
+	tame/ASFUTBF.hl \
+	tame/ELLLNYZ.hl \
+	tame/WMLNYMD.hl \
+	tame/DPZGBYF.hl \
+	tame/AUQTZYZ.hl \
+	tame/AUQTZYZ_list.hl \
+	tame/RXOKSKC.hl \
+	tame/DANGEYJ.hl \
+	tame/JCAJYDU.hl \
+	tame/PWSSRAT.hl \
+	tame/OHCGKFU.hl \
+	tame/PPLHULJ.hl \
+	tame/NCVIBWU.hl \
+	tame/QCDVKEA.hl \
+	tame/PBFLHET.hl \
+	tame/PNXVWFS.hl \
+	tame/DIOWAAS.hl \
+	tame/RYIUUVK.hl \
+	tame/KBWPBHQ.hl \
+	tame/MEEIXJO.hl \
+	tame/OBDATYB.hl \
+	tame/LEBHIRJ.hl \
+	tame/HOJODCM.hl \
+	tame/AQ1.hl \
+	tame/AQ23.hl \
+	tame/AQ4.hl \
+	tame/AQ56.hl \
+	tame/AQ7.hl \
+	tame/AQ8.hl \
+	tame/AQ9.hl \
+	tame/AQ10.hl \
+	tame/AQ11.hl \
+	tame/AQ12.hl \
+	tame/AQ13.hl \
+	tame/reduction1.hl \
+	tame/reduction2.hl \
+	tame/more_lemma1.hl \
+	tame/reduction3.hl \
+	tame/more_lemma2.hl \
+	tame/reduction4.hl \
+	tame/betwn_corek_z_x.hl \
+	tame/betwn_core0_z_y.hl \
+	tame/reduction5.hl
+
 
 
 

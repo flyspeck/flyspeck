@@ -456,6 +456,6 @@ flyspeck: flyspeck-compile
 		 $(INCLUDE) $(HOL_OBJ) $(EXTRA_HOL_OBJ) $(BUILD_FLYSPECK_OBJ)
 
 clean:
-	find $(FORMALIZATION_DIR) -name "*.cmi" -delete \
+	find . -name "*.cmi" -delete \
 		-o -name "*.cmx" -delete \
 		-o -name "*.o" -delete

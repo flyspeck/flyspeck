@@ -34,7 +34,15 @@ DIRS=\
 	formal_lp/hypermap/ssreflect \
 	formal_lp/hypermap/ineqs \
 	formal_lp/hypermap/computations \
-	formal_lp/ineqs
+	formal_lp/hypermap/main \
+	formal_lp/hypermap \
+	formal_lp/ineqs \
+	formal_lp/glpk \
+	formal_lp/more_arith \
+	formal_graph/archive \
+	formal_ineqs \
+	formal_ineqs/misc \
+	formal_ineqs/arith
 
 INCLUDE=$(addprefix -I ,$(DIRS))
 
@@ -380,14 +388,39 @@ FLYSPECK_SRC0=\
 	packing/flyspeck_devol.hl \
 	general/kepler_spec.hl \
 	general/the_main_statement.hl \
-	general/audit_formal_proof.hl
-
-#	general/the_kepler_conjecture.hl
-
-
-
-
-
+	general/audit_formal_proof.hl \
+	../formal_ineqs/arith_options.hl \
+	../formal_ineqs/misc/misc_vars.hl \
+	../formal_ineqs/misc/misc_functions.hl \
+	../formal_ineqs/arith/arith_num.mli \
+	../formal_ineqs/arith/arith_num.hl \
+	../formal_ineqs/arith/arith_cache.hl \
+	../formal_ineqs/arith/arith_nat.hl \
+	../formal_lp/glpk/glpk_link.ml \
+	../formal_graph/archive/archive_all.ml \
+	../formal_lp/glpk/lpproc.ml \
+	../formal_lp/ineqs/delta_ineq.hl \
+	../formal_lp/hypermap/ineqs/lp_ineqs_proofs2.hl \
+	../formal_lp/hypermap/computations/list_conversions.mli \
+	../formal_lp/hypermap/computations/list_conversions.hl \
+	../formal_lp/hypermap/computations/list_hypermap_computations.hl \
+	tame/good_list_archive.hl \
+	../formal_lp/hypermap/ineqs/lp_gen_ineqs.hl \
+	../formal_lp/hypermap/ineqs/lp_approx_ineqs.hl \
+	../formal_lp/hypermap/ineqs/lp_ineqs.hl \
+	../formal_lp/hypermap/ineqs/lp_head_ineqs.hl \
+	../formal_lp/hypermap/ineqs/lp_body_ineqs_data.hl \
+	../formal_lp/hypermap/ineqs/lp_body_ineqs.hl \
+	../formal_lp/hypermap/main/lp_certificate.hl \
+	../formal_lp/hypermap/computations/lp_informal_computations.hl \
+	../formal_lp/more_arith/lin_f.hl \
+	../formal_lp/more_arith/arith_int.mli \
+	../formal_lp/more_arith/arith_int.hl \
+	../formal_lp/more_arith/prove_lp.hl \
+	../formal_lp/hypermap/main/prove_flyspeck_lp.hl \
+	../formal_lp/hypermap/verify_all.hl \
+	tame/linear_programming_results.hl \
+	general/the_kepler_conjecture.hl
 
 
 HOL_SRC=$(addprefix $(HOL_NATIVE_DIR)/,$(HOL_SRC0))
@@ -398,7 +431,8 @@ HOL_OBJ=$(HOL_SRC:.ml=.cmx)
 EXTRA_HOL_OBJ=$(EXTRA_HOL_SRC:.ml=.cmx)
 
 FLYSPECK_OBJ0=$(FLYSPECK_SRC:.hl=.cmx)
-FLYSPECK_OBJ=$(FLYSPECK_OBJ0:.mli=.cmi)
+FLYSPECK_OBJ1=$(FLYSPECK_OBJ0:.ml=.cmx)
+FLYSPECK_OBJ=$(FLYSPECK_OBJ1:.mli=.cmi)
 BUILD_FLYSPECK_OBJ=$(filter-out %.cmi, $(FLYSPECK_OBJ))
 
 %.cmi : %.mli

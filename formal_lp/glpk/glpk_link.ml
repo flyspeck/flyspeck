@@ -1,3 +1,6 @@
+open Native_strictbuild;;
+load_begin();;
+
 (* ========================================================================== *)
 (* FLYSPECK - BOOK FORMALIZATION                                              *)
 (*                                                                            *)
@@ -13,7 +16,7 @@ This file contains material that does not depend on the details of the LP.
   glpk function calls.
 *)
 
-module Glpk_link  = struct
+(* module Glpk_link  = struct *)
 
 (*
 
@@ -264,4 +267,6 @@ let get_dumpvar glpk_outfile s = (* read variables from glpk_outfile *)
   inp;;
 (* get_dumpvar "yn.0.*=";; *) 
 
-end;;
+(* end;; *)
+
+load_end __FILE__;;

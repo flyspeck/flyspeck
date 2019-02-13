@@ -1,3 +1,6 @@
+open Native_strictbuild;;
+load_begin();;
+
 (* ========================================================================== *)
 (* FLYSPECK - BOOK FORMALIZATION                                              *)
 (*                                                                            *)
@@ -37,10 +40,11 @@ let  (tame_bb,feasible_bb,hard_bb,easy_bb,remaining_easy_bb) = Lpproc.execute();
 
 *)
 
-#load "str.cma";;
+(* #load "str.cma";; *)
 
 let flyspeck_dir = 
-  (try Sys.getenv "FLYSPECK_DIR" with Not_found -> Sys.getcwd());;
+  (try Sys.getenv "FLYSPECK_DIR" 
+  with Not_found -> Filename.concat (Sys.getcwd()) "text_formalization");;
 
 let project_root_dir = (Filename.concat (flyspeck_dir) Filename.parent_dir_name);;
 
@@ -53,7 +57,7 @@ let tame_dir =  glpk_dir;;
 needs (Filename.concat glpk_dir "glpk_link.ml");;
 needs (Filename.concat project_root_dir "formal_graph/archive/archive_all.ml");;
 
-module Lpproc = struct 
+(* module Lpproc = struct  *)
 
 open Glpk_link;;
 open List;;
@@ -500,4 +504,6 @@ let execute() =
   let remaining_easy_bb = allpass 20 easy_bb in
   (tame_bb,feasible_bb,hard_bb,easy_bb,remaining_easy_bb);;
 
-end;;
+(* end;; *)
+
+load_end __FILE__;;

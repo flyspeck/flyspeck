@@ -5,7 +5,7 @@
 1) Install [OPAM](https://opam.ocaml.org/doc/Install.html)
 
 2) Install [OCaml](https://ocaml.org/docs/install.html#OPAM).
-   The recommended and tested OCaml version is 4.04.2.
+   This guide was tested with OCaml 4.04.2.
 
     ```
     opam init
@@ -35,6 +35,7 @@
     which ocaml
     which camlp5
     ocaml -I `camlp5 -where`
+    #quit;;
     ```
 
 6) If the installed OCaml version is >= 4.06 then it is necessary to install the OCaml Num library:
@@ -95,11 +96,20 @@
    git checkout adfe470ad72372357a18843ad4b94377cb0790b9
    ```
 
+   (This step has not been tested yet so it may be necessary to get an older HOL Light version in case of errors.)
+
 ## Loading Flyspeck
 
 1) Copy `flyspeck/load_flyspeck.ml` to the HOL Light directory (alternatively,
    provide a full path to `load_flyspeck.ml` when it is loaded in HOL Light).
+   
    Open the copy and edit the paths to Flyspeck and HOL Light directories.
+   Change these lines:
+
+    ```
+    let flyspeck_dir = "/home/user/flyspeck/text_formalization";;
+    let hollight_dir = "/home/user/hol-light";;
+    ```
 
 2) Load HOL Light
 
@@ -126,8 +136,8 @@
    build_to "local/LFJCIXP.hl"
    ```
 
-   The function `build_to` ignores files related to the verification of bounds of
-   linear programs. To verify this bounds, use the function `build_to_full`.
+   The function `build_to` does not verify bounds of linear programs. 
+   To verify these bounds, use the function `build_to_full`.
 
 5) To load the main statement, use the following command:
 
@@ -175,8 +185,7 @@
 
 ## [Optional] Compiling Flyspeck with ocamlopt
 
-HOL Light files compiled with ocamlopt are loaded approximately 5 times faster than with
-the default OCaml toplevel.
+HOL Light files compiled with ocamlopt are loaded approximately 5 times faster.
 
 1) Checkout the following HOL Light fork
 
@@ -194,6 +203,8 @@ the default OCaml toplevel.
     make core
     make mult
     ```
+
+    If you get a stack overflow error, try `ulimit -S -s 131072` before running `make mult`.
 
 3) Checkout the native branch of Flyspeck
 

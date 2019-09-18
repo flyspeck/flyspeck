@@ -195,10 +195,18 @@ the default OCaml toplevel.
     make mult
     ```
 
-3) Checkout the native branch of Flyspeck and compile it
+3) Checkout the native branch of Flyspeck
 
     ```
     cd flyspeck
     git checkout native
-    
+    ```
+
+4) Edit `flyspeck/Makefile`: change the path to the compiled HOL Light (the first line of `Makefile`).
+
+5) Compile and run Flyspeck
+
+    ```
+    make flyspeck
+    ./flyspeck
     ```

@@ -92,7 +92,7 @@ let order_list (h,xs) =
   let fl = flatten xs in
   let count k = length (filter ((=) k) fl) in
   let mc rs = maxlist0 (map count rs) in
-  let sortfn a b = compare (mc b) (mc a) in
+  let sortfn a b = Stdlib.compare (mc b) (mc a) in
   let r k = filter (fun x -> length x = k) xs in
   let f k = sort sortfn (r k) in
    (h,f 6 @ f 4 @ f 5 @ f 3);;

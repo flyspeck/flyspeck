@@ -110,7 +110,7 @@ let get_azim_dart_diff f xs bb =
 let sorted_azim_diff p bb = 
   let ys = p bb in 
   let u = map (fun t->  (get_azim_dart_diff dih_y t bb  ,t))  ys in
-  let v = List.sort (fun a b -> - compare (fst a) (fst b)) u in
+  let v = List.sort (fun a b -> - Stdlib.compare (fst a) (fst b)) u in
    v;;
 (* sorted_azim_diff darts_of_std_tri bb;;   *)
 
@@ -132,7 +132,7 @@ let heuristic_weight d bb =
 let sorted_azim_weighted_diff p bb = 
   let ys = p bb in 
   let u = map (fun t->  ((heuristic_weight t bb *. get_azim_dart_diff dih_y t bb)  ,t))  ys in
-  let v = List.sort (fun a b -> - compare (fst a) (fst b)) u in
+  let v = List.sort (fun a b -> - Stdlib.compare (fst a) (fst b)) u in
    v;;
 
 
@@ -330,7 +330,7 @@ let onepass_backup = ref [];;
 
 let sortbb bbs = 
   let eval bb = (match bb.lpvalue with Lp_value r -> r | _ -> 0.0) in
-  let v = List.sort (fun a b -> - compare (eval a) (eval b)) bbs in
+  let v = List.sort (fun a b -> - Stdlib.compare (eval a) (eval b)) bbs in
    v;;
 
 

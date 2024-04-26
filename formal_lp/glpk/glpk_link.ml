@@ -131,14 +131,14 @@ let join_lines  = unsplit "\n" (fun x-> x);;
 let load_and_close_channel do_close ic = 
   let rec lf ichan a = 
     try
-      lf ic (Pervasives.input_line ic::a)
+      lf ic (Stdlib.input_line ic::a)
     with End_of_file -> a in
     let rs = lf ic [] in
-      if do_close then Pervasives.close_in ic else ();
+      if do_close then Stdlib.close_in ic else ();
       rev rs;;
 
 let load_file filename = 
-  let ic = Pervasives.open_in filename in load_and_close_channel true ic;;
+  let ic = Stdlib.open_in filename in load_and_close_channel true ic;;
 
 *)
 
@@ -150,7 +150,7 @@ let save_stringarray filename xs =
   let oc = open_out filename in
     for i=0 to length xs -1
     do
-      Pervasives.output_string oc (nth xs i ^ "\n");
+      Stdlib.output_string oc (nth xs i ^ "\n");
       done;
     close_out oc;;
 

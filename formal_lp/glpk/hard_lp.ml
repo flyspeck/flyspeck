@@ -25,7 +25,7 @@ open List;;
 open Glpk_link;;
 open Lpproc;;
 
-let sqrt = Pervasives.sqrt;;
+let sqrt = Stdlib.sqrt;;
 let dih_y = Sphere_math.dih_y;;
 
 (*

@@ -1,0 +1,30 @@
+module Flyspeck_eval = struct
+
+(*
+eval_command comes from
+
+http://solaria.dimino.org/cgi-bin/darcsweb.cgi?r=peps;a=headblob;f=/src/core/peps_top.ml
+License: BSD3
+
+If the expression is syntactically correct 
+and the evaluation raises an exception, then the return value is true.
+*)
+
+let eval_command ?(silent=false) command =
+   let buffer = Buffer.create 512 in
+   let pp = Format.formatter_of_buffer buffer in
+   Format.pp_set_margin pp max_int;
+   try
+     let _ =
+       Toploop.execute_phrase (not silent) pp
+         (!Toploop.parse_toplevel_phrase (Lexing.from_string (command ^ ";;")))
+     in
+     (true, Buffer.contents buffer)
+   with exn ->
+     let save = !Toploop.parse_use_file in
+     Toploop.parse_use_file := (fun _ -> raise exn);
+     Stdlib.ignore (Toploop.use_silently pp (Toploop.String "/dev/null"));
+     Toploop.parse_use_file := save;
+     (false,  Buffer.contents buffer);;
+
+end;;

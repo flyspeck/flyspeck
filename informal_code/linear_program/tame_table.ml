@@ -79,7 +79,7 @@ let string_of_node t =
 
 let ampl_of_nt outs nt = 
   let pr = sprintf in
-  let j = join_lines [
+  let j = String.concat "\n" [
     pr"param p := %d;" nt.p;
     pr"param q := %d;" nt.q;
     pr"param r := %d;\n" nt.r;
@@ -152,7 +152,7 @@ let tame_table_lp_data() = (map fpq (cart  (0--10) (0--10)));;
 let tame_table_b_info() = 
   let n = filter3 (filter2 (filter1 (tame_table_lp_data()))) in
     if (List.length n = 0) then "All b table values have been accounted for in informal lp tests (ignoring 0,2,0 and 5,0,0)"
-    else "Unaccounted for b values: \n" ^ join_lines (map string_of_node n);;
+    else "Unaccounted for b values: \n" ^ String.concat "\n" (List.map string_of_node n);;
 
 (* If r >= 4, then the dihedral sum is greater than 2 Pi *)
 
@@ -177,11 +177,11 @@ let filter_a = filter badvalues_a;;
 let tame_table_a_info() = 
   let n =  filter_a (filter1 (map fpqr pqrvalues )) in
     if (List.length n = 0) then "All a table values have been accounted for in informal lp tests"
-    else "Unaccounted for a values: \n" ^ join_lines (map string_of_node n);;
+    else "Unaccounted for a values: \n" ^ String.concat "\n" (List.map string_of_node n);;
 
 let execute() =
-  let s =   join_lines [tame_table_b_info();tame_table_a_info()] in
-  let _ =   report s in
+  let s = String.concat "\n" [tame_table_b_info();tame_table_a_info()] in
+  let _ = report s in
     s;;
 
 

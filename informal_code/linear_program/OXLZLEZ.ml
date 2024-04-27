@@ -136,10 +136,10 @@ let brx = modify_br "" (mk_br 4)   ["halfwt",1];;
 *) 
 
 let ampl_of_br outs br = 
-  let list_of = unsplit " " string_of_int in
+  let list_of = String.concat " " o List.map string_of_int in
   let p = sprintf in
   let mk s f = p"set %s := %s;" s (list_of f) in
-  let j = join_lines [
+  let j = String.concat "\n" [
     p"param CBLADE := %d;" br.cblade ;
     mk "SBLADERAW" br.sblade;
     mk "NONSBLADERAW" br.nonsblade;
@@ -340,7 +340,7 @@ let execute() =
   let t0 = nub (map test_structure (b4)) in
   let b4_info =  if (t0=[true]) then "blade 4 passes (ignoring cases with 4 blades, 3 quarters, 1 4-cell with wt 0.5)"
   else failwith "blade 4 fails in OXLZLEZ" in
-  let s =     join_lines [b3_info;b4_info] in
+  let s = String.concat "\n" [b3_info;b4_info] in
   let _ = report s in
     s;;
 

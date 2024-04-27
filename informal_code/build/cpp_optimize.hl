@@ -132,7 +132,7 @@ let cpp_of_fun to_string xlist s xs =
   let hd =  (cpp_fn_name s) in
   let arg_s = map (paren o to_string) arg in
   let p = if (length arg > 0) then paren else I in
-    (hd ^ " " ^ p(join_comma arg_s));;
+    (hd ^ " " ^ p(String.concat "," arg_s));;
 
 (* 2013-08-14, changed for AWS compiler. was interval::interval( ... ) *)
 let i_mk s = "interval("^quoted s ^")";;
@@ -176,13 +176,13 @@ let cpp_template_taylor c (i,s) = Printf.sprintf
 "       Function F%s%d = %s;" c i s;;
 
 let cpp_template_t c iis = 
-  join_lines 
-    (map (cpp_template_taylor c) (zip (1--(length iis)) iis));;
+  String.concat "\n"
+    (List.map (cpp_template_taylor c) (zip (1--(length iis)) iis));;
 
 let cpp_template_F c i = Printf.sprintf "&F%s%d" c i;;
 
-let cpp_template_Fc c len = join_comma 
-  (map (cpp_template_F c) (1-- len));;
+let cpp_template_Fc c len = String.concat ","
+  (List.map (cpp_template_F c) (1 -- len));;
 
 let rec delta126min = function 
     | [] -> -1.0
@@ -261,8 +261,8 @@ let mk_cpp_proc t s tags =
   let len = length iis in
   let sq = quoted s in
   let ver = (quoted(version())) in
-  let jaas = join_comma aas in
-  let jbbs = join_comma bbs in
+  let jaas = String.concat "," aas in
+  let jbbs = String.concat "," bbs in
     cpp_template_gen ver sq jaas jbbs (cpp_template_t "" iis) 
       len (cpp_template_Fc "" len) sharp  checkderiv others len;;
 
@@ -362,10 +362,10 @@ let mk_cppq_proc t s tags =
   let nth = List.nth in
   let a_part u = [nth u 0;nth u 1;nth u 2;nth u 3; nth u 4;nth u 5] in
   let b_part u = [nth u 6;nth u 1;nth u 2;nth u 3;nth u 7; nth u 8] in
-  let xA = join_comma(a_part xs) in
-  let xB = join_comma(b_part xs) in
-  let zA = join_comma(a_part zs) in
-  let zB = join_comma(b_part zs) in
+  let xA = String.concat "," (a_part xs) in
+  let xB = String.concat "," (b_part xs) in
+  let zA = String.concat "," (a_part zs) in
+  let zB = String.concat "," (b_part zs) in
   let opt_cross = 
     try 
       (  cde_template (cpp ( get_cross_diag_squared is9) ))
@@ -396,17 +396,17 @@ let tags = [Quad_cluster 3.0];;
 
 let tmpfile = flyspeck_dir^"/../informal_code/interval_code/test_auto.cc";;
 
-let cpp_header() = join_lines (load_file  (flyspeck_dir^"/../informal_code/interval_code/generic_head.txt"));;
+let cpp_header() = String.concat "\n" (load_file  (flyspeck_dir^"/../informal_code/interval_code/generic_head.txt"));;
 
-let cpp_tail() = join_lines (load_file  (flyspeck_dir^"/../informal_code/interval_code/generic_tail.txt"));;
+let cpp_tail() = String.concat "\n" (load_file  (flyspeck_dir^"/../informal_code/interval_code/generic_tail.txt"));;
 
 let mkfile_cpp  t s tags  = 
   output_filestring tmpfile 
-   (join_lines [cpp_header(); (mk_cpp_proc t s tags);cpp_tail()]);;
+   (String.concat "\n" [cpp_header(); (mk_cpp_proc t s tags);cpp_tail()]);;
 
 let mkfile_cppq  t s tags =
   output_filestring tmpfile 
-   (join_lines [cpp_header(); (mk_cppq_proc t s tags);cpp_tail()]);;
+   (String.concat "\n" [cpp_header(); (mk_cppq_proc t s tags);cpp_tail()]);;
 
 let compile_cpp = 
   let err = Filename.temp_file "cpp_err" ".txt" in

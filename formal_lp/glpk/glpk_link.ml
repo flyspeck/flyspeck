@@ -106,24 +106,7 @@ let wheremod xs x =
 wheremod [[0;1;2];[3;4;5];[7;8;9]] [8;9;7];;  (* 2 *)
 
 
-let unsplit = Flyspeck_lib.unsplit;;
-
 let nub = Flyspeck_lib.nub;;
-
-let join_lines = Flyspeck_lib.join_lines;;
-
-(*
-let rec nub = function
-  | [] -> []
-  | x::xs -> x::filter ((!=) x) (nub xs);;
-
-let unsplit d f = function
-  | (x::xs) ->  fold_left (fun s t -> s^d^(f t)) (f x) xs
-  | [] -> "";;
-
-let join_lines  = unsplit "\n" (fun x-> x);;
-*)
-
 
 (* read and write *)
 

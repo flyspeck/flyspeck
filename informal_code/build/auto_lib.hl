@@ -35,9 +35,6 @@ flyspeck_needs "nonlinear/function_list.hl";;
 
 module Auto_lib = struct
 
-  let join_comma = Flyspeck_lib.join_comma;;
-  let join_space = Flyspeck_lib.join_space;;
-  let join_lines = Flyspeck_lib.join_lines;;
   let functions = Function_list.functions();;
 
 let ocaml_code = 
@@ -46,18 +43,18 @@ let ocaml_code =
   let header = 
   "(* code automatically generated from Parse_ineq.ocaml_code *)\n\n"^
    "module Sphere2 = struct\n\n"^
-   "let sqrt = Pervasives.sqrt;;\n\n" ^
-   "let safesqrt = Pervasives.sqrt;;\n\n" ^
-   "let cos = Pervasives.cos;;\n\n" ^
-   "let sin = Pervasives.sin;;\n\n" ^
-   "let log = Pervasives.log;;\n\n" ^
-   "let asn = Pervasives.asin;;\n\n" ^
-   "let atn = Pervasives.atan;;\n\n" ^
+   "let sqrt = Stdlib.sqrt;;\n\n" ^
+   "let safesqrt = Stdlib.sqrt;;\n\n" ^
+   "let cos = Stdlib.cos;;\n\n" ^
+   "let sin = Stdlib.sin;;\n\n" ^
+   "let log = Stdlib.log;;\n\n" ^
+   "let asn = Stdlib.asin;;\n\n" ^
+   "let atn = Stdlib.atan;;\n\n" ^
     "let hminus = 1.2317544220903043901;;\n\n" ^
     "let pow2 x = x ** (2.0);;\n\n" in
   let tailer =    "end;;\n" in
     header ^
-   (Flyspeck_lib.join_lines (map ocam functions)) ^ tailer;;
+   (String.concat "\n" (List.map ocam functions)) ^ tailer;;
 
 
 (* Load module Sphere2 *)
@@ -100,7 +97,7 @@ let mk_testing_string thm =
     let split = Str.split (Str.regexp "[ \n]") in
     let r = hd (List.rev  (split s')) in
     let f = float_of_string r in
-    let _ = not(0=Pervasives.compare nan f) or failwith "nan" in
+    let _ = not(0=Stdlib.compare nan f) or failwith "nan" in
       f in
   let mk_string = 
     Printf.sprintf "  epsValue(\"%s\",%s,%12.12f);" name' cname evalname in
@@ -115,9 +112,9 @@ let mk_n_testing_string thm =
   let nargs = rarity - 7 in 
   let _ = (rarity >= 8) or failwith "mk_n_testing_string" in 
   let args = map (fun i -> 0.04 +. (float_of_int i)/. 10.0) (1--nargs) in 
-  let os = join_space (map (Printf.sprintf "%f") args) in
+  let os = String.concat " " (List.map (Printf.sprintf "%f") args) in
       (* was interval::interval(".."). Changed 2013/08/14. *)
-  let sargs = join_comma (map (Printf.sprintf "interval(\"%f\")") args) in
+  let sargs = String.concat "," (List.map (Printf.sprintf "interval(\"%f\")") args) in
   let cname = Lib.assocd name' native name' in
   let _ = not(cname="NOT_IMPLEMENTED") or failwith "mk_testing:excluded" in
   let evalname = 
@@ -127,7 +124,7 @@ let mk_n_testing_string thm =
     let split = Str.split (Str.regexp "[ \n]") in
     let r = hd (List.rev  (split s')) in
     let f = float_of_string r in
-    let _ = not(0=Pervasives.compare nan f) or failwith "nan" in
+    let _ = not(0=Stdlib.compare nan f) or failwith "nan" in
       f in
   let mk_string = 
     Printf.sprintf "  epsValue(\"%s\",%s(%s),%12.12f);" name' cname sargs evalname in
@@ -136,7 +133,7 @@ let mk_n_testing_string thm =
 let all_testing_string = 
   let can_test = filter (can  mk_testing_string) functions in
   let can_test_n = filter (can mk_n_testing_string) functions in
-    Flyspeck_lib.join_lines (
+    String.concat "\n" (
       (map mk_testing_string can_test) @ (map mk_n_testing_string can_test_n));;
 
 let testing_code = 
@@ -228,7 +225,7 @@ let f0_code =
     let warn = "// Warning: "^name'^" computed by floating point\n" in
     let r' =   float_of_string r in
       warn^(f0_template name' r') in
-    Flyspeck_lib.join_lines (map (f0_mk o ASSUME) f0_terms);;
+    String.concat "\n" (map (f0_mk o ASSUME) f0_terms);;
 
 let native_fun = Cpp_optimize.native_fun;;
 
@@ -309,7 +306,7 @@ let cpp_string_of_term =
 		   if (xs=[]) then paren name else
 		     let p = if (List.length xs = 1 && is_comma (hd xs))
 		     then I else paren in
-		     let args = p (join_comma (map soh xs)) in
+		     let args = p (String.concat "," (List.map soh xs)) in
 		       paren (name^args)) in
     fun t -> 
       try (soh t) 
@@ -331,7 +328,7 @@ let f6_code =
     let name' = fst (strip_comb name1) in
     let name' = fst (dest_const name') in
       f6_template name' (cpp_string_of_term body') in
-    join_lines (map f6_mk f6_auto);;
+    String.concat "\n" (map f6_mk f6_auto);;
 
 let fn_code = 
   let fn_template = Printf.sprintf
@@ -347,10 +344,10 @@ let fn_code =
   let fn_mk tt = 
     let (name1,body') = break_term tt in
     let (name',args) =  (strip_comb name1) in
-    let ags = join_comma (map (fn_arg_template o fst o dest_var) args) in
+    let ags = String.concat "," (List.map (fn_arg_template o fst o dest_var) args) in
     let name' = fst (dest_const name') in
       fn_template name' ags (cpp_string_of_term body') in
-    join_lines (map fn_mk fn_auto);;
+    String.concat "\n" (map fn_mk fn_auto);;
 
 (* make 6 to 6 *)
 
@@ -370,7 +367,7 @@ let f6to6_mk tt =
   let param = fst (dest_var (hd param)) in
     f6to6_template name' param (cpp_string_of_term body');;  
 
-let f6to6_code = join_lines (map f6to6_mk f6to6_terms);;
+let f6to6_code = String.concat "\n" (map f6to6_mk f6to6_terms);;
 
 
  end;;

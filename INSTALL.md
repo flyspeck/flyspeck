@@ -1,31 +1,30 @@
 # Step by Step Installation Guide
 
-## Ocaml
+This guide was tested with [OCaml 4.14.2](#ocaml-4142) and [OCaml 4.07.1](#ocaml-4071) on Ubuntu 22.04.2.
 
-1) Install [OPAM](https://opam.ocaml.org/doc/Install.html)
+## Ocaml 4.14.2
 
-2) Install [OCaml](https://ocaml.org/docs/install.html#OPAM).
-   This guide was tested with OCaml 4.04.2.
+1) Install [opam](https://ocaml.org/docs/installing-ocaml#1-install-opam)
 
-    ```
-    opam init
-    eval `opam env`
-    opam switch create 4.04.2
-    eval `opam env`
-    ```
-
-    Note: if your OPAM version is < 2 then the commands are different:
+2) Install [OCaml](https://ocaml.org/docs/installing-ocaml#installing-ocaml)
 
     ```
-    opam init
-    eval `opam config env`
-    opam switch 4.04.2
-    eval `opam config env`
+    opam init -y
+    eval $(opam env)
+    opam switch create 4.14.2
+    eval $(opam env)
+    ```
+
+3) Install additional HOL Light dependencies
+
+    ```
+    opam install zarith
     ```
 
 4) Install Camlp5:
 
     ```
+    opam pin -y add camlp5 8.02.01
     opam install camlp5
     ```
 
@@ -38,10 +37,39 @@
     #quit;;
     ```
 
-6) If the installed OCaml version is >= 4.06 then it is necessary to install the OCaml Num library:
+## Ocaml 4.07.1
+
+1) Install [opam](https://ocaml.org/docs/installing-ocaml#1-install-opam)
+
+2) Install [OCaml](https://ocaml.org/docs/installing-ocaml#installing-ocaml)
 
     ```
-    opam install num
+    opam init -y
+    eval $(opam env)
+    opam switch create 4.07.1
+    eval $(opam env)
+    ```
+
+3) Install additional HOL Light and Flyspeck dependencies
+
+    ```
+    opam install num stdlib-shims
+    ```
+
+4) Install Camlp5:
+
+    ```
+    opam pin -y add camlp5 7.10
+    opam install camlp5
+    ```
+
+5) Verify that OCaml and Camlp5 are successfully installed:
+
+    ```
+    which ocaml
+    which camlp5
+    ocaml -I `camlp5 -where`
+    #quit;;
     ```
 
 ## HOL Light
@@ -53,11 +81,11 @@
     ```
 
 2) The most recent version of HOL Light may be incompatible with Flyspeck. 
-   The latest tested version of HOL Light is the commit `e701cb5292a4c6cf269ebb8490700de095e48a94`
+   The latest tested version of HOL Light is the commit `d8366986e22555c4e4c8ff49667d646d15c35f14`
 
    ```
    cd hol-light
-   git checkout e701cb5292a4c6cf269ebb8490700de095e48a94
+   git checkout d836698
    ```
 
 3) Initialize HOL Light
@@ -67,7 +95,7 @@
     make
     ```
 
-    If you get any errors here then try different versions of OCaml and Camlp5. The tested OCaml version is 4.04.2 and the tested Camlp5 version is 7.06.
+    If you get any errors here then make sure that a correct version of Camlp5 is used.
 
 ## Flyspeck
 
@@ -80,7 +108,7 @@
 2) Skip this step if you don't need to load serialized nonlinear inequalities.
 
    The current Flyspeck version is compatible with the commit
-   `e701cb5292a4c6cf269ebb8490700de095e48a94` of HOL Light.
+   `d8366986e22555c4e4c8ff49667d646d15c35f14` of HOL Light.
    This version of HOL Light is incompatible with serialized Flyspeck nonlinear inequalities.
    If you want to load serialized nonlinear inequalities, then use the following HOL Light commit
 
@@ -100,10 +128,7 @@
 
 ## Loading Flyspeck
 
-1) Copy `flyspeck/load_flyspeck.ml` to the HOL Light directory (alternatively,
-   provide a full path to `load_flyspeck.ml` when it is loaded in HOL Light).
-   
-   Open the copy and edit the paths to Flyspeck and HOL Light directories.
+1) Edit the paths to Flyspeck and HOL Light directories in `flyspeck/load_flyspeck.ml`.
    Change these lines:
 
     ```
@@ -111,12 +136,11 @@
     let hollight_dir = "/home/user/hol-light";;
     ```
 
-2) Load HOL Light
+2) Run `{path to HOL Light}/hol.sh` from the Flyspeck directory.
 
     ```
-    cd hol-light
-    ocaml -I `camlp5 -where`
-    #use "hol.ml";;
+    cd flyspeck
+    {path to HOL Light}/hol.sh
     ```
 
 3) Wait until HOL Light is loaded and then initialize Flyspeck
@@ -156,7 +180,7 @@
 
 ## [Optional] Checkpointing with DMTCP
 
-1) Install [DMTCP](http://dmtcp.sourceforge.net/downloads.html)
+1) Install [DMTCP](https://github.com/dmtcp/dmtcp/blob/master/INSTALL.md)
 
 2) Run `dmtcp_coordinator` in a terminal window.
 
@@ -164,8 +188,7 @@
 
     ```
     cd hol-light
-    dmtcp_launch ocaml -I `camlp -where`
-    #use "hol.ml";;
+    dmtcp_launch ./hol.sh
     ```
 
 4) When HOL Light is loaded, type `c` and press `ENTER` in the `dmtcp_coordinator` window.

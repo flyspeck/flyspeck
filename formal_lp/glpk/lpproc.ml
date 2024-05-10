@@ -92,7 +92,7 @@ let order_list (h,xs) =
   let fl = flatten xs in
   let count k = length (filter ((=) k) fl) in
   let mc rs = maxlist0 (map count rs) in
-  let sortfn a b = compare (mc b) (mc a) in
+  let sortfn a b = Stdlib.compare (mc b) (mc a) in
   let r k = filter (fun x -> length x = k) xs in
   let f k = sort sortfn (r k) in
    (h,f 6 @ f 4 @ f 5 @ f 3);;
@@ -305,17 +305,17 @@ let ampl_of_bb outs bb =
   let fs = faces bb in
   let where3 = wheremod fs in
   let number = map where3 in
-  let list_of = unsplit " " string_of_int in
+  let list_of = String.concat " " o List.map string_of_int in
   let mk_faces xs = list_of (number xs) in
   let e_dart_raw  = 
     map triples fs in
   let e_dart =
-    let edata_row (i,x) = (sprintf "(*,*,*,%d) " i)^(unsplit ", " list_of x) in
-      unsplit "\n" edata_row (enumerate e_dart_raw) in 
+    let edata_row (i,x) = (sprintf "(*,*,*,%d) " i)^(String.concat ", " (List.map list_of x)) in
+      String.concat "\n" (List.map edata_row (enumerate e_dart_raw)) in 
   let mk_dart xs = sprintf "%d %d" (hd xs) (wheretriplemod fs xs) in
-  let mk_darts xs = (unsplit ", " mk_dart xs) in
+  let mk_darts xs = String.concat ", " (List.map mk_dart xs) in
   let p = sprintf in
-  let j = join_lines [
+  let j = String.concat "\n" [
     p"param card_node := %d;" (card_node bb) ;
     p"param hypermap_id := %s;" bb.hypermap_id ; 
     p"param card_face := %d;\n" (card_face bb);

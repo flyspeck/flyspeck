@@ -9,77 +9,24 @@
 
 (* This file contains Ocaml library functions *)
 
+(* Load `eval_command` *)
+(* Example: eval_command ~silent:false "g `x=y`";; *)
+(* Note: eval_command is not used by any formalization files *)
+needs (String.concat "/" ["general"; if version_ge_4_14 then "flyspeck_eval_4.14.hl" else "flyspeck_eval.hl"]);;
 
 module Flyspeck_lib = struct
 
-
-(*
-eval_command comes from
-
-http://solaria.dimino.org/cgi-bin/darcsweb.cgi?r=peps;a=headblob;f=/src/core/peps_top.ml
-License: BSD3
-
-If the expression is syntactically correct 
-and the evaluation raises an exception, then the return value is true.
-*)
-
-
-let eval_command ?(silent=false) command =
-   let buffer = Buffer.create 512 in
-   let pp = Format.formatter_of_buffer buffer in
-   Format.pp_set_margin pp max_int;
-   try
-     let _ =
-       Toploop.execute_phrase (not silent) pp
-         (!Toploop.parse_toplevel_phrase (Lexing.from_string (command ^ ";;")))
-     in
-     (true, Buffer.contents buffer)
-   with exn ->
-     let save = !Toploop.parse_use_file in
-     Toploop.parse_use_file := (fun _ -> raise exn);
-     Pervasives.ignore (Toploop.use_silently pp "/dev/null");
-     Toploop.parse_use_file := save;
-     (false,  Buffer.contents buffer);;
-
-(* eval_command ~silent:false "g `x=y`";; *)
-
+include Flyspeck_eval;;
 
 (* process_to_string in strictbuild.hl *)
-
 let version() = "ver-0000";;
 
 
 (* duplicated code *)
-let unsplit d f = function
-  | (x::xs) ->  List.fold_left (fun s t -> s^d^(f t)) (f x) xs
-  | [] -> "";;
-
-(*
-let join_comma  = unsplit "," (fun x-> x);;
-
-let join_lines  = unsplit "\n" (fun x-> x);;
-
-let join_space  = unsplit " " (fun x-> x);;
-*)
-
-let join_comma = String.concat ",";;
-
-let join_lines = String.concat "\n";;
-
-let join_space = String.concat " ";;
 
 let rec nub = function 
   | [] -> []
   | x::xs -> x::filter ((<>) x) (nub xs);;
-
-let rec trim s = 
-  let white c = mem c [' '; '\012'; '\n'; '\r'; '\t'] in
-  let n = String.length s in
-  let subs k = String.sub s k (n-1) in
-    if (n > 0 && white (s.[0])) then trim (subs 1)
-    else if (n > 1 && white (s.[n-1])) then trim (subs 0)
-    else s;;
-
 
 (* duplicated code *)
 
@@ -96,29 +43,23 @@ let output_filestring tmpfile a =
 let load_and_close_channel do_close ic = 
   let rec lf ichan a = 
     try
-      lf ic (Pervasives.input_line ic::a)
+      lf ic (Stdlib.input_line ic::a)
     with End_of_file -> a in
     let rs = lf ic [] in
-      if do_close then Pervasives.close_in ic else ();
+      if do_close then Stdlib.close_in ic else ();
       rev rs;;
 
 let load_and_close_channel_true ic = 
   let rec lf ichan a = 
     try
-      lf ic (Pervasives.input_line ic::a)
-    with End_of_file -> a | _ as t -> (Pervasives.close_in ic; raise t) in
+      lf ic (Stdlib.input_line ic::a)
+    with End_of_file -> a | _ as t -> (Stdlib.close_in ic; raise t) in
     let rs = lf ic [] in
-    let _ = Pervasives.close_in ic in
+    let _ = Stdlib.close_in ic in
       rev rs;;
 
 let load_file filename = 
-  let ic = Pervasives.open_in filename in load_and_close_channel_true ic;;
-
-
-
-(* deprecated
-let print_string_as_text  = report;;
-*)
+  let ic = Stdlib.open_in filename in load_and_close_channel_true ic;;
 
 let exists_pgm s = 
   let com = "command -v " ^ s in 

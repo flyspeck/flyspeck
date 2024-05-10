@@ -2,7 +2,7 @@
 
 module Sphere_math = struct
 
-let sqrt = Pervasives.sqrt
+let sqrt = Stdlib.sqrt
 
 let pi = 4.0 *. atan(1.0);;
 let  sqrt2   =  sqrt (2.) ;;

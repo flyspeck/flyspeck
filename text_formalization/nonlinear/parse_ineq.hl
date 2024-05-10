@@ -47,12 +47,6 @@ let dest_decimal = Flyspeck_lib.dest_decimal;;
 
 let string_of_num' = Flyspeck_lib.string_of_num';;
 
-let join_comma  = Flyspeck_lib.join_comma;;
-
-let join_lines  = Flyspeck_lib.join_lines;;
-
-let join_space  = Flyspeck_lib.join_space;;
-
 let paren s =  "("^ s ^")";;
 
 let nub = Flyspeck_lib.nub;;
@@ -112,7 +106,7 @@ let c_string_of_term t =
 	      let [ab] = xs in 
 	      let (a,b) = dest_pair ab in  
 		paren("atn2( " ^ soh a ^ "," ^ soh b ^ ")")
-	  | s -> paren(s ^  "(" ^ join_comma(map soh xs) ^ ")") in
+	  | s -> paren(s ^  "(" ^ String.concat "," (List.map soh xs) ^ ")") in
    (* c_string_of_term: *)
     try 
       soh t
@@ -298,12 +292,12 @@ let prep_term t =
 
 let cc_function t = 
   let args xs = 
-    let ls = map (fun s -> "double "^s) xs in join_comma ls in
+    let ls = List.map (fun s -> "double "^s) xs in String.concat "," ls in
   let (lhs,rhs) = dest_eq (prep_term t) in
   let (f,xs) = strip_comb lhs in
-  let ss = map c_string_of_term xs in
+  let ss = List.map c_string_of_term xs in
   let p = Printf.sprintf in
-  let s = join_lines [
+  let s = String.concat "\n" [
      p"double %s(" (fst (dest_const f)); args ss;
      p") { \nreturn ( %s ); \n}\n\n"  (c_string_of_term rhs);
      ]
@@ -331,14 +325,14 @@ let case p i j =
   Printf.sprintf "case %d: *ret = (%s) - (%s); break;" j (List.nth i j) p;;
 
 let vardecl y vs = 
-  let varname = map (fun (a,b,c) -> b) vs in
+  let varname = List.map (fun (a,b,c) -> b) vs in
   let nvs = List.length vs in
   let  v j = Printf.sprintf "double %s = %s[%d];"   (List.nth varname j) y j in
-    join_lines (map v (0-- (nvs-1)));;
+    String.concat "\n" (List.map v (0-- (nvs-1)));;
 
 let bounds f vs = 
-  let lbs = map f vs in
-  join_comma lbs;;
+  let lbs = List.map f vs in
+  String.concat "," lbs;;
 
 let rec geteps = 
   let getepsf = function
@@ -422,7 +416,7 @@ let cc_code outs iqd =
   let ni = List.length i in
   let y = "y_mangle__" in 
   let p = Printf.sprintf in
-  let s = join_lines ([
+  let s = String.concat "\n" ([
     p"// This code is machine generated ";
     p"#include <iomanip.h>\n#include <iostream.h>\n#include <math.h>";
     p"#include \"../Minimizer.h\"\n#include \"../numerical.h\"";
@@ -430,7 +424,7 @@ let cc_code outs iqd =
     p"class trialdata { public: trialdata(Minimizer M,char* s)";
     p"{ M.coutReport(s); };};";
     p"int trialcount = %d;\n"  (!cfsqp_trialcount);
-    join_lines(map cc_function (!autogen));
+    String.concat "\n" (List.map cc_function (!autogen));
     p"void c0(int numargs,int whichFn,double* %s, double* ret,void*) {" y; 
     vardecl y vs ;
     p"switch(whichFn) {";
@@ -586,7 +580,7 @@ let test_domain_symmetry idq =
 let lpstring() = 
   let _ = counter_reset() in
   let _ = map test_domain_symmetry (Ineq.getfield Lpsymmetry) in
-  join_lines 
+  String.concat "\n" 
     (("# File automatically generated from nonlinear inequality list "^
        "via lpstring().\n\n") ::
     (map (mk_glpk_ineq false) (Ineq.getfield Lp)) @
@@ -648,11 +642,11 @@ let ocaml_string_of_term t =
 	      "atan2 " ^ paren(soh b) ^ " " ^ paren(soh a) ^ "  "  
 		(* note reverse order atan2 in ocaml *) 
 	  | "domain6" -> let [h;f;g] = xs in domain6 soh h f g
-	  | s -> " " ^ s ^ " " ^ join_space(map (paren o soh) xs) ^ " " 
+	  | s -> " " ^ s ^ " " ^ String.concat " " (List.map (paren o soh) xs) ^ " " 
   and domain6 soh h f g = 
     let (hv,hbody) = strip_abs h in
     let (f1,xs) = strip_comb f in
-    let vs a = join_space (map (fst o dest_var) a) in
+    let vs a = String.concat " " (List.map (fst o dest_var) a) in
     let hbodys = soh hbody in
     let fs = fst(dest_const f1) in
     let gs = soh g in
@@ -675,9 +669,9 @@ let ocaml_autogen = map
 let ocaml_code = 
   "(* code automatically generated from Parse_ineq.ocaml_code *)\n\n"^
    "module Sphere_math = struct\n\n"^
-   "let sqrt = Pervasives.sqrt\n\n" ^
+   "let sqrt = Stdlib.sqrt\n\n" ^
    "let pi = 4.0 *. atan(1.0);;\n" ^
-   (join_lines (map ocaml_function ocaml_autogen)) ^
+   (String.concat "\n" (List.map ocaml_function ocaml_autogen)) ^
    "end;;\n";;
 
 let sphere_ml = Filename.temp_file "sphere_math" ".ml";; 
@@ -694,7 +688,7 @@ let mk_texstring (tm,idv,s) = match tm with
   | Comment -> "\\begin{remark}["^idv^"]\n"^s^"\n\\end{remark}\n"
   | Ineqdoc -> "\\begin{calculation}["^idv^"]\n"^s^"\n\\end{calculation}\n";;
 
-let texstring() = join_lines (map mk_texstring (List.rev (!Ineq.ineqdoc)));;
+let texstring() = String.concat "\n" (List.map mk_texstring (List.rev (!Ineq.ineqdoc)));;
 
 (*
 output_filestring "/tmp/ineqdoc.tex" (texstring());;

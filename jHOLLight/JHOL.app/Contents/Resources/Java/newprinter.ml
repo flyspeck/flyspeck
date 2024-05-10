@@ -218,9 +218,9 @@ match snd(get_infix_status s) with
 (* num -> bool                                                               *)
 (* ------------------------------------------------------------------------- *)
 let rec power_of_10 n =
-if abs_num n </ Int 1 then false
-else if n =/ Int 1 then true
-else power_of_10 (n // Int 10);;
+if abs_num n </ num 1 then false
+else if n =/ num 1 then true
+else power_of_10 (n // num 10);;
 
 (* ------------------------------------------------------------------------- *)
 (* term -> bool           converts bool term to ocaml bool                   *)
@@ -456,7 +456,7 @@ let s_den = implode(
 		    tl(explode(string_of_num
 			       (n_den +/ (mod_num n_num n_den))))) in
 pp_print_string fmt(
-		    "#"^s_num^(if n_den = Int 1 then "" else ".")^s_den);
+		    "#"^s_num^(if n_den = num 1 then "" else ".")^s_den);
 close_tag();
 end;
 |Match ->

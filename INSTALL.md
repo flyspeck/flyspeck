@@ -24,7 +24,7 @@ This guide was tested with [OCaml 4.14.2](#ocaml-4142) and [OCaml 4.07.1](#ocaml
 4) Install Camlp5:
 
     ```
-    opam pin -y add camlp5 8.02
+    opam pin -y add camlp5 8.02.01
     opam install camlp5
     ```
 
@@ -37,7 +37,7 @@ This guide was tested with [OCaml 4.14.2](#ocaml-4142) and [OCaml 4.07.1](#ocaml
     #quit;;
     ```
 
-## Ocaml 4.07.1.
+## Ocaml 4.07.1
 
 1) Install [opam](https://ocaml.org/docs/installing-ocaml#1-install-opam)
 
@@ -81,12 +81,11 @@ This guide was tested with [OCaml 4.14.2](#ocaml-4142) and [OCaml 4.07.1](#ocaml
     ```
 
 2) The most recent version of HOL Light may be incompatible with Flyspeck. 
-   The latest tested version of HOL Light is the commit `db271ab4ff04d3c47a70298b8f66c9dd50f288f5`
-   **TODO: update this commite after the Formal_ineqs PR is merged**
+   The latest tested version of HOL Light is the commit `d8366986e22555c4e4c8ff49667d646d15c35f14`
 
    ```
    cd hol-light
-   git checkout db271ab
+   git checkout d836698
    ```
 
 3) Initialize HOL Light
@@ -109,7 +108,7 @@ This guide was tested with [OCaml 4.14.2](#ocaml-4142) and [OCaml 4.07.1](#ocaml
 2) Skip this step if you don't need to load serialized nonlinear inequalities.
 
    The current Flyspeck version is compatible with the commit
-   `e701cb5292a4c6cf269ebb8490700de095e48a94` of HOL Light.
+   `d8366986e22555c4e4c8ff49667d646d15c35f14` of HOL Light.
    This version of HOL Light is incompatible with serialized Flyspeck nonlinear inequalities.
    If you want to load serialized nonlinear inequalities, then use the following HOL Light commit
 

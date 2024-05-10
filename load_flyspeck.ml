@@ -1,8 +1,8 @@
 #load "unix.cma";;
 
 (* Edit these paths *)
-let flyspeck_dir = "/home/monad/work/git/forks/flyspeck/text_formalization";;
-let hollight_dir = "/home/monad/work/git/forks/hol-light";;
+let flyspeck_dir = "/home/user/flyspeck/text_formalization";;
+let hollight_dir = "/home/user/hol-light";;
 
 let () = Unix.putenv "FLYSPECK_DIR" flyspeck_dir;;
 let () = Unix.putenv "HOLLIGHT_DIR" hollight_dir;;

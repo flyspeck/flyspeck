@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> The most recent version of the Flyspeck project, updated to work with current versions of OCaml and HOL Light, is maintained at **[https://github.com/hol-light-family/Flyspeck](https://github.com/hol-light-family/Flyspeck)**.
+
 # The Flyspeck Project
 
 Welcome to the Flyspeck project, which gives a formal proof of the Kepler conjecture
